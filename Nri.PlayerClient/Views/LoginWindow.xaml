@@ -1,0 +1,13 @@
+<Window x:Class="Nri.PlayerClient.Views.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Player Login" Height="260" Width="420">
+    <Grid Margin="16">
+        <StackPanel>
+            <TextBlock Text="Player Client Login" FontSize="20" Margin="0,0,0,8" />
+            <TextBox Margin="0,0,0,8" Text="{Binding Login}" />
+            <PasswordBox Margin="0,0,0,8" />
+            <Button Content="Login" Height="32" />
+        </StackPanel>
+    </Grid>
+</Window>
