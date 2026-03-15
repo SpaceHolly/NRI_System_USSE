@@ -76,6 +76,13 @@ public class AdminMainViewModel : ViewModelBase
         AcquireClassNodeCommand = new RelayCommand(AcquireClassNode);
         LoadSkillsCommand = new RelayCommand(LoadSkills);
         AcquireSkillCommand = new RelayCommand(AcquireSkill);
+        ChatSendCommand = new RelayCommand(ChatSend);
+        ChatRefreshCommand = new RelayCommand(ChatRefresh);
+        ChatMuteUserCommand = new RelayCommand(ChatMuteUser);
+        ChatUnmuteUserCommand = new RelayCommand(ChatUnmuteUser);
+        ChatLockPlayersCommand = new RelayCommand(ChatLockPlayers);
+        ChatUnlockPlayersCommand = new RelayCommand(ChatUnlockPlayers);
+        ChatSetSlowModeCommand = new RelayCommand(ChatSetSlowMode);
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _poller.Tick += (_, _) => RefreshAll();
@@ -98,6 +105,15 @@ public class AdminMainViewModel : ViewModelBase
     public string SelectedClassNodeId { get; set; } = string.Empty;
     public string SelectedSkillId { get; set; } = string.Empty;
     public string DefinitionVersionText { get; set; } = string.Empty;
+    public string ChatSessionId { get; set; } = "default";
+    public string ChatMessageText { get; set; } = string.Empty;
+    public string ChatMessageType { get; set; } = "Public";
+    public string ChatModerationUserId { get; set; } = string.Empty;
+    public string ChatModerationReason { get; set; } = string.Empty;
+    public int ChatSlowPublicSeconds { get; set; }
+    public int ChatSlowHiddenSeconds { get; set; }
+    public int ChatSlowAdminOnlySeconds { get; set; }
+    public string ChatUnreadText { get; set; } = string.Empty;
 
     public string EditName { get; set; } = string.Empty;
     public string EditRace { get; set; } = string.Empty;
@@ -136,6 +152,8 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> CombatHistoryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> ClassTreeRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> SkillStateRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> ChatRestrictionRows { get; } = new ObservableCollection<string>();
 
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
@@ -166,6 +184,13 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand AcquireClassNodeCommand { get; }
     public ICommand LoadSkillsCommand { get; }
     public ICommand AcquireSkillCommand { get; }
+    public ICommand ChatSendCommand { get; }
+    public ICommand ChatRefreshCommand { get; }
+    public ICommand ChatMuteUserCommand { get; }
+    public ICommand ChatUnmuteUserCommand { get; }
+    public ICommand ChatLockPlayersCommand { get; }
+    public ICommand ChatUnlockPlayersCommand { get; }
+    public ICommand ChatSetSlowModeCommand { get; }
 
     private void Login()
     {
@@ -197,6 +222,7 @@ public class AdminMainViewModel : ViewModelBase
                 LoadClassTree();
                 LoadSkills();
             }
+            ChatRefresh();
             ConnectionState = "Онлайн";
             Notify(nameof(ConnectionState));
         }
@@ -485,6 +511,70 @@ public class AdminMainViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedSkillId)) return;
         _api.SkillsAcquire(SelectedCharacterId, SelectedSkillId);
         LoadSkills();
+    }
+
+
+    private void ChatSend()
+    {
+        if (string.IsNullOrWhiteSpace(ChatMessageText)) return;
+        _api.ChatSend(ChatSessionId, ChatMessageType, ChatMessageText);
+        ChatMessageText = string.Empty;
+        Notify(nameof(ChatMessageText));
+        ChatRefresh();
+    }
+
+    private void ChatRefresh()
+    {
+        ChatRows.Clear();
+        var history = _api.ChatHistoryGet(ChatSessionId, 80);
+        if (history.Status == ResponseStatus.Ok && history.Payload.ContainsKey("items"))
+        {
+            foreach (var item in ToList(history.Payload["items"]))
+            {
+                if (item is not Dictionary<string, object> m) continue;
+                ChatRows.Add($"{S(m, "createdUtc")} | {S(m, "type")} | {S(m, "senderDisplayName")}: {S(m, "text")}");
+            }
+        }
+
+        var unread = _api.ChatUnreadGet(ChatSessionId);
+        ChatUnreadText = "Unread: " + S(unread.Payload, "count");
+        Notify(nameof(ChatUnreadText));
+
+        var slow = _api.ChatSlowModeGet(ChatSessionId);
+        ChatSlowPublicSeconds = int.TryParse(S(slow.Payload, "publicSeconds"), out var ps) ? ps : 0;
+        ChatSlowHiddenSeconds = int.TryParse(S(slow.Payload, "hiddenToAdminsSeconds"), out var hs) ? hs : 0;
+        ChatSlowAdminOnlySeconds = int.TryParse(S(slow.Payload, "adminOnlySeconds"), out var a) ? a : 0;
+        Notify(nameof(ChatSlowPublicSeconds)); Notify(nameof(ChatSlowHiddenSeconds)); Notify(nameof(ChatSlowAdminOnlySeconds));
+
+        ChatRestrictionRows.Clear();
+        var restrictions = _api.ChatRestrictionsGet(ChatSessionId);
+        ChatRestrictionRows.Add("LockPlayers=" + S(restrictions.Payload, "lockPlayers"));
+        foreach (var item in ToList(restrictions.Payload.ContainsKey("restrictions") ? restrictions.Payload["restrictions"] : new ArrayList()))
+            if (item is Dictionary<string, object> m)
+                ChatRestrictionRows.Add($"{S(m, "userId")} muted={S(m, "muted")} reason={S(m, "reason")}");
+    }
+
+    private void ChatMuteUser()
+    {
+        if (string.IsNullOrWhiteSpace(ChatModerationUserId)) return;
+        _api.ChatRestrictionsMuteUser(ChatSessionId, ChatModerationUserId, ChatModerationReason);
+        ChatRefresh();
+    }
+
+    private void ChatUnmuteUser()
+    {
+        if (string.IsNullOrWhiteSpace(ChatModerationUserId)) return;
+        _api.ChatRestrictionsUnmuteUser(ChatSessionId, ChatModerationUserId);
+        ChatRefresh();
+    }
+
+    private void ChatLockPlayers() { _api.ChatRestrictionsLockPlayers(ChatSessionId); ChatRefresh(); }
+    private void ChatUnlockPlayers() { _api.ChatRestrictionsUnlockPlayers(ChatSessionId); ChatRefresh(); }
+
+    private void ChatSetSlowMode()
+    {
+        _api.ChatSlowModeSet(ChatSessionId, ChatSlowPublicSeconds, ChatSlowHiddenSeconds, ChatSlowAdminOnlySeconds);
+        ChatRefresh();
     }
 
     private void ApproveRequest()

@@ -122,6 +122,21 @@ public static class ServiceRegistry
 
         dispatcher.Register(CommandNames.PresenceList, new DelegateCommandHandler(hub.PresenceList));
 
+        dispatcher.Register(CommandNames.ChatSend, new DelegateCommandHandler(hub.ChatSend));
+        dispatcher.Register(CommandNames.ChatHistoryGet, new DelegateCommandHandler(hub.ChatHistoryGet));
+        dispatcher.Register(CommandNames.ChatHistoryLoadMore, new DelegateCommandHandler(hub.ChatHistoryLoadMore));
+        dispatcher.Register(CommandNames.ChatVisibleFeed, new DelegateCommandHandler(hub.ChatVisibleFeed));
+        dispatcher.Register(CommandNames.ChatMarkRead, new DelegateCommandHandler(hub.ChatMarkRead));
+        dispatcher.Register(CommandNames.ChatUnreadGet, new DelegateCommandHandler(hub.ChatUnreadGet));
+
+        dispatcher.Register(CommandNames.ChatSlowModeGet, new DelegateCommandHandler(hub.ChatSlowModeGet));
+        dispatcher.Register(CommandNames.ChatSlowModeSet, new DelegateCommandHandler(hub.ChatSlowModeSet));
+        dispatcher.Register(CommandNames.ChatRestrictionsGet, new DelegateCommandHandler(hub.ChatRestrictionsGet));
+        dispatcher.Register(CommandNames.ChatRestrictionsMuteUser, new DelegateCommandHandler(hub.ChatRestrictionsMuteUser));
+        dispatcher.Register(CommandNames.ChatRestrictionsUnmuteUser, new DelegateCommandHandler(hub.ChatRestrictionsUnmuteUser));
+        dispatcher.Register(CommandNames.ChatRestrictionsLockPlayers, new DelegateCommandHandler(hub.ChatRestrictionsLockPlayers));
+        dispatcher.Register(CommandNames.ChatRestrictionsUnlockPlayers, new DelegateCommandHandler(hub.ChatRestrictionsUnlockPlayers));
+
         dispatcher.Register(CommandNames.LockAcquire, new DelegateCommandHandler(hub.LockAcquire));
         dispatcher.Register(CommandNames.LockRelease, new DelegateCommandHandler(hub.LockRelease));
         dispatcher.Register(CommandNames.LockForceRelease, new DelegateCommandHandler(hub.LockForceRelease));

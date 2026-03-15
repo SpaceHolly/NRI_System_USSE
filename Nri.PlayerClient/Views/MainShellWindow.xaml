@@ -98,6 +98,23 @@
                     <ItemsControl ItemsSource="{Binding DiceFeed}"/>
                 </StackPanel>
             </TabItem>
+
+            <TabItem Header="SessionChatView">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBox Width="140" Text="{Binding ChatSessionId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <TextBox Width="140" Text="{Binding ChatTypeInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <Button Content="Refresh" Command="{Binding ChatRefreshCommand}" Margin="0,0,6,0"/>
+                        <TextBlock Text="{Binding ChatUnreadText}" VerticalAlignment="Center" FontWeight="Bold"/>
+                    </WrapPanel>
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBox Width="560" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <Button Content="Send" Command="{Binding ChatSendCommand}"/>
+                    </WrapPanel>
+                    <ListBox ItemsSource="{Binding ChatRows}" Height="360"/>
+                </StackPanel>
+            </TabItem>
+
             <TabItem Header="Combat">
                 <StackPanel Margin="8">
                     <WrapPanel>

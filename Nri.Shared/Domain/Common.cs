@@ -322,12 +322,54 @@ public enum ChatModerationState
     Removed
 }
 
+public class ChatReadState : EntityBase
+{
+    public string SessionId { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public DateTime? LastReadMessageUtc { get; set; }
+    public string LastReadMessageId { get; set; } = string.Empty;
+}
+
+public class ChatRestrictionEntry
+{
+    public string UserId { get; set; } = string.Empty;
+    public bool Muted { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string ChangedByUserId { get; set; } = string.Empty;
+    public DateTime ChangedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+public class ChatSlowModeSettings
+{
+    public int PublicSeconds { get; set; }
+    public int HiddenToAdminsSeconds { get; set; }
+    public int AdminOnlySeconds { get; set; }
+}
+
+public class SessionChatSettings : EntityBase
+{
+    public string SessionId { get; set; } = string.Empty;
+    public bool LockPlayers { get; set; }
+    public ChatSlowModeSettings SlowMode { get; set; } = new ChatSlowModeSettings();
+    public List<ChatRestrictionEntry> Restrictions { get; set; } = new List<ChatRestrictionEntry>();
+}
+
+public class ChatUserThrottleState : EntityBase
+{
+    public string SessionId { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public ChatMessageType MessageType { get; set; }
+    public DateTime LastSentUtc { get; set; }
+}
+
 public class ChatMessage : EntityBase
 {
     public string SessionId { get; set; } = string.Empty;
     public string SenderUserId { get; set; } = string.Empty;
+    public string SenderDisplayName { get; set; } = string.Empty;
     public string Text { get; set; } = string.Empty;
     public ChatMessageType MessageType { get; set; }
+    public string VisibilityChannel { get; set; } = string.Empty;
     public ChatModerationState ModerationState { get; set; } = ChatModerationState.Active;
     public List<string> ReadByUserIds { get; set; } = new List<string>();
 }

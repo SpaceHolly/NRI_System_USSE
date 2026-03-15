@@ -126,6 +126,22 @@ public static class CommandNames
     public const string AdminSkillsSetState = "admin.skills.setState";
     public const string AdminCharacterProgressRecalculate = "admin.character.progress.recalculate";
 
+
+    public const string ChatSend = "chat.send";
+    public const string ChatHistoryGet = "chat.history.get";
+    public const string ChatHistoryLoadMore = "chat.history.loadMore";
+    public const string ChatVisibleFeed = "chat.visibleFeed";
+    public const string ChatMarkRead = "chat.markRead";
+    public const string ChatUnreadGet = "chat.unread.get";
+
+    public const string ChatSlowModeGet = "chat.slowMode.get";
+    public const string ChatSlowModeSet = "chat.slowMode.set";
+    public const string ChatRestrictionsGet = "chat.restrictions.get";
+    public const string ChatRestrictionsMuteUser = "chat.restrictions.muteUser";
+    public const string ChatRestrictionsUnmuteUser = "chat.restrictions.unmuteUser";
+    public const string ChatRestrictionsLockPlayers = "chat.restrictions.lockPlayers";
+    public const string ChatRestrictionsUnlockPlayers = "chat.restrictions.unlockPlayers";
+
     public const string LockAcquire = "lock.acquire";
     public const string LockRelease = "lock.release";
     public const string LockForceRelease = "lock.forceRelease";

@@ -69,6 +69,8 @@ public class PlayerMainViewModel : ViewModelBase
         CancelRequestCommand = new RelayCommand(CancelRequest);
         AcquireClassNodeCommand = new RelayCommand(AcquireClassNode);
         AcquireSkillCommand = new RelayCommand(AcquireSkill);
+        ChatSendCommand = new RelayCommand(ChatSend);
+        ChatRefreshCommand = new RelayCommand(ChatRefresh);
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _poller.Tick += (_, _) => RefreshAll();
@@ -86,6 +88,10 @@ public class PlayerMainViewModel : ViewModelBase
     public string SelectedCharacterId { get; set; } = string.Empty;
     public string SelectedClassNodeId { get; set; } = string.Empty;
     public string SelectedSkillId { get; set; } = string.Empty;
+    public string ChatSessionId { get; set; } = "default";
+    public string ChatTextInput { get; set; } = string.Empty;
+    public string ChatTypeInput { get; set; } = "Public";
+    public string ChatUnreadText { get; set; } = string.Empty;
 
     public string CharacterName { get; set; } = string.Empty;
     public string CharacterRace { get; set; } = string.Empty;
@@ -108,6 +114,7 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> DiceFeed { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> CombatStateRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> CombatTimelineRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
 
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
@@ -119,6 +126,8 @@ public class PlayerMainViewModel : ViewModelBase
     public ICommand CancelRequestCommand { get; }
     public ICommand AcquireClassNodeCommand { get; }
     public ICommand AcquireSkillCommand { get; }
+    public ICommand ChatSendCommand { get; }
+    public ICommand ChatRefreshCommand { get; }
 
     private void Login()
     {
@@ -172,6 +181,7 @@ public class PlayerMainViewModel : ViewModelBase
             LoadRequestsAndFeed();
             LoadCombat();
             LoadClassAndSkillState();
+            ChatRefresh();
             ConnectionState = "Онлайн";
             NotifyAll();
         }
@@ -248,6 +258,31 @@ public class PlayerMainViewModel : ViewModelBase
         }
     }
 
+
+
+    private void ChatSend()
+    {
+        if (string.IsNullOrWhiteSpace(ChatTextInput)) return;
+        _api.ChatSend(ChatSessionId, ChatTypeInput, ChatTextInput);
+        ChatTextInput = string.Empty;
+        Notify(nameof(ChatTextInput));
+        ChatRefresh();
+    }
+
+    private void ChatRefresh()
+    {
+        ChatRows.Clear();
+        var history = _api.ChatHistoryGet(ChatSessionId, 80);
+        if (history.Status == ResponseStatus.Ok && history.Payload.ContainsKey("items"))
+        {
+            foreach (var item in ToObjectList(history.Payload["items"]))
+                if (item is Dictionary<string, object> m)
+                    ChatRows.Add($"{GetString(m, "createdUtc")} | {GetString(m, "type")} | {GetString(m, "senderDisplayName")}: {GetString(m, "text")}");
+        }
+        var unread = _api.ChatUnreadGet(ChatSessionId);
+        ChatUnreadText = "Unread: " + GetString(unread.Payload, "count");
+        Notify(nameof(ChatUnreadText));
+    }
 
     private void LoadClassAndSkillState()
     {

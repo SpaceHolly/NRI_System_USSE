@@ -26,6 +26,9 @@ public interface INriRepositoryFactory
     IRepository<ActionRequest> ActionRequests { get; }
     IRepository<DiceRollRequest> DiceRequests { get; }
     IRepository<ChatMessage> ChatMessages { get; }
+    IRepository<ChatReadState> ChatReadStates { get; }
+    IRepository<SessionChatSettings> SessionChatSettings { get; }
+    IRepository<ChatUserThrottleState> ChatThrottleStates { get; }
     IRepository<SessionAudioState> AudioStates { get; }
     IRepository<CombatState> Combats { get; }
     IRepository<CombatLogEntry> CombatLogs { get; }
@@ -45,6 +48,9 @@ public class MongoContext
     public IMongoCollection<ActionRequest> ActionRequests { get; }
     public IMongoCollection<DiceRollRequest> DiceRequests { get; }
     public IMongoCollection<ChatMessage> ChatMessages { get; }
+    public IMongoCollection<ChatReadState> ChatReadStates { get; }
+    public IMongoCollection<SessionChatSettings> SessionChatSettings { get; }
+    public IMongoCollection<ChatUserThrottleState> ChatThrottleStates { get; }
     public IMongoCollection<SessionAudioState> AudioStates { get; }
     public IMongoCollection<CombatState> Combats { get; }
     public IMongoCollection<CombatLogEntry> CombatLogs { get; }
@@ -66,6 +72,9 @@ public class MongoContext
         ActionRequests = db.GetCollection<ActionRequest>("action_requests");
         DiceRequests = db.GetCollection<DiceRollRequest>("dice_requests");
         ChatMessages = db.GetCollection<ChatMessage>("chat_messages");
+        ChatReadStates = db.GetCollection<ChatReadState>("chat_read_states");
+        SessionChatSettings = db.GetCollection<SessionChatSettings>("session_chat_settings");
+        ChatThrottleStates = db.GetCollection<ChatUserThrottleState>("chat_throttle_states");
         AudioStates = db.GetCollection<SessionAudioState>("audio_states");
         Combats = db.GetCollection<CombatState>("combat_states");
         CombatLogs = db.GetCollection<CombatLogEntry>("combat_logs");
@@ -87,6 +96,10 @@ public class MongoContext
         DiceRequests.Indexes.CreateOne(new CreateIndexModel<DiceRollRequest>(Builders<DiceRollRequest>.IndexKeys.Ascending(x => x.CreatorUserId).Ascending(x => x.Fingerprint).Ascending(x => x.Status)));
         Combats.Indexes.CreateOne(new CreateIndexModel<CombatState>(Builders<CombatState>.IndexKeys.Ascending(x => x.SessionId), new CreateIndexOptions { Unique = true }));
         CombatLogs.Indexes.CreateOne(new CreateIndexModel<CombatLogEntry>(Builders<CombatLogEntry>.IndexKeys.Ascending(x => x.CombatId).Descending(x => x.CreatedUtc)));
+        ChatMessages.Indexes.CreateOne(new CreateIndexModel<ChatMessage>(Builders<ChatMessage>.IndexKeys.Ascending(x => x.SessionId).Descending(x => x.CreatedUtc)));
+        ChatReadStates.Indexes.CreateOne(new CreateIndexModel<ChatReadState>(Builders<ChatReadState>.IndexKeys.Ascending(x => x.SessionId).Ascending(x => x.UserId), new CreateIndexOptions { Unique = true }));
+        SessionChatSettings.Indexes.CreateOne(new CreateIndexModel<SessionChatSettings>(Builders<SessionChatSettings>.IndexKeys.Ascending(x => x.SessionId), new CreateIndexOptions { Unique = true }));
+        ChatThrottleStates.Indexes.CreateOne(new CreateIndexModel<ChatUserThrottleState>(Builders<ChatUserThrottleState>.IndexKeys.Ascending(x => x.SessionId).Ascending(x => x.UserId).Ascending(x => x.MessageType), new CreateIndexOptions { Unique = true }));
         ClassTrees.Indexes.CreateOne(new CreateIndexModel<ClassTreeDefinition>(Builders<ClassTreeDefinition>.IndexKeys.Ascending(x => x.DirectionId), new CreateIndexOptions { Unique = true }));
         SkillDefinitions.Indexes.CreateOne(new CreateIndexModel<SkillDefinitionRecord>(Builders<SkillDefinitionRecord>.IndexKeys.Ascending(x => x.SkillId), new CreateIndexOptions { Unique = true }));
         DefinitionVersions.Indexes.CreateOne(new CreateIndexModel<DefinitionVersion>(Builders<DefinitionVersion>.IndexKeys.Ascending(x => x.ContentName), new CreateIndexOptions { Unique = true }));
@@ -139,6 +152,9 @@ public class MongoRepositoryFactory : INriRepositoryFactory
         ActionRequests = new MongoRepository<ActionRequest>(context.ActionRequests);
         DiceRequests = new MongoRepository<DiceRollRequest>(context.DiceRequests);
         ChatMessages = new MongoRepository<ChatMessage>(context.ChatMessages);
+        ChatReadStates = new MongoRepository<ChatReadState>(context.ChatReadStates);
+        SessionChatSettings = new MongoRepository<SessionChatSettings>(context.SessionChatSettings);
+        ChatThrottleStates = new MongoRepository<ChatUserThrottleState>(context.ChatThrottleStates);
         AudioStates = new MongoRepository<SessionAudioState>(context.AudioStates);
         Combats = new MongoRepository<CombatState>(context.Combats);
         CombatLogs = new MongoRepository<CombatLogEntry>(context.CombatLogs);
@@ -156,6 +172,9 @@ public class MongoRepositoryFactory : INriRepositoryFactory
     public IRepository<ActionRequest> ActionRequests { get; }
     public IRepository<DiceRollRequest> DiceRequests { get; }
     public IRepository<ChatMessage> ChatMessages { get; }
+    public IRepository<ChatReadState> ChatReadStates { get; }
+    public IRepository<SessionChatSettings> SessionChatSettings { get; }
+    public IRepository<ChatUserThrottleState> ChatThrottleStates { get; }
     public IRepository<SessionAudioState> AudioStates { get; }
     public IRepository<CombatState> Combats { get; }
     public IRepository<CombatLogEntry> CombatLogs { get; }

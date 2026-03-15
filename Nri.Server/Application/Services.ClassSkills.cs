@@ -246,7 +246,7 @@ public partial class ServiceHub
         var c = ResolveCharacterForClassSkill(context, actor);
         EnsureProgressInitialized(c);
         var skillId = RequireLength(PayloadReader.GetString(context.Request.Payload, "skillId"), 1, 128, "skillId");
-        var acquired = PayloadReader.GetBool(context.Request.Payload, "acquired") ?? true;
+        var acquired = PayloadReader.GetBool(context.Request.Payload, "acquired");
 
         var row = c.CharacterSkillStates.FirstOrDefault(s => s.SkillId == skillId);
         if (row == null)

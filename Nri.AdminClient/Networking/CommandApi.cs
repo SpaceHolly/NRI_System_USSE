@@ -81,6 +81,22 @@ public class CommandApi
 
     public ResponseEnvelope PresenceList() => Send(CommandNames.PresenceList);
 
+
+    public ResponseEnvelope ChatSend(string sessionId, string type, string text) => Send(CommandNames.ChatSend, new Dictionary<string, object> { { "sessionId", sessionId }, { "type", type }, { "text", text } });
+    public ResponseEnvelope ChatHistoryGet(string sessionId, int limit = 50, long beforeTicks = 0) => Send(CommandNames.ChatHistoryGet, new Dictionary<string, object> { { "sessionId", sessionId }, { "limit", limit }, { "beforeTicks", beforeTicks } });
+    public ResponseEnvelope ChatHistoryLoadMore(string sessionId, int limit = 50, long beforeTicks = 0) => Send(CommandNames.ChatHistoryLoadMore, new Dictionary<string, object> { { "sessionId", sessionId }, { "limit", limit }, { "beforeTicks", beforeTicks } });
+    public ResponseEnvelope ChatVisibleFeed(string sessionId, int limit = 50) => Send(CommandNames.ChatVisibleFeed, new Dictionary<string, object> { { "sessionId", sessionId }, { "limit", limit } });
+    public ResponseEnvelope ChatMarkRead(string sessionId, string upToMessageId = "") => Send(CommandNames.ChatMarkRead, new Dictionary<string, object> { { "sessionId", sessionId }, { "upToMessageId", upToMessageId } });
+    public ResponseEnvelope ChatUnreadGet(string sessionId) => Send(CommandNames.ChatUnreadGet, new Dictionary<string, object> { { "sessionId", sessionId } });
+
+    public ResponseEnvelope ChatSlowModeGet(string sessionId) => Send(CommandNames.ChatSlowModeGet, new Dictionary<string, object> { { "sessionId", sessionId } });
+    public ResponseEnvelope ChatSlowModeSet(string sessionId, int pub, int hidden, int admin) => Send(CommandNames.ChatSlowModeSet, new Dictionary<string, object> { { "sessionId", sessionId }, { "publicSeconds", pub }, { "hiddenToAdminsSeconds", hidden }, { "adminOnlySeconds", admin } });
+    public ResponseEnvelope ChatRestrictionsGet(string sessionId) => Send(CommandNames.ChatRestrictionsGet, new Dictionary<string, object> { { "sessionId", sessionId } });
+    public ResponseEnvelope ChatRestrictionsMuteUser(string sessionId, string userId, string reason) => Send(CommandNames.ChatRestrictionsMuteUser, new Dictionary<string, object> { { "sessionId", sessionId }, { "userId", userId }, { "reason", reason } });
+    public ResponseEnvelope ChatRestrictionsUnmuteUser(string sessionId, string userId) => Send(CommandNames.ChatRestrictionsUnmuteUser, new Dictionary<string, object> { { "sessionId", sessionId }, { "userId", userId } });
+    public ResponseEnvelope ChatRestrictionsLockPlayers(string sessionId) => Send(CommandNames.ChatRestrictionsLockPlayers, new Dictionary<string, object> { { "sessionId", sessionId } });
+    public ResponseEnvelope ChatRestrictionsUnlockPlayers(string sessionId) => Send(CommandNames.ChatRestrictionsUnlockPlayers, new Dictionary<string, object> { { "sessionId", sessionId } });
+
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
         return _client.Send(new RequestEnvelope { Command = command, Payload = payload ?? new Dictionary<string, object>() });

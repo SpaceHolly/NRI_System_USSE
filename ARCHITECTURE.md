@@ -106,3 +106,53 @@
 ### Client sync strategy
 - Current strategy remains lightweight polling + refresh after action.
 - Reason: fits current TCP+JSON request/response architecture and keeps implementation deterministic before introducing push streams.
+
+## Session Chat Subsystem (Stage: moderated session chat)
+
+- Added server-authoritative chat pipeline with message types:
+  - `Public`
+  - `HiddenToAdmins`
+  - `AdminOnly`
+  - `System`
+- Visibility is filtered on server per requester; clients only render returned payload.
+- Added persisted chat separation in Mongo:
+  - `chat_messages` (message history)
+  - `chat_read_states` (per-user read pointer)
+  - `session_chat_settings` (slow mode + locks/mutes)
+  - `chat_throttle_states` (anti-spam timestamps)
+
+### Read/unread model
+- Read state is stored as per-user per-session pointer (`LastReadMessageUtc` + `LastReadMessageId`).
+- Messages are marked read when returned in visible history/feed (i.e., after entering visibility window).
+
+### Moderation model
+- Session-level player lock (`LockPlayers`).
+- Per-user mute entries with reason and moderation metadata.
+- Slow mode with independent intervals for `Public`, `HiddenToAdmins`, `AdminOnly`; admins are exempt.
+
+### Chat protocol commands
+- Messaging/history/read:
+  - `chat.send`
+  - `chat.history.get`
+  - `chat.history.loadMore`
+  - `chat.visibleFeed`
+  - `chat.markRead`
+  - `chat.unread.get`
+- Moderation:
+  - `chat.slowMode.get`
+  - `chat.slowMode.set`
+  - `chat.restrictions.get`
+  - `chat.restrictions.muteUser`
+  - `chat.restrictions.unmuteUser`
+  - `chat.restrictions.lockPlayers`
+  - `chat.restrictions.unlockPlayers`
+
+### System messages integration
+- System messages are published into the same chat history pipeline for key events:
+  - user connect/disconnect
+  - combat start/end
+  - combat round start
+
+### Sync strategy
+- Current chat sync uses polling + refresh-after-send/read actions.
+- This keeps behavior stable on current TCP+JSON request/response transport without introducing push channels yet.

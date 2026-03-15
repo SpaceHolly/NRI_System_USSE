@@ -68,6 +68,7 @@ public partial class ServiceHub
 
         var token = _sessionManager.CreateSession(account.Id, context.ConnectionId);
         WriteAudit("auth", account.Id, "login", account.Id);
+        PublishSystemMessage("default", $"{account.Login} connected.");
         return Ok("Login success.", new Dictionary<string, object>
         {
             { "authToken", token },
@@ -79,7 +80,9 @@ public partial class ServiceHub
 
     public ResponseEnvelope Logout(CommandContext context)
     {
+        var actor = GetCurrentAccount(context);
         _sessionManager.Logout(context.Request.AuthToken);
+        PublishSystemMessage("default", $"{actor.Login} disconnected.");
         return Ok("Logout success.");
     }
 
@@ -626,6 +629,7 @@ public partial class ServiceHub
 
         _repositories.Combats.Replace(combat);
         AddCombatLog(combat, "combat.start", actor.Id, "Combat started");
+        PublishSystemMessage(sessionId, "Combat started.");
         return Ok("Combat started.", CombatSnapshotPayload(combat));
     }
 
@@ -636,6 +640,7 @@ public partial class ServiceHub
         combat.Status = CombatStatus.Ended;
         _repositories.Combats.Replace(combat);
         AddCombatLog(combat, "combat.end", actor.Id, "Combat ended manually");
+        PublishSystemMessage(combat.SessionId, "Combat ended.");
         return Ok("Combat ended.", CombatSnapshotPayload(combat));
     }
 
@@ -712,6 +717,7 @@ public partial class ServiceHub
 
         _repositories.Combats.Replace(combat);
         AddCombatLog(combat, "combat.nextRound", actor.Id, $"Round {combat.RoundState.RoundNumber} started");
+        PublishSystemMessage(combat.SessionId, $"Round {combat.RoundState.RoundNumber} started.");
         return Ok("Moved to next round.", CombatSnapshotPayload(combat));
     }
 

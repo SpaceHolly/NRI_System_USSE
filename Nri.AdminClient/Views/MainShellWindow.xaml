@@ -197,6 +197,44 @@
                 </Grid>
             </TabItem>
 
+
+            <TabItem Header="SessionChatView">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
+                    <StackPanel Margin="8">
+                        <WrapPanel Margin="0,0,0,8">
+                            <TextBox Width="140" Text="{Binding ChatSessionId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                            <TextBox Width="120" Text="{Binding ChatMessageType, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                            <Button Content="Refresh" Command="{Binding ChatRefreshCommand}" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding ChatUnreadText}" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,0,0,8">
+                            <TextBox Width="520" Text="{Binding ChatMessageText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                            <Button Content="Send" Command="{Binding ChatSendCommand}"/>
+                        </WrapPanel>
+                        <ListBox ItemsSource="{Binding ChatRows}" Height="420"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="8">
+                        <TextBlock Text="ChatModerationPanel" FontWeight="Bold" Margin="0,0,0,8"/>
+                        <WrapPanel Margin="0,0,0,6"><TextBlock Text="Public sec" Width="95"/><TextBox Width="80" Text="{Binding ChatSlowPublicSeconds, UpdateSourceTrigger=PropertyChanged}"/></WrapPanel>
+                        <WrapPanel Margin="0,0,0,6"><TextBlock Text="Hidden sec" Width="95"/><TextBox Width="80" Text="{Binding ChatSlowHiddenSeconds, UpdateSourceTrigger=PropertyChanged}"/></WrapPanel>
+                        <WrapPanel Margin="0,0,0,6"><TextBlock Text="Admin sec" Width="95"/><TextBox Width="80" Text="{Binding ChatSlowAdminOnlySeconds, UpdateSourceTrigger=PropertyChanged}"/></WrapPanel>
+                        <Button Content="Set slow mode" Command="{Binding ChatSetSlowModeCommand}" Margin="0,0,0,8"/>
+                        <TextBox Text="{Binding ChatModerationUserId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding ChatModerationReason, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
+                        <WrapPanel Margin="0,0,0,8">
+                            <Button Content="Mute user" Command="{Binding ChatMuteUserCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Unmute user" Command="{Binding ChatUnmuteUserCommand}"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,0,0,8">
+                            <Button Content="Lock players" Command="{Binding ChatLockPlayersCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Unlock players" Command="{Binding ChatUnlockPlayersCommand}"/>
+                        </WrapPanel>
+                        <ListBox ItemsSource="{Binding ChatRestrictionRows}" Height="240"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
             <TabItem Header="LocksStatusView">
                 <StackPanel Margin="8">
                     <TextBlock Text="Lock status связан с редактором персонажа (по выбранному CharacterId)."/>
