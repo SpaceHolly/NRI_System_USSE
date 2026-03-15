@@ -40,5 +40,6 @@ public class CompositeLogger : IServerLogger
         {
             File.AppendAllText(path, line);
         }
+        File.AppendAllText(path, line);
     }
 }

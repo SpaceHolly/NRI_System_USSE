@@ -43,6 +43,21 @@ public class JsonTcpClient : IJsonTcpClient
         var stream = _tcpClient.GetStream();
         _reader = new StreamReader(stream);
         _writer = new StreamWriter(stream) { AutoFlush = true };
+    public string? SessionId { get; set; }
+}
+
+public interface IJsonTcpClient
+{
+    ResponseEnvelope Send(RequestEnvelope request);
+}
+
+public class JsonTcpClientStub : IJsonTcpClient
+{
+    private readonly ClientConfig _config;
+
+    public JsonTcpClientStub(ClientConfig config)
+    {
+        _config = config;
     }
 
     public ResponseEnvelope Send(RequestEnvelope request)
@@ -73,5 +88,12 @@ public class JsonTcpClient : IJsonTcpClient
         _reader?.Dispose();
         _writer?.Dispose();
         _tcpClient?.Close();
+        return new ResponseEnvelope
+        {
+            RequestId = request.RequestId,
+            Status = ResponseStatus.Error,
+            ErrorCode = ErrorCode.Unknown,
+            Message = $"Admin client TCP stub ({_config.ServerHost}:{_config.ServerPort})"
+        };
     }
 }
