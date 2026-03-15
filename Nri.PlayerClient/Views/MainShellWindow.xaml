@@ -1,0 +1,198 @@
+<Window x:Class="Nri.PlayerClient.Views.MainShellWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="NRI Player" Height="760" Width="1200">
+    <DockPanel Margin="8">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Логин" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox Width="120" Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
+            <TextBlock Text="Пароль" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox Width="120" Text="{Binding PasswordText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
+            <Button Content="Войти" Command="{Binding LoginCommand}" Margin="0,0,8,0"/>
+            <Button Content="Обновить" Command="{Binding RefreshCommand}" Margin="0,0,8,0"/>
+            <TextBlock Text="{Binding ConnectionState}" Foreground="DarkRed" FontWeight="Bold" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="Активный персонаж" Command="{Binding ShowActiveCharacterCommand}" Margin="0,0,8,0"/>
+            <Button Content="Мои персонажи" Command="{Binding ShowMyCharactersCommand}" Margin="0,0,8,0"/>
+            <Button Content="Классы" Command="{Binding ShowClassesCommand}" Margin="0,0,8,0"/>
+            <Button Content="Навыки" Command="{Binding ShowSkillsCommand}"/>
+        </StackPanel>
+
+        <TabControl>
+            <TabItem Header="ActiveCharacter">
+                <ScrollViewer>
+                    <StackPanel>
+                        <TextBlock Text="Активный персонаж" FontSize="18" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding CharacterName}"/>
+                        <TextBlock Text="{Binding CharacterRace}"/>
+                        <TextBlock Text="{Binding CharacterAge}"/>
+                        <TextBlock Text="{Binding CharacterHeight}"/>
+                        <TextBlock Text="{Binding CharacterDescription}" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding CharacterBackstory}" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding StatsText}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+                        <TextBlock Text="Деньги" FontWeight="Bold" Margin="0,8,0,0"/>
+                        <ItemsControl ItemsSource="{Binding MoneyRows}"/>
+
+                        <TextBlock Text="Инвентарь" FontWeight="Bold" Margin="0,8,0,0"/>
+                        <ItemsControl ItemsSource="{Binding InventoryRows}"/>
+
+                        <Expander Header="Компаньоны" IsExpanded="True" Margin="0,8,0,0">
+                            <ItemsControl ItemsSource="{Binding Companions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Expander Header="{Binding Name}">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Species}"/>
+                                                <TextBlock Text="{Binding Notes}"/>
+                                                <ItemsControl ItemsSource="{Binding Inventory}"/>
+                                            </StackPanel>
+                                        </Expander>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Expander>
+
+                        <TextBlock Text="Владения" FontWeight="Bold" Margin="0,8,0,0"/>
+                        <ItemsControl ItemsSource="{Binding Holdings}"/>
+
+                        <TextBlock Text="Репутация" FontWeight="Bold" Margin="0,8,0,0"/>
+                        <ItemsControl ItemsSource="{Binding ReputationRows}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="MyCharacters">
+                <DataGrid ItemsSource="{Binding MyCharacters}" AutoGenerateColumns="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Id" Binding="{Binding Id}"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
+                        <DataGridTextColumn Header="Race" Binding="{Binding Race}"/>
+                        <DataGridCheckBoxColumn Header="Archived" Binding="{Binding Archived}"/>
+                        <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+            <TabItem Header="Requests">
+                <StackPanel Margin="8">
+                    <TextBlock Text="Заявка на бросок" FontWeight="Bold"/>
+                    <WrapPanel>
+                        <TextBox Width="140" Margin="0,0,4,4" Text="{Binding DiceFormulaInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Width="130" Margin="0,0,4,4" Text="{Binding DiceVisibilityInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Width="260" Margin="0,0,4,4" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button Content="Отправить" Command="{Binding CreateDiceRequestCommand}" Margin="0,0,4,4"/>
+                    </WrapPanel>
+                    <TextBlock Text="Отмена заявки" FontWeight="Bold" Margin="0,8,0,0"/>
+                    <WrapPanel>
+                        <TextBox Width="240" Margin="0,0,4,4" Text="{Binding SelectedRequestId, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button Content="Отменить" Command="{Binding CancelRequestCommand}"/>
+                    </WrapPanel>
+                    <TextBlock Text="Мои заявки" FontWeight="Bold" Margin="0,8,0,0"/>
+                    <ItemsControl ItemsSource="{Binding MyRequests}"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="DiceFeed">
+                <StackPanel Margin="8">
+                    <TextBlock Text="Лента видимых бросков" FontWeight="Bold"/>
+                    <ItemsControl ItemsSource="{Binding DiceFeed}"/>
+                </StackPanel>
+            </TabItem>
+
+
+
+            <TabItem Header="CharacterVisibilityView">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,8"><TextBox Width="220" Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Load" Command="{Binding VisibilityLoadCommand}" Margin="0,0,6,0"/><Button Content="Save" Command="{Binding VisibilitySaveCommand}"/></WrapPanel>
+                    <CheckBox Content="Hide description" IsChecked="{Binding VisHideDescription, UpdateSourceTrigger=PropertyChanged}"/>
+                    <CheckBox Content="Hide backstory" IsChecked="{Binding VisHideBackstory, UpdateSourceTrigger=PropertyChanged}"/>
+                    <CheckBox Content="Hide stats" IsChecked="{Binding VisHideStats, UpdateSourceTrigger=PropertyChanged}"/>
+                    <CheckBox Content="Hide reputation" IsChecked="{Binding VisHideReputation, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="PublicCharacterView">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,8"><TextBox Width="260" Text="{Binding PublicViewCharacterId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Load public view" Command="{Binding PublicCharacterLoadCommand}"/></WrapPanel>
+                    <ListBox ItemsSource="{Binding PublicCharacterRows}" Height="220"/>
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="NotesView">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,6"><TextBox Width="120" Text="{Binding NoteSessionId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><TextBox Width="120" Text="{Binding NoteTargetType, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><TextBox Width="180" Text="{Binding NoteTargetId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Refresh" Command="{Binding NotesRefreshCommand}"/></WrapPanel>
+                    <TextBox Text="{Binding NoteTitle, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding NoteText, UpdateSourceTrigger=PropertyChanged}" Height="80" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                    <WrapPanel Margin="0,0,0,6"><TextBox Width="140" Text="{Binding NoteVisibility, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Create" Command="{Binding NotesCreateCommand}"/></WrapPanel>
+                    <WrapPanel Margin="0,0,0,6"><TextBox Width="220" Text="{Binding SelectedNoteId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Archive" Command="{Binding NotesArchiveCommand}"/></WrapPanel>
+                    <ListBox ItemsSource="{Binding NoteRows}" Height="220"/>
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="SessionAudioView">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBox Width="140" Text="{Binding AudioSessionId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <Button Content="Refresh" Command="{Binding AudioRefreshCommand}" Margin="0,0,6,0"/>
+                    </WrapPanel>
+                    <TextBlock Text="{Binding AudioStateText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBlock Text="Volume" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <Slider Width="220" Minimum="0" Maximum="1" Value="{Binding LocalVolume, UpdateSourceTrigger=PropertyChanged}" TickFrequency="0.1" IsSnapToTickEnabled="False" Margin="0,0,6,0"/>
+                        <CheckBox Content="Mute" IsChecked="{Binding LocalMuted, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <Button Content="Apply" Command="{Binding AudioApplyLocalSettingsCommand}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="SessionChatView">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBox Width="140" Text="{Binding ChatSessionId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <TextBox Width="140" Text="{Binding ChatTypeInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <Button Content="Refresh" Command="{Binding ChatRefreshCommand}" Margin="0,0,6,0"/>
+                        <TextBlock Text="{Binding ChatUnreadText}" VerticalAlignment="Center" FontWeight="Bold"/>
+                    </WrapPanel>
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBox Width="560" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <Button Content="Send" Command="{Binding ChatSendCommand}"/>
+                    </WrapPanel>
+                    <ListBox ItemsSource="{Binding ChatRows}" Height="360"/>
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="Combat">
+                <StackPanel Margin="8">
+                    <WrapPanel>
+                        <TextBlock Text="SessionId" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBox Width="160" Text="{Binding SessionIdInput, UpdateSourceTrigger=PropertyChanged}"/>
+                    </WrapPanel>
+                    <TextBlock Text="Состояние боя" FontWeight="Bold" Margin="0,8,0,0"/>
+                    <ItemsControl ItemsSource="{Binding CombatStateRows}"/>
+                    <TextBlock Text="Таймлайн" FontWeight="Bold" Margin="0,8,0,0"/>
+                    <ItemsControl ItemsSource="{Binding CombatTimelineRows}"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Classes">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBox Width="220" Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <TextBox Width="220" Text="{Binding SelectedClassNodeId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <Button Content="Acquire Node" Command="{Binding AcquireClassNodeCommand}"/>
+                    </WrapPanel>
+                    <ItemsControl ItemsSource="{Binding ClassProgressRows}"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Skills">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBox Width="220" Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <TextBox Width="220" Text="{Binding SelectedSkillId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <Button Content="Acquire Skill" Command="{Binding AcquireSkillCommand}"/>
+                    </WrapPanel>
+                    <ItemsControl ItemsSource="{Binding SkillRows}"/>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>
