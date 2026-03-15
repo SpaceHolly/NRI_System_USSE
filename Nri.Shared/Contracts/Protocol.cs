@@ -157,6 +157,40 @@ public static class CommandNames
     public const string AudioClientSettingsGet = "audio.clientSettings.get";
     public const string AudioClientSettingsSet = "audio.clientSettings.set";
 
+
+    public const string VisibilityGet = "visibility.get";
+    public const string VisibilityUpdate = "visibility.update";
+    public const string CharacterPublicViewGet = "character.publicView.get";
+    public const string CharacterVisibleToMeGet = "character.visibleToMe.get";
+
+    public const string NotesCreate = "notes.create";
+    public const string NotesList = "notes.list";
+    public const string NotesGet = "notes.get";
+    public const string NotesUpdate = "notes.update";
+    public const string NotesArchive = "notes.archive";
+
+    public const string ReferenceList = "reference.list";
+    public const string ReferenceGet = "reference.get";
+    public const string ReferenceCreate = "reference.create";
+    public const string ReferenceUpdate = "reference.update";
+    public const string ReferenceArchive = "reference.archive";
+    public const string ReferenceReload = "reference.reload";
+
+    public const string UpdateVersionGet = "update.version.get";
+    public const string UpdateManifestGet = "update.manifest.get";
+    public const string UpdateClientDownloadInfo = "update.client.downloadInfo";
+
+    public const string BackupCreate = "backup.create";
+    public const string BackupList = "backup.list";
+    public const string BackupRestore = "backup.restore";
+    public const string BackupExport = "backup.export";
+
+    public const string AdminLocksList = "admin.locks.list";
+    public const string AdminLocksForceRelease = "admin.locks.forceRelease";
+    public const string AdminServerStatus = "admin.server.status";
+    public const string AdminSessionsList = "admin.sessions.list";
+    public const string AdminDiagnosticsGet = "admin.diagnostics.get";
+
     public const string LockAcquire = "lock.acquire";
     public const string LockRelease = "lock.release";
     public const string LockForceRelease = "lock.forceRelease";

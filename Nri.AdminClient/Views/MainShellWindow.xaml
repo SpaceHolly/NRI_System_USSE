@@ -199,6 +199,65 @@
 
 
 
+
+            <TabItem Header="VisibilityManagementView">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBox Width="220" Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <Button Content="Load" Command="{Binding VisibilityLoadCommand}" Margin="0,0,6,0"/>
+                        <Button Content="Save" Command="{Binding VisibilitySaveCommand}"/>
+                    </WrapPanel>
+                    <CheckBox Content="Hide description" IsChecked="{Binding VisHideDescription, UpdateSourceTrigger=PropertyChanged}"/>
+                    <CheckBox Content="Hide backstory" IsChecked="{Binding VisHideBackstory, UpdateSourceTrigger=PropertyChanged}"/>
+                    <CheckBox Content="Hide stats" IsChecked="{Binding VisHideStats, UpdateSourceTrigger=PropertyChanged}"/>
+                    <CheckBox Content="Hide reputation" IsChecked="{Binding VisHideReputation, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="NotesManagementView">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>
+                    <StackPanel Margin="8">
+                        <WrapPanel Margin="0,0,0,6"><TextBox Width="120" Text="{Binding NoteSessionId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><TextBox Width="120" Text="{Binding NoteTargetType, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><TextBox Width="180" Text="{Binding NoteTargetId, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Refresh" Command="{Binding NotesRefreshCommand}" Margin="6,0,0,0"/></WrapPanel>
+                        <TextBox Text="{Binding NoteTitle, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding NoteText, UpdateSourceTrigger=PropertyChanged}" Height="80" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                        <WrapPanel><TextBox Width="140" Text="{Binding NoteVisibility, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Create" Command="{Binding NotesCreateCommand}"/></WrapPanel>
+                        <WrapPanel Margin="0,6,0,0"><TextBox Width="220" Text="{Binding SelectedNoteId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Archive" Command="{Binding NotesArchiveCommand}"/></WrapPanel>
+                    </StackPanel>
+                    <ListBox Grid.Column="1" ItemsSource="{Binding NotesRows}" Margin="8"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="ReferenceDataView">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>
+                    <StackPanel Margin="8">
+                        <WrapPanel Margin="0,0,0,6"><TextBox Width="120" Text="{Binding ReferenceWorldId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><TextBox Width="120" Text="{Binding ReferenceType, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Refresh" Command="{Binding ReferenceRefreshCommand}"/></WrapPanel>
+                        <TextBox Text="{Binding ReferenceId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding ReferenceKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding ReferenceDisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding ReferenceDataJson, UpdateSourceTrigger=PropertyChanged}" Height="80" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                        <WrapPanel><Button Content="Create" Command="{Binding ReferenceCreateCommand}" Margin="0,0,6,0"/><Button Content="Update" Command="{Binding ReferenceUpdateCommand}" Margin="0,0,6,0"/><Button Content="Archive" Command="{Binding ReferenceArchiveCommand}"/></WrapPanel>
+                    </StackPanel>
+                    <ListBox Grid.Column="1" ItemsSource="{Binding ReferenceRows}" Margin="8"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="BackupManagementView">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,6"><Button Content="Refresh" Command="{Binding BackupRefreshCommand}" Margin="0,0,6,0"/><TextBox Width="220" Text="{Binding BackupLabel, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Create backup" Command="{Binding BackupCreateCommand}"/></WrapPanel>
+                    <WrapPanel Margin="0,0,0,6"><TextBox Width="220" Text="{Binding SelectedBackupId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Restore" Command="{Binding BackupRestoreCommand}" Margin="0,0,6,0"/><Button Content="Export" Command="{Binding BackupExportCommand}"/></WrapPanel>
+                    <ListBox ItemsSource="{Binding BackupRows}" Height="220"/>
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="AdminDiagnosticsView">
+                <StackPanel Margin="8">
+                    <Button Content="Refresh diagnostics" Command="{Binding DiagnosticsRefreshCommand}" Margin="0,0,0,8"/>
+                    <ListBox ItemsSource="{Binding DiagnosticsRows}" Height="240"/>
+                </StackPanel>
+            </TabItem>
+
             <TabItem Header="SessionAudioView">
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>

@@ -108,6 +108,34 @@ public class CommandApi
     public ResponseEnvelope AudioTrackNext(string sessionId) => Send(CommandNames.AudioTrackNext, new Dictionary<string, object> { { "sessionId", sessionId } });
     public ResponseEnvelope AudioTrackReload() => Send(CommandNames.AudioTrackReload);
 
+
+    public ResponseEnvelope VisibilityGet(string characterId) => Send(CommandNames.VisibilityGet, new Dictionary<string, object> { { "characterId", characterId } });
+    public ResponseEnvelope VisibilityUpdate(Dictionary<string, object> payload) => Send(CommandNames.VisibilityUpdate, payload);
+    public ResponseEnvelope CharacterPublicViewGet(string characterId) => Send(CommandNames.CharacterPublicViewGet, new Dictionary<string, object> { { "characterId", characterId } });
+
+    public ResponseEnvelope NotesCreate(Dictionary<string, object> payload) => Send(CommandNames.NotesCreate, payload);
+    public ResponseEnvelope NotesList(Dictionary<string, object> payload) => Send(CommandNames.NotesList, payload);
+    public ResponseEnvelope NotesUpdate(Dictionary<string, object> payload) => Send(CommandNames.NotesUpdate, payload);
+    public ResponseEnvelope NotesArchive(string noteId) => Send(CommandNames.NotesArchive, new Dictionary<string, object> { { "noteId", noteId } });
+
+    public ResponseEnvelope ReferenceList(string worldId, string type) => Send(CommandNames.ReferenceList, new Dictionary<string, object> { { "worldId", worldId }, { "referenceType", type } });
+    public ResponseEnvelope ReferenceCreate(Dictionary<string, object> payload) => Send(CommandNames.ReferenceCreate, payload);
+    public ResponseEnvelope ReferenceUpdate(Dictionary<string, object> payload) => Send(CommandNames.ReferenceUpdate, payload);
+    public ResponseEnvelope ReferenceArchive(string referenceId) => Send(CommandNames.ReferenceArchive, new Dictionary<string, object> { { "referenceId", referenceId } });
+    public ResponseEnvelope ReferenceReload() => Send(CommandNames.ReferenceReload);
+
+    public ResponseEnvelope UpdateVersionGet(string channel) => Send(CommandNames.UpdateVersionGet, new Dictionary<string, object> { { "channel", channel } });
+    public ResponseEnvelope UpdateManifestGet(string channel) => Send(CommandNames.UpdateManifestGet, new Dictionary<string, object> { { "channel", channel } });
+    public ResponseEnvelope BackupCreate(string label) => Send(CommandNames.BackupCreate, new Dictionary<string, object> { { "label", label } });
+    public ResponseEnvelope BackupList() => Send(CommandNames.BackupList);
+    public ResponseEnvelope BackupRestore(string backupId) => Send(CommandNames.BackupRestore, new Dictionary<string, object> { { "backupId", backupId } });
+    public ResponseEnvelope BackupExport(string backupId) => Send(CommandNames.BackupExport, new Dictionary<string, object> { { "backupId", backupId } });
+
+    public ResponseEnvelope AdminLocksList() => Send(CommandNames.AdminLocksList);
+    public ResponseEnvelope AdminServerStatus() => Send(CommandNames.AdminServerStatus);
+    public ResponseEnvelope AdminSessionsList() => Send(CommandNames.AdminSessionsList);
+    public ResponseEnvelope AdminDiagnosticsGet() => Send(CommandNames.AdminDiagnosticsGet);
+
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
         return _client.Send(new RequestEnvelope { Command = command, Payload = payload ?? new Dictionary<string, object>() });

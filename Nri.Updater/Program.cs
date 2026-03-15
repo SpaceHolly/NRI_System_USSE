@@ -12,7 +12,7 @@ internal static class Program
     {
         var config = LoadConfig("updater.config.json");
         var updater = new UpdateServiceStub(config);
-        Console.WriteLine(updater.CheckForUpdates());
+        Console.WriteLine(updater.CheckForUpdatesAndLaunch());
     }
 
     private static UpdaterConfig LoadConfig(string path)

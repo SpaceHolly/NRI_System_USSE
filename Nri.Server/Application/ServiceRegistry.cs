@@ -151,6 +151,39 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.AudioClientSettingsGet, new DelegateCommandHandler(hub.AudioClientSettingsGet));
         dispatcher.Register(CommandNames.AudioClientSettingsSet, new DelegateCommandHandler(hub.AudioClientSettingsSet));
 
+        dispatcher.Register(CommandNames.VisibilityGet, new DelegateCommandHandler(hub.VisibilityGet));
+        dispatcher.Register(CommandNames.VisibilityUpdate, new DelegateCommandHandler(hub.VisibilityUpdate));
+        dispatcher.Register(CommandNames.CharacterPublicViewGet, new DelegateCommandHandler(hub.CharacterPublicViewGet));
+        dispatcher.Register(CommandNames.CharacterVisibleToMeGet, new DelegateCommandHandler(hub.CharacterVisibleToMeGet));
+
+        dispatcher.Register(CommandNames.NotesCreate, new DelegateCommandHandler(hub.NotesCreate));
+        dispatcher.Register(CommandNames.NotesList, new DelegateCommandHandler(hub.NotesList));
+        dispatcher.Register(CommandNames.NotesGet, new DelegateCommandHandler(hub.NotesGet));
+        dispatcher.Register(CommandNames.NotesUpdate, new DelegateCommandHandler(hub.NotesUpdate));
+        dispatcher.Register(CommandNames.NotesArchive, new DelegateCommandHandler(hub.NotesArchive));
+
+        dispatcher.Register(CommandNames.ReferenceList, new DelegateCommandHandler(hub.ReferenceList));
+        dispatcher.Register(CommandNames.ReferenceGet, new DelegateCommandHandler(hub.ReferenceGet));
+        dispatcher.Register(CommandNames.ReferenceCreate, new DelegateCommandHandler(hub.ReferenceCreate));
+        dispatcher.Register(CommandNames.ReferenceUpdate, new DelegateCommandHandler(hub.ReferenceUpdate));
+        dispatcher.Register(CommandNames.ReferenceArchive, new DelegateCommandHandler(hub.ReferenceArchive));
+        dispatcher.Register(CommandNames.ReferenceReload, new DelegateCommandHandler(hub.ReferenceReload));
+
+        dispatcher.Register(CommandNames.UpdateVersionGet, new DelegateCommandHandler(hub.UpdateVersionGet));
+        dispatcher.Register(CommandNames.UpdateManifestGet, new DelegateCommandHandler(hub.UpdateManifestGet));
+        dispatcher.Register(CommandNames.UpdateClientDownloadInfo, new DelegateCommandHandler(hub.UpdateClientDownloadInfo));
+
+        dispatcher.Register(CommandNames.BackupCreate, new DelegateCommandHandler(hub.BackupCreate));
+        dispatcher.Register(CommandNames.BackupList, new DelegateCommandHandler(hub.BackupList));
+        dispatcher.Register(CommandNames.BackupRestore, new DelegateCommandHandler(hub.BackupRestore));
+        dispatcher.Register(CommandNames.BackupExport, new DelegateCommandHandler(hub.BackupExport));
+
+        dispatcher.Register(CommandNames.AdminLocksList, new DelegateCommandHandler(hub.AdminLocksList));
+        dispatcher.Register(CommandNames.AdminLocksForceRelease, new DelegateCommandHandler(hub.AdminLocksForceRelease));
+        dispatcher.Register(CommandNames.AdminServerStatus, new DelegateCommandHandler(hub.AdminServerStatus));
+        dispatcher.Register(CommandNames.AdminSessionsList, new DelegateCommandHandler(hub.AdminSessionsList));
+        dispatcher.Register(CommandNames.AdminDiagnosticsGet, new DelegateCommandHandler(hub.AdminDiagnosticsGet));
+
         dispatcher.Register(CommandNames.LockAcquire, new DelegateCommandHandler(hub.LockAcquire));
         dispatcher.Register(CommandNames.LockRelease, new DelegateCommandHandler(hub.LockRelease));
         dispatcher.Register(CommandNames.LockForceRelease, new DelegateCommandHandler(hub.LockForceRelease));

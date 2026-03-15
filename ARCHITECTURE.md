@@ -211,3 +211,69 @@
 - Admin can control mode/category/track/reload and view full library/state.
 - Player gets synchronized playback state and only controls local volume + mute.
 - Client sync currently uses polling/refresh-after-actions for stability on current TCP+JSON transport.
+
+## Final Integration Layer (visibility, notes, references, updater, backup, diagnostics)
+
+### Character visibility
+- Added dedicated visibility commands and server-side public-view projection:
+  - `visibility.get`
+  - `visibility.update`
+  - `character.publicView.get`
+  - `character.visibleToMe.get`
+- Server remains authoritative for hidden-field filtering. Owner/admin/superadmin get full details; other users get filtered DTO.
+- Race/height/inventory hiding is gated by `AllowAdvancedVisibilityOverrides` and remains disabled by default.
+
+### Notes subsystem
+- Added persistent text notes with typed targets and visibility:
+  - Personal, AdminOnly, SharedWithOwner, SessionShared.
+- Commands:
+  - `notes.create`
+  - `notes.list`
+  - `notes.get`
+  - `notes.update`
+  - `notes.archive`
+
+### Reference data subsystem
+- Added world-bound reference entries (`references` collection) with revision and archive support.
+- SuperAdmin-only editing flows:
+  - `reference.list/get/create/update/archive/reload`
+- Intended reference types include races/classes/skills/states/settlements/factions/reputation/item templates and audio links (by `ReferenceType`).
+
+### Updater/version layer
+- Added update/version API commands:
+  - `update.version.get`
+  - `update.manifest.get`
+  - `update.client.downloadInfo`
+- `Nri.Updater` now performs practical flow:
+  - reads local version,
+  - downloads manifest,
+  - updates files,
+  - writes version,
+  - launches selected client target.
+
+### Backup/restore/export
+- Added backup commands:
+  - `backup.create`
+  - `backup.list`
+  - `backup.restore`
+  - `backup.export`
+- Strategy: logical snapshot serialized in `backups` collection with optional JSON export.
+- `backup.restore` is restricted to SuperAdmin due destructive risk.
+
+### Admin tools & diagnostics
+- Added admin operations:
+  - `admin.locks.list`
+  - `admin.locks.forceRelease`
+  - `admin.server.status`
+  - `admin.sessions.list`
+  - `admin.diagnostics.get`
+- AdminClient includes dedicated final panels for visibility, notes, reference data, backups and diagnostics.
+
+### Integration notes
+- Important admin/audio/combat actions continue to publish system chat messages through shared chat pipeline.
+- Runtime gameplay data, reference definitions, notes, update metadata, and backups are kept in separate collections.
+
+### Simplifications still present
+- Backup is logical JSON snapshot (not filesystem-level Mongo dump).
+- Updater transport currently uses manifest/file download flow and assumes reachable feed URLs from config.
+- Reference schema is generic (`DataJson`) to preserve extensibility without rigid typed editors in this stage.

@@ -75,6 +75,12 @@ public class PlayerMainViewModel : ViewModelBase
         ChatRefreshCommand = new RelayCommand(ChatRefresh);
         AudioRefreshCommand = new RelayCommand(AudioRefresh);
         AudioApplyLocalSettingsCommand = new RelayCommand(AudioApplyLocalSettings);
+        VisibilityLoadCommand = new RelayCommand(VisibilityLoad);
+        VisibilitySaveCommand = new RelayCommand(VisibilitySave);
+        PublicCharacterLoadCommand = new RelayCommand(PublicCharacterLoad);
+        NotesRefreshCommand = new RelayCommand(NotesRefresh);
+        NotesCreateCommand = new RelayCommand(NotesCreate);
+        NotesArchiveCommand = new RelayCommand(NotesArchive);
 
         LoadLocalAudioSettings();
 
@@ -102,6 +108,18 @@ public class PlayerMainViewModel : ViewModelBase
     public string AudioStateText { get; set; } = string.Empty;
     public double LocalVolume { get; set; } = 0.7;
     public bool LocalMuted { get; set; }
+    public string PublicViewCharacterId { get; set; } = string.Empty;
+    public bool VisHideDescription { get; set; }
+    public bool VisHideBackstory { get; set; }
+    public bool VisHideStats { get; set; }
+    public bool VisHideReputation { get; set; }
+    public string NoteSessionId { get; set; } = "default";
+    public string NoteTargetType { get; set; } = "character";
+    public string NoteTargetId { get; set; } = string.Empty;
+    public string NoteTitle { get; set; } = string.Empty;
+    public string NoteText { get; set; } = string.Empty;
+    public string NoteVisibility { get; set; } = "Personal";
+    public string SelectedNoteId { get; set; } = string.Empty;
 
     public string CharacterName { get; set; } = string.Empty;
     public string CharacterRace { get; set; } = string.Empty;
@@ -125,6 +143,8 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> CombatStateRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> CombatTimelineRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> PublicCharacterRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> NoteRows { get; } = new ObservableCollection<string>();
 
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
@@ -140,6 +160,12 @@ public class PlayerMainViewModel : ViewModelBase
     public ICommand ChatRefreshCommand { get; }
     public ICommand AudioRefreshCommand { get; }
     public ICommand AudioApplyLocalSettingsCommand { get; }
+    public ICommand VisibilityLoadCommand { get; }
+    public ICommand VisibilitySaveCommand { get; }
+    public ICommand PublicCharacterLoadCommand { get; }
+    public ICommand NotesRefreshCommand { get; }
+    public ICommand NotesCreateCommand { get; }
+    public ICommand NotesArchiveCommand { get; }
 
     private void Login()
     {
@@ -195,6 +221,7 @@ public class PlayerMainViewModel : ViewModelBase
             LoadClassAndSkillState();
             ChatRefresh();
             AudioRefresh();
+            NotesRefresh();
             ConnectionState = "Онлайн";
             NotifyAll();
         }
@@ -334,6 +361,49 @@ public class PlayerMainViewModel : ViewModelBase
         SaveLocalAudioSettings();
         AudioRefresh();
     }
+
+
+    private void VisibilityLoad()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        var r = _api.VisibilityGet(SelectedCharacterId);
+        VisHideDescription = GetString(r.Payload, "hideDescriptionForOthers") == "True";
+        VisHideBackstory = GetString(r.Payload, "hideBackstoryForOthers") == "True";
+        VisHideStats = GetString(r.Payload, "hideStatsForOthers") == "True";
+        VisHideReputation = GetString(r.Payload, "hideReputationForOthers") == "True";
+        Notify(nameof(VisHideDescription)); Notify(nameof(VisHideBackstory)); Notify(nameof(VisHideStats)); Notify(nameof(VisHideReputation));
+    }
+
+    private void VisibilitySave()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        _api.VisibilityUpdate(new Dictionary<string, object>{{"characterId",SelectedCharacterId},{"hideDescriptionForOthers",VisHideDescription},{"hideBackstoryForOthers",VisHideBackstory},{"hideStatsForOthers",VisHideStats},{"hideReputationForOthers",VisHideReputation}});
+    }
+
+    private void PublicCharacterLoad()
+    {
+        PublicCharacterRows.Clear();
+        if (string.IsNullOrWhiteSpace(PublicViewCharacterId)) return;
+        var r = _api.CharacterPublicViewGet(PublicViewCharacterId);
+        foreach (var kv in r.Payload) PublicCharacterRows.Add(kv.Key + "=" + Convert.ToString(kv.Value));
+    }
+
+    private void NotesRefresh()
+    {
+        NoteRows.Clear();
+        var r = _api.NotesList(new Dictionary<string, object>{{"sessionId",NoteSessionId},{"targetType",NoteTargetType},{"targetId",NoteTargetId}});
+        foreach (var item in ToObjectList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
+            if (item is Dictionary<string, object> m)
+                NoteRows.Add($"{GetString(m,"noteId")} | {GetString(m,"visibility")} | {GetString(m,"title")} | {GetString(m,"text")}");
+    }
+
+    private void NotesCreate()
+    {
+        _api.NotesCreate(new Dictionary<string, object>{{"sessionId",NoteSessionId},{"targetType",NoteTargetType},{"targetId",NoteTargetId},{"title",NoteTitle},{"text",NoteText},{"visibility",NoteVisibility},{"noteType","Personal"}});
+        NotesRefresh();
+    }
+
+    private void NotesArchive() { if(!string.IsNullOrWhiteSpace(SelectedNoteId)){ _api.NotesArchive(SelectedNoteId); NotesRefresh(); } }
 
     private void ChatSend()
     {

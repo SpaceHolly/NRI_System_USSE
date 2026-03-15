@@ -258,6 +258,10 @@ public class CharacterVisibilitySettings
     public bool HideBackstoryForOthers { get; set; }
     public bool HideStatsForOthers { get; set; }
     public bool HideReputationForOthers { get; set; }
+    public bool HideRaceForOthers { get; set; }
+    public bool HideHeightForOthers { get; set; }
+    public bool HideInventoryForOthers { get; set; }
+    public bool AllowAdvancedVisibilityOverrides { get; set; }
 }
 
 public class CharacterStats
@@ -565,4 +569,65 @@ public class AuditLogEntry : EntityBase
     public string Action { get; set; } = string.Empty;
     public string Target { get; set; } = string.Empty;
     public string DetailsJson { get; set; } = "{}";
+}
+
+
+public enum NoteType
+{
+    Character,
+    Session,
+    Campaign,
+    Personal
+}
+
+public enum NoteVisibility
+{
+    Personal,
+    AdminOnly,
+    SharedWithOwner,
+    SessionShared
+}
+
+public class Note : EntityBase
+{
+    public string AuthorUserId { get; set; } = string.Empty;
+    public string SessionId { get; set; } = string.Empty;
+    public string TargetType { get; set; } = string.Empty;
+    public string TargetId { get; set; } = string.Empty;
+    public NoteType NoteType { get; set; }
+    public NoteVisibility Visibility { get; set; } = NoteVisibility.Personal;
+    public string Title { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+}
+
+public class ReferenceEntry : EntityBase
+{
+    public string WorldId { get; set; } = string.Empty;
+    public string ReferenceType { get; set; } = string.Empty;
+    public string Key { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string DataJson { get; set; } = "{}";
+    public int Revision { get; set; } = 1;
+}
+
+public class UpdateVersionInfo : EntityBase
+{
+    public string ClientChannel { get; set; } = "stable";
+    public string LatestVersion { get; set; } = "0.0.1";
+    public string ManifestJson { get; set; } = "{}";
+    public string DownloadBaseUrl { get; set; } = string.Empty;
+}
+
+public class BackupSnapshot : EntityBase
+{
+    public string Label { get; set; } = string.Empty;
+    public string CreatedByUserId { get; set; } = string.Empty;
+    public string DataJson { get; set; } = "{}";
+}
+
+public class VisibilityFieldRule
+{
+    public string FieldName { get; set; } = string.Empty;
+    public bool Hidden { get; set; }
+    public string Reason { get; set; } = string.Empty;
 }

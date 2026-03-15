@@ -89,6 +89,20 @@ public class AdminMainViewModel : ViewModelBase
         AudioNextTrackCommand = new RelayCommand(AudioNextTrack);
         AudioSelectTrackCommand = new RelayCommand(AudioSelectTrack);
         AudioReloadLibraryCommand = new RelayCommand(AudioReloadLibrary);
+        VisibilityLoadCommand = new RelayCommand(VisibilityLoad);
+        VisibilitySaveCommand = new RelayCommand(VisibilitySave);
+        NotesRefreshCommand = new RelayCommand(NotesRefresh);
+        NotesCreateCommand = new RelayCommand(NotesCreate);
+        NotesArchiveCommand = new RelayCommand(NotesArchive);
+        ReferenceRefreshCommand = new RelayCommand(ReferenceRefresh);
+        ReferenceCreateCommand = new RelayCommand(ReferenceCreate);
+        ReferenceUpdateCommand = new RelayCommand(ReferenceUpdate);
+        ReferenceArchiveCommand = new RelayCommand(ReferenceArchive);
+        BackupRefreshCommand = new RelayCommand(BackupRefresh);
+        BackupCreateCommand = new RelayCommand(BackupCreate);
+        BackupRestoreCommand = new RelayCommand(BackupRestore);
+        BackupExportCommand = new RelayCommand(BackupExport);
+        DiagnosticsRefreshCommand = new RelayCommand(DiagnosticsRefresh);
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _poller.Tick += (_, _) => RefreshAll();
@@ -125,6 +139,25 @@ public class AdminMainViewModel : ViewModelBase
     public string AudioCategoryInput { get; set; } = "Normal";
     public string AudioSelectedTrackId { get; set; } = string.Empty;
     public string AudioStateText { get; set; } = string.Empty;
+    public bool VisHideDescription { get; set; }
+    public bool VisHideBackstory { get; set; }
+    public bool VisHideStats { get; set; }
+    public bool VisHideReputation { get; set; }
+    public string NoteSessionId { get; set; } = "default";
+    public string NoteTargetType { get; set; } = "character";
+    public string NoteTargetId { get; set; } = string.Empty;
+    public string NoteTitle { get; set; } = string.Empty;
+    public string NoteText { get; set; } = string.Empty;
+    public string NoteVisibility { get; set; } = "AdminOnly";
+    public string SelectedNoteId { get; set; } = string.Empty;
+    public string ReferenceWorldId { get; set; } = "default-world";
+    public string ReferenceType { get; set; } = "race";
+    public string ReferenceId { get; set; } = string.Empty;
+    public string ReferenceKey { get; set; } = string.Empty;
+    public string ReferenceDisplayName { get; set; } = string.Empty;
+    public string ReferenceDataJson { get; set; } = "{}";
+    public string BackupLabel { get; set; } = string.Empty;
+    public string SelectedBackupId { get; set; } = string.Empty;
 
     public string EditName { get; set; } = string.Empty;
     public string EditRace { get; set; } = string.Empty;
@@ -166,6 +199,10 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> ChatRestrictionRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> AudioLibraryRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> NotesRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> ReferenceRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> BackupRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> DiagnosticsRows { get; } = new ObservableCollection<string>();
 
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
@@ -209,6 +246,20 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand AudioNextTrackCommand { get; }
     public ICommand AudioSelectTrackCommand { get; }
     public ICommand AudioReloadLibraryCommand { get; }
+    public ICommand VisibilityLoadCommand { get; }
+    public ICommand VisibilitySaveCommand { get; }
+    public ICommand NotesRefreshCommand { get; }
+    public ICommand NotesCreateCommand { get; }
+    public ICommand NotesArchiveCommand { get; }
+    public ICommand ReferenceRefreshCommand { get; }
+    public ICommand ReferenceCreateCommand { get; }
+    public ICommand ReferenceUpdateCommand { get; }
+    public ICommand ReferenceArchiveCommand { get; }
+    public ICommand BackupRefreshCommand { get; }
+    public ICommand BackupCreateCommand { get; }
+    public ICommand BackupRestoreCommand { get; }
+    public ICommand BackupExportCommand { get; }
+    public ICommand DiagnosticsRefreshCommand { get; }
 
     private void Login()
     {
@@ -242,6 +293,10 @@ public class AdminMainViewModel : ViewModelBase
             }
             ChatRefresh();
             AudioRefresh();
+            NotesRefresh();
+            ReferenceRefresh();
+            BackupRefresh();
+            DiagnosticsRefresh();
             ConnectionState = "Онлайн";
             Notify(nameof(ConnectionState));
         }
@@ -623,6 +678,90 @@ public class AdminMainViewModel : ViewModelBase
     private void AudioNextTrack() { _api.AudioTrackNext(AudioSessionId); AudioRefresh(); }
     private void AudioSelectTrack() { if (!string.IsNullOrWhiteSpace(AudioSelectedTrackId)) { _api.AudioTrackSelect(AudioSessionId, AudioSelectedTrackId); AudioRefresh(); } }
     private void AudioReloadLibrary() { _api.AudioTrackReload(); AudioRefresh(); }
+
+
+    private void VisibilityLoad()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        var r = _api.VisibilityGet(SelectedCharacterId);
+        VisHideDescription = S(r.Payload, "hideDescriptionForOthers") == "True";
+        VisHideBackstory = S(r.Payload, "hideBackstoryForOthers") == "True";
+        VisHideStats = S(r.Payload, "hideStatsForOthers") == "True";
+        VisHideReputation = S(r.Payload, "hideReputationForOthers") == "True";
+        Notify(nameof(VisHideDescription)); Notify(nameof(VisHideBackstory)); Notify(nameof(VisHideStats)); Notify(nameof(VisHideReputation));
+    }
+
+    private void VisibilitySave()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        _api.VisibilityUpdate(new Dictionary<string, object>{{"characterId",SelectedCharacterId},{"hideDescriptionForOthers",VisHideDescription},{"hideBackstoryForOthers",VisHideBackstory},{"hideStatsForOthers",VisHideStats},{"hideReputationForOthers",VisHideReputation}});
+        VisibilityLoad();
+    }
+
+    private void NotesRefresh()
+    {
+        NotesRows.Clear();
+        var r = _api.NotesList(new Dictionary<string, object>{{"sessionId",NoteSessionId},{"targetType",NoteTargetType},{"targetId",NoteTargetId}});
+        foreach (var item in ToList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
+            if (item is Dictionary<string, object> m)
+                NotesRows.Add($"{S(m,"noteId")} | {S(m,"visibility")} | {S(m,"title")} | {S(m,"text")}");
+    }
+
+    private void NotesCreate()
+    {
+        _api.NotesCreate(new Dictionary<string, object>{{"sessionId",NoteSessionId},{"targetType",NoteTargetType},{"targetId",NoteTargetId},{"title",NoteTitle},{"text",NoteText},{"visibility",NoteVisibility},{"noteType","Session"}});
+        NotesRefresh();
+    }
+
+    private void NotesArchive() { if (!string.IsNullOrWhiteSpace(SelectedNoteId)) { _api.NotesArchive(SelectedNoteId); NotesRefresh(); } }
+
+    private void ReferenceRefresh()
+    {
+        ReferenceRows.Clear();
+        var r = _api.ReferenceList(ReferenceWorldId, ReferenceType);
+        foreach (var item in ToList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
+            if (item is Dictionary<string, object> m)
+                ReferenceRows.Add($"{S(m,"referenceId")} | {S(m,"referenceType")} | {S(m,"key")} | {S(m,"displayName")}");
+    }
+
+    private void ReferenceCreate()
+    {
+        _api.ReferenceCreate(new Dictionary<string, object>{{"worldId",ReferenceWorldId},{"referenceType",ReferenceType},{"key",ReferenceKey},{"displayName",ReferenceDisplayName},{"dataJson",ReferenceDataJson}});
+        ReferenceRefresh();
+    }
+
+    private void ReferenceUpdate()
+    {
+        if (string.IsNullOrWhiteSpace(ReferenceId)) return;
+        _api.ReferenceUpdate(new Dictionary<string, object>{{"referenceId",ReferenceId},{"displayName",ReferenceDisplayName},{"dataJson",ReferenceDataJson}});
+        ReferenceRefresh();
+    }
+
+    private void ReferenceArchive() { if (!string.IsNullOrWhiteSpace(ReferenceId)) { _api.ReferenceArchive(ReferenceId); ReferenceRefresh(); } }
+
+    private void BackupRefresh()
+    {
+        BackupRows.Clear();
+        var r = _api.BackupList();
+        foreach (var item in ToList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
+            if (item is Dictionary<string, object> m)
+                BackupRows.Add($"{S(m,"backupId")} | {S(m,"label")} | {S(m,"createdUtc")}");
+    }
+
+    private void BackupCreate() { _api.BackupCreate(string.IsNullOrWhiteSpace(BackupLabel)?"manual-backup":BackupLabel); BackupRefresh(); }
+    private void BackupRestore() { if(!string.IsNullOrWhiteSpace(SelectedBackupId)){ _api.BackupRestore(SelectedBackupId); BackupRefresh(); } }
+    private void BackupExport() { if(!string.IsNullOrWhiteSpace(SelectedBackupId)){ _api.BackupExport(SelectedBackupId); } }
+
+    private void DiagnosticsRefresh()
+    {
+        DiagnosticsRows.Clear();
+        var s1 = _api.AdminServerStatus();
+        DiagnosticsRows.Add("server utc=" + S(s1.Payload, "utcNow") + "; online=" + S(s1.Payload, "onlineUsers"));
+        var s2 = _api.AdminSessionsList();
+        DiagnosticsRows.Add("sessions payload size=" + ToList(s2.Payload.ContainsKey("items") ? s2.Payload["items"] : new ArrayList()).Count);
+        var s3 = _api.AdminLocksList();
+        DiagnosticsRows.Add("locks=" + ToList(s3.Payload.ContainsKey("items") ? s3.Payload["items"] : new ArrayList()).Count);
+    }
 
     private void ApproveRequest()
     {

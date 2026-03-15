@@ -51,6 +51,16 @@ public class CommandApi
     public ResponseEnvelope AudioClientSettingsGet() => Send(CommandNames.AudioClientSettingsGet);
     public ResponseEnvelope AudioClientSettingsSet(double volume, bool muted) => Send(CommandNames.AudioClientSettingsSet, new Dictionary<string, object> { { "volume", volume }, { "muted", muted } });
 
+
+    public ResponseEnvelope VisibilityGet(string characterId) => Send(CommandNames.VisibilityGet, new Dictionary<string, object> { { "characterId", characterId } });
+    public ResponseEnvelope VisibilityUpdate(Dictionary<string, object> payload) => Send(CommandNames.VisibilityUpdate, payload);
+    public ResponseEnvelope CharacterPublicViewGet(string characterId) => Send(CommandNames.CharacterPublicViewGet, new Dictionary<string, object> { { "characterId", characterId } });
+
+    public ResponseEnvelope NotesCreate(Dictionary<string, object> payload) => Send(CommandNames.NotesCreate, payload);
+    public ResponseEnvelope NotesList(Dictionary<string, object> payload) => Send(CommandNames.NotesList, payload);
+    public ResponseEnvelope NotesUpdate(Dictionary<string, object> payload) => Send(CommandNames.NotesUpdate, payload);
+    public ResponseEnvelope NotesArchive(string noteId) => Send(CommandNames.NotesArchive, new Dictionary<string, object> { { "noteId", noteId } });
+
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
         return _client.Send(new RequestEnvelope { Command = command, Payload = payload ?? new Dictionary<string, object>() });

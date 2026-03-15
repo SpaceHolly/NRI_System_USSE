@@ -37,6 +37,10 @@ public interface INriRepositoryFactory
     IRepository<ClassTreeDefinition> ClassTrees { get; }
     IRepository<SkillDefinitionRecord> SkillDefinitions { get; }
     IRepository<DefinitionVersion> DefinitionVersions { get; }
+    IRepository<Note> Notes { get; }
+    IRepository<ReferenceEntry> References { get; }
+    IRepository<UpdateVersionInfo> UpdateVersions { get; }
+    IRepository<BackupSnapshot> Backups { get; }
 }
 
 public class MongoContext
@@ -61,6 +65,10 @@ public class MongoContext
     public IMongoCollection<ClassTreeDefinition> ClassTrees { get; }
     public IMongoCollection<SkillDefinitionRecord> SkillDefinitions { get; }
     public IMongoCollection<DefinitionVersion> DefinitionVersions { get; }
+    public IMongoCollection<Note> Notes { get; }
+    public IMongoCollection<ReferenceEntry> References { get; }
+    public IMongoCollection<UpdateVersionInfo> UpdateVersions { get; }
+    public IMongoCollection<BackupSnapshot> Backups { get; }
 
     public MongoContext(ServerConfig config, IServerLogger logger)
     {
@@ -87,6 +95,10 @@ public class MongoContext
         ClassTrees = db.GetCollection<ClassTreeDefinition>("class_tree_definitions");
         SkillDefinitions = db.GetCollection<SkillDefinitionRecord>("skill_definitions");
         DefinitionVersions = db.GetCollection<DefinitionVersion>("definition_versions");
+        Notes = db.GetCollection<Note>("notes");
+        References = db.GetCollection<ReferenceEntry>("references");
+        UpdateVersions = db.GetCollection<UpdateVersionInfo>("update_versions");
+        Backups = db.GetCollection<BackupSnapshot>("backups");
 
         EnsureIndexes();
         logger.Debug("Mongo context initialized.");
@@ -111,6 +123,10 @@ public class MongoContext
         ClassTrees.Indexes.CreateOne(new CreateIndexModel<ClassTreeDefinition>(Builders<ClassTreeDefinition>.IndexKeys.Ascending(x => x.DirectionId), new CreateIndexOptions { Unique = true }));
         SkillDefinitions.Indexes.CreateOne(new CreateIndexModel<SkillDefinitionRecord>(Builders<SkillDefinitionRecord>.IndexKeys.Ascending(x => x.SkillId), new CreateIndexOptions { Unique = true }));
         DefinitionVersions.Indexes.CreateOne(new CreateIndexModel<DefinitionVersion>(Builders<DefinitionVersion>.IndexKeys.Ascending(x => x.ContentName), new CreateIndexOptions { Unique = true }));
+        Notes.Indexes.CreateOne(new CreateIndexModel<Note>(Builders<Note>.IndexKeys.Ascending(x => x.SessionId).Descending(x => x.CreatedUtc)));
+        References.Indexes.CreateOne(new CreateIndexModel<ReferenceEntry>(Builders<ReferenceEntry>.IndexKeys.Ascending(x => x.WorldId).Ascending(x => x.ReferenceType).Ascending(x => x.Key), new CreateIndexOptions { Unique = true }));
+        UpdateVersions.Indexes.CreateOne(new CreateIndexModel<UpdateVersionInfo>(Builders<UpdateVersionInfo>.IndexKeys.Ascending(x => x.ClientChannel), new CreateIndexOptions { Unique = true }));
+        Backups.Indexes.CreateOne(new CreateIndexModel<BackupSnapshot>(Builders<BackupSnapshot>.IndexKeys.Descending(x => x.CreatedUtc)));
     }
 }
 
@@ -171,6 +187,10 @@ public class MongoRepositoryFactory : INriRepositoryFactory
         ClassTrees = new MongoRepository<ClassTreeDefinition>(context.ClassTrees);
         SkillDefinitions = new MongoRepository<SkillDefinitionRecord>(context.SkillDefinitions);
         DefinitionVersions = new MongoRepository<DefinitionVersion>(context.DefinitionVersions);
+        Notes = new MongoRepository<Note>(context.Notes);
+        References = new MongoRepository<ReferenceEntry>(context.References);
+        UpdateVersions = new MongoRepository<UpdateVersionInfo>(context.UpdateVersions);
+        Backups = new MongoRepository<BackupSnapshot>(context.Backups);
     }
 
     public IRepository<UserAccount> Accounts { get; }
@@ -193,4 +213,8 @@ public class MongoRepositoryFactory : INriRepositoryFactory
     public IRepository<ClassTreeDefinition> ClassTrees { get; }
     public IRepository<SkillDefinitionRecord> SkillDefinitions { get; }
     public IRepository<DefinitionVersion> DefinitionVersions { get; }
+    public IRepository<Note> Notes { get; }
+    public IRepository<ReferenceEntry> References { get; }
+    public IRepository<UpdateVersionInfo> UpdateVersions { get; }
+    public IRepository<BackupSnapshot> Backups { get; }
 }

@@ -41,4 +41,8 @@ public class UpdaterConfig
     public string UpdateFeedUrl { get; set; } = "https://example.invalid/nri/updates";
     public string InstallFolder { get; set; } = "./client";
     public string Channel { get; set; } = "stable";
+    public string LocalVersionFile { get; set; } = "./client/version.txt";
+    public string LaunchTarget { get; set; } = "Player";
+    public string AdminClientExecutable { get; set; } = "./client/Nri.AdminClient.exe";
+    public string PlayerClientExecutable { get; set; } = "./client/Nri.PlayerClient.exe";
 }
