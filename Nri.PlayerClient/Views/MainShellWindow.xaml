@@ -74,6 +74,30 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
+            <TabItem Header="Requests">
+                <StackPanel Margin="8">
+                    <TextBlock Text="Заявка на бросок" FontWeight="Bold"/>
+                    <WrapPanel>
+                        <TextBox Width="140" Margin="0,0,4,4" Text="{Binding DiceFormulaInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Width="130" Margin="0,0,4,4" Text="{Binding DiceVisibilityInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Width="260" Margin="0,0,4,4" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button Content="Отправить" Command="{Binding CreateDiceRequestCommand}" Margin="0,0,4,4"/>
+                    </WrapPanel>
+                    <TextBlock Text="Отмена заявки" FontWeight="Bold" Margin="0,8,0,0"/>
+                    <WrapPanel>
+                        <TextBox Width="240" Margin="0,0,4,4" Text="{Binding SelectedRequestId, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button Content="Отменить" Command="{Binding CancelRequestCommand}"/>
+                    </WrapPanel>
+                    <TextBlock Text="Мои заявки" FontWeight="Bold" Margin="0,8,0,0"/>
+                    <ItemsControl ItemsSource="{Binding MyRequests}"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="DiceFeed">
+                <StackPanel Margin="8">
+                    <TextBlock Text="Лента видимых бросков" FontWeight="Bold"/>
+                    <ItemsControl ItemsSource="{Binding DiceFeed}"/>
+                </StackPanel>
+            </TabItem>
             <TabItem Header="Classes">
                 <StackPanel Margin="8">
                     <TextBlock Text="Классы (контейнер для будущего шестиугольника)" FontWeight="Bold"/>

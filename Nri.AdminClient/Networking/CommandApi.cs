@@ -39,6 +39,14 @@ public class CommandApi
     public ResponseEnvelope ForceReleaseCharacterLock(string characterId) => Send(CommandNames.LockForceRelease, new Dictionary<string, object> { { "entityType", "character" }, { "entityId", characterId } });
     public ResponseEnvelope LockStatus(string characterId) => Send(CommandNames.LockStatus, new Dictionary<string, object> { { "entityType", "character" }, { "entityId", characterId } });
 
+
+    public ResponseEnvelope ListPendingRequests() => Send(CommandNames.RequestListPending);
+    public ResponseEnvelope ApproveRequest(string requestId, string comment) => Send(CommandNames.RequestApprove, new Dictionary<string, object> { { "requestId", requestId }, { "comment", comment } });
+    public ResponseEnvelope RejectRequest(string requestId, string comment) => Send(CommandNames.RequestReject, new Dictionary<string, object> { { "requestId", requestId }, { "comment", comment } });
+    public ResponseEnvelope RequestHistory() => Send(CommandNames.RequestHistory);
+    public ResponseEnvelope DiceHistory() => Send(CommandNames.DiceHistory);
+    public ResponseEnvelope DiceVisibleFeed() => Send(CommandNames.DiceVisibleFeed);
+
     public ResponseEnvelope PresenceList() => Send(CommandNames.PresenceList);
 
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)

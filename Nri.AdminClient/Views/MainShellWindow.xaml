@@ -127,6 +127,38 @@
                 </ScrollViewer>
             </TabItem>
 
+
+            <TabItem Header="RequestsView">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>
+                    <DataGrid ItemsSource="{Binding PendingRequests}" AutoGenerateColumns="False" SelectedValuePath="Id" SelectedValue="{Binding SelectedPendingRequestId, UpdateSourceTrigger=PropertyChanged}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="RequestId" Binding="{Binding Id}"/>
+                            <DataGridTextColumn Header="Type" Binding="{Binding Name}"/>
+                            <DataGridTextColumn Header="Status" Binding="{Binding State}"/>
+                            <DataGridTextColumn Header="Details" Binding="{Binding Extra}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                        <TextBlock Text="Комментарий админа" FontWeight="Bold"/>
+                        <TextBox Height="80" TextWrapping="Wrap" Text="{Binding RequestComment, UpdateSourceTrigger=PropertyChanged}"/>
+                        <WrapPanel Margin="0,8,0,8">
+                            <Button Content="Approve" Command="{Binding ApproveRequestCommand}" Margin="0,0,8,0"/>
+                            <Button Content="Reject" Command="{Binding RejectRequestCommand}"/>
+                        </WrapPanel>
+                        <TextBlock Text="История заявок" FontWeight="Bold"/>
+                        <ItemsControl ItemsSource="{Binding RequestHistoryRows}"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="DiceFeedView">
+                <StackPanel Margin="8">
+                    <TextBlock Text="Лента бросков (видимая администратору)" FontWeight="Bold"/>
+                    <ItemsControl ItemsSource="{Binding DiceFeedRows}"/>
+                </StackPanel>
+            </TabItem>
+
             <TabItem Header="LocksStatusView">
                 <StackPanel Margin="8">
                     <TextBlock Text="Lock status связан с редактором персонажа (по выбранному CharacterId)."/>

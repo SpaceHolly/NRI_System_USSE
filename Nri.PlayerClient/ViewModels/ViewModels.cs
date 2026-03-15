@@ -67,6 +67,8 @@ public class PlayerMainViewModel : ViewModelBase
         ShowMyCharactersCommand = new RelayCommand(() => SelectedSection = "MyCharacters");
         ShowClassesCommand = new RelayCommand(() => SelectedSection = "Classes");
         ShowSkillsCommand = new RelayCommand(() => SelectedSection = "Skills");
+        CreateDiceRequestCommand = new RelayCommand(CreateDiceRequest);
+        CancelRequestCommand = new RelayCommand(CancelRequest);
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _poller.Tick += (_, _) => RefreshAll();
@@ -76,6 +78,10 @@ public class PlayerMainViewModel : ViewModelBase
     public string PasswordText { get; set; } = string.Empty;
     public string ConnectionState { get => _connectionState; set { _connectionState = value; Notify(); } }
     public string SelectedSection { get => _selectedSection; set { _selectedSection = value; Notify(); } }
+    public string DiceFormulaInput { get; set; } = "1d20";
+    public string DiceVisibilityInput { get; set; } = "Public";
+    public string DiceDescriptionInput { get; set; } = string.Empty;
+    public string SelectedRequestId { get; set; } = string.Empty;
 
     public string CharacterName { get; set; } = string.Empty;
     public string CharacterRace { get; set; } = string.Empty;
@@ -94,6 +100,8 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> ClassProgressRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> SkillRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<CharacterListItemVm> MyCharacters { get; } = new ObservableCollection<CharacterListItemVm>();
+    public ObservableCollection<string> MyRequests { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> DiceFeed { get; } = new ObservableCollection<string>();
 
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
@@ -101,6 +109,8 @@ public class PlayerMainViewModel : ViewModelBase
     public ICommand ShowMyCharactersCommand { get; }
     public ICommand ShowClassesCommand { get; }
     public ICommand ShowSkillsCommand { get; }
+    public ICommand CreateDiceRequestCommand { get; }
+    public ICommand CancelRequestCommand { get; }
 
     private void Login()
     {
@@ -151,6 +161,7 @@ public class PlayerMainViewModel : ViewModelBase
                 }
             }
 
+            LoadRequestsAndFeed();
             ConnectionState = "Онлайн";
             NotifyAll();
         }
@@ -231,6 +242,77 @@ public class PlayerMainViewModel : ViewModelBase
             foreach (var item in ToObjectList(payload["skills"]))
                 if (item is Dictionary<string, object> row)
                     SkillRows.Add($"{GetString(row, "name")} [{GetString(row, "type")}] {(GetBool(row, "available") ? "Доступен" : "Недоступен: " + GetString(row, "reason"))}");
+    }
+
+    private void LoadRequestsAndFeed()
+    {
+        MyRequests.Clear();
+        var req = _api.ListMyRequests();
+        if (req.Status == ResponseStatus.Ok && req.Payload.ContainsKey("items"))
+        {
+            foreach (var item in ToObjectList(req.Payload["items"]))
+            {
+                if (item is Dictionary<string, object> map)
+                {
+                    var id = GetString(map, "requestId");
+                    var status = GetString(map, "status");
+                    var formula = GetString(map, "formula");
+                    var resultText = string.Empty;
+                    if (map.ContainsKey("result") && map["result"] is Dictionary<string, object> result)
+                        resultText = $" => {GetString(result, "total")}";
+                    MyRequests.Add($"{id} | {status} | {formula}{resultText}");
+                }
+            }
+        }
+
+        DiceFeed.Clear();
+        var feed = _api.DiceVisibleFeed();
+        if (feed.Status == ResponseStatus.Ok && feed.Payload.ContainsKey("items"))
+        {
+            foreach (var item in ToObjectList(feed.Payload["items"]))
+            {
+                if (item is Dictionary<string, object> map)
+                {
+                    var formula = GetString(map, "formula");
+                    var creator = GetString(map, "creatorUserId");
+                    var total = string.Empty;
+                    if (map.ContainsKey("result") && map["result"] is Dictionary<string, object> result)
+                        total = GetString(result, "total");
+                    DiceFeed.Add($"{creator}: {formula} => {total}");
+                }
+            }
+        }
+    }
+
+    private void CreateDiceRequest()
+    {
+        try
+        {
+            var charId = string.Empty;
+            if (MyCharacters.Count > 0) charId = MyCharacters[0].Id;
+            _api.CreateDiceRequest(charId, DiceFormulaInput, DiceVisibilityInput, DiceDescriptionInput);
+            LoadRequestsAndFeed();
+        }
+        catch
+        {
+            ConnectionState = "Вы в режиме оффлайн";
+        }
+    }
+
+    private void CancelRequest()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(SelectedRequestId))
+            {
+                _api.CancelRequest(SelectedRequestId);
+                LoadRequestsAndFeed();
+            }
+        }
+        catch
+        {
+            ConnectionState = "Вы в режиме оффлайн";
+        }
     }
 
     private void NotifyAll()

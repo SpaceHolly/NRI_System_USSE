@@ -79,6 +79,21 @@ public static class CommandNames
     public const string PresenceList = "presence.list";
     public const string SessionValidate = "session.validate";
 
+
+    public const string RequestCreate = "request.create";
+    public const string RequestCancel = "request.cancel";
+    public const string RequestListMine = "request.list.mine";
+    public const string RequestListPending = "request.list.pending";
+    public const string RequestGetDetails = "request.get.details";
+    public const string RequestApprove = "request.approve";
+    public const string RequestReject = "request.reject";
+    public const string RequestHistory = "request.history";
+
+    public const string DiceRequest = "dice.request";
+    public const string DiceHistory = "dice.history";
+    public const string DiceVisibleFeed = "dice.visibleFeed";
+    public const string DiceGetDetails = "dice.get.details";
+
     public const string LockAcquire = "lock.acquire";
     public const string LockRelease = "lock.release";
     public const string LockForceRelease = "lock.forceRelease";

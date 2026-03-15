@@ -69,6 +69,21 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CharacterTransfer, new DelegateCommandHandler(hub.CharacterTransfer));
         dispatcher.Register(CommandNames.CharacterAssignActive, new DelegateCommandHandler(hub.CharacterAssignActive));
 
+
+        dispatcher.Register(CommandNames.RequestCreate, new DelegateCommandHandler(hub.RequestCreate));
+        dispatcher.Register(CommandNames.RequestCancel, new DelegateCommandHandler(hub.RequestCancel));
+        dispatcher.Register(CommandNames.RequestListMine, new DelegateCommandHandler(hub.RequestListMine));
+        dispatcher.Register(CommandNames.RequestListPending, new DelegateCommandHandler(hub.RequestListPending));
+        dispatcher.Register(CommandNames.RequestGetDetails, new DelegateCommandHandler(hub.RequestGetDetails));
+        dispatcher.Register(CommandNames.RequestApprove, new DelegateCommandHandler(hub.RequestApprove));
+        dispatcher.Register(CommandNames.RequestReject, new DelegateCommandHandler(hub.RequestReject));
+        dispatcher.Register(CommandNames.RequestHistory, new DelegateCommandHandler(hub.RequestHistory));
+
+        dispatcher.Register(CommandNames.DiceRequest, new DelegateCommandHandler(hub.DiceRequest));
+        dispatcher.Register(CommandNames.DiceHistory, new DelegateCommandHandler(hub.DiceHistory));
+        dispatcher.Register(CommandNames.DiceVisibleFeed, new DelegateCommandHandler(hub.DiceVisibleFeed));
+        dispatcher.Register(CommandNames.DiceGetDetails, new DelegateCommandHandler(hub.DiceGetDetails));
+
         dispatcher.Register(CommandNames.PresenceList, new DelegateCommandHandler(hub.PresenceList));
 
         dispatcher.Register(CommandNames.LockAcquire, new DelegateCommandHandler(hub.LockAcquire));

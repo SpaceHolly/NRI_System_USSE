@@ -61,6 +61,8 @@ public class AdminMainViewModel : ViewModelBase
         SaveBasicInfoCommand = new RelayCommand(SaveBasicInfo);
         SaveStatsCommand = new RelayCommand(SaveStats);
         SaveMoneyCommand = new RelayCommand(SaveMoney);
+        ApproveRequestCommand = new RelayCommand(ApproveRequest);
+        RejectRequestCommand = new RelayCommand(RejectRequest);
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _poller.Tick += (_, _) => RefreshAll();
@@ -73,6 +75,8 @@ public class AdminMainViewModel : ViewModelBase
     public string SelectedPendingAccountId { get; set; } = string.Empty;
     public string SelectedOwnerUserId { get; set; } = string.Empty;
     public string SelectedCharacterId { get; set; } = string.Empty;
+    public string SelectedPendingRequestId { get; set; } = string.Empty;
+    public string RequestComment { get; set; } = string.Empty;
     public string LockStateText { get; set; } = string.Empty;
 
     public string EditName { get; set; } = string.Empty;
@@ -105,6 +109,9 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> ReputationRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> CompanionRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<RowVm> PendingRequests { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<string> RequestHistoryRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> DiceFeedRows { get; } = new ObservableCollection<string>();
 
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
@@ -118,6 +125,8 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand SaveBasicInfoCommand { get; }
     public ICommand SaveStatsCommand { get; }
     public ICommand SaveMoneyCommand { get; }
+    public ICommand ApproveRequestCommand { get; }
+    public ICommand RejectRequestCommand { get; }
 
     private void Login()
     {
@@ -141,6 +150,8 @@ public class AdminMainViewModel : ViewModelBase
         {
             LoadPending();
             LoadPlayers();
+            LoadPendingRequests();
+            LoadRequestHistory();
             ConnectionState = "Онлайн";
             Notify(nameof(ConnectionState));
         }
@@ -244,6 +255,63 @@ public class AdminMainViewModel : ViewModelBase
                 CompanionRows.Add($"{S(m, "name")} ({S(m, "species")})");
 
         NotifyAllEditor();
+    }
+
+    private void LoadPendingRequests()
+    {
+        PendingRequests.Clear();
+        var r = _api.ListPendingRequests();
+        if (r.Status != ResponseStatus.Ok || !r.Payload.ContainsKey("items")) return;
+        foreach (var obj in ToList(r.Payload["items"]))
+        {
+            if (obj is not Dictionary<string, object> m) continue;
+            PendingRequests.Add(new RowVm
+            {
+                Id = S(m, "requestId"),
+                Name = S(m, "requestType"),
+                State = S(m, "status"),
+                Extra = S(m, "formula")
+            });
+        }
+    }
+
+    private void LoadRequestHistory()
+    {
+        RequestHistoryRows.Clear();
+        var r = _api.RequestHistory();
+        if (r.Status == ResponseStatus.Ok && r.Payload.ContainsKey("items"))
+        {
+            foreach (var obj in ToList(r.Payload["items"]))
+                if (obj is Dictionary<string, object> m)
+                    RequestHistoryRows.Add($"{S(m, "requestId")} | {S(m, "status")} | {S(m, "requestType")} | {S(m, "formula")}");
+        }
+
+        DiceFeedRows.Clear();
+        var feed = _api.DiceVisibleFeed();
+        if (feed.Status == ResponseStatus.Ok && feed.Payload.ContainsKey("items"))
+        {
+            foreach (var obj in ToList(feed.Payload["items"]))
+            {
+                if (obj is not Dictionary<string, object> m) continue;
+                var total = string.Empty;
+                if (m.ContainsKey("result") && m["result"] is Dictionary<string, object> result) total = S(result, "total");
+                DiceFeedRows.Add($"{S(m, "creatorUserId")} | {S(m, "formula")} | {total} | {S(m, "visibility")}");
+            }
+        }
+    }
+
+    private void ApproveRequest()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedPendingRequestId)) return;
+        _api.ApproveRequest(SelectedPendingRequestId, RequestComment);
+        RefreshAll();
+    }
+
+    private void RejectRequest()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedPendingRequestId)) return;
+        _api.RejectRequest(SelectedPendingRequestId, RequestComment);
+        RefreshAll();
     }
 
     private void AcquireLock()
