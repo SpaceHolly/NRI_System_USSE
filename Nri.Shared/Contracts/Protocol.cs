@@ -50,10 +50,26 @@ public static class CommandNames
     public const string AdminAccountsApprove = "admin.accounts.approve";
     public const string AdminAccountsArchive = "admin.accounts.archive";
     public const string AdminAccountProfile = "admin.accounts.profile";
+    public const string AdminPlayersList = "admin.players.list";
 
     public const string CharacterListMine = "character.list.mine";
     public const string CharacterListByOwner = "character.list.byOwner";
     public const string CharacterGetActive = "character.get.active";
+    public const string CharacterGetDetails = "character.get.details";
+    public const string CharacterGetSummary = "character.get.summary";
+    public const string CharacterGetCompanions = "character.get.companions";
+    public const string CharacterGetInventory = "character.get.inventory";
+    public const string CharacterGetReputation = "character.get.reputation";
+    public const string CharacterGetHoldings = "character.get.holdings";
+
+    public const string CharacterUpdateBasicInfo = "character.update.basicInfo";
+    public const string CharacterUpdateStats = "character.update.stats";
+    public const string CharacterUpdateVisibility = "character.update.visibility";
+    public const string CharacterUpdateMoney = "character.update.money";
+    public const string CharacterUpdateInventory = "character.update.inventory";
+    public const string CharacterUpdateReputation = "character.update.reputation";
+    public const string CharacterUpdateHoldings = "character.update.holdings";
+
     public const string CharacterCreate = "character.create";
     public const string CharacterArchive = "character.archive";
     public const string CharacterRestore = "character.restore";
@@ -65,6 +81,8 @@ public static class CommandNames
 
     public const string LockAcquire = "lock.acquire";
     public const string LockRelease = "lock.release";
+    public const string LockForceRelease = "lock.forceRelease";
+    public const string LockStatus = "lock.status";
     public const string LockStatus = "lock.status";
     public const string AuthRegister = "auth/register";
     public const string AuthLogin = "auth/login";

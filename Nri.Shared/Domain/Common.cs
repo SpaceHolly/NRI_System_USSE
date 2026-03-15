@@ -103,6 +103,11 @@ public class Character : EntityBase
     public string SessionId { get; set; } = string.Empty;
     public string OwnerUserId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public int? Age { get; set; }
+    public string Race { get; set; } = string.Empty;
+    public string Height { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Backstory { get; set; } = string.Empty;
     public CharacterVisibilitySettings Visibility { get; set; } = new CharacterVisibilitySettings();
     public CharacterStats Stats { get; set; } = new CharacterStats();
     public List<CharacterClassProgress> ClassProgress { get; set; } = new List<CharacterClassProgress>();
@@ -110,12 +115,16 @@ public class Character : EntityBase
     public Wallet Wallet { get; set; } = new Wallet();
     public List<InventoryItem> Inventory { get; set; } = new List<InventoryItem>();
     public List<Companion> Companions { get; set; } = new List<Companion>();
+    public List<HoldingRef> Holdings { get; set; } = new List<HoldingRef>();
+    public List<ReputationRef> Reputation { get; set; } = new List<ReputationRef>();
 }
 
 public class Companion
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = string.Empty;
+    public string Species { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
     public List<InventoryItem> Inventory { get; set; } = new List<InventoryItem>();
 }
 
@@ -123,6 +132,11 @@ public class InventoryItem
 {
     public string ItemCode { get; set; } = string.Empty;
     public string Label { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public int Quantity { get; set; } = 1;
+    public int? Durability { get; set; }
+    public int? ConsumptionPerUse { get; set; }
+    public bool Equipped { get; set; }
     public int Quantity { get; set; } = 1;
 }
 
@@ -133,10 +147,23 @@ public class Holding : EntityBase
     public List<string> OwnerCharacterIds { get; set; } = new List<string>();
 }
 
+public class HoldingRef
+{
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+}
+
 public class ReputationEntry : EntityBase
 {
     public string SessionId { get; set; } = string.Empty;
     public string? CharacterId { get; set; }
+    public string GroupKey { get; set; } = string.Empty;
+    public int Value { get; set; }
+}
+
+public class ReputationRef
+{
+    public string Scope { get; set; } = "Personal";
     public string GroupKey { get; set; } = string.Empty;
     public int Value { get; set; }
 }
@@ -160,6 +187,74 @@ public class MoneyBreakdown
 
 public class Wallet
 {
+    private static readonly CurrencyDenomination[] Order =
+    {
+        CurrencyDenomination.Iron,
+        CurrencyDenomination.Bronze,
+        CurrencyDenomination.Silver,
+        CurrencyDenomination.Gold,
+        CurrencyDenomination.Platinum,
+        CurrencyDenomination.Orichalcum,
+        CurrencyDenomination.Adamant,
+        CurrencyDenomination.Sovereign
+    };
+
+    public MoneyBreakdown Balance { get; set; } = new MoneyBreakdown();
+
+    public void EnsureAllDenominations()
+    {
+        foreach (var denomination in Order)
+        {
+            if (!Balance.Amounts.ContainsKey(denomination))
+            {
+                Balance.Amounts[denomination] = 0;
+            }
+        }
+    }
+
+    public void NormalizeUpward(long factor = 100)
+    {
+        EnsureAllDenominations();
+        for (var index = 0; index < Order.Length - 1; index++)
+        {
+            var current = Order[index];
+            var next = Order[index + 1];
+            var amount = Balance.Amounts[current];
+            if (amount < factor)
+            {
+                continue;
+            }
+
+            var carry = amount / factor;
+            Balance.Amounts[current] = amount % factor;
+            Balance.Amounts[next] += carry;
+        }
+    }
+
+    public bool Spend(long amountInLowest, long factor = 100)
+    {
+        EnsureAllDenominations();
+        var total = 0L;
+        var multiplier = 1L;
+        foreach (var denomination in Order)
+        {
+            total += Balance.Amounts[denomination] * multiplier;
+            multiplier *= factor;
+        }
+
+        if (total < amountInLowest)
+        {
+            return false;
+        }
+
+        total -= amountInLowest;
+        foreach (var denomination in Order)
+        {
+            Balance.Amounts[denomination] = total % factor;
+            total /= factor;
+        }
+
+        return true;
     public MoneyBreakdown Balance { get; set; } = new MoneyBreakdown();
 
     public void NormalizeUpward(IReadOnlyDictionary<CurrencyDenomination, int> factors)
@@ -176,6 +271,10 @@ public class Wallet
 
 public class CharacterVisibilitySettings
 {
+    public bool HideDescriptionForOthers { get; set; }
+    public bool HideBackstoryForOthers { get; set; }
+    public bool HideStatsForOthers { get; set; }
+    public bool HideReputationForOthers { get; set; }
     public bool HideExactStats { get; set; }
     public bool HideInventory { get; set; }
     public bool HidePrivateNotes { get; set; }
@@ -184,6 +283,15 @@ public class CharacterVisibilitySettings
 public class CharacterStats
 {
     public int Health { get; set; }
+    public int PhysicalArmor { get; set; }
+    public int MagicalArmor { get; set; }
+    public int Morale { get; set; }
+    public int Strength { get; set; }
+    public int Dexterity { get; set; }
+    public int Endurance { get; set; }
+    public int Wisdom { get; set; }
+    public int Intellect { get; set; }
+    public int Charisma { get; set; }
     public int MaxHealth { get; set; }
     public int Willpower { get; set; }
     public int Endurance { get; set; }
@@ -196,16 +304,29 @@ public class CharacterClassProgress
     public int Experience { get; set; }
 }
 
+public enum SkillType
+{
+    Passive,
+    Activatable
+}
+
 public class SkillDefinition : EntityBase
 {
     public string SkillCode { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public SkillType Type { get; set; }
 }
 
 public class SkillState
 {
     public string SkillCode { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public SkillType Type { get; set; }
+    public int Rank { get; set; }
+    public bool IsAvailable { get; set; }
+    public string UnavailableReason { get; set; } = string.Empty;
     public int Rank { get; set; }
     public bool IsUnlocked { get; set; }
 }

@@ -101,6 +101,7 @@ public class CommandDispatcher
         catch (UnauthorizedAccessException ex)
         {
             _logger.Admin($"Unauthorized command attempt {request.Command}: {ex.Message}");
+            return Error(request.RequestId, ResponseStatus.Unauthorized, ErrorCode.Unauthorized, ex.Message);
             return Error(request.RequestId, ResponseStatus.Forbidden, ErrorCode.Forbidden, ex.Message);
         }
         catch (Exception ex)
