@@ -13,6 +13,7 @@ public enum ResponseStatus
     ValidationFailed,
     NotFound,
     Conflict
+    NotFound
 }
 
 public enum ErrorCode
@@ -27,6 +28,13 @@ public enum ErrorCode
     InternalError,
     InvalidCommand,
     InvalidToken
+    Unknown,
+    InvalidPayload,
+    InvalidCommand,
+    InvalidToken,
+    AccessDenied,
+    RateLimited,
+    Conflict
 }
 
 public static class CommandNames
@@ -58,6 +66,23 @@ public static class CommandNames
     public const string LockAcquire = "lock.acquire";
     public const string LockRelease = "lock.release";
     public const string LockStatus = "lock.status";
+    public const string AuthRegister = "auth/register";
+    public const string AuthLogin = "auth/login";
+    public const string SessionSelect = "session/select";
+    public const string CharacterGet = "character/get";
+    public const string CharacterUpdate = "character/update";
+    public const string RequestCreate = "request/create";
+    public const string RequestCancel = "request/cancel";
+    public const string RequestApprove = "request/approve";
+    public const string RequestReject = "request/reject";
+    public const string DiceRollRequest = "dice/roll/request";
+    public const string CombatStart = "combat/start";
+    public const string CombatNextTurn = "combat/nextTurn";
+    public const string CombatEnd = "combat/end";
+    public const string ChatSend = "chat/send";
+    public const string ChatHistory = "chat/history";
+    public const string AudioStateGet = "audio/state/get";
+    public const string AudioStateSet = "audio/state/set";
 }
 
 public class RequestEnvelope

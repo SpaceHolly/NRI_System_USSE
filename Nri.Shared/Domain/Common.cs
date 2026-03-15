@@ -44,6 +44,9 @@ public class UserAccount : EntityBase
     public string ProfileId { get; set; } = string.Empty;
     public AccountStatus Status { get; set; } = AccountStatus.PendingApproval;
     public DateTime? LastLoginUtc { get; set; }
+    public List<UserRole> Roles { get; set; } = new List<UserRole>();
+    public string ProfileId { get; set; } = string.Empty;
+    public bool IsBlocked { get; set; }
 }
 
 public class UserProfile : EntityBase
@@ -54,6 +57,8 @@ public class UserProfile : EntityBase
     public int? Age { get; set; }
     public string Description { get; set; } = string.Empty;
     public string Backstory { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
     public string TimeZoneId { get; set; } = "UTC";
 }
 
@@ -65,6 +70,10 @@ public class SessionUserState : EntityBase
     public bool IsOnline { get; set; }
     public DateTime LastSeenUtc { get; set; } = DateTime.UtcNow;
     public string? CurrentGameSessionId { get; set; }
+    public string SessionId { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public bool IsOnline { get; set; }
+    public DateTime LastSeenUtc { get; set; } = DateTime.UtcNow;
     public string? ActiveCharacterId { get; set; }
 }
 

@@ -14,6 +14,8 @@ internal static class Program
         var logger = new CompositeLogger(config.Logging);
         var runtime = ServiceRegistry.Build(config, logger);
         var listener = new TcpJsonServer(config, logger, runtime.Dispatcher, runtime.Sessions);
+        var dispatcher = ServiceRegistry.BuildDispatcher(logger);
+        var listener = new TcpJsonServer(config, logger, dispatcher);
 
         logger.Debug("Server bootstrap completed.");
         listener.Start();

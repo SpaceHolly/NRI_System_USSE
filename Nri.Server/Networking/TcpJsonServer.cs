@@ -37,6 +37,14 @@ public class ConnectionManager
     public int Count => _connections.Count;
 }
 
+using System.Net;
+using System.Net.Sockets;
+using Nri.Server.Application;
+using Nri.Server.Logging;
+using Nri.Shared.Configuration;
+
+namespace Nri.Server.Networking;
+
 public class TcpJsonServer
 {
     private readonly ServerConfig _config;
@@ -48,6 +56,9 @@ public class TcpJsonServer
     private TcpListener? _listener;
 
     public TcpJsonServer(ServerConfig config, IServerLogger logger, CommandDispatcher dispatcher, SessionManager sessionManager)
+    private TcpListener? _listener;
+
+    public TcpJsonServer(ServerConfig config, IServerLogger logger, CommandDispatcher dispatcher)
     {
         _config = config;
         _logger = logger;
@@ -152,5 +163,8 @@ public class TcpJsonServer
             _connections.Remove(connection.ConnectionId);
             _logger.Session($"Disconnected {connection.ConnectionId}, online={_connections.Count}");
         }
+    }
+        _listener?.Stop();
+        _logger.Debug("TCP listener stopped.");
     }
 }

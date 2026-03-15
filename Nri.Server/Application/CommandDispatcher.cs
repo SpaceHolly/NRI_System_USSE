@@ -16,6 +16,9 @@ public class CommandContext
 public interface ICommandHandler
 {
     ResponseEnvelope Handle(CommandContext context);
+public interface ICommandHandler
+{
+    ResponseEnvelope Handle(RequestEnvelope request);
 }
 
 public class CommandDispatcher
@@ -33,6 +36,11 @@ public class CommandDispatcher
     {
         _logger = logger;
         _sessionManager = sessionManager;
+    private readonly Dictionary<string, ICommandHandler> _handlers = new Dictionary<string, ICommandHandler>();
+
+    public CommandDispatcher(IServerLogger logger)
+    {
+        _logger = logger;
     }
 
     public void Register(string command, ICommandHandler handler)
@@ -111,5 +119,20 @@ public class CommandDispatcher
             ErrorCode = code,
             Message = message
         };
+    public ResponseEnvelope Dispatch(RequestEnvelope request)
+    {
+        if (!_handlers.ContainsKey(request.Command))
+        {
+            return new ResponseEnvelope
+            {
+                RequestId = request.RequestId,
+                Status = ResponseStatus.Error,
+                ErrorCode = ErrorCode.InvalidCommand,
+                Message = $"Command '{request.Command}' is not registered."
+            };
+        }
+
+        _logger.Session($"Dispatch command: {request.Command} ({request.RequestId})");
+        return _handlers[request.Command].Handle(request);
     }
 }
