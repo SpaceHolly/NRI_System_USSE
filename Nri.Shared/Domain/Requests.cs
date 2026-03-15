@@ -48,6 +48,14 @@ public abstract class RequestBase : EntityBase
     public int RejectionCountForFingerprint { get; set; }
     public RequestDecision Decision { get; set; } = new RequestDecision();
     public List<RequestHistoryEntry> History { get; set; } = new List<RequestHistoryEntry>();
+
+namespace Nri.Shared.Domain;
+
+public abstract class RequestBase : EntityBase
+{
+    public string SessionId { get; set; } = string.Empty;
+    public string CreatorUserId { get; set; } = string.Empty;
+    public string Status { get; set; } = "Pending";
 }
 
 public class ActionRequest : RequestBase
@@ -72,6 +80,9 @@ public class DiceRollResult
     public RequestVisibility Visibility { get; set; } = RequestVisibility.Public;
     public string ApprovedByUserId { get; set; } = string.Empty;
     public DateTime ApprovedAtUtc { get; set; } = DateTime.UtcNow;
+    public string CharacterId { get; set; } = string.Empty;
+    public string ActionCode { get; set; } = string.Empty;
+    public string PayloadJson { get; set; } = "{}";
 }
 
 public class DiceRollRequest : RequestBase
@@ -80,6 +91,9 @@ public class DiceRollRequest : RequestBase
     public DiceFormulaSpec Formula { get; set; } = new DiceFormulaSpec();
     public RequestVisibility Visibility { get; set; } = RequestVisibility.Public;
     public DiceRollResult? Result { get; set; }
+    public string CharacterId { get; set; } = string.Empty;
+    public string Expression { get; set; } = "1d20";
+    public bool IsShadowRoll { get; set; }
 }
 
 public class CharacterApplicationRequest : RequestBase

@@ -44,6 +44,9 @@ public class UserAccount : EntityBase
     public string ProfileId { get; set; } = string.Empty;
     public AccountStatus Status { get; set; } = AccountStatus.PendingApproval;
     public DateTime? LastLoginUtc { get; set; }
+    public List<UserRole> Roles { get; set; } = new List<UserRole>();
+    public string ProfileId { get; set; } = string.Empty;
+    public bool IsBlocked { get; set; }
 }
 
 public class UserProfile : EntityBase
@@ -54,6 +57,8 @@ public class UserProfile : EntityBase
     public int? Age { get; set; }
     public string Description { get; set; } = string.Empty;
     public string Backstory { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
     public string TimeZoneId { get; set; } = "UTC";
 }
 
@@ -65,6 +70,10 @@ public class SessionUserState : EntityBase
     public bool IsOnline { get; set; }
     public DateTime LastSeenUtc { get; set; } = DateTime.UtcNow;
     public string? CurrentGameSessionId { get; set; }
+    public string SessionId { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public bool IsOnline { get; set; }
+    public DateTime LastSeenUtc { get; set; } = DateTime.UtcNow;
     public string? ActiveCharacterId { get; set; }
 }
 
@@ -128,6 +137,7 @@ public class InventoryItem
     public int? Durability { get; set; }
     public int? ConsumptionPerUse { get; set; }
     public bool Equipped { get; set; }
+    public int Quantity { get; set; } = 1;
 }
 
 public class Holding : EntityBase
@@ -245,6 +255,17 @@ public class Wallet
         }
 
         return true;
+    public MoneyBreakdown Balance { get; set; } = new MoneyBreakdown();
+
+    public void NormalizeUpward(IReadOnlyDictionary<CurrencyDenomination, int> factors)
+    {
+        foreach (var factor in factors)
+        {
+            if (!Balance.Amounts.ContainsKey(factor.Key))
+            {
+                Balance.Amounts[factor.Key] = 0;
+            }
+        }
     }
 }
 
@@ -254,6 +275,9 @@ public class CharacterVisibilitySettings
     public bool HideBackstoryForOthers { get; set; }
     public bool HideStatsForOthers { get; set; }
     public bool HideReputationForOthers { get; set; }
+    public bool HideExactStats { get; set; }
+    public bool HideInventory { get; set; }
+    public bool HidePrivateNotes { get; set; }
 }
 
 public class CharacterStats
@@ -268,6 +292,9 @@ public class CharacterStats
     public int Wisdom { get; set; }
     public int Intellect { get; set; }
     public int Charisma { get; set; }
+    public int MaxHealth { get; set; }
+    public int Willpower { get; set; }
+    public int Endurance { get; set; }
 }
 
 public class CharacterClassProgress
@@ -300,6 +327,8 @@ public class SkillState
     public int Rank { get; set; }
     public bool IsAvailable { get; set; }
     public string UnavailableReason { get; set; } = string.Empty;
+    public int Rank { get; set; }
+    public bool IsUnlocked { get; set; }
 }
 
 public enum ChatMessageType

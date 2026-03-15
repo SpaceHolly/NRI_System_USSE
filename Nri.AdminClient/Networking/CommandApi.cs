@@ -52,5 +52,18 @@ public class CommandApi
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
         return _client.Send(new RequestEnvelope { Command = command, Payload = payload ?? new Dictionary<string, object>() });
+    public ResponseEnvelope GetProfile() => Send(CommandNames.ProfileGet);
+    public ResponseEnvelope UpdateProfile(string displayName, string race, int? age, string description, string backstory) => Send(CommandNames.ProfileUpdate, new Dictionary<string, object> { { "displayName", displayName }, { "race", race }, { "age", age ?? 0 }, { "description", description }, { "backstory", backstory } });
+    public ResponseEnvelope GetMyCharacters() => Send(CommandNames.CharacterListMine);
+    public ResponseEnvelope GetPendingAccounts() => Send(CommandNames.AdminAccountsPending);
+    public ResponseEnvelope ApproveAccount(string accountId) => Send(CommandNames.AdminAccountsApprove, new Dictionary<string, object> { { "accountId", accountId } });
+
+    private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
+    {
+        return _client.Send(new RequestEnvelope
+        {
+            Command = command,
+            Payload = payload ?? new Dictionary<string, object>()
+        });
     }
 }

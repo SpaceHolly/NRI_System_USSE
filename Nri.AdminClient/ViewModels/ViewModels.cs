@@ -9,6 +9,8 @@ using System.Windows.Threading;
 using Nri.AdminClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace Nri.AdminClient.ViewModels;
 
@@ -371,3 +373,30 @@ public class AdminMainViewModel : ViewModelBase
     private static IList ToList(object value) => value as IList ?? new ArrayList();
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
+
+    protected void Notify([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+}
+
+public class LoginViewModel : ViewModelBase
+{
+    private string _login = string.Empty;
+    public string Login
+    {
+        get => _login;
+        set
+        {
+            _login = value;
+            Notify();
+        }
+    }
+}
+
+public class AdminDashboardViewModel : ViewModelBase { }
+public class CharacterViewModel : ViewModelBase { }
+public class RequestsViewModel : ViewModelBase { }
+public class CombatViewModel : ViewModelBase { }
+public class ChatPanelViewModel : ViewModelBase { }
+public class AudioPanelViewModel : ViewModelBase { }
