@@ -6,6 +6,7 @@ public class ServerConfig
     public int Port { get; set; } = 4600;
     public MongoConfig Mongo { get; set; } = new MongoConfig();
     public LoggingConfig Logging { get; set; } = new LoggingConfig();
+    public TokenConfig Tokens { get; set; } = new TokenConfig();
     public string AudioFolderPath { get; set; } = "./audio";
 }
 
@@ -21,6 +22,11 @@ public class LoggingConfig
     public string SessionLogPath { get; set; } = "./logs/session.log";
     public string AdminLogPath { get; set; } = "./logs/admin.log";
     public string AuditLogPath { get; set; } = "./logs/audit.log";
+}
+
+public class TokenConfig
+{
+    public int TokenLifetimeHours { get; set; } = 12;
 }
 
 public class ClientConfig

@@ -11,12 +11,23 @@ public enum ResponseStatus
     Unauthorized,
     Forbidden,
     ValidationFailed,
+    NotFound,
+    Conflict
     NotFound
 }
 
 public enum ErrorCode
 {
     None,
+    InvalidRequest,
+    Unauthorized,
+    Forbidden,
+    ValidationFailed,
+    NotFound,
+    Conflict,
+    InternalError,
+    InvalidCommand,
+    InvalidToken
     Unknown,
     InvalidPayload,
     InvalidCommand,
@@ -28,6 +39,33 @@ public enum ErrorCode
 
 public static class CommandNames
 {
+    public const string AuthRegister = "auth.register";
+    public const string AuthLogin = "auth.login";
+    public const string AuthLogout = "auth.logout";
+
+    public const string ProfileGet = "profile.get";
+    public const string ProfileUpdate = "profile.update";
+
+    public const string AdminAccountsPending = "admin.accounts.pending";
+    public const string AdminAccountsApprove = "admin.accounts.approve";
+    public const string AdminAccountsArchive = "admin.accounts.archive";
+    public const string AdminAccountProfile = "admin.accounts.profile";
+
+    public const string CharacterListMine = "character.list.mine";
+    public const string CharacterListByOwner = "character.list.byOwner";
+    public const string CharacterGetActive = "character.get.active";
+    public const string CharacterCreate = "character.create";
+    public const string CharacterArchive = "character.archive";
+    public const string CharacterRestore = "character.restore";
+    public const string CharacterTransfer = "character.transfer";
+    public const string CharacterAssignActive = "character.assignActive";
+
+    public const string PresenceList = "presence.list";
+    public const string SessionValidate = "session.validate";
+
+    public const string LockAcquire = "lock.acquire";
+    public const string LockRelease = "lock.release";
+    public const string LockStatus = "lock.status";
     public const string AuthRegister = "auth/register";
     public const string AuthLogin = "auth/login";
     public const string SessionSelect = "session/select";

@@ -15,6 +15,7 @@ public interface IServerLogger
 public class CompositeLogger : IServerLogger
 {
     private readonly LoggingConfig _config;
+    private static readonly object Sync = new object();
 
     public CompositeLogger(LoggingConfig config)
     {
@@ -35,6 +36,10 @@ public class CompositeLogger : IServerLogger
             Directory.CreateDirectory(directory);
         }
 
+        lock (Sync)
+        {
+            File.AppendAllText(path, line);
+        }
         File.AppendAllText(path, line);
     }
 }

@@ -21,6 +21,14 @@ public enum UserRole
     SuperAdmin
 }
 
+public enum AccountStatus
+{
+    PendingApproval,
+    Active,
+    Blocked,
+    Archived
+}
+
 public class Role : EntityBase
 {
     public string Name { get; set; } = string.Empty;
@@ -32,6 +40,10 @@ public class UserAccount : EntityBase
     public string Login { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string PasswordSalt { get; set; } = string.Empty;
+    public List<UserRole> Roles { get; set; } = new List<UserRole> { UserRole.Player };
+    public string ProfileId { get; set; } = string.Empty;
+    public AccountStatus Status { get; set; } = AccountStatus.PendingApproval;
+    public DateTime? LastLoginUtc { get; set; }
     public List<UserRole> Roles { get; set; } = new List<UserRole>();
     public string ProfileId { get; set; } = string.Empty;
     public bool IsBlocked { get; set; }
@@ -39,6 +51,12 @@ public class UserAccount : EntityBase
 
 public class UserProfile : EntityBase
 {
+    public string UserAccountId { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Race { get; set; } = string.Empty;
+    public int? Age { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string Backstory { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string TimeZoneId { get; set; } = "UTC";
@@ -46,6 +64,12 @@ public class UserProfile : EntityBase
 
 public class SessionUserState : EntityBase
 {
+    public string UserId { get; set; } = string.Empty;
+    public string AuthToken { get; set; } = string.Empty;
+    public string ConnectionId { get; set; } = string.Empty;
+    public bool IsOnline { get; set; }
+    public DateTime LastSeenUtc { get; set; } = DateTime.UtcNow;
+    public string? CurrentGameSessionId { get; set; }
     public string SessionId { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
     public bool IsOnline { get; set; }
@@ -255,11 +279,20 @@ public class SessionAudioState : EntityBase
     public TimeSpan Position { get; set; }
 }
 
+public enum LockOwnerLevel
+{
+    Admin = 1,
+    SuperAdmin = 2,
+    Server = 3
+}
+
 public class EntityLock : EntityBase
 {
     public string EntityType { get; set; } = string.Empty;
     public string EntityId { get; set; } = string.Empty;
     public string LockedByUserId { get; set; } = string.Empty;
+    public LockOwnerLevel OwnerLevel { get; set; } = LockOwnerLevel.Admin;
+    public DateTime IssuedUtc { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresUtc { get; set; } = DateTime.UtcNow.AddHours(1);
 }
 
