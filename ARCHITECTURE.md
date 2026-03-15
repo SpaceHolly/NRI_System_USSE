@@ -156,3 +156,58 @@
 ### Sync strategy
 - Current chat sync uses polling + refresh-after-send/read actions.
 - This keeps behavior stable on current TCP+JSON request/response transport without introducing push channels yet.
+
+## Session Audio Subsystem (Stage: synchronized background music)
+
+- Added server-authoritative session audio state with categories/modes and synchronized playback snapshot.
+- Audio files are stored on server filesystem (`AudioFolderPath`), while Mongo stores only metadata/state.
+
+### Categories and modes
+- Categories: `Normal`, `Combat`, `Tense`, `Calm`, `Manual`.
+- Modes: `Auto` and `Manual`.
+- Auto policy currently maps active combat to `Combat`, otherwise `Normal`.
+- Manual override has priority until cleared by admin.
+
+### Storage separation
+- `audio_tracks`: track metadata/index (`DisplayName`, `FilePath`, `Category`, enabled flag, ordering, duration metadata).
+- `audio_states`: runtime per-session playback state (mode, category, track, startedAt, fade, override metadata).
+- `audio_client_settings`: per-user local playback prefs (volume/mute).
+
+### Library indexing
+- Server scans configured audio directory and indexes `.mp3`, `.wav`, `.ogg` files.
+- Category is inferred from path/name (`combat`, `tense`, `calm`, `manual`, else `normal`).
+- Missing files disable stale metadata entries; files without explicit metadata are indexed automatically.
+
+### Sync model
+- Time-based synchronization via `startedAtUtc + startOffsetSeconds`.
+- Clients compute playback position from server timestamp snapshot.
+- This avoids heavy server-side position writes while keeping usable sync quality.
+
+### Track transitions
+- Session state exposes fixed fade duration (`fadeMilliseconds`, default 1800).
+- Track switch sets transition playback state, then settles into playing state on subsequent sync.
+
+### Audio protocol commands
+- State/mode:
+  - `audio.state.get`
+  - `audio.state.sync`
+  - `audio.mode.get`
+  - `audio.mode.set`
+  - `audio.override.clear`
+- Library/tracks:
+  - `audio.library.get`
+  - `audio.track.select`
+  - `audio.track.next`
+  - `audio.track.reload`
+- Client local settings:
+  - `audio.clientSettings.get`
+  - `audio.clientSettings.set`
+
+### Integration points
+- Combat start/end/new round triggers audio policy sync.
+- Music mode/track updates emit system messages into the shared session chat stream.
+
+### Client behavior
+- Admin can control mode/category/track/reload and view full library/state.
+- Player gets synchronized playback state and only controls local volume + mute.
+- Client sync currently uses polling/refresh-after-actions for stability on current TCP+JSON transport.

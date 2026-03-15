@@ -99,6 +99,23 @@
                 </StackPanel>
             </TabItem>
 
+
+            <TabItem Header="SessionAudioView">
+                <StackPanel Margin="8">
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBox Width="140" Text="{Binding AudioSessionId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                        <Button Content="Refresh" Command="{Binding AudioRefreshCommand}" Margin="0,0,6,0"/>
+                    </WrapPanel>
+                    <TextBlock Text="{Binding AudioStateText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBlock Text="Volume" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <Slider Width="220" Minimum="0" Maximum="1" Value="{Binding LocalVolume, UpdateSourceTrigger=PropertyChanged}" TickFrequency="0.1" IsSnapToTickEnabled="False" Margin="0,0,6,0"/>
+                        <CheckBox Content="Mute" IsChecked="{Binding LocalMuted, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <Button Content="Apply" Command="{Binding AudioApplyLocalSettingsCommand}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </TabItem>
+
             <TabItem Header="SessionChatView">
                 <StackPanel Margin="8">
                     <WrapPanel Margin="0,0,0,8">

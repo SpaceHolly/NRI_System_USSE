@@ -24,7 +24,7 @@ public static class ServiceRegistry
         var mongo = new MongoContext(config, logger);
         var repositories = new MongoRepositoryFactory(mongo);
         var sessions = new SessionManager(config.Tokens, repositories);
-        var hub = new ServiceHub(repositories, sessions, logger);
+        var hub = new ServiceHub(repositories, sessions, logger, config.AudioFolderPath);
 
         var dispatcher = new CommandDispatcher(logger, sessions);
 
@@ -136,6 +136,20 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.ChatRestrictionsUnmuteUser, new DelegateCommandHandler(hub.ChatRestrictionsUnmuteUser));
         dispatcher.Register(CommandNames.ChatRestrictionsLockPlayers, new DelegateCommandHandler(hub.ChatRestrictionsLockPlayers));
         dispatcher.Register(CommandNames.ChatRestrictionsUnlockPlayers, new DelegateCommandHandler(hub.ChatRestrictionsUnlockPlayers));
+
+        dispatcher.Register(CommandNames.AudioStateGet, new DelegateCommandHandler(hub.AudioStateGet));
+        dispatcher.Register(CommandNames.AudioStateSync, new DelegateCommandHandler(hub.AudioStateSync));
+        dispatcher.Register(CommandNames.AudioModeGet, new DelegateCommandHandler(hub.AudioModeGet));
+        dispatcher.Register(CommandNames.AudioModeSet, new DelegateCommandHandler(hub.AudioModeSet));
+        dispatcher.Register(CommandNames.AudioOverrideClear, new DelegateCommandHandler(hub.AudioOverrideClear));
+
+        dispatcher.Register(CommandNames.AudioLibraryGet, new DelegateCommandHandler(hub.AudioLibraryGet));
+        dispatcher.Register(CommandNames.AudioTrackSelect, new DelegateCommandHandler(hub.AudioTrackSelect));
+        dispatcher.Register(CommandNames.AudioTrackNext, new DelegateCommandHandler(hub.AudioTrackNext));
+        dispatcher.Register(CommandNames.AudioTrackReload, new DelegateCommandHandler(hub.AudioTrackReload));
+
+        dispatcher.Register(CommandNames.AudioClientSettingsGet, new DelegateCommandHandler(hub.AudioClientSettingsGet));
+        dispatcher.Register(CommandNames.AudioClientSettingsSet, new DelegateCommandHandler(hub.AudioClientSettingsSet));
 
         dispatcher.Register(CommandNames.LockAcquire, new DelegateCommandHandler(hub.LockAcquire));
         dispatcher.Register(CommandNames.LockRelease, new DelegateCommandHandler(hub.LockRelease));

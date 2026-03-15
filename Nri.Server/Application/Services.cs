@@ -16,12 +16,14 @@ public partial class ServiceHub
     private readonly INriRepositoryFactory _repositories;
     private readonly SessionManager _sessionManager;
     private readonly IServerLogger _logger;
+    private readonly string _audioFolderPath;
 
-    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger)
+    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, string audioFolderPath)
     {
         _repositories = repositories;
         _sessionManager = sessionManager;
         _logger = logger;
+        _audioFolderPath = string.IsNullOrWhiteSpace(audioFolderPath) ? "./audio" : audioFolderPath;
     }
 
     public ResponseEnvelope Register(CommandContext context)
@@ -629,6 +631,7 @@ public partial class ServiceHub
 
         _repositories.Combats.Replace(combat);
         AddCombatLog(combat, "combat.start", actor.Id, "Combat started");
+        SyncAudioPolicyForSession(sessionId, actor.Id);
         PublishSystemMessage(sessionId, "Combat started.");
         return Ok("Combat started.", CombatSnapshotPayload(combat));
     }
@@ -640,6 +643,7 @@ public partial class ServiceHub
         combat.Status = CombatStatus.Ended;
         _repositories.Combats.Replace(combat);
         AddCombatLog(combat, "combat.end", actor.Id, "Combat ended manually");
+        SyncAudioPolicyForSession(combat.SessionId, actor.Id);
         PublishSystemMessage(combat.SessionId, "Combat ended.");
         return Ok("Combat ended.", CombatSnapshotPayload(combat));
     }
@@ -717,6 +721,7 @@ public partial class ServiceHub
 
         _repositories.Combats.Replace(combat);
         AddCombatLog(combat, "combat.nextRound", actor.Id, $"Round {combat.RoundState.RoundNumber} started");
+        SyncAudioPolicyForSession(combat.SessionId, actor.Id);
         PublishSystemMessage(combat.SessionId, $"Round {combat.RoundState.RoundNumber} started.");
         return Ok("Moved to next round.", CombatSnapshotPayload(combat));
     }

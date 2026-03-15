@@ -3,9 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Web.Script.Serialization;
 using Nri.PlayerClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
@@ -71,6 +73,10 @@ public class PlayerMainViewModel : ViewModelBase
         AcquireSkillCommand = new RelayCommand(AcquireSkill);
         ChatSendCommand = new RelayCommand(ChatSend);
         ChatRefreshCommand = new RelayCommand(ChatRefresh);
+        AudioRefreshCommand = new RelayCommand(AudioRefresh);
+        AudioApplyLocalSettingsCommand = new RelayCommand(AudioApplyLocalSettings);
+
+        LoadLocalAudioSettings();
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _poller.Tick += (_, _) => RefreshAll();
@@ -92,6 +98,10 @@ public class PlayerMainViewModel : ViewModelBase
     public string ChatTextInput { get; set; } = string.Empty;
     public string ChatTypeInput { get; set; } = "Public";
     public string ChatUnreadText { get; set; } = string.Empty;
+    public string AudioSessionId { get; set; } = "default";
+    public string AudioStateText { get; set; } = string.Empty;
+    public double LocalVolume { get; set; } = 0.7;
+    public bool LocalMuted { get; set; }
 
     public string CharacterName { get; set; } = string.Empty;
     public string CharacterRace { get; set; } = string.Empty;
@@ -128,6 +138,8 @@ public class PlayerMainViewModel : ViewModelBase
     public ICommand AcquireSkillCommand { get; }
     public ICommand ChatSendCommand { get; }
     public ICommand ChatRefreshCommand { get; }
+    public ICommand AudioRefreshCommand { get; }
+    public ICommand AudioApplyLocalSettingsCommand { get; }
 
     private void Login()
     {
@@ -182,6 +194,7 @@ public class PlayerMainViewModel : ViewModelBase
             LoadCombat();
             LoadClassAndSkillState();
             ChatRefresh();
+            AudioRefresh();
             ConnectionState = "Онлайн";
             NotifyAll();
         }
@@ -259,6 +272,68 @@ public class PlayerMainViewModel : ViewModelBase
     }
 
 
+
+
+    private string AudioSettingsPath
+    {
+        get
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Nri.PlayerClient");
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            return Path.Combine(dir, "audio.settings.json");
+        }
+    }
+
+    private void LoadLocalAudioSettings()
+    {
+        try
+        {
+            if (!File.Exists(AudioSettingsPath)) return;
+            var serializer = new JavaScriptSerializer();
+            var map = serializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(AudioSettingsPath));
+            if (map == null) return;
+            var v = 0.7;
+            if (map.ContainsKey("volume")) double.TryParse(Convert.ToString(map["volume"]), out v);
+            var m = false;
+            if (map.ContainsKey("muted")) bool.TryParse(Convert.ToString(map["muted"]), out m);
+            LocalVolume = Math.Max(0, Math.Min(1, v));
+            LocalMuted = m;
+        }
+        catch { }
+    }
+
+    private void SaveLocalAudioSettings()
+    {
+        try
+        {
+            var serializer = new JavaScriptSerializer();
+            File.WriteAllText(AudioSettingsPath, serializer.Serialize(new Dictionary<string, object> { { "volume", LocalVolume }, { "muted", LocalMuted } }));
+        }
+        catch { }
+    }
+
+    private void AudioRefresh()
+    {
+        var state = _api.AudioStateSync(AudioSessionId);
+        AudioStateText = $"mode={GetString(state.Payload, "mode")}; category={GetString(state.Payload, "category")}; track={GetString(state.Payload, "trackName")}; pos={GetString(state.Payload, "positionSeconds")}; playback={GetString(state.Payload, "playbackState")}";
+        Notify(nameof(AudioStateText));
+
+        var local = _api.AudioClientSettingsGet();
+        if (local.Status == ResponseStatus.Ok)
+        {
+            if (double.TryParse(GetString(local.Payload, "volume"), out var v)) LocalVolume = v;
+            LocalMuted = GetString(local.Payload, "muted") == "True";
+            Notify(nameof(LocalVolume));
+            Notify(nameof(LocalMuted));
+        }
+    }
+
+    private void AudioApplyLocalSettings()
+    {
+        _api.AudioClientSettingsSet(LocalVolume, LocalMuted);
+        SaveLocalAudioSettings();
+        AudioRefresh();
+    }
 
     private void ChatSend()
     {

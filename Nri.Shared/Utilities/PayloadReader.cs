@@ -26,6 +26,14 @@ public static class PayloadReader
         return long.TryParse(Convert.ToString(payload[key]), out value) ? value : (long?)null;
     }
 
+
+    public static double? GetDouble(IDictionary<string, object> payload, string key)
+    {
+        if (!payload.ContainsKey(key) || payload[key] == null) return null;
+        double value;
+        return double.TryParse(Convert.ToString(payload[key]), out value) ? value : (double?)null;
+    }
+
     public static bool GetBool(IDictionary<string, object> payload, string key)
     {
         if (!payload.ContainsKey(key) || payload[key] == null) return false;

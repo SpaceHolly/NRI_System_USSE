@@ -198,6 +198,36 @@
             </TabItem>
 
 
+
+            <TabItem Header="SessionAudioView">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>
+                    <StackPanel Margin="8">
+                        <WrapPanel Margin="0,0,0,8">
+                            <TextBox Width="130" Text="{Binding AudioSessionId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                            <Button Content="Refresh" Command="{Binding AudioRefreshCommand}"/>
+                        </WrapPanel>
+                        <TextBlock Text="{Binding AudioStateText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <WrapPanel Margin="0,0,0,8">
+                            <TextBox Width="120" Text="{Binding AudioModeInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                            <TextBox Width="120" Text="{Binding AudioCategoryInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                            <Button Content="Set mode" Command="{Binding AudioSetModeCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Clear override" Command="{Binding AudioClearOverrideCommand}"/>
+                        </WrapPanel>
+                        <WrapPanel>
+                            <TextBox Width="260" Text="{Binding AudioSelectedTrackId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
+                            <Button Content="Select track" Command="{Binding AudioSelectTrackCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Next" Command="{Binding AudioNextTrackCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Reload library" Command="{Binding AudioReloadLibraryCommand}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="8">
+                        <TextBlock Text="AudioLibraryView" FontWeight="Bold"/>
+                        <ListBox ItemsSource="{Binding AudioLibraryRows}" Height="460"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
             <TabItem Header="SessionChatView">
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>

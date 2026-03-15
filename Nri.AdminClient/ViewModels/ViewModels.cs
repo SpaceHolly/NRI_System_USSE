@@ -83,6 +83,12 @@ public class AdminMainViewModel : ViewModelBase
         ChatLockPlayersCommand = new RelayCommand(ChatLockPlayers);
         ChatUnlockPlayersCommand = new RelayCommand(ChatUnlockPlayers);
         ChatSetSlowModeCommand = new RelayCommand(ChatSetSlowMode);
+        AudioRefreshCommand = new RelayCommand(AudioRefresh);
+        AudioSetModeCommand = new RelayCommand(AudioSetMode);
+        AudioClearOverrideCommand = new RelayCommand(AudioClearOverride);
+        AudioNextTrackCommand = new RelayCommand(AudioNextTrack);
+        AudioSelectTrackCommand = new RelayCommand(AudioSelectTrack);
+        AudioReloadLibraryCommand = new RelayCommand(AudioReloadLibrary);
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _poller.Tick += (_, _) => RefreshAll();
@@ -114,6 +120,11 @@ public class AdminMainViewModel : ViewModelBase
     public int ChatSlowHiddenSeconds { get; set; }
     public int ChatSlowAdminOnlySeconds { get; set; }
     public string ChatUnreadText { get; set; } = string.Empty;
+    public string AudioSessionId { get; set; } = "default";
+    public string AudioModeInput { get; set; } = "Auto";
+    public string AudioCategoryInput { get; set; } = "Normal";
+    public string AudioSelectedTrackId { get; set; } = string.Empty;
+    public string AudioStateText { get; set; } = string.Empty;
 
     public string EditName { get; set; } = string.Empty;
     public string EditRace { get; set; } = string.Empty;
@@ -154,6 +165,7 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> SkillStateRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> ChatRestrictionRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> AudioLibraryRows { get; } = new ObservableCollection<string>();
 
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
@@ -191,6 +203,12 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand ChatLockPlayersCommand { get; }
     public ICommand ChatUnlockPlayersCommand { get; }
     public ICommand ChatSetSlowModeCommand { get; }
+    public ICommand AudioRefreshCommand { get; }
+    public ICommand AudioSetModeCommand { get; }
+    public ICommand AudioClearOverrideCommand { get; }
+    public ICommand AudioNextTrackCommand { get; }
+    public ICommand AudioSelectTrackCommand { get; }
+    public ICommand AudioReloadLibraryCommand { get; }
 
     private void Login()
     {
@@ -223,6 +241,7 @@ public class AdminMainViewModel : ViewModelBase
                 LoadSkills();
             }
             ChatRefresh();
+            AudioRefresh();
             ConnectionState = "Онлайн";
             Notify(nameof(ConnectionState));
         }
@@ -576,6 +595,34 @@ public class AdminMainViewModel : ViewModelBase
         _api.ChatSlowModeSet(ChatSessionId, ChatSlowPublicSeconds, ChatSlowHiddenSeconds, ChatSlowAdminOnlySeconds);
         ChatRefresh();
     }
+
+
+    private void AudioRefresh()
+    {
+        var state = _api.AudioStateGet(AudioSessionId);
+        AudioStateText = $"mode={S(state.Payload, "mode")}; category={S(state.Payload, "category")}; track={S(state.Payload, "trackName")}; pos={S(state.Payload, "positionSeconds")}; override={S(state.Payload, "overrideEnabled")}; playback={S(state.Payload, "playbackState")}";
+        Notify(nameof(AudioStateText));
+
+        AudioLibraryRows.Clear();
+        var lib = _api.AudioLibraryGet();
+        if (lib.Status == ResponseStatus.Ok && lib.Payload.ContainsKey("items"))
+        {
+            foreach (var item in ToList(lib.Payload["items"]))
+                if (item is Dictionary<string, object> m)
+                    AudioLibraryRows.Add($"{S(m, "trackId")} | {S(m, "category")} | {S(m, "displayName")} | {S(m, "filePath")}");
+        }
+    }
+
+    private void AudioSetMode()
+    {
+        _api.AudioModeSet(AudioSessionId, AudioModeInput, AudioCategoryInput);
+        AudioRefresh();
+    }
+
+    private void AudioClearOverride() { _api.AudioOverrideClear(AudioSessionId); AudioRefresh(); }
+    private void AudioNextTrack() { _api.AudioTrackNext(AudioSessionId); AudioRefresh(); }
+    private void AudioSelectTrack() { if (!string.IsNullOrWhiteSpace(AudioSelectedTrackId)) { _api.AudioTrackSelect(AudioSessionId, AudioSelectedTrackId); AudioRefresh(); } }
+    private void AudioReloadLibrary() { _api.AudioTrackReload(); AudioRefresh(); }
 
     private void ApproveRequest()
     {

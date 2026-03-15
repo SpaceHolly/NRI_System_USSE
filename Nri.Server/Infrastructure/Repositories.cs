@@ -30,6 +30,8 @@ public interface INriRepositoryFactory
     IRepository<SessionChatSettings> SessionChatSettings { get; }
     IRepository<ChatUserThrottleState> ChatThrottleStates { get; }
     IRepository<SessionAudioState> AudioStates { get; }
+    IRepository<AudioTrackDefinition> AudioTracks { get; }
+    IRepository<AudioClientSettingsState> AudioClientSettings { get; }
     IRepository<CombatState> Combats { get; }
     IRepository<CombatLogEntry> CombatLogs { get; }
     IRepository<ClassTreeDefinition> ClassTrees { get; }
@@ -52,6 +54,8 @@ public class MongoContext
     public IMongoCollection<SessionChatSettings> SessionChatSettings { get; }
     public IMongoCollection<ChatUserThrottleState> ChatThrottleStates { get; }
     public IMongoCollection<SessionAudioState> AudioStates { get; }
+    public IMongoCollection<AudioTrackDefinition> AudioTracks { get; }
+    public IMongoCollection<AudioClientSettingsState> AudioClientSettings { get; }
     public IMongoCollection<CombatState> Combats { get; }
     public IMongoCollection<CombatLogEntry> CombatLogs { get; }
     public IMongoCollection<ClassTreeDefinition> ClassTrees { get; }
@@ -76,6 +80,8 @@ public class MongoContext
         SessionChatSettings = db.GetCollection<SessionChatSettings>("session_chat_settings");
         ChatThrottleStates = db.GetCollection<ChatUserThrottleState>("chat_throttle_states");
         AudioStates = db.GetCollection<SessionAudioState>("audio_states");
+        AudioTracks = db.GetCollection<AudioTrackDefinition>("audio_tracks");
+        AudioClientSettings = db.GetCollection<AudioClientSettingsState>("audio_client_settings");
         Combats = db.GetCollection<CombatState>("combat_states");
         CombatLogs = db.GetCollection<CombatLogEntry>("combat_logs");
         ClassTrees = db.GetCollection<ClassTreeDefinition>("class_tree_definitions");
@@ -100,6 +106,8 @@ public class MongoContext
         ChatReadStates.Indexes.CreateOne(new CreateIndexModel<ChatReadState>(Builders<ChatReadState>.IndexKeys.Ascending(x => x.SessionId).Ascending(x => x.UserId), new CreateIndexOptions { Unique = true }));
         SessionChatSettings.Indexes.CreateOne(new CreateIndexModel<SessionChatSettings>(Builders<SessionChatSettings>.IndexKeys.Ascending(x => x.SessionId), new CreateIndexOptions { Unique = true }));
         ChatThrottleStates.Indexes.CreateOne(new CreateIndexModel<ChatUserThrottleState>(Builders<ChatUserThrottleState>.IndexKeys.Ascending(x => x.SessionId).Ascending(x => x.UserId).Ascending(x => x.MessageType), new CreateIndexOptions { Unique = true }));
+        AudioTracks.Indexes.CreateOne(new CreateIndexModel<AudioTrackDefinition>(Builders<AudioTrackDefinition>.IndexKeys.Ascending(x => x.FilePath), new CreateIndexOptions { Unique = true }));
+        AudioClientSettings.Indexes.CreateOne(new CreateIndexModel<AudioClientSettingsState>(Builders<AudioClientSettingsState>.IndexKeys.Ascending(x => x.UserId), new CreateIndexOptions { Unique = true }));
         ClassTrees.Indexes.CreateOne(new CreateIndexModel<ClassTreeDefinition>(Builders<ClassTreeDefinition>.IndexKeys.Ascending(x => x.DirectionId), new CreateIndexOptions { Unique = true }));
         SkillDefinitions.Indexes.CreateOne(new CreateIndexModel<SkillDefinitionRecord>(Builders<SkillDefinitionRecord>.IndexKeys.Ascending(x => x.SkillId), new CreateIndexOptions { Unique = true }));
         DefinitionVersions.Indexes.CreateOne(new CreateIndexModel<DefinitionVersion>(Builders<DefinitionVersion>.IndexKeys.Ascending(x => x.ContentName), new CreateIndexOptions { Unique = true }));
@@ -156,6 +164,8 @@ public class MongoRepositoryFactory : INriRepositoryFactory
         SessionChatSettings = new MongoRepository<SessionChatSettings>(context.SessionChatSettings);
         ChatThrottleStates = new MongoRepository<ChatUserThrottleState>(context.ChatThrottleStates);
         AudioStates = new MongoRepository<SessionAudioState>(context.AudioStates);
+        AudioTracks = new MongoRepository<AudioTrackDefinition>(context.AudioTracks);
+        AudioClientSettings = new MongoRepository<AudioClientSettingsState>(context.AudioClientSettings);
         Combats = new MongoRepository<CombatState>(context.Combats);
         CombatLogs = new MongoRepository<CombatLogEntry>(context.CombatLogs);
         ClassTrees = new MongoRepository<ClassTreeDefinition>(context.ClassTrees);
@@ -176,6 +186,8 @@ public class MongoRepositoryFactory : INriRepositoryFactory
     public IRepository<SessionChatSettings> SessionChatSettings { get; }
     public IRepository<ChatUserThrottleState> ChatThrottleStates { get; }
     public IRepository<SessionAudioState> AudioStates { get; }
+    public IRepository<AudioTrackDefinition> AudioTracks { get; }
+    public IRepository<AudioClientSettingsState> AudioClientSettings { get; }
     public IRepository<CombatState> Combats { get; }
     public IRepository<CombatLogEntry> CombatLogs { get; }
     public IRepository<ClassTreeDefinition> ClassTrees { get; }

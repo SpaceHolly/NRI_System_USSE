@@ -466,25 +466,79 @@ public class SessionCombatSnapshot
 
 public enum AudioCategory
 {
-    Ambient,
+    Normal,
     Combat,
-    Narrative,
-    Event
+    Tense,
+    Calm,
+    Manual
+}
+
+public enum SessionAudioMode
+{
+    Auto,
+    Manual
+}
+
+public enum AudioPlaybackState
+{
+    Stopped,
+    Playing,
+    Transitioning
 }
 
 public class AudioTrackDefinition : EntityBase
 {
-    public AudioCategory Category { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string RelativePath { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string FilePath { get; set; } = string.Empty;
+    public AudioCategory Category { get; set; } = AudioCategory.Normal;
+    public int DurationSeconds { get; set; }
+    public bool IsEnabled { get; set; } = true;
+    public int SortOrder { get; set; }
+}
+
+public class AudioTrackRotationState
+{
+    public string Category { get; set; } = AudioCategory.Normal.ToString();
+    public int Cursor { get; set; }
 }
 
 public class SessionAudioState : EntityBase
 {
     public string SessionId { get; set; } = string.Empty;
+    public SessionAudioMode Mode { get; set; } = SessionAudioMode.Auto;
+    public AudioCategory CurrentCategory { get; set; } = AudioCategory.Normal;
     public string? CurrentTrackId { get; set; }
-    public bool IsPaused { get; set; }
-    public TimeSpan Position { get; set; }
+    public string CurrentTrackPath { get; set; } = string.Empty;
+    public DateTime StartedAtUtc { get; set; } = DateTime.UtcNow;
+    public int StartOffsetSeconds { get; set; }
+    public AudioPlaybackState PlaybackState { get; set; } = AudioPlaybackState.Stopped;
+    public bool OverrideEnabled { get; set; }
+    public string OverrideByUserId { get; set; } = string.Empty;
+    public DateTime LastUpdatedUtc { get; set; } = DateTime.UtcNow;
+    public int FadeMilliseconds { get; set; } = 1800;
+    public List<AudioTrackRotationState> Rotation { get; set; } = new List<AudioTrackRotationState>();
+}
+
+public class AudioClientSettingsState : EntityBase
+{
+    public string UserId { get; set; } = string.Empty;
+    public double Volume { get; set; } = 0.7;
+    public bool Muted { get; set; }
+}
+
+public class AudioSyncSnapshot
+{
+    public string SessionId { get; set; } = string.Empty;
+    public string TrackId { get; set; } = string.Empty;
+    public string TrackPath { get; set; } = string.Empty;
+    public string TrackName { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Mode { get; set; } = string.Empty;
+    public bool OverrideEnabled { get; set; }
+    public DateTime StartedAtUtc { get; set; }
+    public int StartOffsetSeconds { get; set; }
+    public int FadeMilliseconds { get; set; }
+    public string PlaybackState { get; set; } = string.Empty;
 }
 
 public enum LockOwnerLevel

@@ -142,6 +142,21 @@ public static class CommandNames
     public const string ChatRestrictionsLockPlayers = "chat.restrictions.lockPlayers";
     public const string ChatRestrictionsUnlockPlayers = "chat.restrictions.unlockPlayers";
 
+
+    public const string AudioStateGet = "audio.state.get";
+    public const string AudioStateSync = "audio.state.sync";
+    public const string AudioModeGet = "audio.mode.get";
+    public const string AudioModeSet = "audio.mode.set";
+    public const string AudioOverrideClear = "audio.override.clear";
+
+    public const string AudioLibraryGet = "audio.library.get";
+    public const string AudioTrackSelect = "audio.track.select";
+    public const string AudioTrackNext = "audio.track.next";
+    public const string AudioTrackReload = "audio.track.reload";
+
+    public const string AudioClientSettingsGet = "audio.clientSettings.get";
+    public const string AudioClientSettingsSet = "audio.clientSettings.set";
+
     public const string LockAcquire = "lock.acquire";
     public const string LockRelease = "lock.release";
     public const string LockForceRelease = "lock.forceRelease";

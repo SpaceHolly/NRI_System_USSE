@@ -97,6 +97,17 @@ public class CommandApi
     public ResponseEnvelope ChatRestrictionsLockPlayers(string sessionId) => Send(CommandNames.ChatRestrictionsLockPlayers, new Dictionary<string, object> { { "sessionId", sessionId } });
     public ResponseEnvelope ChatRestrictionsUnlockPlayers(string sessionId) => Send(CommandNames.ChatRestrictionsUnlockPlayers, new Dictionary<string, object> { { "sessionId", sessionId } });
 
+
+    public ResponseEnvelope AudioStateGet(string sessionId) => Send(CommandNames.AudioStateGet, new Dictionary<string, object> { { "sessionId", sessionId } });
+    public ResponseEnvelope AudioStateSync(string sessionId) => Send(CommandNames.AudioStateSync, new Dictionary<string, object> { { "sessionId", sessionId } });
+    public ResponseEnvelope AudioModeGet(string sessionId) => Send(CommandNames.AudioModeGet, new Dictionary<string, object> { { "sessionId", sessionId } });
+    public ResponseEnvelope AudioModeSet(string sessionId, string mode, string category) => Send(CommandNames.AudioModeSet, new Dictionary<string, object> { { "sessionId", sessionId }, { "mode", mode }, { "category", category } });
+    public ResponseEnvelope AudioOverrideClear(string sessionId) => Send(CommandNames.AudioOverrideClear, new Dictionary<string, object> { { "sessionId", sessionId } });
+    public ResponseEnvelope AudioLibraryGet() => Send(CommandNames.AudioLibraryGet);
+    public ResponseEnvelope AudioTrackSelect(string sessionId, string trackId) => Send(CommandNames.AudioTrackSelect, new Dictionary<string, object> { { "sessionId", sessionId }, { "trackId", trackId } });
+    public ResponseEnvelope AudioTrackNext(string sessionId) => Send(CommandNames.AudioTrackNext, new Dictionary<string, object> { { "sessionId", sessionId } });
+    public ResponseEnvelope AudioTrackReload() => Send(CommandNames.AudioTrackReload);
+
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
         return _client.Send(new RequestEnvelope { Command = command, Payload = payload ?? new Dictionary<string, object>() });

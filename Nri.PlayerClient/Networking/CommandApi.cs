@@ -45,6 +45,12 @@ public class CommandApi
     public ResponseEnvelope ChatMarkRead(string sessionId, string upToMessageId = "") => Send(CommandNames.ChatMarkRead, new Dictionary<string, object> { { "sessionId", sessionId }, { "upToMessageId", upToMessageId } });
     public ResponseEnvelope ChatUnreadGet(string sessionId) => Send(CommandNames.ChatUnreadGet, new Dictionary<string, object> { { "sessionId", sessionId } });
 
+
+    public ResponseEnvelope AudioStateGet(string sessionId) => Send(CommandNames.AudioStateGet, new Dictionary<string, object> { { "sessionId", sessionId } });
+    public ResponseEnvelope AudioStateSync(string sessionId) => Send(CommandNames.AudioStateSync, new Dictionary<string, object> { { "sessionId", sessionId } });
+    public ResponseEnvelope AudioClientSettingsGet() => Send(CommandNames.AudioClientSettingsGet);
+    public ResponseEnvelope AudioClientSettingsSet(double volume, bool muted) => Send(CommandNames.AudioClientSettingsSet, new Dictionary<string, object> { { "volume", volume }, { "muted", muted } });
+
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
         return _client.Send(new RequestEnvelope { Command = command, Payload = payload ?? new Dictionary<string, object>() });
