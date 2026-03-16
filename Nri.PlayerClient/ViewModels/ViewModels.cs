@@ -9,6 +9,10 @@ using System.Runtime.CompilerServices;
 using System.Web.Script.Serialization;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Runtime.CompilerServices;
+using System.Windows.Input;
+using System.Windows.Threading;
+using System.Web.Script.Serialization;
 using Nri.PlayerClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
@@ -29,6 +33,11 @@ public sealed class RelayCommand : ICommand
     public event EventHandler? CanExecuteChanged;
     public bool CanExecute(object? parameter) => true;
     public void Execute(object? parameter) => _execute(parameter);
+    private readonly Action _execute;
+    public RelayCommand(Action execute) { _execute = execute; }
+    public event EventHandler? CanExecuteChanged;
+    public bool CanExecute(object? parameter) => true;
+    public void Execute(object? parameter) => _execute();
 }
 
 public class CharacterListItemVm : ViewModelBase
@@ -80,6 +89,12 @@ public class ClassNodeVisualVm
     public string State { get; set; } = "Locked";
     public double X { get; set; }
     public double Y { get; set; }
+public class CompanionVm : ViewModelBase
+{
+    public string Name { get; set; } = string.Empty;
+    public string Species { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public ObservableCollection<string> Inventory { get; } = new ObservableCollection<string>();
 }
 
 public class PlayerMainViewModel : ViewModelBase
@@ -127,6 +142,40 @@ public class PlayerMainViewModel : ViewModelBase
 
         InitializeClassVisualLayout();
         LoadLocalAudioSettings();
+    private string _connectionState = "Вы в режиме оффлайн";
+    private string _selectedSection = "ActiveCharacter";
+
+    public PlayerMainViewModel()
+    {
+        var config = new ClientConfig();
+        var client = new JsonTcpClient(config, _session);
+        _api = new CommandApi(client);
+
+        LoginCommand = new RelayCommand(Login);
+        RefreshCommand = new RelayCommand(RefreshAll);
+        ShowActiveCharacterCommand = new RelayCommand(() => SelectedSection = "ActiveCharacter");
+        ShowMyCharactersCommand = new RelayCommand(() => SelectedSection = "MyCharacters");
+        ShowClassesCommand = new RelayCommand(() => SelectedSection = "Classes");
+        ShowSkillsCommand = new RelayCommand(() => SelectedSection = "Skills");
+        CreateDiceRequestCommand = new RelayCommand(CreateDiceRequest);
+        CancelRequestCommand = new RelayCommand(CancelRequest);
+        AcquireClassNodeCommand = new RelayCommand(AcquireClassNode);
+        AcquireSkillCommand = new RelayCommand(AcquireSkill);
+        ChatSendCommand = new RelayCommand(ChatSend);
+        ChatRefreshCommand = new RelayCommand(ChatRefresh);
+        AudioRefreshCommand = new RelayCommand(AudioRefresh);
+        AudioApplyLocalSettingsCommand = new RelayCommand(AudioApplyLocalSettings);
+        VisibilityLoadCommand = new RelayCommand(VisibilityLoad);
+        VisibilitySaveCommand = new RelayCommand(VisibilitySave);
+        PublicCharacterLoadCommand = new RelayCommand(PublicCharacterLoad);
+        NotesRefreshCommand = new RelayCommand(NotesRefresh);
+        NotesCreateCommand = new RelayCommand(NotesCreate);
+        NotesArchiveCommand = new RelayCommand(NotesArchive);
+
+        LoadLocalAudioSettings();
+
+        _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+        _poller.Tick += (_, _) => RefreshAll();
     }
 
     public string LoginText { get; set; } = string.Empty;
@@ -165,11 +214,30 @@ public class PlayerMainViewModel : ViewModelBase
     public string ChatTypeInput { get; set; } = "Public";
     public string ChatTextInput { get; set; } = string.Empty;
 
+    public string ConnectionState { get => _connectionState; set { _connectionState = value; Notify(); } }
+    public string SelectedSection { get => _selectedSection; set { _selectedSection = value; Notify(); } }
+    public string DiceFormulaInput { get; set; } = "1d20";
+    public string DiceVisibilityInput { get; set; } = "Public";
+    public string DiceDescriptionInput { get; set; } = string.Empty;
+    public string SelectedRequestId { get; set; } = string.Empty;
+    public string SessionIdInput { get; set; } = "default";
+    public string SelectedCharacterId { get; set; } = string.Empty;
+    public string SelectedClassNodeId { get; set; } = string.Empty;
+    public string SelectedSkillId { get; set; } = string.Empty;
+    public string ChatSessionId { get; set; } = "default";
+    public string ChatTextInput { get; set; } = string.Empty;
+    public string ChatTypeInput { get; set; } = "Public";
+    public string ChatUnreadText { get; set; } = string.Empty;
     public string AudioSessionId { get; set; } = "default";
     public string AudioStateText { get; set; } = string.Empty;
     public double LocalVolume { get; set; } = 0.7;
     public bool LocalMuted { get; set; }
 
+    public string PublicViewCharacterId { get; set; } = string.Empty;
+    public bool VisHideDescription { get; set; }
+    public bool VisHideBackstory { get; set; }
+    public bool VisHideStats { get; set; }
+    public bool VisHideReputation { get; set; }
     public string NoteSessionId { get; set; } = "default";
     public string NoteTargetType { get; set; } = "character";
     public string NoteTargetId { get; set; } = string.Empty;
@@ -219,6 +287,44 @@ public class PlayerMainViewModel : ViewModelBase
     public ICommand CancelRequestCommand { get; }
     public ICommand ChatSendCommand { get; }
     public ICommand BottomRefreshCommand { get; }
+    public string CharacterName { get; set; } = string.Empty;
+    public string CharacterRace { get; set; } = string.Empty;
+    public string CharacterAge { get; set; } = string.Empty;
+    public string CharacterHeight { get; set; } = string.Empty;
+    public string CharacterDescription { get; set; } = string.Empty;
+    public string CharacterBackstory { get; set; } = string.Empty;
+
+    public string StatsText { get; set; } = string.Empty;
+
+    public ObservableCollection<string> MoneyRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> InventoryRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<CompanionVm> Companions { get; } = new ObservableCollection<CompanionVm>();
+    public ObservableCollection<string> Holdings { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> ReputationRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> ClassProgressRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> SkillRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<CharacterListItemVm> MyCharacters { get; } = new ObservableCollection<CharacterListItemVm>();
+    public ObservableCollection<string> MyRequests { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> DiceFeed { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> CombatStateRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> CombatTimelineRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> PublicCharacterRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> NoteRows { get; } = new ObservableCollection<string>();
+
+    public ICommand LoginCommand { get; }
+    public ICommand RefreshCommand { get; }
+    public ICommand ShowActiveCharacterCommand { get; }
+    public ICommand ShowMyCharactersCommand { get; }
+    public ICommand ShowClassesCommand { get; }
+    public ICommand ShowSkillsCommand { get; }
+    public ICommand CreateDiceRequestCommand { get; }
+    public ICommand CancelRequestCommand { get; }
+    public ICommand AcquireClassNodeCommand { get; }
+    public ICommand AcquireSkillCommand { get; }
+    public ICommand ChatSendCommand { get; }
+    public ICommand ChatRefreshCommand { get; }
+    public ICommand AudioRefreshCommand { get; }
     public ICommand AudioApplyLocalSettingsCommand { get; }
     public ICommand VisibilityLoadCommand { get; }
     public ICommand VisibilitySaveCommand { get; }
@@ -234,34 +340,19 @@ public class PlayerMainViewModel : ViewModelBase
         try
         {
             var result = _api.Login(LoginText, PasswordText);
-            if (result.Status != ResponseStatus.Ok)
+            if (result.Status == ResponseStatus.Ok)
             {
-                ConnectionState = "Оффлайн";
+                ConnectionState = "Онлайн";
+                _poller.Start();
+                RefreshAll();
                 return;
             }
 
-            ConnectionState = "Онлайн";
-            IsAuthPopupOpen = false;
-            PlayerDisplayName = LoginText;
-            SessionSummary = "Сессия: default";
-            RefreshAll();
-            _poller.Start();
+            ConnectionState = "Вы в режиме оффлайн";
         }
         catch
         {
-            ConnectionState = "Оффлайн";
-        }
-    }
-
-    private void Register()
-    {
-        try
-        {
-            _api.Register(LoginText, PasswordText);
-        }
-        catch
-        {
-            ConnectionState = "Оффлайн";
+            ConnectionState = "Вы в режиме оффлайн";
         }
     }
 
@@ -269,70 +360,47 @@ public class PlayerMainViewModel : ViewModelBase
     {
         try
         {
-            LoadCharacters();
-            LoadActiveCharacter();
-            LoadClassAndSkills();
-            RefreshBottomPanel();
-            RefreshNotes();
-            NotifyHeader();
-            ConnectionState = "Онлайн";
-        }
-        catch
-        {
-            ConnectionState = "Оффлайн";
-        }
-    }
-
-    private void PollRefresh()
-    {
-        try
-        {
-            RefreshBottomPanel();
-        }
-        catch
-        {
-            ConnectionState = "Оффлайн";
-        }
-    }
-
-    private void LoadCharacters()
-    {
-        MyCharacters.Clear();
-        var mine = _api.GetMyCharacters();
-        foreach (var item in ToObjectList(mine.Payload.ContainsKey("items") ? mine.Payload["items"] : new ArrayList()))
-        {
-            if (item is not Dictionary<string, object> map) continue;
-            MyCharacters.Add(new CharacterListItemVm
+            var active = _api.GetActiveCharacter();
+            if (active.Status == ResponseStatus.Ok && active.Payload.Count > 0)
             {
-                Id = GetString(map, "characterId"),
-                Name = GetString(map, "name"),
-                Race = GetString(map, "race"),
-                Description = GetString(map, "description"),
-                Age = GetString(map, "age"),
-                Archived = GetString(map, "archived") == "True"
-            });
+                ApplyCharacter(active.Payload, true);
+            }
+
+            var mine = _api.GetMyCharacters();
+            MyCharacters.Clear();
+            if (mine.Status == ResponseStatus.Ok && mine.Payload.ContainsKey("items"))
+            {
+                foreach (var item in ToObjectList(mine.Payload["items"]))
+                {
+                    var map = item as Dictionary<string, object>;
+                    if (map == null) continue;
+                    MyCharacters.Add(new CharacterListItemVm
+                    {
+                        Id = GetString(map, "characterId"),
+                        Name = GetString(map, "name"),
+                        Race = GetString(map, "race"),
+                        Archived = GetBool(map, "archived")
+                    });
+                }
+            }
+
+            LoadRequestsAndFeed();
+            LoadCombat();
+            LoadClassAndSkillState();
+            ChatRefresh();
+            AudioRefresh();
+            NotesRefresh();
+            ConnectionState = "Онлайн";
+            NotifyAll();
         }
-
-        if (string.IsNullOrWhiteSpace(SelectedCharacterId) && MyCharacters.Count > 0)
-            SelectedCharacterId = MyCharacters[0].Id;
+        catch
+        {
+            ConnectionState = "Вы в режиме оффлайн";
+            Notify(nameof(ConnectionState));
+        }
     }
 
-    private void LoadSelectedCharacterDetails()
-    {
-        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
-        var details = _api.GetCharacterDetails(SelectedCharacterId);
-        if (details.Status == ResponseStatus.Ok)
-            ApplyCharacterPayload(details.Payload);
-    }
-
-    private void LoadActiveCharacter()
-    {
-        var active = _api.GetActiveCharacter();
-        if (active.Status == ResponseStatus.Ok && active.Payload.Count > 0)
-            ApplyCharacterPayload(active.Payload);
-    }
-
-    private void ApplyCharacterPayload(Dictionary<string, object> payload)
+    private void ApplyCharacter(Dictionary<string, object> payload, bool markActive)
     {
         CharacterName = GetString(payload, "name");
         CharacterRace = GetString(payload, "race");
@@ -340,164 +408,66 @@ public class PlayerMainViewModel : ViewModelBase
         CharacterHeight = GetString(payload, "height");
         CharacterDescription = GetString(payload, "description");
         CharacterBackstory = GetString(payload, "backstory");
-        SelectedCharacterId = GetString(payload, "characterId");
 
-        StatsRows.Clear();
-        if (payload.ContainsKey("stats") && payload["stats"] is Dictionary<string, object> stats)
-        {
-            AddStat("Здоровье", stats, "health");
-            AddStat("Броня физ.", stats, "physicalArmor");
-            AddStat("Броня маг.", stats, "magicalArmor");
-            AddStat("Мораль", stats, "morale");
-            AddStat("Сила", stats, "strength");
-            AddStat("Ловкость", stats, "dexterity");
-            AddStat("Выносливость", stats, "endurance");
-            AddStat("Мудрость", stats, "wisdom");
-            AddStat("Интеллект", stats, "intellect");
-            AddStat("Харизма", stats, "charisma");
-        }
+        StatsText = payload.ContainsKey("stats") && payload["stats"] is Dictionary<string, object> stats
+            ? $"HP:{GetString(stats, "health")}, AP:{GetString(stats, "physicalArmor")}, AM:{GetString(stats, "magicalArmor")}, Morale:{GetString(stats, "morale")}, Str:{GetString(stats, "strength")}, Dex:{GetString(stats, "dexterity")}, End:{GetString(stats, "endurance")}, Wis:{GetString(stats, "wisdom")}, Int:{GetString(stats, "intellect")}, Cha:{GetString(stats, "charisma")}"
+            : "[hidden]";
 
         MoneyRows.Clear();
         if (payload.ContainsKey("money") && payload["money"] is Dictionary<string, object> money)
-        {
-            AddCurrency("Железная", "Fe", "#B0BEC5", money, "Iron");
-            AddCurrency("Бронзовая", "Br", "#B87333", money, "Bronze");
-            AddCurrency("Серебряная", "Ag", "#C0C0C0", money, "Silver");
-            AddCurrency("Золотая", "Au", "#FFD700", money, "Gold");
-            AddCurrency("Платиновая", "Pt", "#E5E4E2", money, "Platinum");
-            AddCurrency("Орихалк", "Or", "#8A2BE2", money, "Orichalcum");
-            AddCurrency("Адамант", "Ad", "#5F9EA0", money, "Adamant");
-            AddCurrency("Государева", "Sov", "#1E90FF", money, "Sovereign");
-        }
+            foreach (var entry in money) MoneyRows.Add($"{entry.Key}: {entry.Value}");
 
         InventoryRows.Clear();
-        foreach (var item in ToObjectList(payload.ContainsKey("inventory") ? payload["inventory"] : new ArrayList()))
-        {
-            if (item is not Dictionary<string, object> map) continue;
-            InventoryRows.Add($"{GetString(map, "label")} x{GetString(map, "quantity")} | dur={GetString(map, "durability")} | equip={GetString(map, "equipped")} | use={GetString(map, "consumptionPerUse")}");
-        }
-
-        HoldingsRows.Clear();
-        foreach (var item in ToObjectList(payload.ContainsKey("holdings") ? payload["holdings"] : new ArrayList()))
-            if (item is Dictionary<string, object> map)
-                HoldingsRows.Add($"{GetString(map, "name")} — {GetString(map, "description")}");
-
-        ReputationRows.Clear();
-        foreach (var item in ToObjectList(payload.ContainsKey("reputation") ? payload["reputation"] : new ArrayList()))
-        {
-            if (item is not Dictionary<string, object> map) continue;
-            int.TryParse(GetString(map, "value"), out var value);
-            ReputationRows.Add(new ReputationRowVm { Label = GetString(map, "groupKey"), Value = value });
-        }
+        if (payload.ContainsKey("inventory"))
+            foreach (var item in ToObjectList(payload["inventory"]))
+                if (item is Dictionary<string, object> row)
+                    InventoryRows.Add($"{GetString(row, "label")} x{GetString(row, "quantity")} ({GetString(row, "description")}) [dur={GetString(row, "durability")}, use={GetString(row, "consumptionPerUse")}, eq={GetString(row, "equipped")}] ");
 
         Companions.Clear();
-        foreach (var item in ToObjectList(payload.ContainsKey("companions") ? payload["companions"] : new ArrayList()))
+        if (payload.ContainsKey("companions"))
         {
-            if (item is not Dictionary<string, object> map) continue;
-            var vm = new CompanionVm
+            foreach (var item in ToObjectList(payload["companions"]))
             {
-                Id = GetString(map, "id"),
-                Name = GetString(map, "name"),
-                Species = GetString(map, "species"),
-                Notes = GetString(map, "notes")
-            };
-            foreach (var inv in ToObjectList(map.ContainsKey("inventory") ? map["inventory"] : new ArrayList()))
-                if (inv is Dictionary<string, object> im)
-                    vm.InventoryRows.Add($"{GetString(im, "label")} x{GetString(im, "quantity")}");
-            Companions.Add(vm);
+                if (item is not Dictionary<string, object> row) continue;
+                var vm = new CompanionVm { Name = GetString(row, "name"), Species = GetString(row, "species"), Notes = GetString(row, "notes") };
+                if (row.ContainsKey("inventory"))
+                    foreach (var inv in ToObjectList(row["inventory"]))
+                        if (inv is Dictionary<string, object> invMap)
+                            vm.Inventory.Add($"{GetString(invMap, "label")} x{GetString(invMap, "quantity")}");
+                Companions.Add(vm);
+            }
         }
 
-        NotifyCharacter();
-    }
+        Holdings.Clear();
+        if (payload.ContainsKey("holdings"))
+            foreach (var item in ToObjectList(payload["holdings"]))
+                if (item is Dictionary<string, object> row)
+                    Holdings.Add($"{GetString(row, "name")}: {GetString(row, "description")}");
 
-    private void CreateDiceRequest()
-    {
-        try
+        ReputationRows.Clear();
+        if (payload.ContainsKey("reputation"))
         {
-            if (string.IsNullOrWhiteSpace(SelectedCharacterId) && MyCharacters.Count > 0) SelectedCharacterId = MyCharacters[0].Id;
-            var formula = DiceCount + "d" + DiceFaces + (DiceModifier == 0 ? string.Empty : DiceModifier > 0 ? "+" + DiceModifier : DiceModifier.ToString());
-            _api.CreateDiceRequest(SelectedCharacterId, formula, DiceVisibilityInput, DiceDescriptionInput);
-            RefreshBottomPanel();
+            if (payload["reputation"] is string hidden)
+            {
+                ReputationRows.Add(hidden);
+            }
+            else
+            {
+                foreach (var item in ToObjectList(payload["reputation"]))
+                    if (item is Dictionary<string, object> row)
+                        ReputationRows.Add($"{GetString(row, "scope")}:{GetString(row, "groupKey")}={GetString(row, "value")}");
+            }
         }
-        catch { ConnectionState = "Оффлайн"; }
-    }
 
-    private void CancelRequest()
-    {
-        if (string.IsNullOrWhiteSpace(SelectedRequestId)) return;
-        try
+        if (markActive && payload.ContainsKey("characterId"))
         {
-            _api.CancelRequest(SelectedRequestId);
-            RefreshBottomPanel();
-        }
-        catch { ConnectionState = "Оффлайн"; }
-    }
-
-    private void RefreshBottomPanel()
-    {
-        RefreshChat();
-        RefreshDiceAndRequests();
-        RefreshCombatEvents();
-        RefreshAudioState();
-    }
-
-    private void SendChat()
-    {
-        if (string.IsNullOrWhiteSpace(ChatTextInput)) return;
-        _api.ChatSend(ChatSessionId, ChatTypeInput, ChatTextInput);
-        ChatTextInput = string.Empty;
-        Notify(nameof(ChatTextInput));
-        RefreshChat();
-    }
-
-    private void RefreshChat()
-    {
-        ChatRows.Clear();
-        var chat = _api.ChatVisibleFeed(ChatSessionId, 80);
-        foreach (var item in ToObjectList(chat.Payload.ContainsKey("items") ? chat.Payload["items"] : new ArrayList()))
-        {
-            if (item is not Dictionary<string, object> map) continue;
-            ChatRows.Add($"{GetString(map, "createdUtc")} | {GetString(map, "type")} | {GetString(map, "senderDisplayName")}: {GetString(map, "text")}");
+            SelectedCharacterId = GetString(payload, "characterId");
+            Notify(nameof(SelectedCharacterId));
         }
     }
 
-    private void RefreshDiceAndRequests()
-    {
-        DiceFeedRows.Clear();
-        var feed = _api.DiceVisibleFeed();
-        foreach (var item in ToObjectList(feed.Payload.ContainsKey("items") ? feed.Payload["items"] : new ArrayList()))
-        {
-            if (item is not Dictionary<string, object> map) continue;
-            var total = string.Empty;
-            if (map.ContainsKey("result") && map["result"] is Dictionary<string, object> result) total = GetString(result, "total");
-            DiceFeedRows.Add($"{GetString(map, "creatorUserId")} | {GetString(map, "formula")} => {total}");
-        }
 
-        RequestRows.Clear();
-        var req = _api.ListMyRequests();
-        foreach (var item in ToObjectList(req.Payload.ContainsKey("items") ? req.Payload["items"] : new ArrayList()))
-        {
-            if (item is not Dictionary<string, object> map) continue;
-            RequestRows.Add($"{GetString(map, "requestId")} | {GetString(map, "status")} | {GetString(map, "formula")}");
-        }
-    }
 
-    private void RefreshCombatEvents()
-    {
-        EventRows.Clear();
-        var timeline = _api.CombatTimeline(ChatSessionId);
-        foreach (var item in ToObjectList(timeline.Payload.ContainsKey("items") ? timeline.Payload["items"] : new ArrayList()))
-        {
-            if (item is not Dictionary<string, object> map) continue;
-            EventRows.Add($"{GetString(map, "at")} | {GetString(map, "eventType")} | {GetString(map, "message")}");
-        }
-
-        SessionStateRows.Clear();
-        var state = _api.CombatVisibleState(ChatSessionId);
-        SessionStateRows.Add("Combat status: " + GetString(state.Payload, "status"));
-        SessionStateRows.Add("Round: " + GetString(state.Payload, "round"));
-        SessionStateRows.Add("Active slot: " + GetString(state.Payload, "activeSlotId"));
-    }
 
     private string AudioSettingsPath
     {
@@ -527,6 +497,15 @@ public class PlayerMainViewModel : ViewModelBase
             if (map.ContainsKey("muted")) bool.TryParse(Convert.ToString(map["muted"]), out var muted); else muted = false;
             LocalVolume = Math.Max(0, Math.Min(1, vol));
             LocalMuted = muted;
+            var serializer = new JavaScriptSerializer();
+            var map = serializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(AudioSettingsPath));
+            if (map == null) return;
+            var v = 0.7;
+            if (map.ContainsKey("volume")) double.TryParse(Convert.ToString(map["volume"]), out v);
+            var m = false;
+            if (map.ContainsKey("muted")) bool.TryParse(Convert.ToString(map["muted"]), out m);
+            LocalVolume = Math.Max(0, Math.Min(1, v));
+            LocalMuted = m;
         }
         catch { }
     }
@@ -548,6 +527,41 @@ public class PlayerMainViewModel : ViewModelBase
     }
 
     private void LoadVisibility()
+    private void SaveLocalAudioSettings()
+    {
+        try
+        {
+            var serializer = new JavaScriptSerializer();
+            File.WriteAllText(AudioSettingsPath, serializer.Serialize(new Dictionary<string, object> { { "volume", LocalVolume }, { "muted", LocalMuted } }));
+        }
+        catch { }
+    }
+
+    private void AudioRefresh()
+    {
+        var state = _api.AudioStateSync(AudioSessionId);
+        AudioStateText = $"mode={GetString(state.Payload, "mode")}; category={GetString(state.Payload, "category")}; track={GetString(state.Payload, "trackName")}; pos={GetString(state.Payload, "positionSeconds")}; playback={GetString(state.Payload, "playbackState")}";
+        Notify(nameof(AudioStateText));
+
+        var local = _api.AudioClientSettingsGet();
+        if (local.Status == ResponseStatus.Ok)
+        {
+            if (double.TryParse(GetString(local.Payload, "volume"), out var v)) LocalVolume = v;
+            LocalMuted = GetString(local.Payload, "muted") == "True";
+            Notify(nameof(LocalVolume));
+            Notify(nameof(LocalMuted));
+        }
+    }
+
+    private void AudioApplyLocalSettings()
+    {
+        _api.AudioClientSettingsSet(LocalVolume, LocalMuted);
+        SaveLocalAudioSettings();
+        AudioRefresh();
+    }
+
+
+    private void VisibilityLoad()
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
         var r = _api.VisibilityGet(SelectedCharacterId);
@@ -575,6 +589,16 @@ public class PlayerMainViewModel : ViewModelBase
     }
 
     private void LoadPublicCharacter()
+        Notify(nameof(VisHideDescription)); Notify(nameof(VisHideBackstory)); Notify(nameof(VisHideStats)); Notify(nameof(VisHideReputation));
+    }
+
+    private void VisibilitySave()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        _api.VisibilityUpdate(new Dictionary<string, object>{{"characterId",SelectedCharacterId},{"hideDescriptionForOthers",VisHideDescription},{"hideBackstoryForOthers",VisHideBackstory},{"hideStatsForOthers",VisHideStats},{"hideReputationForOthers",VisHideReputation}});
+    }
+
+    private void PublicCharacterLoad()
     {
         PublicCharacterRows.Clear();
         if (string.IsNullOrWhiteSpace(PublicViewCharacterId)) return;
@@ -700,6 +724,208 @@ public class PlayerMainViewModel : ViewModelBase
     }
 
     private void NotifyCharacter()
+        foreach (var kv in r.Payload) PublicCharacterRows.Add(kv.Key + "=" + Convert.ToString(kv.Value));
+    }
+
+    private void NotesRefresh()
+    {
+        NoteRows.Clear();
+        var r = _api.NotesList(new Dictionary<string, object>{{"sessionId",NoteSessionId},{"targetType",NoteTargetType},{"targetId",NoteTargetId}});
+        foreach (var item in ToObjectList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
+            if (item is Dictionary<string, object> m)
+                NoteRows.Add($"{GetString(m,"noteId")} | {GetString(m,"visibility")} | {GetString(m,"title")} | {GetString(m,"text")}");
+    }
+
+    private void NotesCreate()
+    {
+        _api.NotesCreate(new Dictionary<string, object>{{"sessionId",NoteSessionId},{"targetType",NoteTargetType},{"targetId",NoteTargetId},{"title",NoteTitle},{"text",NoteText},{"visibility",NoteVisibility},{"noteType","Personal"}});
+        NotesRefresh();
+    }
+
+    private void NotesArchive() { if(!string.IsNullOrWhiteSpace(SelectedNoteId)){ _api.NotesArchive(SelectedNoteId); NotesRefresh(); } }
+
+    private void ChatSend()
+    {
+        if (string.IsNullOrWhiteSpace(ChatTextInput)) return;
+        _api.ChatSend(ChatSessionId, ChatTypeInput, ChatTextInput);
+        ChatTextInput = string.Empty;
+        Notify(nameof(ChatTextInput));
+        ChatRefresh();
+    }
+
+    private void ChatRefresh()
+    {
+        ChatRows.Clear();
+        var history = _api.ChatHistoryGet(ChatSessionId, 80);
+        if (history.Status == ResponseStatus.Ok && history.Payload.ContainsKey("items"))
+        {
+            foreach (var item in ToObjectList(history.Payload["items"]))
+                if (item is Dictionary<string, object> m)
+                    ChatRows.Add($"{GetString(m, "createdUtc")} | {GetString(m, "type")} | {GetString(m, "senderDisplayName")}: {GetString(m, "text")}");
+        }
+        var unread = _api.ChatUnreadGet(ChatSessionId);
+        ChatUnreadText = "Unread: " + GetString(unread.Payload, "count");
+        Notify(nameof(ChatUnreadText));
+    }
+
+    private void LoadClassAndSkillState()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) && MyCharacters.Count > 0) SelectedCharacterId = MyCharacters[0].Id;
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+
+        ClassProgressRows.Clear();
+        var tree = _api.ClassTreeGet(SelectedCharacterId);
+        if (tree.Status == ResponseStatus.Ok)
+        {
+            foreach (var dir in ToObjectList(tree.Payload.ContainsKey("directions") ? tree.Payload["directions"] : new ArrayList()))
+            {
+                if (dir is not Dictionary<string, object> d) continue;
+                ClassProgressRows.Add($"[{GetString(d, "directionId")}] branch={GetString(d, "selectedBranchId")}");
+                foreach (var n in ToObjectList(d.ContainsKey("acquiredNodes") ? d["acquiredNodes"] : new ArrayList()))
+                    if (n is Dictionary<string, object> nm)
+                        ClassProgressRows.Add($"  + {GetString(nm, "nodeId")}");
+            }
+        }
+
+        var available = _api.ClassTreeAvailable(SelectedCharacterId);
+        if (available.Status == ResponseStatus.Ok && available.Payload.ContainsKey("items"))
+        {
+            foreach (var node in ToObjectList(available.Payload["items"]))
+            {
+                if (node is not Dictionary<string, object> n) continue;
+                if (GetString(n, "available") == "True")
+                    ClassProgressRows.Add($"AVAILABLE {GetString(n, "nodeId")} | {GetString(n, "name")}");
+                else if (GetString(n, "acquired") != "True")
+                    ClassProgressRows.Add($"LOCKED {GetString(n, "nodeId")} | reason(s): {GetString(n, "reasons")}");
+            }
+        }
+
+        SkillRows.Clear();
+        var skills = _api.SkillsList(SelectedCharacterId);
+        if (skills.Status == ResponseStatus.Ok && skills.Payload.ContainsKey("items"))
+        {
+            foreach (var item in ToObjectList(skills.Payload["items"]))
+            {
+                if (item is not Dictionary<string, object> row) continue;
+                SkillRows.Add($"{GetString(row, "name")} [{GetString(row, "type")}] acquired={GetString(row, "acquired")} available={GetString(row, "available")} reason={GetString(row, "reason")}");
+            }
+        }
+    }
+
+    private void LoadCombat()
+    {
+        CombatStateRows.Clear();
+        var state = _api.CombatVisibleState(SessionIdInput);
+        if (state.Status == ResponseStatus.Ok)
+        {
+            CombatStateRows.Add($"Status: {GetString(state.Payload, "status")}");
+            CombatStateRows.Add($"Round: {GetString(state.Payload, "round")}");
+            CombatStateRows.Add($"ActiveSlot: {GetString(state.Payload, "activeSlotId")}");
+            if (state.Payload.ContainsKey("slots"))
+            {
+                foreach (var slot in ToObjectList(state.Payload["slots"]))
+                    if (slot is Dictionary<string, object> map)
+                        CombatStateRows.Add($"Slot {GetString(map, "order")} grp={GetString(map, "isGroup")} maxRoll={GetString(map, "maxRoll")}");
+            }
+        }
+
+        CombatTimelineRows.Clear();
+        var timeline = _api.CombatTimeline(SessionIdInput);
+        if (timeline.Status == ResponseStatus.Ok && timeline.Payload.ContainsKey("items"))
+        {
+            foreach (var item in ToObjectList(timeline.Payload["items"]))
+                if (item is Dictionary<string, object> map)
+                    CombatTimelineRows.Add($"{GetString(map, "at")} | {GetString(map, "eventType")} | {GetString(map, "message")}");
+        }
+    }
+
+    private void LoadRequestsAndFeed()
+    {
+        MyRequests.Clear();
+        var req = _api.ListMyRequests();
+        if (req.Status == ResponseStatus.Ok && req.Payload.ContainsKey("items"))
+        {
+            foreach (var item in ToObjectList(req.Payload["items"]))
+            {
+                if (item is Dictionary<string, object> map)
+                {
+                    var id = GetString(map, "requestId");
+                    var status = GetString(map, "status");
+                    var formula = GetString(map, "formula");
+                    var resultText = string.Empty;
+                    if (map.ContainsKey("result") && map["result"] is Dictionary<string, object> result)
+                        resultText = $" => {GetString(result, "total")}";
+                    MyRequests.Add($"{id} | {status} | {formula}{resultText}");
+                }
+            }
+        }
+
+        DiceFeed.Clear();
+        var feed = _api.DiceVisibleFeed();
+        if (feed.Status == ResponseStatus.Ok && feed.Payload.ContainsKey("items"))
+        {
+            foreach (var item in ToObjectList(feed.Payload["items"]))
+            {
+                if (item is Dictionary<string, object> map)
+                {
+                    var formula = GetString(map, "formula");
+                    var creator = GetString(map, "creatorUserId");
+                    var total = string.Empty;
+                    if (map.ContainsKey("result") && map["result"] is Dictionary<string, object> result)
+                        total = GetString(result, "total");
+                    DiceFeed.Add($"{creator}: {formula} => {total}");
+                }
+            }
+        }
+    }
+
+    private void CreateDiceRequest()
+    {
+        try
+        {
+            var charId = string.Empty;
+            if (MyCharacters.Count > 0) charId = MyCharacters[0].Id;
+            _api.CreateDiceRequest(charId, DiceFormulaInput, DiceVisibilityInput, DiceDescriptionInput);
+            LoadRequestsAndFeed();
+        }
+        catch
+        {
+            ConnectionState = "Вы в режиме оффлайн";
+        }
+    }
+
+    private void CancelRequest()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(SelectedRequestId))
+            {
+                _api.CancelRequest(SelectedRequestId);
+                LoadRequestsAndFeed();
+            }
+        }
+        catch
+        {
+            ConnectionState = "Вы в режиме оффлайн";
+        }
+    }
+
+
+    private void AcquireClassNode()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedClassNodeId)) return;
+        _api.ClassTreeAcquireNode(SelectedCharacterId, SelectedClassNodeId);
+        LoadClassAndSkillState();
+    }
+
+    private void AcquireSkill()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedSkillId)) return;
+        _api.SkillsAcquire(SelectedCharacterId, SelectedSkillId);
+        LoadClassAndSkillState();
+    }
+
+    private void NotifyAll()
     {
         Notify(nameof(CharacterName));
         Notify(nameof(CharacterRace));
@@ -713,5 +939,20 @@ public class PlayerMainViewModel : ViewModelBase
 
     private static IList ToObjectList(object payload) => payload as IList ?? new ArrayList();
 }
+
+        Notify(nameof(StatsText));
+        Notify(nameof(ConnectionState));
+    }
+
+    private static string GetString(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
+    private static bool GetBool(Dictionary<string, object> map, string key) => map.ContainsKey(key) && bool.TryParse(Convert.ToString(map[key]), out var v) && v;
+
+    private static IList ToObjectList(object payload)
+    {
+        if (payload is IList list) return list;
+        return new ArrayList();
+    }
+}
+
 
 public class CombatViewModel : PlayerMainViewModel { }

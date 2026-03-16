@@ -1,279 +1,209 @@
 # NRI System Architecture (.NET Framework 4.8.1)
 
-## Что реализовано сейчас
+## Что реально работает на этом этапе
 
-## Сервер
-- TCP+JSON сервер с command dispatcher и MongoDB persistence.
-- Auth/roles/presence/characters/locks/request+dice workflows.
-- **Новая полнофункциональная подсистема боя**:
-  - `combat.start`, `combat.end`, `combat.getState`, `combat.getHistory`;
-  - ходы/раунды: `combat.nextTurn`, `combat.previousTurn`, `combat.nextRound`, `combat.skipTurn`, `combat.selectActive`;
-  - управление инициативой: `combat.reorderBeforeStart`, `combat.reorderSlotMembers`;
-  - участники: `combat.addParticipant`, `combat.removeParticipant`, `combat.detachCompanion`;
-  - клиентские фиды: `combat.visibleState`, `combat.participants`, `combat.timeline`.
+### Сервер
+- TCP JSON listener (multi-client, thread-per-connection).
+- JSON framing: **1 сообщение = 1 строка JSON (newline-delimited)**.
+- Command dispatcher с единым реестром обработчиков, auth-gate и централизованным error mapping.
+- Реальные сервисы auth/profile/admin/characters/presence/locks.
+- Расширенный Character API для чтения и редактирования.
+- Серверная visibility filtering при выдаче character DTO.
+- Серверные locks, привязанные к редактированию персонажа.
+- MongoDB-репозитории и индексы.
 
-## Модель инициативы и боя
-- Инициатива серверная (`1d100`) с tie-break перебросами до однозначного порядка.
-- Особые правила:
-  - результат `100`: один победитель (через tie-break между `100`) получает дополнительный ход первого раунда перед общей очередью;
-  - результат `1`: участник пропускает первый ход первого раунда.
-- Групповые слоты инициативы поддерживаются отдельной структурой `InitiativeSlot` + `InternalOrder`.
-- Компаньоны по умолчанию могут идти в слоте владельца (через group-key), при необходимости отделяются `combat.detachCompanion`.
-- Добавление новой стороны в активный бой поддерживается, новые участники вставляются в очередь с более низким приоритетом на равных roll со старой очередью.
+### Клиенты
+- AdminClient: рабочий shell с вкладками `PendingAccountsView`, `PlayersView`, `CharactersView`, `CharacterEditorView`, `LocksStatusView`, `ClassesView`, `SkillsView`.
+- PlayerClient: рабочий shell с вкладками `ActiveCharacterView` (внутри `MainShellWindow`), `MyCharactersView`, `ClassesView`, `SkillsView`.
+- Реальный TCP клиент в обоих приложениях.
+- Runtime auth token state.
+- Ручной refresh + авто-обновление polling таймером.
+- Отображение offline состояния: **«Вы в режиме оффлайн»**.
 
-## Combat + Request интеграция
-- Request subsystem и combat subsystem сосуществуют в одном серверном application layer.
-- В будущих этапах заявки/навыки/действия в бою будут ссылаться на `CombatState`, текущий раунд и активный слот.
+## Новые/расширенные команды
+- `admin.players.list`
+- `character.get.details`
+- `character.get.summary`
+- `character.get.companions`
+- `character.get.inventory`
+- `character.get.reputation`
+- `character.get.holdings`
+- `character.update.basicInfo`
+- `character.update.stats`
+- `character.update.visibility`
+- `character.update.money`
+- `character.update.inventory`
+- `character.update.reputation`
+- `character.update.holdings`
+- `lock.forceRelease`
+
+(Плюс команды предыдущего этапа: auth/profile/admin account moderation/list/assign/transfer/archive/restore/presence/session/locks.)
+
+## Visibility filtering
+- Админ и superadmin видят полные данные.
+- Владелец персонажа видит полные данные.
+- Для других игроков сервер применяет filtering по `CharacterVisibilitySettings`.
+- Никогда не скрываются: раса, рост, инвентарь.
+- Скрытие описания/предыстории/статов/репутации применяется на сервере при построении DTO.
+
+## Character edit locks
+- AdminClient при открытии персонажа может брать lock (`lock.acquire`).
+- При занятом lock сервер возвращает конфликт.
+- Обычный release: `lock.release`.
+- Force unlock только для `SuperAdmin`: `lock.forceRelease`.
+- Lock status и метаданные (кто и до какого времени) доступны через `lock.status`.
+## Что реально работает на текущем этапе
+
+### Сервер (`Nri.Server`)
+- TCP JSON сервер с **одновременной обработкой нескольких клиентов** (поток на подключение).
+- Простой и стабильный framing: **один JSON envelope = одна строка** (`\n` delimiter).
+- Connection manager и cleanup при disconnect.
+- Command dispatcher с реестром handler'ов (без giant switch), централизованной обработкой ошибок и auth-gate.
+- Рабочие сервисы:
+  - регистрация / логин / логаут;
+  - выдача и валидация server-side auth token;
+  - профиль пользователя (get/update);
+  - админ-подтверждение аккаунтов;
+  - команды персонажей (минимум из этапа);
+  - presence list для администратора;
+  - entity lock acquire/release/status.
+- MongoDB integration:
+  - инициализация клиента и коллекций;
+  - базовые индексы (login unique, token unique, owner index, unique lock per entity).
+- Разделённые каналы логирования: debug / session / admin / audit.
+
+### Клиенты (`Nri.AdminClient`, `Nri.PlayerClient`)
+- Реальный TCP network client (connect/send/read response).
+- Передача `RequestEnvelope` и получение `ResponseEnvelope`.
+- Хранение `authToken` в клиентском session state.
+- Минимальный command API для register/login/profile/characters и admin account commands.
 
 ## MongoDB коллекции
-- Основные: `accounts`, `profiles`, `characters`, `sessions`, `locks`, `audit_logs`.
-- Requests/dice: `action_requests`, `dice_requests`.
-- Combat: `combat_states`, `combat_logs`.
+- `accounts`
+- `profiles`
+- `characters`
+- `sessions`
+- `sessions` (presence/session states)
+- `locks`
+- `audit_logs`
+- `requests` (каркас)
+- `chat_messages` (каркас)
+- `audio_states` (каркас)
 
-## Клиенты
-### AdminClient
-- Combat tracker с реальным управлением:
-  - запуск/завершение боя;
-  - переход хода/раунда, пропуск, возврат;
-  - добавление/удаление участников, detach компаньона;
-  - просмотр текущего state и combat history.
-- Request moderation и dice history/feed сохранены.
+## Что пока ещё каркас
+- Полный модуль заявок/бросков/боя/чата/музыки.
+- Полное дерево классов и gameplay flow навыков.
+- Realtime push-события (пока polling refresh).
+## Поддерживаемые команды
+- Auth:
+  - `auth.register`
+  - `auth.login`
+  - `auth.logout`
+- Profile:
+  - `profile.get`
+  - `profile.update`
+- Admin accounts:
+  - `admin.accounts.pending`
+  - `admin.accounts.approve`
+  - `admin.accounts.archive`
+  - `admin.accounts.profile`
+- Characters:
+  - `character.list.mine`
+  - `character.list.byOwner`
+  - `character.get.active`
+  - `character.create`
+  - `character.archive`
+  - `character.restore`
+  - `character.transfer`
+  - `character.assignActive`
+- Presence/session:
+  - `presence.list`
+  - `session.validate`
+- Locks:
+  - `lock.acquire`
+  - `lock.release`
+  - `lock.status`
 
-### PlayerClient
-- Просмотр текущего боя:
-  - раунд, активный слот,
-  - список слотов/участников,
-  - timeline событий.
-- Управление ходами на стороне игрока отсутствует (серверная authority).
+## Статусы аккаунта
+- `PendingApproval`
+- `Active`
+- `Blocked`
+- `Archived`
 
-## История и логирование
-- Combat события пишутся в `combat_logs`.
-- Параллельно пишутся session/admin/audit лог-каналы.
+## Как запустить сервер
+1. Настроить `Nri.Server/server.config.json`.
+2. Убедиться, что MongoDB доступен по `Mongo.ConnectionString`.
+3. Запустить `Nri.Server` (через Visual Studio / msbuild).
+4. Клиенты подключаются к `ServerHost/ServerPort` из `client.config.json`.
 
-## Синхронизация клиентов
-- Используется polling (10 секунд) + refresh-after-command.
-- Это временно вместо push/event-stream: проще и стабильнее на текущем этапе TCP request/response без отдельного realtime канала.
+## Конфигурация
+- `server.config.json`:
+  - host/port
+  - mongo connection/database
+  - log file paths
+  - token lifetime
+  - audio folder path
+- `client.config.json`:
+  - server host/port
+- `updater.config.json`:
+  - update channel/feed (каркас)
 
-## Что остаётся на следующие этапы
-- Полная интеграция боевых action requests/активируемых навыков с turn validation.
-- Сложные боевые эффекты и автоматические правила статусов/баффов.
-- Полноценный push-синк (server events) вместо polling.
+## Что пока оставлено каркасом
+- Полная игровая механика (request workflow, бой, чат, музыка) — пока только data/repository каркас.
+- Полноценные клиентские UI-сценарии (сейчас только интеграционный сетевой минимум + placeholders).
+- Расширенный RBAC/ABAC и гибкий policy DSL.
+- Расширенные migration/versioning сценарии для сложных апдейтов схем.
+# NRI System Architecture Skeleton (.NET Framework 4.8.1)
 
-## Class/Skill Subsystem (Stage: configurable progression)
+## Projects
+- **Nri.Shared**: Domain entities, transport contracts, protocol constants, permissions, config models.
+- **Nri.Server**: Console host, TCP listener skeleton, command dispatcher, service/repository/auth stubs, split logging channels.
+- **Nri.AdminClient**: WPF admin shell, navigation placeholders, network/session client stubs.
+- **Nri.PlayerClient**: WPF player shell, navigation placeholders, network/session client stubs.
+- **Nri.Updater**: Launcher/updater console skeleton with update feed configuration.
 
-- Added server-side configurable definitions for class trees and skills via `ClassTreeDefinition`, `ClassNodeDefinition`, `SkillDefinitionRecord`, and related requirement/effect models.
-- Definitions loading strategy is **JSON-first with DB fallback/override persistence hooks**:
-  - server tries Mongo collections (`class_tree_definitions`, `skill_definitions`) first;
-  - if collections are empty, it loads JSON files from `definitions/classes.json` and `definitions/skills.json`;
-  - if files are absent, server uses seeded defaults for six directions (Защитник, Передовой, Рейнджер, Самурай, Маг, Изобретатель).
-- Admin can trigger runtime reload via `definitions.reload` without server restart.
-- Reload updates `definition_versions` collection for audit/version tracking.
+## Layering and responsibilities
+1. **Domain models** live in `Nri.Shared.Domain` and include `SchemaVersion`, `Deleted`, `Archived` for migration and soft-delete strategy.
+2. **Transport DTO/protocol** is isolated in `Nri.Shared.Contracts` with envelopes and command catalog for TCP+JSON.
+3. **Server application layer** (`Nri.Server.Application`) owns command dispatching and business service contracts.
+4. **Infrastructure layer** (`Nri.Server.Infrastructure`) contains repository abstractions and auth/session state stubs.
+5. **UI clients** keep network and state logic separate from views (XAML + ViewModels + Networking folders).
 
-### Progress state separation
-- `Character` now stores:
-  - runtime progress (`ClassDirections`, `CharacterSkillStates`),
-  - computed snapshot (`ClassSkillSnapshot`),
-  - content version marker (`ClassSkillDefinitionVersion`).
-- This separates:
-  - configuration/definitions,
-  - runtime progress,
-  - computed derived state.
+## Key model coverage
+Implemented baseline entities: user/account/profile/roles, world-campaign-session hierarchy, character with companion and inventory, holdings (multi-owner), reputation, wallet/currency map, class/skills, request types, chat, combat initiative, audio, entity locks and audit logs.
 
-### Recalculation pipeline
-- `RecalculateProgress` is the single server pipeline that computes:
-  - node-derived stat bonuses,
-  - passive effects,
-  - unlock states,
-  - skill availability/unavailability reasons.
-- Clients only render server-calculated state.
+## JSON protocol
+- `RequestEnvelope`: `Command`, `RequestId`, `AuthToken`, `SessionId`, `Payload`, `TimestampUtc`, `Version`.
+- `ResponseEnvelope`: `RequestId`, `Status`, `ErrorCode`, `Message`, `Payload`, `TimestampUtc`, `Version`.
+- Command catalog includes auth, session, character, requests, dice, combat, chat and audio command names.
 
-### Branch and availability rules
-- Enforced rule: one selected branch per direction.
-- Node availability includes:
-  - branch consistency check,
-  - requirement checks (node/stat in this stage),
-  - progression edge checks using `nextNodeIds`.
-- Skill availability includes:
-  - unlocked-by-node requirement,
-  - optional requirement checks (node/skill requirement types).
+## Security approach
+- Roles: `Player`, `Observer`, `Admin`, `SuperAdmin`.
+- Role-to-permission map in `AccessPolicy` for server-side checks.
+- Clients are intentionally unaware of DB and cannot bypass server authorization.
 
-### New protocol command groups
-- Definitions: `definitions.classes.get`, `definitions.skills.get`, `definitions.reload`, `definitions.version.get`.
-- Class tree: `classTree.get`, `classTree.node.get`, `classTree.available.get`, `classTree.acquireNode`, `classTree.recalculate`.
-- Skills: `skills.list`, `skills.available`, `skills.get`, `skills.acquire`.
-- Admin overrides: `admin.classTree.setState`, `admin.skills.setState`, `admin.character.progress.recalculate`.
+## Logging structure
+`ServerConfig.Logging` supports distinct channels:
+- debug log
+- session action log
+- admin log
+- audit log
 
-### Client sync strategy
-- Current strategy remains lightweight polling + refresh after action.
-- Reason: fits current TCP+JSON request/response architecture and keeps implementation deterministic before introducing push streams.
+## Configuration templates
+- `Nri.Server/server.config.json`
+- `Nri.AdminClient/client.config.json`
+- `Nri.PlayerClient/client.config.json`
+- `Nri.Updater/updater.config.json`
 
-## Session Chat Subsystem (Stage: moderated session chat)
+## What is intentionally stubbed for next stages
+- Real TCP request loop and per-connection lifecycle.
+- MongoDB 8.0 concrete repository implementations.
+- Full authorization/session token lifecycle.
+- Full game mechanics (combat resolution, dice engine, requests workflow).
+- Production-grade updater logic and package verification.
+- Rich WPF UI/UX and module-specific screens.
 
-- Added server-authoritative chat pipeline with message types:
-  - `Public`
-  - `HiddenToAdmins`
-  - `AdminOnly`
-  - `System`
-- Visibility is filtered on server per requester; clients only render returned payload.
-- Added persisted chat separation in Mongo:
-  - `chat_messages` (message history)
-  - `chat_read_states` (per-user read pointer)
-  - `session_chat_settings` (slow mode + locks/mutes)
-  - `chat_throttle_states` (anti-spam timestamps)
-
-### Read/unread model
-- Read state is stored as per-user per-session pointer (`LastReadMessageUtc` + `LastReadMessageId`).
-- Messages are marked read when returned in visible history/feed (i.e., after entering visibility window).
-
-### Moderation model
-- Session-level player lock (`LockPlayers`).
-- Per-user mute entries with reason and moderation metadata.
-- Slow mode with independent intervals for `Public`, `HiddenToAdmins`, `AdminOnly`; admins are exempt.
-
-### Chat protocol commands
-- Messaging/history/read:
-  - `chat.send`
-  - `chat.history.get`
-  - `chat.history.loadMore`
-  - `chat.visibleFeed`
-  - `chat.markRead`
-  - `chat.unread.get`
-- Moderation:
-  - `chat.slowMode.get`
-  - `chat.slowMode.set`
-  - `chat.restrictions.get`
-  - `chat.restrictions.muteUser`
-  - `chat.restrictions.unmuteUser`
-  - `chat.restrictions.lockPlayers`
-  - `chat.restrictions.unlockPlayers`
-
-### System messages integration
-- System messages are published into the same chat history pipeline for key events:
-  - user connect/disconnect
-  - combat start/end
-  - combat round start
-
-### Sync strategy
-- Current chat sync uses polling + refresh-after-send/read actions.
-- This keeps behavior stable on current TCP+JSON request/response transport without introducing push channels yet.
-
-## Session Audio Subsystem (Stage: synchronized background music)
-
-- Added server-authoritative session audio state with categories/modes and synchronized playback snapshot.
-- Audio files are stored on server filesystem (`AudioFolderPath`), while Mongo stores only metadata/state.
-
-### Categories and modes
-- Categories: `Normal`, `Combat`, `Tense`, `Calm`, `Manual`.
-- Modes: `Auto` and `Manual`.
-- Auto policy currently maps active combat to `Combat`, otherwise `Normal`.
-- Manual override has priority until cleared by admin.
-
-### Storage separation
-- `audio_tracks`: track metadata/index (`DisplayName`, `FilePath`, `Category`, enabled flag, ordering, duration metadata).
-- `audio_states`: runtime per-session playback state (mode, category, track, startedAt, fade, override metadata).
-- `audio_client_settings`: per-user local playback prefs (volume/mute).
-
-### Library indexing
-- Server scans configured audio directory and indexes `.mp3`, `.wav`, `.ogg` files.
-- Category is inferred from path/name (`combat`, `tense`, `calm`, `manual`, else `normal`).
-- Missing files disable stale metadata entries; files without explicit metadata are indexed automatically.
-
-### Sync model
-- Time-based synchronization via `startedAtUtc + startOffsetSeconds`.
-- Clients compute playback position from server timestamp snapshot.
-- This avoids heavy server-side position writes while keeping usable sync quality.
-
-### Track transitions
-- Session state exposes fixed fade duration (`fadeMilliseconds`, default 1800).
-- Track switch sets transition playback state, then settles into playing state on subsequent sync.
-
-### Audio protocol commands
-- State/mode:
-  - `audio.state.get`
-  - `audio.state.sync`
-  - `audio.mode.get`
-  - `audio.mode.set`
-  - `audio.override.clear`
-- Library/tracks:
-  - `audio.library.get`
-  - `audio.track.select`
-  - `audio.track.next`
-  - `audio.track.reload`
-- Client local settings:
-  - `audio.clientSettings.get`
-  - `audio.clientSettings.set`
-
-### Integration points
-- Combat start/end/new round triggers audio policy sync.
-- Music mode/track updates emit system messages into the shared session chat stream.
-
-### Client behavior
-- Admin can control mode/category/track/reload and view full library/state.
-- Player gets synchronized playback state and only controls local volume + mute.
-- Client sync currently uses polling/refresh-after-actions for stability on current TCP+JSON transport.
-
-## Final Integration Layer (visibility, notes, references, updater, backup, diagnostics)
-
-### Character visibility
-- Added dedicated visibility commands and server-side public-view projection:
-  - `visibility.get`
-  - `visibility.update`
-  - `character.publicView.get`
-  - `character.visibleToMe.get`
-- Server remains authoritative for hidden-field filtering. Owner/admin/superadmin get full details; other users get filtered DTO.
-- Race/height/inventory hiding is gated by `AllowAdvancedVisibilityOverrides` and remains disabled by default.
-
-### Notes subsystem
-- Added persistent text notes with typed targets and visibility:
-  - Personal, AdminOnly, SharedWithOwner, SessionShared.
-- Commands:
-  - `notes.create`
-  - `notes.list`
-  - `notes.get`
-  - `notes.update`
-  - `notes.archive`
-
-### Reference data subsystem
-- Added world-bound reference entries (`references` collection) with revision and archive support.
-- SuperAdmin-only editing flows:
-  - `reference.list/get/create/update/archive/reload`
-- Intended reference types include races/classes/skills/states/settlements/factions/reputation/item templates and audio links (by `ReferenceType`).
-
-### Updater/version layer
-- Added update/version API commands:
-  - `update.version.get`
-  - `update.manifest.get`
-  - `update.client.downloadInfo`
-- `Nri.Updater` now performs practical flow:
-  - reads local version,
-  - downloads manifest,
-  - updates files,
-  - writes version,
-  - launches selected client target.
-
-### Backup/restore/export
-- Added backup commands:
-  - `backup.create`
-  - `backup.list`
-  - `backup.restore`
-  - `backup.export`
-- Strategy: logical snapshot serialized in `backups` collection with optional JSON export.
-- `backup.restore` is restricted to SuperAdmin due destructive risk.
-
-### Admin tools & diagnostics
-- Added admin operations:
-  - `admin.locks.list`
-  - `admin.locks.forceRelease`
-  - `admin.server.status`
-  - `admin.sessions.list`
-  - `admin.diagnostics.get`
-- AdminClient includes dedicated final panels for visibility, notes, reference data, backups and diagnostics.
-
-### Integration notes
-- Important admin/audio/combat actions continue to publish system chat messages through shared chat pipeline.
-- Runtime gameplay data, reference definitions, notes, update metadata, and backups are kept in separate collections.
-
-### Simplifications still present
-- Backup is logical JSON snapshot (not filesystem-level Mongo dump).
-- Updater transport currently uses manifest/file download flow and assumes reachable feed URLs from config.
-- Reference schema is generic (`DataJson`) to preserve extensibility without rigid typed editors in this stage.
+## Notable architectural decisions
+- **Shared contracts and entities in one assembly** to keep protocol/domain coherent early; can be split later into `Domain` and `Contracts` assemblies without breaking app boundaries.
+- **Server-first truth model**: all mutable actions route through command dispatcher stubs to enforce future centralized validation.
+- **Dictionary-based money model** chosen for extensibility and denomination evolution without schema redesign.
