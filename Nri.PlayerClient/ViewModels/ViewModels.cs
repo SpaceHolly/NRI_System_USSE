@@ -4,6 +4,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Web.Script.Serialization;
+using System.Windows.Input;
+using System.Windows.Threading;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -22,6 +27,12 @@ public abstract class ViewModelBase : INotifyPropertyChanged
 
 public sealed class RelayCommand : ICommand
 {
+    private readonly Action<object?> _execute;
+    public RelayCommand(Action execute) : this(_ => execute()) { }
+    public RelayCommand(Action<object?> execute) { _execute = execute; }
+    public event EventHandler? CanExecuteChanged;
+    public bool CanExecute(object? parameter) => true;
+    public void Execute(object? parameter) => _execute(parameter);
     private readonly Action _execute;
     public RelayCommand(Action execute) { _execute = execute; }
     public event EventHandler? CanExecuteChanged;
@@ -34,10 +45,50 @@ public class CharacterListItemVm : ViewModelBase
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Race { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Age { get; set; } = string.Empty;
     public bool Archived { get; set; }
     public bool IsActive { get; set; }
 }
 
+public class CurrencyRowVm
+{
+    public string Name { get; set; } = string.Empty;
+    public string Abbrev { get; set; } = string.Empty;
+    public string Color { get; set; } = "#FFFFFF";
+    public long Amount { get; set; }
+}
+
+public class StatRowVm
+{
+    public string Label { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
+}
+
+public class ReputationRowVm
+{
+    public string Label { get; set; } = string.Empty;
+    public int Value { get; set; }
+    public double Percent => (Value + 100) / 200.0 * 100.0;
+}
+
+public class CompanionVm : ViewModelBase
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Species { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public ObservableCollection<string> InventoryRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> SkillsRows { get; } = new ObservableCollection<string>();
+}
+
+public class ClassNodeVisualVm
+{
+    public string NodeId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string State { get; set; } = "Locked";
+    public double X { get; set; }
+    public double Y { get; set; }
 public class CompanionVm : ViewModelBase
 {
     public string Name { get; set; } = string.Empty;
@@ -52,6 +103,45 @@ public class PlayerMainViewModel : ViewModelBase
     private readonly CommandApi _api;
     private readonly DispatcherTimer _poller;
 
+    private string _connectionState = "Оффлайн";
+    private bool _isAuthPopupOpen;
+    private string _selectedMainTab = "MyCharacters";
+
+    public PlayerMainViewModel()
+    {
+        var client = new JsonTcpClient(new ClientConfig(), _session);
+        _api = new CommandApi(client);
+
+        ToggleAuthPopupCommand = new RelayCommand(() => IsAuthPopupOpen = !IsAuthPopupOpen);
+        LoginCommand = new RelayCommand(Login);
+        RegisterCommand = new RelayCommand(Register);
+        RefreshCommand = new RelayCommand(RefreshAll);
+
+        LoadCharacterDetailsCommand = new RelayCommand(LoadSelectedCharacterDetails);
+        CreateDiceRequestCommand = new RelayCommand(CreateDiceRequest);
+        CancelRequestCommand = new RelayCommand(CancelRequest);
+
+        ChatSendCommand = new RelayCommand(SendChat);
+        BottomRefreshCommand = new RelayCommand(RefreshBottomPanel);
+
+        AudioApplyLocalSettingsCommand = new RelayCommand(ApplyAudioLocalSettings);
+
+        VisibilityLoadCommand = new RelayCommand(LoadVisibility);
+        VisibilitySaveCommand = new RelayCommand(SaveVisibility);
+        PublicCharacterLoadCommand = new RelayCommand(LoadPublicCharacter);
+
+        NotesRefreshCommand = new RelayCommand(RefreshNotes);
+        NotesCreateCommand = new RelayCommand(CreateNote);
+        NotesArchiveCommand = new RelayCommand(ArchiveNote);
+
+        AcquireClassNodeCommand = new RelayCommand(AcquireClassNode);
+        AcquireSkillCommand = new RelayCommand(AcquireSkill);
+
+        _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
+        _poller.Tick += (_, _) => PollRefresh();
+
+        InitializeClassVisualLayout();
+        LoadLocalAudioSettings();
     private string _connectionState = "Вы в режиме оффлайн";
     private string _selectedSection = "ActiveCharacter";
 
@@ -90,6 +180,40 @@ public class PlayerMainViewModel : ViewModelBase
 
     public string LoginText { get; set; } = string.Empty;
     public string PasswordText { get; set; } = string.Empty;
+    public string PlayerDisplayName { get; set; } = "Гость";
+    public string SessionSummary { get; set; } = "Сессия: default";
+
+    public bool IsAuthPopupOpen { get => _isAuthPopupOpen; set { _isAuthPopupOpen = value; Notify(); } }
+    public string ConnectionState { get => _connectionState; set { _connectionState = value; Notify(); Notify(nameof(IsOnline)); } }
+    public bool IsOnline => string.Equals(ConnectionState, "Онлайн", StringComparison.OrdinalIgnoreCase);
+
+    public string SelectedMainTab { get => _selectedMainTab; set { _selectedMainTab = value; Notify(); } }
+    public string SelectedCharacterId { get; set; } = string.Empty;
+    public string PublicViewCharacterId { get; set; } = string.Empty;
+
+    public string CharacterName { get; set; } = string.Empty;
+    public string CharacterRace { get; set; } = string.Empty;
+    public string CharacterAge { get; set; } = string.Empty;
+    public string CharacterHeight { get; set; } = string.Empty;
+    public string CharacterDescription { get; set; } = string.Empty;
+    public string CharacterBackstory { get; set; } = string.Empty;
+
+    public bool VisHideDescription { get; set; }
+    public bool VisHideBackstory { get; set; }
+    public bool VisHideStats { get; set; }
+    public bool VisHideReputation { get; set; }
+
+    public int DiceCount { get; set; } = 1;
+    public int DiceFaces { get; set; } = 20;
+    public int DiceModifier { get; set; }
+    public string DiceVisibilityInput { get; set; } = "Public";
+    public string DiceDescriptionInput { get; set; } = string.Empty;
+    public string SelectedRequestId { get; set; } = string.Empty;
+
+    public string ChatSessionId { get; set; } = "default";
+    public string ChatTypeInput { get; set; } = "Public";
+    public string ChatTextInput { get; set; } = string.Empty;
+
     public string ConnectionState { get => _connectionState; set { _connectionState = value; Notify(); } }
     public string SelectedSection { get => _selectedSection; set { _selectedSection = value; Notify(); } }
     public string DiceFormulaInput { get; set; } = "1d20";
@@ -108,6 +232,7 @@ public class PlayerMainViewModel : ViewModelBase
     public string AudioStateText { get; set; } = string.Empty;
     public double LocalVolume { get; set; } = 0.7;
     public bool LocalMuted { get; set; }
+
     public string PublicViewCharacterId { get; set; } = string.Empty;
     public bool VisHideDescription { get; set; }
     public bool VisHideBackstory { get; set; }
@@ -121,6 +246,47 @@ public class PlayerMainViewModel : ViewModelBase
     public string NoteVisibility { get; set; } = "Personal";
     public string SelectedNoteId { get; set; } = string.Empty;
 
+    public string SelectedClassNodeId { get; set; } = string.Empty;
+    public string SelectedSkillId { get; set; } = string.Empty;
+
+    public ObservableCollection<CharacterListItemVm> MyCharacters { get; } = new ObservableCollection<CharacterListItemVm>();
+    public ObservableCollection<StatRowVm> StatsRows { get; } = new ObservableCollection<StatRowVm>();
+    public ObservableCollection<CurrencyRowVm> MoneyRows { get; } = new ObservableCollection<CurrencyRowVm>();
+    public ObservableCollection<string> InventoryRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<ReputationRowVm> ReputationRows { get; } = new ObservableCollection<ReputationRowVm>();
+    public ObservableCollection<CompanionVm> Companions { get; } = new ObservableCollection<CompanionVm>();
+
+    public ObservableCollection<string> SkillRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> SkillCatalogRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<ClassNodeVisualVm> ClassNodes { get; } = new ObservableCollection<ClassNodeVisualVm>();
+
+    public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> EventRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> DiceFeedRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> RequestRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> SessionStateRows { get; } = new ObservableCollection<string>();
+
+    public ObservableCollection<string> PublicCharacterRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> NoteRows { get; } = new ObservableCollection<string>();
+
+    public ObservableCollection<int> DiceCountOptions { get; } = new ObservableCollection<int> { 1, 2, 3, 4, 5, 6 };
+    public ObservableCollection<int> DiceFacesOptions { get; } = new ObservableCollection<int> { 4, 6, 8, 10, 12, 20 };
+    public ObservableCollection<string> DiceVisibilityOptions { get; } = new ObservableCollection<string> { "Public", "MasterOnly", "Shadow" };
+    public ObservableCollection<string> ChatTypeOptions { get; } = new ObservableCollection<string> { "Public", "System", "Whisper" };
+    public ObservableCollection<string> NoteTargetTypeOptions { get; } = new ObservableCollection<string> { "character", "session", "campaign" };
+    public ObservableCollection<string> NoteVisibilityOptions { get; } = new ObservableCollection<string> { "Personal", "SharedWithOwner", "SessionShared" };
+
+
+    public ICommand ToggleAuthPopupCommand { get; }
+    public ICommand LoginCommand { get; }
+    public ICommand RegisterCommand { get; }
+    public ICommand RefreshCommand { get; }
+    public ICommand LoadCharacterDetailsCommand { get; }
+    public ICommand CreateDiceRequestCommand { get; }
+    public ICommand CancelRequestCommand { get; }
+    public ICommand ChatSendCommand { get; }
+    public ICommand BottomRefreshCommand { get; }
     public string CharacterName { get; set; } = string.Empty;
     public string CharacterRace { get; set; } = string.Empty;
     public string CharacterAge { get; set; } = string.Empty;
@@ -166,6 +332,8 @@ public class PlayerMainViewModel : ViewModelBase
     public ICommand NotesRefreshCommand { get; }
     public ICommand NotesCreateCommand { get; }
     public ICommand NotesArchiveCommand { get; }
+    public ICommand AcquireClassNodeCommand { get; }
+    public ICommand AcquireSkillCommand { get; }
 
     private void Login()
     {
@@ -311,11 +479,24 @@ public class PlayerMainViewModel : ViewModelBase
         }
     }
 
+    private void RefreshAudioState()
+    {
+        var state = _api.AudioStateSync(AudioSessionId);
+        AudioStateText = $"{GetString(state.Payload, "mode")} / {GetString(state.Payload, "category")} / {GetString(state.Payload, "trackName")} @ {GetString(state.Payload, "positionSeconds")}s";
+        Notify(nameof(AudioStateText));
+    }
+
     private void LoadLocalAudioSettings()
     {
         try
         {
             if (!File.Exists(AudioSettingsPath)) return;
+            var map = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(AudioSettingsPath));
+            if (map == null) return;
+            if (map.ContainsKey("volume")) double.TryParse(Convert.ToString(map["volume"]), out var vol); else vol = 0.7;
+            if (map.ContainsKey("muted")) bool.TryParse(Convert.ToString(map["muted"]), out var muted); else muted = false;
+            LocalVolume = Math.Max(0, Math.Min(1, vol));
+            LocalMuted = muted;
             var serializer = new JavaScriptSerializer();
             var map = serializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(AudioSettingsPath));
             if (map == null) return;
@@ -329,6 +510,23 @@ public class PlayerMainViewModel : ViewModelBase
         catch { }
     }
 
+    private void ApplyAudioLocalSettings()
+    {
+        _api.AudioClientSettingsSet(LocalVolume, LocalMuted);
+        try
+        {
+            File.WriteAllText(AudioSettingsPath, new JavaScriptSerializer().Serialize(new Dictionary<string, object>
+            {
+                { "volume", LocalVolume },
+                { "muted", LocalMuted }
+            }));
+        }
+        catch { }
+
+        RefreshAudioState();
+    }
+
+    private void LoadVisibility()
     private void SaveLocalAudioSettings()
     {
         try
@@ -371,6 +569,26 @@ public class PlayerMainViewModel : ViewModelBase
         VisHideBackstory = GetString(r.Payload, "hideBackstoryForOthers") == "True";
         VisHideStats = GetString(r.Payload, "hideStatsForOthers") == "True";
         VisHideReputation = GetString(r.Payload, "hideReputationForOthers") == "True";
+        Notify(nameof(VisHideDescription));
+        Notify(nameof(VisHideBackstory));
+        Notify(nameof(VisHideStats));
+        Notify(nameof(VisHideReputation));
+    }
+
+    private void SaveVisibility()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        _api.VisibilityUpdate(new Dictionary<string, object>
+        {
+            { "characterId", SelectedCharacterId },
+            { "hideDescriptionForOthers", VisHideDescription },
+            { "hideBackstoryForOthers", VisHideBackstory },
+            { "hideStatsForOthers", VisHideStats },
+            { "hideReputationForOthers", VisHideReputation }
+        });
+    }
+
+    private void LoadPublicCharacter()
         Notify(nameof(VisHideDescription)); Notify(nameof(VisHideBackstory)); Notify(nameof(VisHideStats)); Notify(nameof(VisHideReputation));
     }
 
@@ -385,6 +603,127 @@ public class PlayerMainViewModel : ViewModelBase
         PublicCharacterRows.Clear();
         if (string.IsNullOrWhiteSpace(PublicViewCharacterId)) return;
         var r = _api.CharacterPublicViewGet(PublicViewCharacterId);
+        foreach (var kv in r.Payload)
+            PublicCharacterRows.Add(kv.Key + " = " + Convert.ToString(kv.Value));
+    }
+
+    private void RefreshNotes()
+    {
+        NoteRows.Clear();
+        var r = _api.NotesList(new Dictionary<string, object>
+        {
+            { "sessionId", NoteSessionId },
+            { "targetType", NoteTargetType },
+            { "targetId", NoteTargetId }
+        });
+
+        foreach (var item in ToObjectList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
+            if (item is Dictionary<string, object> map)
+                NoteRows.Add($"{GetString(map, "noteId")} | {GetString(map, "visibility")} | {GetString(map, "title")} | {GetString(map, "text")}");
+    }
+
+    private void CreateNote()
+    {
+        _api.NotesCreate(new Dictionary<string, object>
+        {
+            { "sessionId", NoteSessionId },
+            { "targetType", NoteTargetType },
+            { "targetId", NoteTargetId },
+            { "title", NoteTitle },
+            { "text", NoteText },
+            { "visibility", NoteVisibility },
+            { "noteType", "Personal" }
+        });
+        RefreshNotes();
+    }
+
+    private void ArchiveNote()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedNoteId)) return;
+        _api.NotesArchive(SelectedNoteId);
+        RefreshNotes();
+    }
+
+    private void LoadClassAndSkills()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+
+        var tree = _api.ClassTreeAvailable(SelectedCharacterId);
+        var available = new HashSet<string>();
+        var acquired = new HashSet<string>();
+
+        foreach (var item in ToObjectList(tree.Payload.ContainsKey("items") ? tree.Payload["items"] : new ArrayList()))
+        {
+            if (item is not Dictionary<string, object> map) continue;
+            var nodeId = GetString(map, "nodeId");
+            if (GetString(map, "acquired") == "True") acquired.Add(nodeId);
+            else if (GetString(map, "available") == "True") available.Add(nodeId);
+        }
+
+        foreach (var node in ClassNodes)
+        {
+            if (node.NodeId == "novice") node.State = "Start";
+            else if (acquired.Contains(node.NodeId)) node.State = "Taken";
+            else if (available.Contains(node.NodeId)) node.State = "Available";
+            else node.State = "Locked";
+        }
+        Notify(nameof(ClassNodes));
+
+        SkillRows.Clear();
+        SkillCatalogRows.Clear();
+        var skills = _api.SkillsList(SelectedCharacterId);
+        foreach (var item in ToObjectList(skills.Payload.ContainsKey("items") ? skills.Payload["items"] : new ArrayList()))
+        {
+            if (item is not Dictionary<string, object> map) continue;
+            var row = $"{GetString(map, "name")} [{GetString(map, "type")}] | acquired={GetString(map, "acquired")} | available={GetString(map, "available")} | {GetString(map, "reason")}";
+            SkillCatalogRows.Add(row);
+            SkillRows.Add(row);
+        }
+    }
+
+    private void AcquireClassNode(object? parameter)
+    {
+        if (parameter is string nodeId && !string.IsNullOrWhiteSpace(nodeId))
+            SelectedClassNodeId = nodeId;
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedClassNodeId)) return;
+        _api.ClassTreeAcquireNode(SelectedCharacterId, SelectedClassNodeId);
+        LoadClassAndSkills();
+    }
+
+    private void AcquireSkill()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedSkillId)) return;
+        _api.SkillsAcquire(SelectedCharacterId, SelectedSkillId);
+        LoadClassAndSkills();
+    }
+
+    private void InitializeClassVisualLayout()
+    {
+        ClassNodes.Clear();
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "novice", Title = "Новичок", State = "Start", X = 220, Y = 120 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "defender_guard", Title = "Защитник", X = 220, Y = 20 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "vanguard_breach", Title = "Передовой", X = 315, Y = 70 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "ranger_hunt", Title = "Рейнджер", X = 315, Y = 170 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "samurai_focus", Title = "Самурай", X = 220, Y = 220 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "mage_channel", Title = "Маг", X = 125, Y = 170 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "inventor_gear", Title = "Изобретатель", X = 125, Y = 70 });
+    }
+
+    private void AddStat(string label, Dictionary<string, object> map, string key) => StatsRows.Add(new StatRowVm { Label = label, Value = GetString(map, key) });
+
+    private void AddCurrency(string name, string abbr, string color, Dictionary<string, object> money, string key)
+    {
+        long.TryParse(GetString(money, key), out var amount);
+        MoneyRows.Add(new CurrencyRowVm { Name = name, Abbrev = abbr, Color = color, Amount = amount });
+    }
+
+    private void NotifyHeader()
+    {
+        Notify(nameof(PlayerDisplayName));
+        Notify(nameof(SessionSummary));
+    }
+
+    private void NotifyCharacter()
         foreach (var kv in r.Payload) PublicCharacterRows.Add(kv.Key + "=" + Convert.ToString(kv.Value));
     }
 
@@ -594,6 +933,13 @@ public class PlayerMainViewModel : ViewModelBase
         Notify(nameof(CharacterHeight));
         Notify(nameof(CharacterDescription));
         Notify(nameof(CharacterBackstory));
+    }
+
+    private static string GetString(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
+
+    private static IList ToObjectList(object payload) => payload as IList ?? new ArrayList();
+}
+
         Notify(nameof(StatsText));
         Notify(nameof(ConnectionState));
     }
