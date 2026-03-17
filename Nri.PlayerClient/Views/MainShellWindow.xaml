@@ -1,198 +1,593 @@
 <Window x:Class="Nri.PlayerClient.Views.MainShellWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="NRI Player" Height="760" Width="1200">
-    <DockPanel Margin="8">
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="Логин" VerticalAlignment="Center" Margin="0,0,4,0"/>
-            <TextBox Width="120" Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
-            <TextBlock Text="Пароль" VerticalAlignment="Center" Margin="0,0,4,0"/>
-            <TextBox Width="120" Text="{Binding PasswordText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
-            <Button Content="Войти" Command="{Binding LoginCommand}" Margin="0,0,8,0"/>
-            <Button Content="Обновить" Command="{Binding RefreshCommand}" Margin="0,0,8,0"/>
-            <TextBlock Text="{Binding ConnectionState}" Foreground="DarkRed" FontWeight="Bold" VerticalAlignment="Center"/>
-        </StackPanel>
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="NRI Player"
+        Height="900"
+        Width="1440"
+        MinHeight="740"
+        MinWidth="1180">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="230"/>
+        </Grid.RowDefinitions>
 
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-            <Button Content="Активный персонаж" Command="{Binding ShowActiveCharacterCommand}" Margin="0,0,8,0"/>
-            <Button Content="Мои персонажи" Command="{Binding ShowMyCharactersCommand}" Margin="0,0,8,0"/>
-            <Button Content="Классы" Command="{Binding ShowClassesCommand}" Margin="0,0,8,0"/>
-            <Button Content="Навыки" Command="{Binding ShowSkillsCommand}"/>
-        </StackPanel>
+        <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-        <TabControl>
-            <TabItem Header="ActiveCharacter">
-                <ScrollViewer>
-                    <StackPanel>
-                        <TextBlock Text="Активный персонаж" FontSize="18" FontWeight="Bold"/>
-                        <TextBlock Text="{Binding CharacterName}"/>
-                        <TextBlock Text="{Binding CharacterRace}"/>
-                        <TextBlock Text="{Binding CharacterAge}"/>
-                        <TextBlock Text="{Binding CharacterHeight}"/>
-                        <TextBlock Text="{Binding CharacterDescription}" TextWrapping="Wrap"/>
-                        <TextBlock Text="{Binding CharacterBackstory}" TextWrapping="Wrap"/>
-                        <TextBlock Text="{Binding StatsText}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="NRI / Player" FontWeight="Bold" FontSize="18" Margin="0,0,16,0"/>
+                    <Border Style="{StaticResource StatusBadgeStyle}" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ConnectionState}" Foreground="White" FontWeight="SemiBold"/>
+                    </Border>
+                    <TextBlock Text="{Binding SessionSummary}" Margin="14,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
+                </StackPanel>
 
-                        <TextBlock Text="Деньги" FontWeight="Bold" Margin="0,8,0,0"/>
-                        <ItemsControl ItemsSource="{Binding MoneyRows}"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Style="{StaticResource CardStyle}" Padding="8,4">
+                        <TextBlock Text="{Binding AudioStateText}" Width="260" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
+                    </Border>
+                    <Button Content="Обновить" Command="{Binding RefreshCommand}"/>
+                    <Button x:Name="AuthButton" Content="Войти" Command="{Binding ToggleAuthPopupCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsAuthenticated}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Border Style="{StaticResource CardStyle}" Padding="8,4" Margin="8,0,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsAuthenticated}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding PlayerDisplayName}" FontWeight="SemiBold"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
 
-                        <TextBlock Text="Инвентарь" FontWeight="Bold" Margin="0,8,0,0"/>
-                        <ItemsControl ItemsSource="{Binding InventoryRows}"/>
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,8">
+            <Grid>
+                <TabControl>
+                    <TabItem Header="Мои персонажи">
+                        <Grid Margin="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                        <Expander Header="Компаньоны" IsExpanded="True" Margin="0,8,0,0">
-                            <ItemsControl ItemsSource="{Binding Companions}">
-                                <ItemsControl.ItemTemplate>
+                            <ListBox ItemsSource="{Binding MyCharacters}">
+                                <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <Expander Header="{Binding Name}">
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Species}"/>
-                                                <TextBlock Text="{Binding Notes}"/>
-                                                <ItemsControl ItemsSource="{Binding Inventory}"/>
-                                            </StackPanel>
-                                        </Expander>
+                                        <Border Style="{StaticResource CardStyle}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="16"/>
+                                                    <TextBlock Text="{Binding Race, StringFormat=Раса: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                    <TextBlock Text="{Binding Age, StringFormat=Возраст: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                    <TextBlock Text="{Binding Description}" Margin="0,6,0,0"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                                    <Border Style="{StaticResource CardStyle}" Padding="6,2">
+                                                        <TextBlock Text="{Binding IsActive, StringFormat=Активен: {0}}"/>
+                                                    </Border>
+                                                    <Border Style="{StaticResource CardStyle}" Padding="6,2">
+                                                        <TextBlock Text="{Binding Archived, StringFormat=Архив: {0}}"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
                                     </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Expander>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
 
-                        <TextBlock Text="Владения" FontWeight="Bold" Margin="0,8,0,0"/>
-                        <ItemsControl ItemsSource="{Binding Holdings}"/>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <Border Style="{StaticResource CardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="Выбранный персонаж" FontWeight="Bold" Margin="0,0,0,8"/>
+                                        <ComboBox SelectedValuePath="Id"
+                                                  DisplayMemberPath="Name"
+                                                  SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"
+                                                  ItemsSource="{Binding MyCharacters}"/>
+                                        <Button Content="Загрузить детали" Command="{Binding LoadCharacterDetailsCommand}" Margin="0,8,0,0"/>
+                                        <Button Content="Загрузить visibility" Command="{Binding VisibilityLoadCommand}"/>
+                                        <TextBlock Text="Настройка скрываемости" FontWeight="Bold" Margin="0,8,0,4"/>
+                                        <CheckBox Content="Скрывать описание" IsChecked="{Binding VisHideDescription}"/>
+                                        <CheckBox Content="Скрывать предысторию" IsChecked="{Binding VisHideBackstory}"/>
+                                        <CheckBox Content="Скрывать характеристики" IsChecked="{Binding VisHideStats}"/>
+                                        <CheckBox Content="Скрывать репутацию" IsChecked="{Binding VisHideReputation}"/>
+                                        <Button Content="Сохранить visibility" Command="{Binding VisibilitySaveCommand}" Margin="0,8,0,0"/>
+                                    </StackPanel>
+                                </Border>
 
-                        <TextBlock Text="Репутация" FontWeight="Bold" Margin="0,8,0,0"/>
-                        <ItemsControl ItemsSource="{Binding ReputationRows}"/>
+                                <Border Style="{StaticResource CardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="Публичный вид другого персонажа" FontWeight="Bold" Margin="0,0,0,8"/>
+                                        <TextBox Text="{Binding PublicViewCharacterId, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <Button Content="Загрузить public view" Command="{Binding PublicCharacterLoadCommand}" Margin="0,6,0,0"/>
+                                        <ListBox ItemsSource="{Binding PublicCharacterRows}" Height="130"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+
+                    <TabItem Header="Активный персонаж">
+                        <Grid Margin="8">
+                            <TabControl>
+                                <TabItem Header="Обзор">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <Grid Margin="4">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="2*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding CharacterName}" FontSize="22" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding CharacterRace, StringFormat=Раса: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                        <TextBlock Text="{Binding CharacterAge, StringFormat=Возраст: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                        <TextBlock Text="{Binding CharacterHeight, StringFormat=Рост: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="Описание" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding CharacterDescription}" Margin="0,0,0,8"/>
+                                                        <TextBlock Text="Предыстория" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding CharacterBackstory}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+
+                                            <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="Характеристики" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Боевая группа" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                <ItemsControl ItemsSource="{Binding CoreStatRows}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <DockPanel Margin="0,2,0,2">
+                                                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                <TextBlock Text="{Binding Value}" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                            </DockPanel>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Атрибуты" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                <ItemsControl ItemsSource="{Binding AttributeStatRows}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <DockPanel Margin="0,2,0,2">
+                                                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                <TextBlock Text="{Binding Value}" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                            </DockPanel>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="Деньги" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                    <ItemsControl ItemsSource="{Binding MoneyRows}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <UniformGrid Columns="4"/>
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                        <Ellipse Width="12" Height="12" Fill="{Binding Color}" Margin="0,0,6,0"/>
+                                                                        <TextBlock Text="{Binding Name}" Width="95"/>
+                                                                        <TextBlock Text="{Binding Amount}" FontWeight="SemiBold"/>
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Row="3" Style="{StaticResource CardStyle}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="Инвентарь (preview)" FontWeight="Bold"/>
+                                                        <ItemsControl ItemsSource="{Binding InventoryRows}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="Владения (preview)" FontWeight="Bold"/>
+                                                        <ItemsControl ItemsSource="{Binding HoldingsRows}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="Компаньоны (preview)" FontWeight="Bold"/>
+                                                        <ItemsControl ItemsSource="{Binding Companions}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <TextBlock Text="{Binding Name}"/>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </ScrollViewer>
+                                </TabItem>
+
+                                <TabItem Header="Инвентарь">
+                                    <ListBox ItemsSource="{Binding InventoryRows}"/>
+                                </TabItem>
+
+                                <TabItem Header="Владения">
+                                    <ListBox ItemsSource="{Binding HoldingsRows}"/>
+                                </TabItem>
+
+                                <TabItem Header="Репутация">
+                                    <ListBox ItemsSource="{Binding ReputationRows}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Style="{StaticResource CardStyle}">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="180"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="60"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
+                                                        <Grid Grid.Column="1" Height="18" VerticalAlignment="Center">
+                                                            <Border Background="{StaticResource ReputationGradient}" CornerRadius="9"/>
+                                                            <ProgressBar Minimum="-100" Maximum="100" Value="{Binding Value}" Foreground="#22000000" Background="Transparent"/>
+                                                        </Grid>
+                                                        <TextBlock Grid.Column="2" Text="{Binding Value}" HorizontalAlignment="Right" FontWeight="Bold"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </TabItem>
+
+                                <TabItem Header="Компаньоны">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="280"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ListBox x:Name="CompanionList" ItemsSource="{Binding Companions}" DisplayMemberPath="Name"/>
+                                        <TabControl Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding ElementName=CompanionList, Path=SelectedItem}">
+                                            <TabItem Header="Информация">
+                                                <Border Style="{StaticResource CardStyle}">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="18"/>
+                                                        <TextBlock Text="{Binding Species, StringFormat=Вид: {0}}"/>
+                                                        <TextBlock Text="{Binding Notes}" Margin="0,8,0,0"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </TabItem>
+                                            <TabItem Header="Характеристики">
+                                                <ListBox ItemsSource="{Binding StatsRows}">
+                                                    <ListBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="{Binding Label, StringFormat={}{0}: }" FontWeight="SemiBold"/>
+                                                                <TextBlock Text="{Binding Value}"/>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ListBox.ItemTemplate>
+                                                </ListBox>
+                                            </TabItem>
+                                            <TabItem Header="Инвентарь">
+                                                <StackPanel>
+                                                    <TextBlock Text="Содержимое инвентаря" Foreground="{StaticResource MutedBrush}"/>
+                                                    <ListBox ItemsSource="{Binding InventoryRows}"/>
+                                                </StackPanel>
+                                            </TabItem>
+                                            <TabItem Header="Владения">
+                                                <StackPanel>
+                                                    <TextBlock Text="Данные по владениям" Foreground="{StaticResource MutedBrush}"/>
+                                                    <ListBox ItemsSource="{Binding HoldingsRows}"/>
+                                                </StackPanel>
+                                            </TabItem>
+                                            <TabItem Header="Навыки">
+                                                <StackPanel>
+                                                    <TextBlock Text="Навыки компаньона" Foreground="{StaticResource MutedBrush}"/>
+                                                    <ListBox ItemsSource="{Binding SkillsRows}"/>
+                                                </StackPanel>
+                                            </TabItem>
+                                            <TabItem Header="Классы">
+                                                <StackPanel>
+                                                    <TextBlock Text="Классовые ветви компаньона" Foreground="{StaticResource MutedBrush}"/>
+                                                    <ListBox ItemsSource="{Binding ClassRows}"/>
+                                                </StackPanel>
+                                            </TabItem>
+                                        </TabControl>
+                                    </Grid>
+                                </TabItem>
+
+                                <TabItem Header="Навыки">
+                                    <TabControl>
+                                        <TabItem Header="Справочник навыков">
+                                            <ListBox ItemsSource="{Binding SkillCatalogRows}"/>
+                                        </TabItem>
+                                        <TabItem Header="Навыки персонажа/компаньона">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Width="220" Text="{Binding SelectedSkillId, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <Button Content="Получить навык" Command="{Binding AcquireSkillCommand}"/>
+                                                </StackPanel>
+                                                <ListBox Grid.Row="1" ItemsSource="{Binding SkillRows}">
+                                                    <ListBox.ItemContainerStyle>
+                                                        <Style TargetType="ListBoxItem">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                                                    <Setter Property="Opacity" Value="0.6"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ListBox.ItemContainerStyle>
+                                                </ListBox>
+                                            </Grid>
+                                        </TabItem>
+                                    </TabControl>
+                                </TabItem>
+
+                                <TabItem Header="Классы">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBox Width="220" Text="{Binding SelectedClassNodeId, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <Button Content="Получить класс" Command="{Binding AcquireClassNodeCommand}"/>
+                                        </StackPanel>
+                                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,0">
+                                            <Canvas Width="460" Height="320">
+                                                <Polygon Points="230,82 292,118 292,190 230,226 168,190 168,118"
+                                                         Fill="#FF223452" Stroke="#FF4EA3FF" StrokeThickness="2"/>
+                                                <TextBlock Text="Новичок" Canvas.Left="205" Canvas.Top="146" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+
+                                                <Border Canvas.Left="188" Canvas.Top="38" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Защитник" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
+                                                <Border Canvas.Left="334" Canvas.Top="88" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Передовой" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
+                                                <Border Canvas.Left="336" Canvas.Top="214" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Рейнджер" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
+                                                <Border Canvas.Left="200" Canvas.Top="252" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Самурай" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
+                                                <Border Canvas.Left="92" Canvas.Top="214" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Маг" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
+                                                <Border Canvas.Left="38" Canvas.Top="88" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Изобретатель" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
+
+                                                <Line X1="230" Y1="82" X2="230" Y2="30" Stroke="#6A89B8" StrokeThickness="2"/>
+                                                <Line X1="292" Y1="118" X2="352" Y2="88" Stroke="#6A89B8" StrokeThickness="2"/>
+                                                <Line X1="292" Y1="190" X2="352" Y2="222" Stroke="#6A89B8" StrokeThickness="2"/>
+                                                <Line X1="230" Y1="226" X2="230" Y2="278" Stroke="#6A89B8" StrokeThickness="2"/>
+                                                <Line X1="168" Y1="190" X2="108" Y2="222" Stroke="#6A89B8" StrokeThickness="2"/>
+                                                <Line X1="168" Y1="118" X2="108" Y2="88" Stroke="#6A89B8" StrokeThickness="2"/>
+
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="226" Canvas.Top="26"/>
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="350" Canvas.Top="84"/>
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="350" Canvas.Top="220"/>
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="226" Canvas.Top="276"/>
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="104" Canvas.Top="220"/>
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="104" Canvas.Top="84"/>
+
+                                                <ItemsControl ItemsSource="{Binding ClassNodes}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <Canvas/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemContainerStyle>
+                                                        <Style TargetType="ContentPresenter">
+                                                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                                                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                                                        </Style>
+                                                    </ItemsControl.ItemContainerStyle>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Button Style="{StaticResource ClassNodeButtonStyle}"
+                                                                    Content="{Binding Title}"
+                                                                    Command="{Binding DataContext.AcquireClassNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding NodeId}"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Canvas>
+                                        </Border>
+                                    </Grid>
+                                </TabItem>
+                            </TabControl>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.2*"/>
+                    <ColumnDefinition Width="1.3*"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,4">
+                        <ListBox ItemsSource="{Binding GameFeedRows}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource CardStyle}" Padding="8" Margin="0,0,0,3">
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                                <Setter Property="Background" Value="#FF1E2A40"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="Chat"><Setter Property="Background" Value="#FF1F314A"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="System"><Setter Property="Background" Value="#FF31263E"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="Dice"><Setter Property="Background" Value="#FF2B3B2D"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="Request"><Setter Property="Background" Value="#FF3A2C2C"/></DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Kind}" Width="72" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+                                            <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal">
+                        <ComboBox Width="160" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}"/>
+                        <TextBox Width="430" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button Content="Отправить" Command="{Binding ChatSendCommand}"/>
                     </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-            <TabItem Header="MyCharacters">
-                <DataGrid ItemsSource="{Binding MyCharacters}" AutoGenerateColumns="False">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Id" Binding="{Binding Id}"/>
-                        <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
-                        <DataGridTextColumn Header="Race" Binding="{Binding Race}"/>
-                        <DataGridCheckBoxColumn Header="Archived" Binding="{Binding Archived}"/>
-                        <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </TabItem>
-            <TabItem Header="Requests">
-                <StackPanel Margin="8">
-                    <TextBlock Text="Заявка на бросок" FontWeight="Bold"/>
-                    <WrapPanel>
-                        <TextBox Width="140" Margin="0,0,4,4" Text="{Binding DiceFormulaInput, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBox Width="130" Margin="0,0,4,4" Text="{Binding DiceVisibilityInput, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBox Width="260" Margin="0,0,4,4" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}"/>
-                        <Button Content="Отправить" Command="{Binding CreateDiceRequestCommand}" Margin="0,0,4,4"/>
-                    </WrapPanel>
-                    <TextBlock Text="Отмена заявки" FontWeight="Bold" Margin="0,8,0,0"/>
-                    <WrapPanel>
-                        <TextBox Width="240" Margin="0,0,4,4" Text="{Binding SelectedRequestId, UpdateSourceTrigger=PropertyChanged}"/>
-                        <Button Content="Отменить" Command="{Binding CancelRequestCommand}"/>
-                    </WrapPanel>
-                    <TextBlock Text="Мои заявки" FontWeight="Bold" Margin="0,8,0,0"/>
-                    <ItemsControl ItemsSource="{Binding MyRequests}"/>
-                </StackPanel>
-            </TabItem>
-            <TabItem Header="DiceFeed">
-                <StackPanel Margin="8">
-                    <TextBlock Text="Лента видимых бросков" FontWeight="Bold"/>
-                    <ItemsControl ItemsSource="{Binding DiceFeed}"/>
-                </StackPanel>
-            </TabItem>
+                </Grid>
 
+                <Grid Grid.Column="1" Margin="8,0,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
+                    <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Заявка на бросок" FontWeight="Bold" Margin="0,0,0,6"/>
+                            <WrapPanel>
+                                <TextBlock Text="Кубов" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBox Width="60" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Грани" VerticalAlignment="Center" Margin="6,0,4,0"/>
+                                <TextBox Width="70" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Мод." VerticalAlignment="Center" Margin="6,0,4,0"/>
+                                <TextBox Width="60" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}"/>
+                            </WrapPanel>
+                            <WrapPanel>
+                                <ComboBox Width="130" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
+                                <TextBox Width="210" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}"/>
+                            </WrapPanel>
+                            <WrapPanel>
+                                <TextBox Width="200" Text="{Binding SelectedRequestId, UpdateSourceTrigger=PropertyChanged}"/>
+                                <Button Content="Создать" Command="{Binding CreateDiceRequestCommand}"/>
+                                <Button Content="Отменить" Command="{Binding CancelRequestCommand}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
 
-            <TabItem Header="CharacterVisibilityView">
-                <StackPanel Margin="8">
-                    <WrapPanel Margin="0,0,0,8"><TextBox Width="220" Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Load" Command="{Binding VisibilityLoadCommand}" Margin="0,0,6,0"/><Button Content="Save" Command="{Binding VisibilitySaveCommand}"/></WrapPanel>
-                    <CheckBox Content="Hide description" IsChecked="{Binding VisHideDescription, UpdateSourceTrigger=PropertyChanged}"/>
-                    <CheckBox Content="Hide backstory" IsChecked="{Binding VisHideBackstory, UpdateSourceTrigger=PropertyChanged}"/>
-                    <CheckBox Content="Hide stats" IsChecked="{Binding VisHideStats, UpdateSourceTrigger=PropertyChanged}"/>
-                    <CheckBox Content="Hide reputation" IsChecked="{Binding VisHideReputation, UpdateSourceTrigger=PropertyChanged}"/>
-                </StackPanel>
-            </TabItem>
+                    <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Состояние сессии" FontWeight="Bold"/>
+                            <ItemsControl ItemsSource="{Binding SessionStateRows}"/>
+                        </StackPanel>
+                    </Border>
 
-            <TabItem Header="PublicCharacterView">
-                <StackPanel Margin="8">
-                    <WrapPanel Margin="0,0,0,8"><TextBox Width="260" Text="{Binding PublicViewCharacterId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Load public view" Command="{Binding PublicCharacterLoadCommand}"/></WrapPanel>
-                    <ListBox ItemsSource="{Binding PublicCharacterRows}" Height="220"/>
-                </StackPanel>
-            </TabItem>
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Музыка" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding AudioStateText}" Margin="0,4,0,6"/>
+                            <WrapPanel>
+                                <TextBlock Text="Громкость" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <Slider Width="120" Minimum="0" Maximum="1" Value="{Binding LocalVolume, UpdateSourceTrigger=PropertyChanged}"/>
+                                <CheckBox Content="Mute" IsChecked="{Binding LocalMuted}" Margin="8,0,0,0"/>
+                            </WrapPanel>
+                            <Button Content="Применить" Command="{Binding AudioApplyLocalSettingsCommand}" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </Border>
 
-            <TabItem Header="NotesView">
-                <StackPanel Margin="8">
-                    <WrapPanel Margin="0,0,0,6"><TextBox Width="120" Text="{Binding NoteSessionId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><TextBox Width="120" Text="{Binding NoteTargetType, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><TextBox Width="180" Text="{Binding NoteTargetId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Refresh" Command="{Binding NotesRefreshCommand}"/></WrapPanel>
-                    <TextBox Text="{Binding NoteTitle, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding NoteText, UpdateSourceTrigger=PropertyChanged}" Height="80" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                    <WrapPanel Margin="0,0,0,6"><TextBox Width="140" Text="{Binding NoteVisibility, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Create" Command="{Binding NotesCreateCommand}"/></WrapPanel>
-                    <WrapPanel Margin="0,0,0,6"><TextBox Width="220" Text="{Binding SelectedNoteId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/><Button Content="Archive" Command="{Binding NotesArchiveCommand}"/></WrapPanel>
-                    <ListBox ItemsSource="{Binding NoteRows}" Height="220"/>
-                </StackPanel>
-            </TabItem>
+                    <Border Grid.Row="3" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Заметки" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBlock Text="Личные заметки и советы админов" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
+                            <WrapPanel>
+                                <ComboBox Width="120" ItemsSource="{Binding NoteTargetTypeOptions}" SelectedItem="{Binding NoteTargetType}"/>
+                                <TextBox Width="120" Text="{Binding NoteTargetId, UpdateSourceTrigger=PropertyChanged}"/>
+                                <ComboBox Width="130" ItemsSource="{Binding NoteVisibilityOptions}" SelectedItem="{Binding NoteVisibility}"/>
+                            </WrapPanel>
+                            <TextBox Text="{Binding NoteTitle, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Text="{Binding NoteText, UpdateSourceTrigger=PropertyChanged}" Height="58" AcceptsReturn="True"/>
+                            <WrapPanel>
+                                <Button Content="Обновить" Command="{Binding NotesRefreshCommand}"/>
+                                <Button Content="Создать" Command="{Binding NotesCreateCommand}"/>
+                                <TextBox Width="120" Text="{Binding SelectedNoteId, UpdateSourceTrigger=PropertyChanged}"/>
+                                <Button Content="Архивировать" Command="{Binding NotesArchiveCommand}"/>
+                            </WrapPanel>
+                            <TextBlock Text="Мои заметки" FontWeight="SemiBold" Margin="0,6,0,2"/>
+                            <ListBox ItemsSource="{Binding NoteRows}" Height="52"/>
+                            <TextBlock Text="Советы от админов" FontWeight="SemiBold" Margin="0,6,0,2"/>
+                            <ListBox ItemsSource="{Binding AdminNoteRows}" Height="52"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
 
-            <TabItem Header="SessionAudioView">
-                <StackPanel Margin="8">
-                    <WrapPanel Margin="0,0,0,8">
-                        <TextBox Width="140" Text="{Binding AudioSessionId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
-                        <Button Content="Refresh" Command="{Binding AudioRefreshCommand}" Margin="0,0,6,0"/>
-                    </WrapPanel>
-                    <TextBlock Text="{Binding AudioStateText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
-                    <WrapPanel Margin="0,0,0,8">
-                        <TextBlock Text="Volume" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <Slider Width="220" Minimum="0" Maximum="1" Value="{Binding LocalVolume, UpdateSourceTrigger=PropertyChanged}" TickFrequency="0.1" IsSnapToTickEnabled="False" Margin="0,0,6,0"/>
-                        <CheckBox Content="Mute" IsChecked="{Binding LocalMuted, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <Button Content="Apply" Command="{Binding AudioApplyLocalSettingsCommand}"/>
-                    </WrapPanel>
+        <Popup IsOpen="{Binding IsAuthPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=AuthButton}" StaysOpen="False">
+            <Border Style="{StaticResource CardStyle}" Width="320" Background="{StaticResource PanelAltBrush}">
+                <StackPanel>
+                    <TextBlock Text="Авторизация" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                    <TextBlock Text="Логин"/>
+                    <TextBox Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Пароль"/>
+                    <PasswordBox x:Name="AuthPasswordBox" PasswordChanged="OnAuthPasswordChanged"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                        <Button Content="Регистрация" Command="{Binding RegisterCommand}"/>
+                        <Button Content="Вход" Command="{Binding LoginCommand}"/>
+                    </StackPanel>
                 </StackPanel>
-            </TabItem>
-
-            <TabItem Header="SessionChatView">
-                <StackPanel Margin="8">
-                    <WrapPanel Margin="0,0,0,8">
-                        <TextBox Width="140" Text="{Binding ChatSessionId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
-                        <TextBox Width="140" Text="{Binding ChatTypeInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
-                        <Button Content="Refresh" Command="{Binding ChatRefreshCommand}" Margin="0,0,6,0"/>
-                        <TextBlock Text="{Binding ChatUnreadText}" VerticalAlignment="Center" FontWeight="Bold"/>
-                    </WrapPanel>
-                    <WrapPanel Margin="0,0,0,8">
-                        <TextBox Width="560" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
-                        <Button Content="Send" Command="{Binding ChatSendCommand}"/>
-                    </WrapPanel>
-                    <ListBox ItemsSource="{Binding ChatRows}" Height="360"/>
-                </StackPanel>
-            </TabItem>
-
-            <TabItem Header="Combat">
-                <StackPanel Margin="8">
-                    <WrapPanel>
-                        <TextBlock Text="SessionId" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox Width="160" Text="{Binding SessionIdInput, UpdateSourceTrigger=PropertyChanged}"/>
-                    </WrapPanel>
-                    <TextBlock Text="Состояние боя" FontWeight="Bold" Margin="0,8,0,0"/>
-                    <ItemsControl ItemsSource="{Binding CombatStateRows}"/>
-                    <TextBlock Text="Таймлайн" FontWeight="Bold" Margin="0,8,0,0"/>
-                    <ItemsControl ItemsSource="{Binding CombatTimelineRows}"/>
-                </StackPanel>
-            </TabItem>
-            <TabItem Header="Classes">
-                <StackPanel Margin="8">
-                    <WrapPanel Margin="0,0,0,8">
-                        <TextBox Width="220" Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
-                        <TextBox Width="220" Text="{Binding SelectedClassNodeId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
-                        <Button Content="Acquire Node" Command="{Binding AcquireClassNodeCommand}"/>
-                    </WrapPanel>
-                    <ItemsControl ItemsSource="{Binding ClassProgressRows}"/>
-                </StackPanel>
-            </TabItem>
-            <TabItem Header="Skills">
-                <StackPanel Margin="8">
-                    <WrapPanel Margin="0,0,0,8">
-                        <TextBox Width="220" Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
-                        <TextBox Width="220" Text="{Binding SelectedSkillId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0"/>
-                        <Button Content="Acquire Skill" Command="{Binding AcquireSkillCommand}"/>
-                    </WrapPanel>
-                    <ItemsControl ItemsSource="{Binding SkillRows}"/>
-                </StackPanel>
-            </TabItem>
-        </TabControl>
-    </DockPanel>
+            </Border>
+        </Popup>
+    </Grid>
 </Window>

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Web.Script.Serialization;
+using System.IO;
+using System.Runtime.Serialization.Json;
+using System.Text;
 
 namespace Nri.Shared.Contracts;
 
@@ -221,20 +223,34 @@ public class ResponseEnvelope
 
 public static class JsonProtocolSerializer
 {
-    private static readonly JavaScriptSerializer Serializer = new JavaScriptSerializer();
-
     public static string Serialize<T>(T value)
     {
-        return Serializer.Serialize(value);
+        var serializer = new DataContractJsonSerializer(typeof(T), new DataContractJsonSerializerSettings
+        {
+            UseSimpleDictionaryFormat = true
+        });
+
+        using (var stream = new MemoryStream())
+        {
+            serializer.WriteObject(stream, value);
+            return Encoding.UTF8.GetString(stream.ToArray());
+        }
     }
 
     public static T? Deserialize<T>(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
+        if (string.IsNullOrWhiteSpace(json)) return default;
+
+        var serializer = new DataContractJsonSerializer(typeof(T), new DataContractJsonSerializerSettings
         {
+            UseSimpleDictionaryFormat = true
+        });
+
+        using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(json)))
+        {
+            var value = serializer.ReadObject(stream);
+            if (value is T typed) return typed;
             return default;
         }
-
-        return Serializer.Deserialize<T>(json);
     }
 }

@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Web.Script.Serialization;
 using MongoDB.Driver;
 using Nri.Shared.Contracts;
 using Nri.Shared.Domain;
@@ -14,7 +13,6 @@ namespace Nri.Server.Application;
 public partial class ServiceHub
 {
     private readonly object _definitionsSync = new object();
-    private readonly JavaScriptSerializer _serializer = new JavaScriptSerializer();
     private bool _definitionsLoaded;
     private string _definitionVersion = "1.0.0";
     private Dictionary<string, ClassNodeDefinition> _nodesById = new Dictionary<string, ClassNodeDefinition>();
@@ -320,8 +318,8 @@ public partial class ServiceHub
             return;
         }
 
-        var classItems = _serializer.Deserialize<List<ClassTreeDefinition>>(File.ReadAllText(classesPath)) ?? new List<ClassTreeDefinition>();
-        var skillItems = _serializer.Deserialize<List<SkillDefinitionRecord>>(File.ReadAllText(skillsPath)) ?? new List<SkillDefinitionRecord>();
+        var classItems = JsonProtocolSerializer.Deserialize<List<ClassTreeDefinition>>(File.ReadAllText(classesPath)) ?? new List<ClassTreeDefinition>();
+        var skillItems = JsonProtocolSerializer.Deserialize<List<SkillDefinitionRecord>>(File.ReadAllText(skillsPath)) ?? new List<SkillDefinitionRecord>();
         ApplyDefinitions(classItems, skillItems, "json");
     }
 
