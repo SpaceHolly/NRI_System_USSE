@@ -423,9 +423,9 @@
                             <TextBlock Text="Заявка на бросок" FontWeight="Bold" Margin="0,0,0,6"/>
                             <WrapPanel>
                                 <TextBlock Text="Кубов" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                <ComboBox Width="60" ItemsSource="{Binding DiceCountOptions}" SelectedItem="{Binding DiceCount}"/>
+                                <TextBox Width="60" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}"/>
                                 <TextBlock Text="Грани" VerticalAlignment="Center" Margin="6,0,4,0"/>
-                                <ComboBox Width="70" ItemsSource="{Binding DiceFacesOptions}" SelectedItem="{Binding DiceFaces}"/>
+                                <TextBox Width="70" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}"/>
                                 <TextBlock Text="Мод." VerticalAlignment="Center" Margin="6,0,4,0"/>
                                 <TextBox Width="60" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}"/>
                             </WrapPanel>
