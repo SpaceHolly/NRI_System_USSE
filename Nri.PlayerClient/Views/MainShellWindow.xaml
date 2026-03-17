@@ -284,7 +284,7 @@
                                         </Grid.ColumnDefinitions>
                                         <ListBox x:Name="CompanionList" ItemsSource="{Binding Companions}" DisplayMemberPath="Name"/>
                                         <TabControl Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding ElementName=CompanionList, Path=SelectedItem}">
-                                            <TabItem Header="Инфо">
+                                            <TabItem Header="Информация">
                                                 <Border Style="{StaticResource CardStyle}">
                                                     <StackPanel>
                                                         <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="18"/>
@@ -293,11 +293,29 @@
                                                     </StackPanel>
                                                 </Border>
                                             </TabItem>
+                                            <TabItem Header="Характеристики">
+                                                <ListBox ItemsSource="{Binding StatsRows}">
+                                                    <ListBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="{Binding Label, StringFormat={}{0}: }" FontWeight="SemiBold"/>
+                                                                <TextBlock Text="{Binding Value}"/>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ListBox.ItemTemplate>
+                                                </ListBox>
+                                            </TabItem>
                                             <TabItem Header="Инвентарь">
                                                 <ListBox ItemsSource="{Binding InventoryRows}"/>
                                             </TabItem>
+                                            <TabItem Header="Владения">
+                                                <ListBox ItemsSource="{Binding HoldingsRows}"/>
+                                            </TabItem>
                                             <TabItem Header="Навыки">
                                                 <ListBox ItemsSource="{Binding SkillsRows}"/>
+                                            </TabItem>
+                                            <TabItem Header="Классы">
+                                                <ListBox ItemsSource="{Binding ClassRows}"/>
                                             </TabItem>
                                         </TabControl>
                                     </Grid>
@@ -342,16 +360,34 @@
                                         </Grid.RowDefinitions>
                                         <StackPanel Orientation="Horizontal">
                                             <TextBox Width="220" Text="{Binding SelectedClassNodeId, UpdateSourceTrigger=PropertyChanged}"/>
-                                            <Button Content="Получить узел" Command="{Binding AcquireClassNodeCommand}"/>
+                                            <Button Content="Получить класс" Command="{Binding AcquireClassNodeCommand}"/>
                                         </StackPanel>
                                         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,0">
-                                            <Canvas Width="460" Height="280">
-                                                <Line X1="240" Y1="140" X2="240" Y2="45" Stroke="#7090A8" StrokeThickness="2"/>
-                                                <Line X1="240" Y1="140" X2="335" Y2="95" Stroke="#7090A8" StrokeThickness="2"/>
-                                                <Line X1="240" Y1="140" X2="335" Y2="190" Stroke="#7090A8" StrokeThickness="2"/>
-                                                <Line X1="240" Y1="140" X2="240" Y2="235" Stroke="#7090A8" StrokeThickness="2"/>
-                                                <Line X1="240" Y1="140" X2="145" Y2="190" Stroke="#7090A8" StrokeThickness="2"/>
-                                                <Line X1="240" Y1="140" X2="145" Y2="95" Stroke="#7090A8" StrokeThickness="2"/>
+                                            <Canvas Width="460" Height="320">
+                                                <Polygon Points="230,82 292,118 292,190 230,226 168,190 168,118"
+                                                         Fill="#FF223452" Stroke="#FF4EA3FF" StrokeThickness="2"/>
+                                                <TextBlock Text="Новичок" Canvas.Left="205" Canvas.Top="146" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+
+                                                <TextBlock Text="Защитник" Canvas.Left="206" Canvas.Top="54" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                <TextBlock Text="Передовой" Canvas.Left="302" Canvas.Top="102" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                <TextBlock Text="Рейнджер" Canvas.Left="304" Canvas.Top="197" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                <TextBlock Text="Самурай" Canvas.Left="208" Canvas.Top="238" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                <TextBlock Text="Маг" Canvas.Left="130" Canvas.Top="198" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                <TextBlock Text="Изобретатель" Canvas.Left="112" Canvas.Top="102" Foreground="{StaticResource TextSecondaryBrush}"/>
+
+                                                <Line X1="230" Y1="82" X2="230" Y2="30" Stroke="#6A89B8" StrokeThickness="2"/>
+                                                <Line X1="292" Y1="118" X2="352" Y2="88" Stroke="#6A89B8" StrokeThickness="2"/>
+                                                <Line X1="292" Y1="190" X2="352" Y2="222" Stroke="#6A89B8" StrokeThickness="2"/>
+                                                <Line X1="230" Y1="226" X2="230" Y2="278" Stroke="#6A89B8" StrokeThickness="2"/>
+                                                <Line X1="168" Y1="190" X2="108" Y2="222" Stroke="#6A89B8" StrokeThickness="2"/>
+                                                <Line X1="168" Y1="118" X2="108" Y2="88" Stroke="#6A89B8" StrokeThickness="2"/>
+
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="226" Canvas.Top="26"/>
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="350" Canvas.Top="84"/>
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="350" Canvas.Top="220"/>
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="226" Canvas.Top="276"/>
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="104" Canvas.Top="220"/>
+                                                <Ellipse Width="8" Height="8" Fill="#FF4EA3FF" Canvas.Left="104" Canvas.Top="84"/>
 
                                                 <ItemsControl ItemsSource="{Binding ClassNodes}">
                                                     <ItemsControl.ItemsPanel>
@@ -392,23 +428,42 @@
                     <ColumnDefinition Width="1.3*"/>
                 </Grid.ColumnDefinitions>
 
-                <TabControl>
-                    <TabItem Header="Чат">
-                        <Grid>
-                            <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                            <ListBox ItemsSource="{Binding ChatRows}"/>
-                            <StackPanel Grid.Row="1" Orientation="Horizontal">
-                                <ComboBox Width="120" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}"/>
-                                <TextBox Width="420" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}"/>
-                                <Button Content="Отправить" Command="{Binding ChatSendCommand}"/>
-                            </StackPanel>
-                        </Grid>
-                    </TabItem>
-                    <TabItem Header="События"><ListBox ItemsSource="{Binding EventRows}"/></TabItem>
-                    <TabItem Header="Видимые броски"><ListBox ItemsSource="{Binding DiceFeedRows}"/></TabItem>
-                    <TabItem Header="Заявки"><ListBox ItemsSource="{Binding RequestRows}"/></TabItem>
-                    <TabItem Header="Заметки"><ListBox ItemsSource="{Binding NoteRows}"/></TabItem>
-                </TabControl>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,4">
+                        <ListBox ItemsSource="{Binding GameFeedRows}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource CardStyle}" Padding="8" Margin="0,0,0,3">
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                                <Setter Property="Background" Value="#FF1E2A40"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="Chat"><Setter Property="Background" Value="#FF1F314A"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="System"><Setter Property="Background" Value="#FF31263E"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="Dice"><Setter Property="Background" Value="#FF2B3B2D"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="Request"><Setter Property="Background" Value="#FF3A2C2C"/></DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Kind}" Width="72" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+                                            <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal">
+                        <ComboBox Width="160" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}"/>
+                        <TextBox Width="430" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button Content="Отправить" Command="{Binding ChatSendCommand}"/>
+                    </StackPanel>
+                </Grid>
 
                 <Grid Grid.Column="1" Margin="8,0,0,0">
                     <Grid.RowDefinitions>
@@ -464,6 +519,7 @@
                     <Border Grid.Row="3" Style="{StaticResource CardStyle}">
                         <StackPanel>
                             <TextBlock Text="Заметки" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBlock Text="Личные заметки и советы админов" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
                             <WrapPanel>
                                 <ComboBox Width="120" ItemsSource="{Binding NoteTargetTypeOptions}" SelectedItem="{Binding NoteTargetType}"/>
                                 <TextBox Width="120" Text="{Binding NoteTargetId, UpdateSourceTrigger=PropertyChanged}"/>
@@ -477,6 +533,10 @@
                                 <TextBox Width="120" Text="{Binding SelectedNoteId, UpdateSourceTrigger=PropertyChanged}"/>
                                 <Button Content="Архивировать" Command="{Binding NotesArchiveCommand}"/>
                             </WrapPanel>
+                            <TextBlock Text="Мои заметки" FontWeight="SemiBold" Margin="0,6,0,2"/>
+                            <ListBox ItemsSource="{Binding NoteRows}" Height="52"/>
+                            <TextBlock Text="Советы от админов" FontWeight="SemiBold" Margin="0,6,0,2"/>
+                            <ListBox ItemsSource="{Binding AdminNoteRows}" Height="52"/>
                         </StackPanel>
                     </Border>
                 </Grid>

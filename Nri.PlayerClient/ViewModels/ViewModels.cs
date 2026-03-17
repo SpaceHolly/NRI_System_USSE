@@ -69,8 +69,17 @@ public class CompanionVm : ViewModelBase
     public string Name { get; set; } = string.Empty;
     public string Species { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+    public ObservableCollection<StatRowVm> StatsRows { get; } = new ObservableCollection<StatRowVm>();
     public ObservableCollection<string> InventoryRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> SkillsRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> ClassRows { get; } = new ObservableCollection<string>();
+}
+
+public class GameFeedItemVm
+{
+    public string Kind { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
 }
 
 public class ClassNodeVisualVm
@@ -126,6 +135,7 @@ public class PlayerMainViewModel : ViewModelBase
         _poller.Tick += (_, _) => PollRefresh();
 
         InitializeClassVisualLayout();
+        InitializeDefaultCharacterScaffolding();
         LoadLocalAudioSettings();
     }
 
@@ -163,7 +173,7 @@ public class PlayerMainViewModel : ViewModelBase
     public string SelectedRequestId { get; set; } = string.Empty;
 
     public string ChatSessionId { get; set; } = "default";
-    public string ChatTypeInput { get; set; } = "Public";
+    public string ChatTypeInput { get; set; } = "Общее";
     public string ChatTextInput { get; set; } = string.Empty;
 
     public string AudioSessionId { get; set; } = "default";
@@ -199,14 +209,14 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> DiceFeedRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> RequestRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> SessionStateRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<GameFeedItemVm> GameFeedRows { get; } = new ObservableCollection<GameFeedItemVm>();
 
     public ObservableCollection<string> PublicCharacterRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> NoteRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> AdminNoteRows { get; } = new ObservableCollection<string>();
 
-    public ObservableCollection<int> DiceCountOptions { get; } = new ObservableCollection<int> { 1, 2, 3, 4, 5, 6 };
-    public ObservableCollection<int> DiceFacesOptions { get; } = new ObservableCollection<int> { 4, 6, 8, 10, 12, 20 };
     public ObservableCollection<string> DiceVisibilityOptions { get; } = new ObservableCollection<string> { "Public", "MasterOnly", "Shadow" };
-    public ObservableCollection<string> ChatTypeOptions { get; } = new ObservableCollection<string> { "Public", "System", "Whisper" };
+    public ObservableCollection<string> ChatTypeOptions { get; } = new ObservableCollection<string> { "Общее", "Скрытое админам", "Только админам", "Системное" };
     public ObservableCollection<string> NoteTargetTypeOptions { get; } = new ObservableCollection<string> { "character", "session", "campaign" };
     public ObservableCollection<string> NoteVisibilityOptions { get; } = new ObservableCollection<string> { "Personal", "SharedWithOwner", "SessionShared" };
 
@@ -344,32 +354,32 @@ public class PlayerMainViewModel : ViewModelBase
         SelectedCharacterId = GetString(payload, "characterId");
 
         StatsRows.Clear();
-        if (payload.ContainsKey("stats") && payload["stats"] is Dictionary<string, object> stats)
-        {
-            AddStat("Здоровье", stats, "health");
-            AddStat("Броня физ.", stats, "physicalArmor");
-            AddStat("Броня маг.", stats, "magicalArmor");
-            AddStat("Мораль", stats, "morale");
-            AddStat("Сила", stats, "strength");
-            AddStat("Ловкость", stats, "dexterity");
-            AddStat("Выносливость", stats, "endurance");
-            AddStat("Мудрость", stats, "wisdom");
-            AddStat("Интеллект", stats, "intellect");
-            AddStat("Харизма", stats, "charisma");
-        }
+        var stats = payload.ContainsKey("stats") && payload["stats"] is Dictionary<string, object> loadedStats
+            ? loadedStats
+            : new Dictionary<string, object>();
+        AddStat("Здоровье", stats, "health");
+        AddStat("Броня физ.", stats, "physicalArmor");
+        AddStat("Броня маг.", stats, "magicalArmor");
+        AddStat("Мораль", stats, "morale");
+        AddStat("Сила", stats, "strength");
+        AddStat("Ловкость", stats, "dexterity");
+        AddStat("Выносливость", stats, "endurance");
+        AddStat("Мудрость", stats, "wisdom");
+        AddStat("Интеллект", stats, "intellect");
+        AddStat("Харизма", stats, "charisma");
 
         MoneyRows.Clear();
-        if (payload.ContainsKey("money") && payload["money"] is Dictionary<string, object> money)
-        {
-            AddCurrency("Железная", "Fe", "#B0BEC5", money, "Iron");
-            AddCurrency("Бронзовая", "Br", "#B87333", money, "Bronze");
-            AddCurrency("Серебряная", "Ag", "#C0C0C0", money, "Silver");
-            AddCurrency("Золотая", "Au", "#FFD700", money, "Gold");
-            AddCurrency("Платиновая", "Pt", "#E5E4E2", money, "Platinum");
-            AddCurrency("Орихалк", "Or", "#8A2BE2", money, "Orichalcum");
-            AddCurrency("Адамант", "Ad", "#5F9EA0", money, "Adamant");
-            AddCurrency("Государева", "Sov", "#1E90FF", money, "Sovereign");
-        }
+        var money = payload.ContainsKey("money") && payload["money"] is Dictionary<string, object> loadedMoney
+            ? loadedMoney
+            : new Dictionary<string, object>();
+        AddCurrency("Железная", "Fe", "#B0BEC5", money, "Iron");
+        AddCurrency("Бронзовая", "Br", "#B87333", money, "Bronze");
+        AddCurrency("Серебряная", "Ag", "#C0C0C0", money, "Silver");
+        AddCurrency("Золотая", "Au", "#FFD700", money, "Gold");
+        AddCurrency("Платиновая", "Pt", "#E5E4E2", money, "Platinum");
+        AddCurrency("Орихалк", "Or", "#8A2BE2", money, "Orichalcum");
+        AddCurrency("Адамант", "Ad", "#5F9EA0", money, "Adamant");
+        AddCurrency("Государева", "Sov", "#1E90FF", money, "Sovereign");
 
         InventoryRows.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("inventory") ? payload["inventory"] : new ArrayList()))
@@ -398,15 +408,38 @@ public class PlayerMainViewModel : ViewModelBase
             var vm = new CompanionVm
             {
                 Id = GetString(map, "id"),
-                Name = GetString(map, "name"),
+                Name = string.IsNullOrWhiteSpace(GetString(map, "name")) ? "Безымянный компаньон" : GetString(map, "name"),
                 Species = GetString(map, "species"),
                 Notes = GetString(map, "notes")
             };
+            vm.StatsRows.Add(new StatRowVm { Label = "Здоровье", Value = "—" });
+            vm.StatsRows.Add(new StatRowVm { Label = "Броня", Value = "—" });
+            vm.StatsRows.Add(new StatRowVm { Label = "Мораль", Value = "—" });
+
             foreach (var inv in ToObjectList(map.ContainsKey("inventory") ? map["inventory"] : new ArrayList()))
                 if (inv is Dictionary<string, object> im)
                     vm.InventoryRows.Add($"{GetString(im, "label")} x{GetString(im, "quantity")}");
+
+            foreach (var hold in ToObjectList(map.ContainsKey("holdings") ? map["holdings"] : new ArrayList()))
+                if (hold is Dictionary<string, object> hm)
+                    vm.HoldingsRows.Add($"{GetString(hm, "name")} — {GetString(hm, "description")}");
+
+            foreach (var sk in ToObjectList(map.ContainsKey("skills") ? map["skills"] : new ArrayList()))
+                if (sk is Dictionary<string, object> sm)
+                    vm.SkillsRows.Add($"{GetString(sm, "name")} [{GetString(sm, "type")}] ");
+
+            EnsureCollectionPlaceholder(vm.InventoryRows, "Нет данных по инвентарю");
+            EnsureCollectionPlaceholder(vm.HoldingsRows, "Нет данных по владениям");
+            EnsureCollectionPlaceholder(vm.SkillsRows, "Нет данных по навыкам");
+            EnsureCollectionPlaceholder(vm.ClassRows, "Нет данных по классам");
+
             Companions.Add(vm);
         }
+
+        EnsureCollectionPlaceholder(InventoryRows, "Нет данных по инвентарю");
+        EnsureCollectionPlaceholder(HoldingsRows, "Нет данных по владениям");
+        EnsureReputationPlaceholder();
+        EnsureCompanionsPlaceholder();
 
         NotifyCharacter();
     }
@@ -440,12 +473,13 @@ public class PlayerMainViewModel : ViewModelBase
         RefreshDiceAndRequests();
         RefreshCombatEvents();
         RefreshAudioState();
+        BuildGameFeed();
     }
 
     private void SendChat()
     {
         if (string.IsNullOrWhiteSpace(ChatTextInput)) return;
-        _api.ChatSend(ChatSessionId, ChatTypeInput, ChatTextInput);
+        _api.ChatSend(ChatSessionId, ToServerChatType(ChatTypeInput), ChatTextInput);
         ChatTextInput = string.Empty;
         Notify(nameof(ChatTextInput));
         RefreshChat();
@@ -460,6 +494,8 @@ public class PlayerMainViewModel : ViewModelBase
             if (item is not Dictionary<string, object> map) continue;
             ChatRows.Add($"{GetString(map, "createdUtc")} | {GetString(map, "type")} | {GetString(map, "senderDisplayName")}: {GetString(map, "text")}");
         }
+
+        EnsureCollectionPlaceholder(ChatRows, "Нет сообщений");
     }
 
     private void RefreshDiceAndRequests()
@@ -481,6 +517,9 @@ public class PlayerMainViewModel : ViewModelBase
             if (item is not Dictionary<string, object> map) continue;
             RequestRows.Add($"{GetString(map, "requestId")} | {GetString(map, "status")} | {GetString(map, "formula")}");
         }
+
+        EnsureCollectionPlaceholder(DiceFeedRows, "Нет видимых бросков");
+        EnsureCollectionPlaceholder(RequestRows, "Нет активных заявок");
     }
 
     private void RefreshCombatEvents()
@@ -498,6 +537,8 @@ public class PlayerMainViewModel : ViewModelBase
         SessionStateRows.Add("Combat status: " + GetString(state.Payload, "status"));
         SessionStateRows.Add("Round: " + GetString(state.Payload, "round"));
         SessionStateRows.Add("Active slot: " + GetString(state.Payload, "activeSlotId"));
+
+        EnsureCollectionPlaceholder(EventRows, "Нет системных событий");
     }
 
     private string AudioSettingsPath
@@ -587,6 +628,7 @@ public class PlayerMainViewModel : ViewModelBase
     private void RefreshNotes()
     {
         NoteRows.Clear();
+        AdminNoteRows.Clear();
         var r = _api.NotesList(new Dictionary<string, object>
         {
             { "sessionId", NoteSessionId },
@@ -595,8 +637,17 @@ public class PlayerMainViewModel : ViewModelBase
         });
 
         foreach (var item in ToObjectList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
-            if (item is Dictionary<string, object> map)
-                NoteRows.Add($"{GetString(map, "noteId")} | {GetString(map, "visibility")} | {GetString(map, "title")} | {GetString(map, "text")}");
+        {
+            if (item is not Dictionary<string, object> map) continue;
+            var row = $"{GetString(map, "noteId")} | {GetString(map, "visibility")} | {GetString(map, "title")} | {GetString(map, "text")}";
+            if (GetString(map, "visibility") == "AdminOnly" || GetString(map, "noteType") == "Master")
+                AdminNoteRows.Add(row);
+            else
+                NoteRows.Add(row);
+        }
+
+        EnsureCollectionPlaceholder(NoteRows, "Нет личных заметок");
+        EnsureCollectionPlaceholder(AdminNoteRows, "Нет заметок/советов от админов");
     }
 
     private void CreateNote()
@@ -677,17 +728,105 @@ public class PlayerMainViewModel : ViewModelBase
     private void InitializeClassVisualLayout()
     {
         ClassNodes.Clear();
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "novice", Title = "Новичок", State = "Start", X = 220, Y = 120 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "defender_guard", Title = "Защитник", X = 220, Y = 20 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "vanguard_breach", Title = "Передовой", X = 315, Y = 70 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "ranger_hunt", Title = "Рейнджер", X = 315, Y = 170 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "samurai_focus", Title = "Самурай", X = 220, Y = 220 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "mage_channel", Title = "Маг", X = 125, Y = 170 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "inventor_gear", Title = "Изобретатель", X = 125, Y = 70 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "novice", Title = "Новичок", State = "Start", X = 190, Y = 120 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "defender_branch_1", Title = "Ветвь защитника I", X = 190, Y = 12 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "vanguard_branch_1", Title = "Ветвь передового I", X = 322, Y = 68 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "ranger_branch_1", Title = "Ветвь рейнджера I", X = 322, Y = 186 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "samurai_branch_1", Title = "Ветвь самурая I", X = 190, Y = 242 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "mage_branch_1", Title = "Ветвь мага I", X = 58, Y = 186 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "inventor_branch_1", Title = "Ветвь изобретателя I", X = 58, Y = 68 });
     }
 
-    private void AddStat(string label, Dictionary<string, object> map, string key) => StatsRows.Add(new StatRowVm { Label = label, Value = GetString(map, key) });
+    private void AddStat(string label, Dictionary<string, object> map, string key) => StatsRows.Add(new StatRowVm { Label = label, Value = string.IsNullOrWhiteSpace(GetString(map, key)) ? "0" : GetString(map, key) });
 
+
+    private void InitializeDefaultCharacterScaffolding()
+    {
+        if (StatsRows.Count == 0)
+        {
+            var empty = new Dictionary<string, object>();
+            AddStat("Здоровье", empty, "health");
+            AddStat("Броня физ.", empty, "physicalArmor");
+            AddStat("Броня маг.", empty, "magicalArmor");
+            AddStat("Мораль", empty, "morale");
+            AddStat("Сила", empty, "strength");
+            AddStat("Ловкость", empty, "dexterity");
+            AddStat("Выносливость", empty, "endurance");
+            AddStat("Мудрость", empty, "wisdom");
+            AddStat("Интеллект", empty, "intellect");
+            AddStat("Харизма", empty, "charisma");
+        }
+
+        if (MoneyRows.Count == 0)
+        {
+            var empty = new Dictionary<string, object>();
+            AddCurrency("Железная", "Fe", "#B0BEC5", empty, "Iron");
+            AddCurrency("Бронзовая", "Br", "#B87333", empty, "Bronze");
+            AddCurrency("Серебряная", "Ag", "#C0C0C0", empty, "Silver");
+            AddCurrency("Золотая", "Au", "#FFD700", empty, "Gold");
+            AddCurrency("Платиновая", "Pt", "#E5E4E2", empty, "Platinum");
+            AddCurrency("Орихалк", "Or", "#8A2BE2", empty, "Orichalcum");
+            AddCurrency("Адамант", "Ad", "#5F9EA0", empty, "Adamant");
+            AddCurrency("Государева", "Sov", "#1E90FF", empty, "Sovereign");
+        }
+
+        EnsureCollectionPlaceholder(InventoryRows, "Данные инвентаря не загружены");
+        EnsureCollectionPlaceholder(HoldingsRows, "Данные владений не загружены");
+        EnsureReputationPlaceholder();
+        EnsureCompanionsPlaceholder();
+        EnsureCollectionPlaceholder(NoteRows, "Нет заметок");
+        EnsureCollectionPlaceholder(AdminNoteRows, "Нет советов от админов");
+        BuildGameFeed();
+    }
+
+    private void EnsureCollectionPlaceholder(ObservableCollection<string> collection, string placeholder)
+    {
+        if (collection.Count == 0)
+            collection.Add(placeholder);
+    }
+
+    private void EnsureReputationPlaceholder()
+    {
+        if (ReputationRows.Count == 0)
+            ReputationRows.Add(new ReputationRowVm { Label = "Нет данных", Value = 0 });
+    }
+
+    private void EnsureCompanionsPlaceholder()
+    {
+        if (Companions.Count == 0)
+        {
+            var vm = new CompanionVm { Name = "Нет данных", Species = "—", Notes = "Сервер не вернул компаньонов" };
+            vm.StatsRows.Add(new StatRowVm { Label = "Здоровье", Value = "—" });
+            vm.InventoryRows.Add("Нет данных");
+            vm.HoldingsRows.Add("Нет данных");
+            vm.SkillsRows.Add("Нет данных");
+            vm.ClassRows.Add("Нет данных");
+            Companions.Add(vm);
+        }
+    }
+
+    private string ToServerChatType(string uiType)
+    {
+        return uiType switch
+        {
+            "Общее" => "Public",
+            "Скрытое админам" => "HiddenToAdmins",
+            "Только админам" => "AdminOnly",
+            "Системное" => "System",
+            _ => "Public"
+        };
+    }
+
+    private void BuildGameFeed()
+    {
+        GameFeedRows.Clear();
+        foreach (var item in ChatRows) GameFeedRows.Add(new GameFeedItemVm { Kind = "Chat", Text = item });
+        foreach (var item in EventRows) GameFeedRows.Add(new GameFeedItemVm { Kind = "System", Text = item });
+        foreach (var item in DiceFeedRows) GameFeedRows.Add(new GameFeedItemVm { Kind = "Dice", Text = item });
+        foreach (var item in RequestRows) GameFeedRows.Add(new GameFeedItemVm { Kind = "Request", Text = item });
+        if (GameFeedRows.Count == 0)
+            GameFeedRows.Add(new GameFeedItemVm { Kind = "System", Text = "Лента пуста" });
+    }
     private void AddCurrency(string name, string abbr, string color, Dictionary<string, object> money, string key)
     {
         long.TryParse(GetString(money, key), out var amount);
