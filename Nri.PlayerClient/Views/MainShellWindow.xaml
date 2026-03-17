@@ -169,23 +169,42 @@
                                             <Border Grid.Row="1" Style="{StaticResource CardStyle}">
                                                 <StackPanel>
                                                     <TextBlock Text="Характеристики" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
-                                                    <ItemsControl ItemsSource="{Binding StatsRows}">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate>
-                                                                <UniformGrid Columns="3"/>
-                                                            </ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
-                                                                    <StackPanel>
-                                                                        <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}"/>
-                                                                        <TextBlock Text="{Binding Value}" FontSize="18" FontWeight="Bold"/>
-                                                                    </StackPanel>
-                                                                </Border>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Боевая группа" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                <ItemsControl ItemsSource="{Binding CoreStatRows}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <DockPanel Margin="0,2,0,2">
+                                                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                <TextBlock Text="{Binding Value}" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                            </DockPanel>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Атрибуты" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                <ItemsControl ItemsSource="{Binding AttributeStatRows}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <DockPanel Margin="0,2,0,2">
+                                                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                <TextBlock Text="{Binding Value}" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                            </DockPanel>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
                                                 </StackPanel>
                                             </Border>
 
@@ -306,16 +325,28 @@
                                                 </ListBox>
                                             </TabItem>
                                             <TabItem Header="Инвентарь">
-                                                <ListBox ItemsSource="{Binding InventoryRows}"/>
+                                                <StackPanel>
+                                                    <TextBlock Text="Содержимое инвентаря" Foreground="{StaticResource MutedBrush}"/>
+                                                    <ListBox ItemsSource="{Binding InventoryRows}"/>
+                                                </StackPanel>
                                             </TabItem>
                                             <TabItem Header="Владения">
-                                                <ListBox ItemsSource="{Binding HoldingsRows}"/>
+                                                <StackPanel>
+                                                    <TextBlock Text="Данные по владениям" Foreground="{StaticResource MutedBrush}"/>
+                                                    <ListBox ItemsSource="{Binding HoldingsRows}"/>
+                                                </StackPanel>
                                             </TabItem>
                                             <TabItem Header="Навыки">
-                                                <ListBox ItemsSource="{Binding SkillsRows}"/>
+                                                <StackPanel>
+                                                    <TextBlock Text="Навыки компаньона" Foreground="{StaticResource MutedBrush}"/>
+                                                    <ListBox ItemsSource="{Binding SkillsRows}"/>
+                                                </StackPanel>
                                             </TabItem>
                                             <TabItem Header="Классы">
-                                                <ListBox ItemsSource="{Binding ClassRows}"/>
+                                                <StackPanel>
+                                                    <TextBlock Text="Классовые ветви компаньона" Foreground="{StaticResource MutedBrush}"/>
+                                                    <ListBox ItemsSource="{Binding ClassRows}"/>
+                                                </StackPanel>
                                             </TabItem>
                                         </TabControl>
                                     </Grid>
@@ -368,12 +399,12 @@
                                                          Fill="#FF223452" Stroke="#FF4EA3FF" StrokeThickness="2"/>
                                                 <TextBlock Text="Новичок" Canvas.Left="205" Canvas.Top="146" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
 
-                                                <TextBlock Text="Защитник" Canvas.Left="206" Canvas.Top="54" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                <TextBlock Text="Передовой" Canvas.Left="302" Canvas.Top="102" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                <TextBlock Text="Рейнджер" Canvas.Left="304" Canvas.Top="197" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                <TextBlock Text="Самурай" Canvas.Left="208" Canvas.Top="238" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                <TextBlock Text="Маг" Canvas.Left="130" Canvas.Top="198" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                <TextBlock Text="Изобретатель" Canvas.Left="112" Canvas.Top="102" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                <Border Canvas.Left="188" Canvas.Top="38" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Защитник" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
+                                                <Border Canvas.Left="334" Canvas.Top="88" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Передовой" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
+                                                <Border Canvas.Left="336" Canvas.Top="214" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Рейнджер" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
+                                                <Border Canvas.Left="200" Canvas.Top="252" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Самурай" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
+                                                <Border Canvas.Left="92" Canvas.Top="214" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Маг" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
+                                                <Border Canvas.Left="38" Canvas.Top="88" Background="#CC111827" CornerRadius="4" Padding="4,1"><TextBlock Text="Изобретатель" Foreground="{StaticResource TextSecondaryBrush}"/></Border>
 
                                                 <Line X1="230" Y1="82" X2="230" Y2="30" Stroke="#6A89B8" StrokeThickness="2"/>
                                                 <Line X1="292" Y1="118" X2="352" Y2="88" Stroke="#6A89B8" StrokeThickness="2"/>

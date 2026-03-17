@@ -6,7 +6,6 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Web.Script.Serialization;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Nri.PlayerClient.Networking;
@@ -70,6 +69,8 @@ public class CompanionVm : ViewModelBase
     public string Species { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
     public ObservableCollection<StatRowVm> StatsRows { get; } = new ObservableCollection<StatRowVm>();
+    public ObservableCollection<StatRowVm> CoreStatRows { get; } = new ObservableCollection<StatRowVm>();
+    public ObservableCollection<StatRowVm> AttributeStatRows { get; } = new ObservableCollection<StatRowVm>();
     public ObservableCollection<string> InventoryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> SkillsRows { get; } = new ObservableCollection<string>();
@@ -168,7 +169,7 @@ public class PlayerMainViewModel : ViewModelBase
     public int DiceCount { get; set; } = 1;
     public int DiceFaces { get; set; } = 20;
     public int DiceModifier { get; set; }
-    public string DiceVisibilityInput { get; set; } = "Public";
+    public string DiceVisibilityInput { get; set; } = "Общее";
     public string DiceDescriptionInput { get; set; } = string.Empty;
     public string SelectedRequestId { get; set; } = string.Empty;
 
@@ -194,6 +195,8 @@ public class PlayerMainViewModel : ViewModelBase
 
     public ObservableCollection<CharacterListItemVm> MyCharacters { get; } = new ObservableCollection<CharacterListItemVm>();
     public ObservableCollection<StatRowVm> StatsRows { get; } = new ObservableCollection<StatRowVm>();
+    public ObservableCollection<StatRowVm> CoreStatRows { get; } = new ObservableCollection<StatRowVm>();
+    public ObservableCollection<StatRowVm> AttributeStatRows { get; } = new ObservableCollection<StatRowVm>();
     public ObservableCollection<CurrencyRowVm> MoneyRows { get; } = new ObservableCollection<CurrencyRowVm>();
     public ObservableCollection<string> InventoryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
@@ -215,7 +218,7 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> NoteRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> AdminNoteRows { get; } = new ObservableCollection<string>();
 
-    public ObservableCollection<string> DiceVisibilityOptions { get; } = new ObservableCollection<string> { "Public", "MasterOnly", "Shadow" };
+    public ObservableCollection<string> DiceVisibilityOptions { get; } = new ObservableCollection<string> { "Общее", "Только мастеру", "Теневой" };
     public ObservableCollection<string> ChatTypeOptions { get; } = new ObservableCollection<string> { "Общее", "Скрытое админам", "Только админам", "Системное" };
     public ObservableCollection<string> NoteTargetTypeOptions { get; } = new ObservableCollection<string> { "character", "session", "campaign" };
     public ObservableCollection<string> NoteVisibilityOptions { get; } = new ObservableCollection<string> { "Personal", "SharedWithOwner", "SessionShared" };
@@ -367,6 +370,7 @@ public class PlayerMainViewModel : ViewModelBase
         AddStat("Мудрость", stats, "wisdom");
         AddStat("Интеллект", stats, "intellect");
         AddStat("Харизма", stats, "charisma");
+        RebuildStatGroups();
 
         MoneyRows.Clear();
         var money = payload.ContainsKey("money") && payload["money"] is Dictionary<string, object> loadedMoney
@@ -377,9 +381,9 @@ public class PlayerMainViewModel : ViewModelBase
         AddCurrency("Серебряная", "Ag", "#C0C0C0", money, "Silver");
         AddCurrency("Золотая", "Au", "#FFD700", money, "Gold");
         AddCurrency("Платиновая", "Pt", "#E5E4E2", money, "Platinum");
-        AddCurrency("Орихалк", "Or", "#8A2BE2", money, "Orichalcum");
+        AddCurrency("Орихалк", "Or", "#39FF14", money, "Orichalcum");
         AddCurrency("Адамант", "Ad", "#5F9EA0", money, "Adamant");
-        AddCurrency("Государева", "Sov", "#1E90FF", money, "Sovereign");
+        AddCurrency("Государева", "Sov", "#B05CFF", money, "Sovereign");
 
         InventoryRows.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("inventory") ? payload["inventory"] : new ArrayList()))
@@ -412,9 +416,7 @@ public class PlayerMainViewModel : ViewModelBase
                 Species = GetString(map, "species"),
                 Notes = GetString(map, "notes")
             };
-            vm.StatsRows.Add(new StatRowVm { Label = "Здоровье", Value = "—" });
-            vm.StatsRows.Add(new StatRowVm { Label = "Броня", Value = "—" });
-            vm.StatsRows.Add(new StatRowVm { Label = "Мораль", Value = "—" });
+            AddCompanionStatScaffold(vm);
 
             foreach (var inv in ToObjectList(map.ContainsKey("inventory") ? map["inventory"] : new ArrayList()))
                 if (inv is Dictionary<string, object> im)
@@ -450,7 +452,7 @@ public class PlayerMainViewModel : ViewModelBase
         {
             if (string.IsNullOrWhiteSpace(SelectedCharacterId) && MyCharacters.Count > 0) SelectedCharacterId = MyCharacters[0].Id;
             var formula = DiceCount + "d" + DiceFaces + (DiceModifier == 0 ? string.Empty : DiceModifier > 0 ? "+" + DiceModifier : DiceModifier.ToString());
-            _api.CreateDiceRequest(SelectedCharacterId, formula, DiceVisibilityInput, DiceDescriptionInput);
+            _api.CreateDiceRequest(SelectedCharacterId, formula, ToServerDiceVisibility(DiceVisibilityInput), DiceDescriptionInput);
             RefreshBottomPanel();
         }
         catch { ConnectionState = "Оффлайн"; }
@@ -563,7 +565,7 @@ public class PlayerMainViewModel : ViewModelBase
         try
         {
             if (!File.Exists(AudioSettingsPath)) return;
-            var map = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(AudioSettingsPath));
+            var map = JsonProtocolSerializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(AudioSettingsPath));
             if (map == null) return;
             if (map.ContainsKey("volume")) double.TryParse(Convert.ToString(map["volume"]), out var vol); else vol = 0.7;
             if (map.ContainsKey("muted")) bool.TryParse(Convert.ToString(map["muted"]), out var muted); else muted = false;
@@ -578,7 +580,7 @@ public class PlayerMainViewModel : ViewModelBase
         _api.AudioClientSettingsSet(LocalVolume, LocalMuted);
         try
         {
-            File.WriteAllText(AudioSettingsPath, new JavaScriptSerializer().Serialize(new Dictionary<string, object>
+            File.WriteAllText(AudioSettingsPath, JsonProtocolSerializer.Serialize(new Dictionary<string, object>
             {
                 { "volume", LocalVolume },
                 { "muted", LocalMuted }
@@ -739,6 +741,19 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void AddStat(string label, Dictionary<string, object> map, string key) => StatsRows.Add(new StatRowVm { Label = label, Value = string.IsNullOrWhiteSpace(GetString(map, key)) ? "0" : GetString(map, key) });
 
+    private void RebuildStatGroups()
+    {
+        CoreStatRows.Clear();
+        AttributeStatRows.Clear();
+
+        foreach (var row in StatsRows)
+        {
+            if (row.Label == "Здоровье" || row.Label == "Броня физ." || row.Label == "Броня маг." || row.Label == "Мораль")
+                CoreStatRows.Add(row);
+            else
+                AttributeStatRows.Add(row);
+        }
+    }
 
     private void InitializeDefaultCharacterScaffolding()
     {
@@ -765,9 +780,9 @@ public class PlayerMainViewModel : ViewModelBase
             AddCurrency("Серебряная", "Ag", "#C0C0C0", empty, "Silver");
             AddCurrency("Золотая", "Au", "#FFD700", empty, "Gold");
             AddCurrency("Платиновая", "Pt", "#E5E4E2", empty, "Platinum");
-            AddCurrency("Орихалк", "Or", "#8A2BE2", empty, "Orichalcum");
+            AddCurrency("Орихалк", "Or", "#39FF14", empty, "Orichalcum");
             AddCurrency("Адамант", "Ad", "#5F9EA0", empty, "Adamant");
-            AddCurrency("Государева", "Sov", "#1E90FF", empty, "Sovereign");
+            AddCurrency("Государева", "Sov", "#B05CFF", empty, "Sovereign");
         }
 
         EnsureCollectionPlaceholder(InventoryRows, "Данные инвентаря не загружены");
@@ -775,6 +790,7 @@ public class PlayerMainViewModel : ViewModelBase
         EnsureReputationPlaceholder();
         EnsureCompanionsPlaceholder();
         EnsureCollectionPlaceholder(NoteRows, "Нет заметок");
+        RebuildStatGroups();
         EnsureCollectionPlaceholder(AdminNoteRows, "Нет советов от админов");
         BuildGameFeed();
     }
@@ -796,13 +812,28 @@ public class PlayerMainViewModel : ViewModelBase
         if (Companions.Count == 0)
         {
             var vm = new CompanionVm { Name = "Нет данных", Species = "—", Notes = "Сервер не вернул компаньонов" };
-            vm.StatsRows.Add(new StatRowVm { Label = "Здоровье", Value = "—" });
+            AddCompanionStatScaffold(vm);
             vm.InventoryRows.Add("Нет данных");
             vm.HoldingsRows.Add("Нет данных");
             vm.SkillsRows.Add("Нет данных");
             vm.ClassRows.Add("Нет данных");
             Companions.Add(vm);
         }
+    }
+
+    private void AddCompanionStatScaffold(CompanionVm vm)
+    {
+        if (vm.StatsRows.Count > 0) return;
+        vm.StatsRows.Add(new StatRowVm { Label = "Здоровье", Value = "0" });
+        vm.StatsRows.Add(new StatRowVm { Label = "Физ. защита", Value = "0" });
+        vm.StatsRows.Add(new StatRowVm { Label = "Маг. защита", Value = "0" });
+        vm.StatsRows.Add(new StatRowVm { Label = "Мораль", Value = "0" });
+        vm.StatsRows.Add(new StatRowVm { Label = "Сила", Value = "0" });
+        vm.StatsRows.Add(new StatRowVm { Label = "Ловкость", Value = "0" });
+        vm.StatsRows.Add(new StatRowVm { Label = "Выносливость", Value = "0" });
+        vm.StatsRows.Add(new StatRowVm { Label = "Мудрость", Value = "0" });
+        vm.StatsRows.Add(new StatRowVm { Label = "Интеллект", Value = "0" });
+        vm.StatsRows.Add(new StatRowVm { Label = "Харизма", Value = "0" });
     }
 
     private string ToServerChatType(string uiType)
@@ -813,6 +844,17 @@ public class PlayerMainViewModel : ViewModelBase
             "Скрытое админам" => "HiddenToAdmins",
             "Только админам" => "AdminOnly",
             "Системное" => "System",
+            _ => "Public"
+        };
+    }
+
+    private string ToServerDiceVisibility(string uiValue)
+    {
+        return uiValue switch
+        {
+            "Общее" => "Public",
+            "Только мастеру" => "MasterOnly",
+            "Теневой" => "Shadow",
             _ => "Public"
         };
     }
