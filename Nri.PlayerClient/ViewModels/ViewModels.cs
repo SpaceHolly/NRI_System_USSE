@@ -68,6 +68,9 @@ public class CompanionVm : ViewModelBase
     public string Name { get; set; } = string.Empty;
     public string Species { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+    public string NameDisplay => string.IsNullOrWhiteSpace(Name) ? "Безымянный компаньон" : Name;
+    public string SpeciesDisplay => string.IsNullOrWhiteSpace(Species) ? "Не указано" : Species;
+    public string NotesDisplay => string.IsNullOrWhiteSpace(Notes) ? "Описание компаньона не загружено" : Notes;
     public ObservableCollection<StatRowVm> StatsRows { get; } = new ObservableCollection<StatRowVm>();
     public ObservableCollection<StatRowVm> CoreStatRows { get; } = new ObservableCollection<StatRowVm>();
     public ObservableCollection<StatRowVm> AttributeStatRows { get; } = new ObservableCollection<StatRowVm>();
@@ -101,6 +104,7 @@ public class PlayerMainViewModel : ViewModelBase
     private string _connectionState = "Оффлайн";
     private bool _isAuthPopupOpen;
     private string _selectedMainTab = "MyCharacters";
+    private CompanionVm? _selectedCompanion;
 
     public PlayerMainViewModel()
     {
@@ -161,6 +165,13 @@ public class PlayerMainViewModel : ViewModelBase
     public string CharacterDescription { get; set; } = string.Empty;
     public string CharacterBackstory { get; set; } = string.Empty;
 
+    public string CharacterNameDisplay => string.IsNullOrWhiteSpace(CharacterName) ? "Без имени" : CharacterName;
+    public string CharacterRaceDisplay => string.IsNullOrWhiteSpace(CharacterRace) ? "Не указано" : CharacterRace;
+    public string CharacterAgeDisplay => string.IsNullOrWhiteSpace(CharacterAge) ? "0" : CharacterAge;
+    public string CharacterHeightDisplay => string.IsNullOrWhiteSpace(CharacterHeight) ? "0" : CharacterHeight;
+    public string CharacterDescriptionDisplay => string.IsNullOrWhiteSpace(CharacterDescription) ? "Описание не загружено" : CharacterDescription;
+    public string CharacterBackstoryDisplay => string.IsNullOrWhiteSpace(CharacterBackstory) ? "Предыстория не загружена" : CharacterBackstory;
+
     public bool VisHideDescription { get; set; }
     public bool VisHideBackstory { get; set; }
     public bool VisHideStats { get; set; }
@@ -202,6 +213,11 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<ReputationRowVm> ReputationRows { get; } = new ObservableCollection<ReputationRowVm>();
     public ObservableCollection<CompanionVm> Companions { get; } = new ObservableCollection<CompanionVm>();
+    public CompanionVm? SelectedCompanion
+    {
+        get => _selectedCompanion;
+        set { _selectedCompanion = value; Notify(); }
+    }
 
     public ObservableCollection<string> SkillRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> SkillCatalogRows { get; } = new ObservableCollection<string>();
@@ -417,6 +433,8 @@ public class PlayerMainViewModel : ViewModelBase
                 Notes = GetString(map, "notes")
             };
             AddCompanionStatScaffold(vm);
+            if (map.ContainsKey("stats") && map["stats"] is Dictionary<string, object> companionStats)
+                ApplyCompanionStats(vm, companionStats);
 
             foreach (var inv in ToObjectList(map.ContainsKey("inventory") ? map["inventory"] : new ArrayList()))
                 if (inv is Dictionary<string, object> im)
@@ -433,7 +451,7 @@ public class PlayerMainViewModel : ViewModelBase
             EnsureCollectionPlaceholder(vm.InventoryRows, "Нет данных по инвентарю");
             EnsureCollectionPlaceholder(vm.HoldingsRows, "Нет данных по владениям");
             EnsureCollectionPlaceholder(vm.SkillsRows, "Нет данных по навыкам");
-            EnsureCollectionPlaceholder(vm.ClassRows, "Нет данных по классам");
+            EnsureCollectionPlaceholder(vm.ClassRows, "Классы компаньона не загружены");
 
             Companions.Add(vm);
         }
@@ -442,6 +460,8 @@ public class PlayerMainViewModel : ViewModelBase
         EnsureCollectionPlaceholder(HoldingsRows, "Нет данных по владениям");
         EnsureReputationPlaceholder();
         EnsureCompanionsPlaceholder();
+        if (SelectedCompanion == null || !Companions.Contains(SelectedCompanion))
+            SelectedCompanion = Companions.FirstOrDefault();
 
         NotifyCharacter();
     }
@@ -789,6 +809,7 @@ public class PlayerMainViewModel : ViewModelBase
         EnsureCollectionPlaceholder(HoldingsRows, "Данные владений не загружены");
         EnsureReputationPlaceholder();
         EnsureCompanionsPlaceholder();
+        SelectedCompanion = Companions.FirstOrDefault();
         EnsureCollectionPlaceholder(NoteRows, "Нет заметок");
         RebuildStatGroups();
         EnsureCollectionPlaceholder(AdminNoteRows, "Нет советов от админов");
@@ -816,7 +837,7 @@ public class PlayerMainViewModel : ViewModelBase
             vm.InventoryRows.Add("Нет данных");
             vm.HoldingsRows.Add("Нет данных");
             vm.SkillsRows.Add("Нет данных");
-            vm.ClassRows.Add("Нет данных");
+            vm.ClassRows.Add("Классы компаньона не загружены");
             Companions.Add(vm);
         }
     }
@@ -824,16 +845,43 @@ public class PlayerMainViewModel : ViewModelBase
     private void AddCompanionStatScaffold(CompanionVm vm)
     {
         if (vm.StatsRows.Count > 0) return;
-        vm.StatsRows.Add(new StatRowVm { Label = "Здоровье", Value = "0" });
-        vm.StatsRows.Add(new StatRowVm { Label = "Физ. защита", Value = "0" });
-        vm.StatsRows.Add(new StatRowVm { Label = "Маг. защита", Value = "0" });
-        vm.StatsRows.Add(new StatRowVm { Label = "Мораль", Value = "0" });
-        vm.StatsRows.Add(new StatRowVm { Label = "Сила", Value = "0" });
-        vm.StatsRows.Add(new StatRowVm { Label = "Ловкость", Value = "0" });
-        vm.StatsRows.Add(new StatRowVm { Label = "Выносливость", Value = "0" });
-        vm.StatsRows.Add(new StatRowVm { Label = "Мудрость", Value = "0" });
-        vm.StatsRows.Add(new StatRowVm { Label = "Интеллект", Value = "0" });
-        vm.StatsRows.Add(new StatRowVm { Label = "Харизма", Value = "0" });
+        AddCompanionStat(vm, "Здоровье", "0", true);
+        AddCompanionStat(vm, "Физ. защита", "0", true);
+        AddCompanionStat(vm, "Маг. защита", "0", true);
+        AddCompanionStat(vm, "Мораль", "0", true);
+        AddCompanionStat(vm, "Сила", "0", false);
+        AddCompanionStat(vm, "Ловкость", "0", false);
+        AddCompanionStat(vm, "Выносливость", "0", false);
+        AddCompanionStat(vm, "Мудрость", "0", false);
+        AddCompanionStat(vm, "Интеллект", "0", false);
+        AddCompanionStat(vm, "Харизма", "0", false);
+    }
+
+    private void ApplyCompanionStats(CompanionVm vm, Dictionary<string, object> stats)
+    {
+        vm.StatsRows.Clear();
+        vm.CoreStatRows.Clear();
+        vm.AttributeStatRows.Clear();
+        AddCompanionStat(vm, "Здоровье", GetMapValueOrDefault(stats, "health"), true);
+        AddCompanionStat(vm, "Физ. защита", GetMapValueOrDefault(stats, "physicalArmor", "physicalDefense"), true);
+        AddCompanionStat(vm, "Маг. защита", GetMapValueOrDefault(stats, "magicalArmor", "magicalDefense"), true);
+        AddCompanionStat(vm, "Мораль", GetMapValueOrDefault(stats, "morale"), true);
+        AddCompanionStat(vm, "Сила", GetMapValueOrDefault(stats, "strength"), false);
+        AddCompanionStat(vm, "Ловкость", GetMapValueOrDefault(stats, "dexterity"), false);
+        AddCompanionStat(vm, "Выносливость", GetMapValueOrDefault(stats, "endurance"), false);
+        AddCompanionStat(vm, "Мудрость", GetMapValueOrDefault(stats, "wisdom"), false);
+        AddCompanionStat(vm, "Интеллект", GetMapValueOrDefault(stats, "intellect"), false);
+        AddCompanionStat(vm, "Харизма", GetMapValueOrDefault(stats, "charisma"), false);
+    }
+
+    private void AddCompanionStat(CompanionVm vm, string label, string value, bool isCore)
+    {
+        var row = new StatRowVm { Label = label, Value = string.IsNullOrWhiteSpace(value) ? "0" : value };
+        vm.StatsRows.Add(row);
+        if (isCore)
+            vm.CoreStatRows.Add(row);
+        else
+            vm.AttributeStatRows.Add(row);
     }
 
     private string ToServerChatType(string uiType)
@@ -890,9 +938,27 @@ public class PlayerMainViewModel : ViewModelBase
         Notify(nameof(CharacterHeight));
         Notify(nameof(CharacterDescription));
         Notify(nameof(CharacterBackstory));
+        Notify(nameof(CharacterNameDisplay));
+        Notify(nameof(CharacterRaceDisplay));
+        Notify(nameof(CharacterAgeDisplay));
+        Notify(nameof(CharacterHeightDisplay));
+        Notify(nameof(CharacterDescriptionDisplay));
+        Notify(nameof(CharacterBackstoryDisplay));
     }
 
     private static string GetString(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
+
+    private static string GetMapValueOrDefault(Dictionary<string, object> map, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            var value = GetString(map, key);
+            if (!string.IsNullOrWhiteSpace(value))
+                return value;
+        }
+
+        return "0";
+    }
 
     private static IList ToObjectList(object payload) => payload as IList ?? new ArrayList();
 }
