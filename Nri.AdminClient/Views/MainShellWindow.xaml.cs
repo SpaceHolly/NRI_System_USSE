@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Nri.AdminClient.ViewModels;
@@ -9,6 +10,7 @@ namespace Nri.AdminClient.Views;
 public partial class MainShellWindow : Window
 {
     private readonly Dictionary<string, DetachedPanelWindow> _panelWindows = new Dictionary<string, DetachedPanelWindow>();
+    private bool _isShuttingDown;
 
     public MainShellWindow()
     {
@@ -32,9 +34,10 @@ public partial class MainShellWindow : Window
 
     private void OnClosing(object? sender, CancelEventArgs e)
     {
-        foreach (var window in _panelWindows.Values)
+        _isShuttingDown = true;
+        foreach (var window in _panelWindows.Values.ToList())
         {
-            window.CloseWithoutAttach();
+            window.BeginProgrammaticClose(attachPanelBack: false);
         }
         _panelWindows.Clear();
         ViewModel.Shutdown();
@@ -42,9 +45,22 @@ public partial class MainShellWindow : Window
 
     private void OnPanelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (_isShuttingDown)
+        {
+            return;
+        }
+
         if (e.PropertyName == nameof(WorkspacePanelDescriptor.IsDetached) || e.PropertyName == nameof(WorkspacePanelDescriptor.IsVisible))
         {
             SynchronizeDetachedWindows();
+        }
+    }
+
+    private void OnDetachedWindowClosed(object? sender, System.EventArgs e)
+    {
+        if (sender is DetachedPanelWindow window)
+        {
+            _panelWindows.Remove(window.PanelId);
         }
     }
 
@@ -58,6 +74,7 @@ public partial class MainShellWindow : Window
                 {
                     var template = (DataTemplate)FindResource(panel.PanelId + "Template");
                     var window = new DetachedPanelWindow(ViewModel, panel, template) { Owner = this };
+                    window.Closed += OnDetachedWindowClosed;
                     _panelWindows[panel.PanelId] = window;
                     window.Show();
                 }
@@ -65,7 +82,10 @@ public partial class MainShellWindow : Window
             else if (_panelWindows.TryGetValue(panel.PanelId, out var existingWindow))
             {
                 _panelWindows.Remove(panel.PanelId);
-                existingWindow.CloseWithoutAttach();
+                if (!existingWindow.IsCloseInProgress)
+                {
+                    existingWindow.BeginProgrammaticClose(attachPanelBack: false);
+                }
             }
         }
     }

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using Nri.AdminClient.ViewModels;
@@ -7,7 +8,9 @@ namespace Nri.AdminClient.Views;
 
 public sealed class DetachedPanelWindow : Window
 {
-    private bool _suppressAttachOnClose;
+    private bool _isCloseInProgress;
+    private bool _isProgrammaticClose;
+    private bool _attachOnClose = true;
     private readonly AdminMainViewModel _viewModel;
     private readonly WorkspacePanelDescriptor _panel;
 
@@ -26,23 +29,45 @@ public sealed class DetachedPanelWindow : Window
         Content = new ContentControl { Content = panel, ContentTemplate = template };
 
         Closing += OnClosing;
+        Closed += OnClosed;
         LocationChanged += (_, _) => PersistBounds();
         SizeChanged += (_, _) => PersistBounds();
     }
 
-    public void CloseWithoutAttach()
+    public string PanelId => _panel.PanelId;
+    public bool IsCloseInProgress => _isCloseInProgress;
+
+    public void BeginProgrammaticClose(bool attachPanelBack)
     {
-        _suppressAttachOnClose = true;
+        if (_isCloseInProgress)
+        {
+            return;
+        }
+
+        _isProgrammaticClose = true;
+        _attachOnClose = attachPanelBack;
         Close();
     }
 
-    private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    private void OnClosing(object? sender, CancelEventArgs e)
     {
+        if (_isCloseInProgress)
+        {
+            return;
+        }
+
+        _isCloseInProgress = true;
         PersistBounds();
-        if (!_suppressAttachOnClose)
+
+        if (!_isProgrammaticClose && _attachOnClose)
         {
             _viewModel.AttachWorkspacePanelCommand.Execute(_panel.PanelId);
         }
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        PersistBounds();
     }
 
     private void PersistBounds()

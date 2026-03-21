@@ -165,6 +165,11 @@ public class AdminMainViewModel : ViewModelBase
     private int _lastServerPort = 5000;
     private bool _isConnectionPopupOpen;
     private bool _isOnline;
+    private bool _isConnectedToServer;
+    private bool _isAuthenticated;
+    private string _lastErrorMessage = string.Empty;
+    private string _lastStatusMessage = "Ожидание подключения";
+    private int _locksCount;
     private string _selectedSection = "Обзор";
 
     public AdminMainViewModel()
@@ -255,6 +260,16 @@ public class AdminMainViewModel : ViewModelBase
     public string ConnectionStatusDetail { get => _connectionStatusDetail; set { _connectionStatusDetail = value; Notify(); } }
     public string SessionSummary { get => _sessionSummary; set { _sessionSummary = value; Notify(); } }
     public bool IsOnline { get => _isOnline; set { _isOnline = value; Notify(); } }
+    public bool IsConnectedToServer { get => _isConnectedToServer; set { _isConnectedToServer = value; Notify(); Notify(nameof(ConnectionStage)); Notify(nameof(LoginState)); Notify(nameof(ArePrivilegedSectionsEnabled)); Notify(nameof(SectionAccessHint)); } }
+    public bool IsAuthenticated { get => _isAuthenticated; set { _isAuthenticated = value; Notify(); Notify(nameof(ConnectionStage)); Notify(nameof(LoginState)); Notify(nameof(ArePrivilegedSectionsEnabled)); Notify(nameof(SectionAccessHint)); } }
+    public string LastErrorMessage { get => _lastErrorMessage; set { _lastErrorMessage = value; Notify(); Notify(nameof(HasConnectionError)); Notify(nameof(ConnectionStage)); } }
+    public string LastStatusMessage { get => _lastStatusMessage; set { _lastStatusMessage = value; Notify(); } }
+    public int LocksCount { get => _locksCount; set { _locksCount = value; Notify(); } }
+    public bool HasConnectionError => !string.IsNullOrWhiteSpace(LastErrorMessage);
+    public bool ArePrivilegedSectionsEnabled => IsConnectedToServer && IsAuthenticated;
+    public string ConnectionStage => HasConnectionError ? "Ошибка подключения" : IsAuthenticated ? "Вошли как админ" : IsConnectedToServer ? "Подключено, вход не выполнен" : "Нет подключения";
+    public string LoginState => IsAuthenticated ? $"Администратор: {LoginSummary}" : IsConnectedToServer ? "Сервер доступен, войдите как админ" : "Не авторизован";
+    public string SectionAccessHint => ArePrivilegedSectionsEnabled ? "Рабочие разделы активны" : IsConnectedToServer ? "Для рабочих разделов выполните вход" : "Подключитесь к серверу, чтобы активировать рабочие разделы";
     public bool IsConnectionPopupOpen { get => _isConnectionPopupOpen; set { _isConnectionPopupOpen = value; Notify(); } }
     public string ServerHostInput { get => _serverHostInput; set { _serverHostInput = value; Notify(); } }
     public string ServerPortInput { get => _serverPortInput; set { _serverPortInput = value; Notify(); } }
@@ -267,6 +282,7 @@ public class AdminMainViewModel : ViewModelBase
     public int PlayersCount => Players.Count;
     public int CharactersCount => Characters.Count;
     public int PendingRequestsCount => PendingRequests.Count;
+    public int ActivePlayersCount => Players.Count(player => player.Extra.IndexOf("online=True", StringComparison.OrdinalIgnoreCase) >= 0);
     public bool HasActiveCombat => CombatRows.Any(row => row.IndexOf("Status:", StringComparison.OrdinalIgnoreCase) >= 0 && row.IndexOf("Ended", StringComparison.OrdinalIgnoreCase) < 0);
     public string ChatSummary => ChatRows.Count == 0 ? "Чат: нет данных" : $"Чат: {ChatRows.Count} сообщений";
     public string AudioSummary => string.IsNullOrWhiteSpace(AudioStateText) ? "Музыка: нет данных" : $"Музыка: {AudioStateText}";
@@ -362,6 +378,7 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> ReferenceRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> BackupRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> DiagnosticsRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> OverviewActivityRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<WorkspacePanelDescriptor> WorkspacePanels { get; } = new ObservableCollection<WorkspacePanelDescriptor>();
 
     public WorkspacePanelDescriptor CharacterEditorPanel => GetPanelById("CharacterEditor");
@@ -525,6 +542,7 @@ public class AdminMainViewModel : ViewModelBase
             LastServerHost = host;
             LastServerPort = port;
             SaveConnectionSettings();
+            IsAuthenticated = false;
             SetConnectedState($"Соединение установлено: {host}:{port}");
             IsConnectionPopupOpen = false;
         }
@@ -550,15 +568,21 @@ public class AdminMainViewModel : ViewModelBase
 
     public void SetConnectedState(string detail)
     {
+        IsConnectedToServer = true;
         IsOnline = true;
-        ConnectionState = "Онлайн";
+        LastErrorMessage = string.Empty;
+        LastStatusMessage = detail;
+        ConnectionState = IsAuthenticated ? "Онлайн / Admin" : "Подключено";
         ConnectionStatusDetail = detail;
         RefreshConnectionSummary();
     }
 
     public void SetDisconnectedState(string detail)
     {
+        IsConnectedToServer = false;
+        IsAuthenticated = false;
         IsOnline = false;
+        LastStatusMessage = detail;
         ConnectionState = "Оффлайн";
         ConnectionStatusDetail = detail;
         RefreshConnectionSummary();
@@ -568,18 +592,21 @@ public class AdminMainViewModel : ViewModelBase
     {
         _client.Disconnect();
         _poller.Stop();
+        LastErrorMessage = detail;
         SetDisconnectedState(detail);
     }
 
     public void RefreshConnectionSummary()
     {
-        SessionSummary = $"Endpoint: {CurrentEndpoint} • Ведущий: {LoginSummary} • Pending: {PendingAccountsCount} • Players: {PlayersCount} • Characters: {CharactersCount} • Requests: {PendingRequestsCount}";
+        SessionSummary = $"Endpoint: {CurrentEndpoint} • Stage: {ConnectionStage} • {LoginState} • Pending: {PendingAccountsCount} • Players: {PlayersCount} • Characters: {CharactersCount} • Requests: {PendingRequestsCount} • Locks: {LocksCount}";
+        RefreshOverviewActivity();
         Notify(nameof(CurrentEndpoint));
         Notify(nameof(LoginSummary));
         Notify(nameof(PendingAccountsCount));
         Notify(nameof(PlayersCount));
         Notify(nameof(CharactersCount));
         Notify(nameof(PendingRequestsCount));
+        Notify(nameof(ActivePlayersCount));
         Notify(nameof(HasActiveCombat));
         Notify(nameof(ChatSummary));
         Notify(nameof(AudioSummary));
@@ -695,6 +722,7 @@ public class AdminMainViewModel : ViewModelBase
             var r = _api.Login(LoginText, PasswordText);
             if (r.Status == ResponseStatus.Ok)
             {
+                IsAuthenticated = true;
                 SetConnectedState($"Авторизация успешна: {CurrentEndpoint}");
                 _poller.Start();
                 RefreshAll();
@@ -702,7 +730,14 @@ public class AdminMainViewModel : ViewModelBase
             }
             else
             {
-                SetDisconnectedState("Логин не выполнен.");
+                IsAuthenticated = false;
+                LastErrorMessage = r.Message;
+                IsConnectedToServer = true;
+                IsOnline = true;
+                ConnectionState = "Подключено";
+                ConnectionStatusDetail = string.IsNullOrWhiteSpace(r.Message) ? "Логин не выполнен." : r.Message;
+                LastStatusMessage = "Логин не выполнен.";
+                RefreshConnectionSummary();
             }
         }
         catch (Exception ex)
@@ -713,6 +748,12 @@ public class AdminMainViewModel : ViewModelBase
 
     private void RefreshAll()
     {
+        if (!IsConnectedToServer)
+        {
+            SetDisconnectedState("Нет активного подключения. Сначала подключитесь к серверу.");
+            return;
+        }
+
         try
         {
             LoadPending();
@@ -1151,7 +1192,8 @@ public class AdminMainViewModel : ViewModelBase
         var s2 = _api.AdminSessionsList();
         DiagnosticsRows.Add("sessions payload size=" + ToList(s2.Payload.ContainsKey("items") ? s2.Payload["items"] : new ArrayList()).Count);
         var s3 = _api.AdminLocksList();
-        DiagnosticsRows.Add("locks=" + ToList(s3.Payload.ContainsKey("items") ? s3.Payload["items"] : new ArrayList()).Count);
+        LocksCount = ToList(s3.Payload.ContainsKey("items") ? s3.Payload["items"] : new ArrayList()).Count;
+        DiagnosticsRows.Add("locks=" + LocksCount);
         RefreshConnectionSummary();
     }
 
@@ -1173,6 +1215,21 @@ public class AdminMainViewModel : ViewModelBase
     private void SaveMoney() { _api.UpdateCharacterMoney(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "money", new Dictionary<string, object> { { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold } } } }); }
     private void ApproveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) _api.ApproveAccount(SelectedPendingAccountId); RefreshAll(); }
     private void ArchiveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) _api.ArchiveAccount(SelectedPendingAccountId); RefreshAll(); }
+
+    private void RefreshOverviewActivity()
+    {
+        OverviewActivityRows.Clear();
+        OverviewActivityRows.Add(HasConnectionError ? $"Ошибка: {LastErrorMessage}" : LastStatusMessage);
+        if (PendingRequests.Count > 0) OverviewActivityRows.Add($"Требуют решения: {PendingRequests[0].Name} / {PendingRequests[0].State}");
+        if (PendingAccounts.Count > 0) OverviewActivityRows.Add($"Новый аккаунт: {PendingAccounts[0].Name}");
+        if (DiceFeedRows.Count > 0) OverviewActivityRows.Add($"Последний бросок: {DiceFeedRows[0]}");
+        if (ChatRows.Count > 0) OverviewActivityRows.Add($"Последнее сообщение: {ChatRows[0]}");
+        if (DiagnosticsRows.Count > 0) OverviewActivityRows.Add($"Диагностика: {DiagnosticsRows[0]}");
+        if (OverviewActivityRows.Count == 1 && string.IsNullOrWhiteSpace(OverviewActivityRows[0]))
+        {
+            OverviewActivityRows[0] = "Нет последних событий.";
+        }
+    }
 
     public void Shutdown()
     {
