@@ -3,7 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Nri.AdminClient.Networking;
@@ -21,10 +26,35 @@ public abstract class ViewModelBase : INotifyPropertyChanged
 public sealed class RelayCommand : ICommand
 {
     private readonly Action _execute;
-    public RelayCommand(Action execute) { _execute = execute; }
+    private readonly Func<bool>? _canExecute;
+
+    public RelayCommand(Action execute, Func<bool>? canExecute = null)
+    {
+        _execute = execute;
+        _canExecute = canExecute;
+    }
+
     public event EventHandler? CanExecuteChanged;
-    public bool CanExecute(object? parameter) => true;
+    public bool CanExecute(object? parameter) => _canExecute?.Invoke() ?? true;
     public void Execute(object? parameter) => _execute();
+    public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+}
+
+public sealed class RelayCommand<T> : ICommand
+{
+    private readonly Action<T?> _execute;
+    private readonly Func<T?, bool>? _canExecute;
+
+    public RelayCommand(Action<T?> execute, Func<T?, bool>? canExecute = null)
+    {
+        _execute = execute;
+        _canExecute = canExecute;
+    }
+
+    public event EventHandler? CanExecuteChanged;
+    public bool CanExecute(object? parameter) => _canExecute?.Invoke((T?)parameter) ?? true;
+    public void Execute(object? parameter) => _execute((T?)parameter);
+    public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }
 
 public class RowVm : ViewModelBase
@@ -35,20 +65,127 @@ public class RowVm : ViewModelBase
     public string Extra { get; set; } = string.Empty;
 }
 
+public sealed class WorkspacePanelDescriptor : ViewModelBase
+{
+    private bool _isDetached;
+    private bool _isVisible = true;
+    private double _windowLeft = 120;
+    private double _windowTop = 120;
+    private double _windowWidth = 920;
+    private double _windowHeight = 720;
+
+    public WorkspacePanelDescriptor(string panelId, string title, bool canDetach)
+    {
+        PanelId = panelId;
+        Title = title;
+        CanDetach = canDetach;
+    }
+
+    public string PanelId { get; }
+    public string Title { get; }
+    public bool CanDetach { get; }
+
+    public bool IsDetached
+    {
+        get => _isDetached;
+        set { if (_isDetached != value) { _isDetached = value; Notify(); } }
+    }
+
+    public bool IsVisible
+    {
+        get => _isVisible;
+        set { if (_isVisible != value) { _isVisible = value; Notify(); } }
+    }
+
+    public double WindowLeft
+    {
+        get => _windowLeft;
+        set { if (Math.Abs(_windowLeft - value) > 0.1) { _windowLeft = value; Notify(); } }
+    }
+
+    public double WindowTop
+    {
+        get => _windowTop;
+        set { if (Math.Abs(_windowTop - value) > 0.1) { _windowTop = value; Notify(); } }
+    }
+
+    public double WindowWidth
+    {
+        get => _windowWidth;
+        set { if (Math.Abs(_windowWidth - value) > 0.1) { _windowWidth = value; Notify(); } }
+    }
+
+    public double WindowHeight
+    {
+        get => _windowHeight;
+        set { if (Math.Abs(_windowHeight - value) > 0.1) { _windowHeight = value; Notify(); } }
+    }
+}
+
+[DataContract]
+public sealed class ConnectionSettingsModel
+{
+    [DataMember(Order = 1)] public string ServerHost { get; set; } = "127.0.0.1";
+    [DataMember(Order = 2)] public int ServerPort { get; set; } = 5000;
+    [DataMember(Order = 3)] public string LastServerHost { get; set; } = "127.0.0.1";
+    [DataMember(Order = 4)] public int LastServerPort { get; set; } = 5000;
+}
+
+[DataContract]
+public sealed class WorkspaceLayoutModel
+{
+    [DataMember(Order = 1)] public List<WorkspacePanelLayoutItem> Panels { get; set; } = new List<WorkspacePanelLayoutItem>();
+}
+
+[DataContract]
+public sealed class WorkspacePanelLayoutItem
+{
+    [DataMember(Order = 1)] public string PanelId { get; set; } = string.Empty;
+    [DataMember(Order = 2)] public bool IsDetached { get; set; }
+    [DataMember(Order = 3)] public bool IsVisible { get; set; } = true;
+    [DataMember(Order = 4)] public double Left { get; set; }
+    [DataMember(Order = 5)] public double Top { get; set; }
+    [DataMember(Order = 6)] public double Width { get; set; } = 920;
+    [DataMember(Order = 7)] public double Height { get; set; } = 720;
+}
+
 public class AdminMainViewModel : ViewModelBase
 {
     private readonly ClientSessionState _session = new ClientSessionState();
+    private readonly JsonTcpClient _client;
     private readonly CommandApi _api;
     private readonly DispatcherTimer _poller;
-    private string _connectionState = "Вы в режиме оффлайн";
+    private readonly string _appDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Nri.AdminClient");
+    private string _connectionState = "Оффлайн";
+    private string _connectionStatusDetail = "Соединение не установлено.";
+    private string _sessionSummary = "Сессия не активна";
+    private string _serverHostInput = "127.0.0.1";
+    private string _serverPortInput = "5000";
+    private string _lastServerHost = "127.0.0.1";
+    private int _lastServerPort = 5000;
+    private bool _isConnectionPopupOpen;
+    private bool _isOnline;
+    private bool _isConnectedToServer;
+    private bool _isAuthenticated;
+    private string _lastErrorMessage = string.Empty;
+    private string _lastStatusMessage = "Ожидание подключения";
+    private int _locksCount;
+    private string _selectedSection = "Обзор";
 
     public AdminMainViewModel()
     {
-        var client = new JsonTcpClient(new ClientConfig(), _session);
-        _api = new CommandApi(client);
+        Directory.CreateDirectory(_appDataDirectory);
+
+        _client = new JsonTcpClient(new ClientConfig(), _session);
+        _api = new CommandApi(_client);
 
         LoginCommand = new RelayCommand(Login);
         RefreshCommand = new RelayCommand(RefreshAll);
+        OpenConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
+        ConnectToServerCommand = new RelayCommand(ConnectToServer);
+        ApplyConnectionSettingsCommand = new RelayCommand(ApplyConnectionSettings);
+        ResetConnectionDefaultsCommand = new RelayCommand(ResetConnectionDefaults);
+        UseSavedConnectionSettingsCommand = new RelayCommand(UseSavedConnectionSettings);
         ApproveCommand = new RelayCommand(ApproveSelected);
         ArchiveCommand = new RelayCommand(ArchiveSelected);
         LoadOwnerCharactersCommand = new RelayCommand(LoadOwnerCharacters);
@@ -103,6 +240,15 @@ public class AdminMainViewModel : ViewModelBase
         BackupRestoreCommand = new RelayCommand(BackupRestore);
         BackupExportCommand = new RelayCommand(BackupExport);
         DiagnosticsRefreshCommand = new RelayCommand(DiagnosticsRefresh);
+        SelectSectionCommand = new RelayCommand<string>(SelectSection);
+        DetachWorkspacePanelCommand = new RelayCommand<string>(DetachWorkspacePanel);
+        AttachWorkspacePanelCommand = new RelayCommand<string>(AttachWorkspacePanel);
+        ToggleWorkspacePanelVisibilityCommand = new RelayCommand<string>(ToggleWorkspacePanelVisibility);
+
+        InitializeWorkspacePanels();
+        LoadConnectionSettings();
+        LoadWorkspaceLayout();
+        RefreshConnectionSummary();
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _poller.Tick += (_, _) => RefreshAll();
@@ -111,6 +257,38 @@ public class AdminMainViewModel : ViewModelBase
     public string LoginText { get; set; } = string.Empty;
     public string PasswordText { get; set; } = string.Empty;
     public string ConnectionState { get => _connectionState; set { _connectionState = value; Notify(); } }
+    public string ConnectionStatusDetail { get => _connectionStatusDetail; set { _connectionStatusDetail = value; Notify(); } }
+    public string SessionSummary { get => _sessionSummary; set { _sessionSummary = value; Notify(); } }
+    public bool IsOnline { get => _isOnline; set { _isOnline = value; Notify(); } }
+    public bool IsConnectedToServer { get => _isConnectedToServer; set { _isConnectedToServer = value; Notify(); Notify(nameof(ConnectionStage)); Notify(nameof(LoginState)); Notify(nameof(ArePrivilegedSectionsEnabled)); Notify(nameof(SectionAccessHint)); } }
+    public bool IsAuthenticated { get => _isAuthenticated; set { _isAuthenticated = value; Notify(); Notify(nameof(ConnectionStage)); Notify(nameof(LoginState)); Notify(nameof(ArePrivilegedSectionsEnabled)); Notify(nameof(SectionAccessHint)); } }
+    public string LastErrorMessage { get => _lastErrorMessage; set { _lastErrorMessage = value; Notify(); Notify(nameof(HasConnectionError)); Notify(nameof(ConnectionStage)); } }
+    public string LastStatusMessage { get => _lastStatusMessage; set { _lastStatusMessage = value; Notify(); } }
+    public int LocksCount { get => _locksCount; set { _locksCount = value; Notify(); } }
+    public bool HasConnectionError => !string.IsNullOrWhiteSpace(LastErrorMessage);
+    public bool ArePrivilegedSectionsEnabled => IsConnectedToServer && IsAuthenticated;
+    public string ConnectionStage => HasConnectionError ? "Ошибка подключения" : IsAuthenticated ? "Вошли как админ" : IsConnectedToServer ? "Подключено, вход не выполнен" : "Нет подключения";
+    public string LoginState => IsAuthenticated ? $"Администратор: {LoginSummary}" : IsConnectedToServer ? "Сервер доступен, войдите как админ" : "Не авторизован";
+    public string SectionAccessHint => ArePrivilegedSectionsEnabled ? "Рабочие разделы активны" : IsConnectedToServer ? "Для рабочих разделов выполните вход" : "Подключитесь к серверу, чтобы активировать рабочие разделы";
+    public bool IsConnectionPopupOpen { get => _isConnectionPopupOpen; set { _isConnectionPopupOpen = value; Notify(); } }
+    public string ServerHostInput { get => _serverHostInput; set { _serverHostInput = value; Notify(); } }
+    public string ServerPortInput { get => _serverPortInput; set { _serverPortInput = value; Notify(); } }
+    public string LastServerHost { get => _lastServerHost; set { _lastServerHost = value; Notify(); } }
+    public int LastServerPort { get => _lastServerPort; set { _lastServerPort = value; Notify(); } }
+    public string SelectedSection { get => _selectedSection; set { _selectedSection = value; Notify(); } }
+    public string CurrentEndpoint => $"{_client.ServerHost}:{_client.ServerPort}";
+    public string LoginSummary => string.IsNullOrWhiteSpace(LoginText) ? "Не авторизован" : LoginText;
+    public int PendingAccountsCount => PendingAccounts.Count;
+    public int PlayersCount => Players.Count;
+    public int CharactersCount => Characters.Count;
+    public int PendingRequestsCount => PendingRequests.Count;
+    public int ActivePlayersCount => Players.Count(player => player.Extra.IndexOf("online=True", StringComparison.OrdinalIgnoreCase) >= 0);
+    public bool HasActiveCombat => CombatRows.Any(row => row.IndexOf("Status:", StringComparison.OrdinalIgnoreCase) >= 0 && row.IndexOf("Ended", StringComparison.OrdinalIgnoreCase) < 0);
+    public string ChatSummary => ChatRows.Count == 0 ? "Чат: нет данных" : $"Чат: {ChatRows.Count} сообщений";
+    public string AudioSummary => string.IsNullOrWhiteSpace(AudioStateText) ? "Музыка: нет данных" : $"Музыка: {AudioStateText}";
+    public string DiagnosticsSummary => DiagnosticsRows.Count == 0 ? "Диагностика: не загружена" : DiagnosticsRows.First();
+    public string WorkspaceLayoutPath => Path.Combine(_appDataDirectory, "workspace.layout.json");
+    public string ConnectionSettingsPath => Path.Combine(_appDataDirectory, "connection.settings.json");
 
     public string SelectedPendingAccountId { get; set; } = string.Empty;
     public string SelectedOwnerUserId { get; set; } = string.Empty;
@@ -158,14 +336,12 @@ public class AdminMainViewModel : ViewModelBase
     public string ReferenceDataJson { get; set; } = "{}";
     public string BackupLabel { get; set; } = string.Empty;
     public string SelectedBackupId { get; set; } = string.Empty;
-
     public string EditName { get; set; } = string.Empty;
     public string EditRace { get; set; } = string.Empty;
     public string EditHeight { get; set; } = string.Empty;
     public string EditDescription { get; set; } = string.Empty;
     public string EditBackstory { get; set; } = string.Empty;
     public int EditAge { get; set; }
-
     public int Health { get; set; }
     public int PhysicalArmor { get; set; }
     public int MagicalArmor { get; set; }
@@ -176,7 +352,6 @@ public class AdminMainViewModel : ViewModelBase
     public int Wisdom { get; set; }
     public int Intellect { get; set; }
     public int Charisma { get; set; }
-
     public long Iron { get; set; }
     public long Bronze { get; set; }
     public long Silver { get; set; }
@@ -203,9 +378,24 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> ReferenceRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> BackupRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> DiagnosticsRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<string> OverviewActivityRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<WorkspacePanelDescriptor> WorkspacePanels { get; } = new ObservableCollection<WorkspacePanelDescriptor>();
+
+    public WorkspacePanelDescriptor CharacterEditorPanel => GetPanelById("CharacterEditor");
+    public WorkspacePanelDescriptor NotesPanel => GetPanelById("NotesManagement");
+    public WorkspacePanelDescriptor RequestsPanel => GetPanelById("Requests");
+    public WorkspacePanelDescriptor DiceFeedPanel => GetPanelById("DiceFeed");
+    public WorkspacePanelDescriptor CombatTrackerPanel => GetPanelById("CombatTracker");
+    public WorkspacePanelDescriptor SessionChatPanel => GetPanelById("SessionChat");
+    public WorkspacePanelDescriptor SessionAudioPanel => GetPanelById("SessionAudio");
 
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
+    public ICommand OpenConnectionPopupCommand { get; }
+    public ICommand ConnectToServerCommand { get; }
+    public ICommand ApplyConnectionSettingsCommand { get; }
+    public ICommand ResetConnectionDefaultsCommand { get; }
+    public ICommand UseSavedConnectionSettingsCommand { get; }
     public ICommand ApproveCommand { get; }
     public ICommand ArchiveCommand { get; }
     public ICommand LoadOwnerCharactersCommand { get; }
@@ -260,25 +450,310 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand BackupRestoreCommand { get; }
     public ICommand BackupExportCommand { get; }
     public ICommand DiagnosticsRefreshCommand { get; }
+    public ICommand SelectSectionCommand { get; }
+    public ICommand DetachWorkspacePanelCommand { get; }
+    public ICommand AttachWorkspacePanelCommand { get; }
+    public ICommand ToggleWorkspacePanelVisibilityCommand { get; }
+
+    public void LoadConnectionSettings()
+    {
+        var settings = ReadJson(ConnectionSettingsPath, new ConnectionSettingsModel());
+        LastServerHost = settings.LastServerHost;
+        LastServerPort = settings.LastServerPort;
+        ServerHostInput = settings.ServerHost;
+        ServerPortInput = settings.ServerPort.ToString();
+
+        if (TryValidateConnectionSettings(ServerHostInput, ServerPortInput, out var host, out var port, out _))
+        {
+            _client.UpdateEndpoint(host, port);
+        }
+
+        RefreshConnectionSummary();
+    }
+
+    public void SaveConnectionSettings()
+    {
+        int.TryParse(ServerPortInput, out var currentPort);
+        WriteJson(ConnectionSettingsPath, new ConnectionSettingsModel
+        {
+            ServerHost = ServerHostInput,
+            ServerPort = currentPort <= 0 ? _client.ServerPort : currentPort,
+            LastServerHost = LastServerHost,
+            LastServerPort = LastServerPort
+        });
+    }
+
+    public bool TryValidateConnectionSettings(string hostInput, string portInput, out string normalizedHost, out int port, out string error)
+    {
+        normalizedHost = hostInput.Trim();
+        error = string.Empty;
+        port = 0;
+
+        if (string.IsNullOrWhiteSpace(normalizedHost))
+        {
+            error = "Укажите host.";
+            return false;
+        }
+
+        if (!string.Equals(normalizedHost, "localhost", StringComparison.OrdinalIgnoreCase)
+            && !(IPAddress.TryParse(normalizedHost, out var address) && address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork))
+        {
+            error = "Разрешены только localhost или IPv4-адрес.";
+            return false;
+        }
+
+        if (!int.TryParse(portInput, out port) || port < 1 || port > 65535)
+        {
+            error = "Порт должен быть в диапазоне 1..65535.";
+            return false;
+        }
+
+        return true;
+    }
+
+    public void ApplyConnectionSettings()
+    {
+        if (!TryValidateConnectionSettings(ServerHostInput, ServerPortInput, out var host, out var port, out var error))
+        {
+            SetConnectionError(error);
+            return;
+        }
+
+        _client.UpdateEndpoint(host, port);
+        LastServerHost = host;
+        LastServerPort = port;
+        SaveConnectionSettings();
+        SetDisconnectedState($"Параметры сохранены: {host}:{port}");
+        RefreshConnectionSummary();
+    }
+
+    public void ConnectToServer()
+    {
+        if (!TryValidateConnectionSettings(ServerHostInput, ServerPortInput, out var host, out var port, out var error))
+        {
+            SetConnectionError(error);
+            return;
+        }
+
+        try
+        {
+            _client.UpdateEndpoint(host, port);
+            _client.Connect();
+            LastServerHost = host;
+            LastServerPort = port;
+            SaveConnectionSettings();
+            IsAuthenticated = false;
+            SetConnectedState($"Соединение установлено: {host}:{port}");
+            IsConnectionPopupOpen = false;
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError($"Не удалось подключиться к {host}:{port}. {ex.Message}");
+        }
+    }
+
+    public void ResetConnectionDefaults()
+    {
+        ServerHostInput = "127.0.0.1";
+        ServerPortInput = "5000";
+        SetDisconnectedState("Используются значения по умолчанию.");
+    }
+
+    public void UseSavedConnectionSettings()
+    {
+        ServerHostInput = LastServerHost;
+        ServerPortInput = LastServerPort.ToString();
+        SetDisconnectedState($"Подставлены последние сохранённые настройки: {LastServerHost}:{LastServerPort}");
+    }
+
+    public void SetConnectedState(string detail)
+    {
+        IsConnectedToServer = true;
+        IsOnline = true;
+        LastErrorMessage = string.Empty;
+        LastStatusMessage = detail;
+        ConnectionState = IsAuthenticated ? "Онлайн / Admin" : "Подключено";
+        ConnectionStatusDetail = detail;
+        RefreshConnectionSummary();
+    }
+
+    public void SetDisconnectedState(string detail)
+    {
+        IsConnectedToServer = false;
+        IsAuthenticated = false;
+        IsOnline = false;
+        LastStatusMessage = detail;
+        ConnectionState = "Оффлайн";
+        ConnectionStatusDetail = detail;
+        RefreshConnectionSummary();
+    }
+
+    public void SetConnectionError(string detail)
+    {
+        _client.Disconnect();
+        _poller.Stop();
+        LastErrorMessage = detail;
+        SetDisconnectedState(detail);
+    }
+
+    public void RefreshConnectionSummary()
+    {
+        SessionSummary = $"Endpoint: {CurrentEndpoint} • Stage: {ConnectionStage} • {LoginState} • Pending: {PendingAccountsCount} • Players: {PlayersCount} • Characters: {CharactersCount} • Requests: {PendingRequestsCount} • Locks: {LocksCount}";
+        RefreshOverviewActivity();
+        Notify(nameof(CurrentEndpoint));
+        Notify(nameof(LoginSummary));
+        Notify(nameof(PendingAccountsCount));
+        Notify(nameof(PlayersCount));
+        Notify(nameof(CharactersCount));
+        Notify(nameof(PendingRequestsCount));
+        Notify(nameof(ActivePlayersCount));
+        Notify(nameof(HasActiveCombat));
+        Notify(nameof(ChatSummary));
+        Notify(nameof(AudioSummary));
+        Notify(nameof(DiagnosticsSummary));
+    }
+
+    public void LoadWorkspaceLayout()
+    {
+        var layout = ReadJson(WorkspaceLayoutPath, new WorkspaceLayoutModel());
+        foreach (var item in layout.Panels)
+        {
+            var panel = WorkspacePanels.FirstOrDefault(p => p.PanelId == item.PanelId);
+            if (panel == null)
+            {
+                continue;
+            }
+
+            panel.IsDetached = item.IsDetached && panel.CanDetach;
+            panel.IsVisible = item.IsVisible;
+            panel.WindowLeft = item.Left;
+            panel.WindowTop = item.Top;
+            panel.WindowWidth = item.Width > 200 ? item.Width : 920;
+            panel.WindowHeight = item.Height > 200 ? item.Height : 720;
+        }
+    }
+
+    public void SaveWorkspaceLayout()
+    {
+        var layout = new WorkspaceLayoutModel
+        {
+            Panels = WorkspacePanels.Select(panel => new WorkspacePanelLayoutItem
+            {
+                PanelId = panel.PanelId,
+                IsDetached = panel.IsDetached,
+                IsVisible = panel.IsVisible,
+                Left = panel.WindowLeft,
+                Top = panel.WindowTop,
+                Width = panel.WindowWidth,
+                Height = panel.WindowHeight
+            }).ToList()
+        };
+
+        WriteJson(WorkspaceLayoutPath, layout);
+    }
+
+    public WorkspacePanelDescriptor GetPanelById(string panelId) => WorkspacePanels.First(panel => panel.PanelId == panelId);
+
+    public void UpdatePanelWindowBounds(string panelId, double left, double top, double width, double height)
+    {
+        var panel = GetPanelById(panelId);
+        panel.WindowLeft = left;
+        panel.WindowTop = top;
+        panel.WindowWidth = width;
+        panel.WindowHeight = height;
+        SaveWorkspaceLayout();
+    }
+
+    private void InitializeWorkspacePanels()
+    {
+        WorkspacePanels.Add(new WorkspacePanelDescriptor("CharacterEditor", "Редактор персонажа", canDetach: true));
+        WorkspacePanels.Add(new WorkspacePanelDescriptor("NotesManagement", "Заметки мастера", canDetach: true));
+        WorkspacePanels.Add(new WorkspacePanelDescriptor("Requests", "Заявки", canDetach: true));
+        WorkspacePanels.Add(new WorkspacePanelDescriptor("DiceFeed", "Лента бросков", canDetach: true));
+        WorkspacePanels.Add(new WorkspacePanelDescriptor("CombatTracker", "Combat tracker", canDetach: true));
+        WorkspacePanels.Add(new WorkspacePanelDescriptor("SessionChat", "Чат сессии", canDetach: true));
+        WorkspacePanels.Add(new WorkspacePanelDescriptor("SessionAudio", "Музыка сессии", canDetach: true));
+    }
+
+    private void SelectSection(string? section)
+    {
+        if (!string.IsNullOrWhiteSpace(section))
+        {
+            SelectedSection = section;
+        }
+    }
+
+    private void ToggleWorkspacePanelVisibility(string? panelId)
+    {
+        if (string.IsNullOrWhiteSpace(panelId)) return;
+        var panel = GetPanelById(panelId);
+        panel.IsVisible = !panel.IsVisible;
+        if (!panel.IsVisible)
+        {
+            panel.IsDetached = false;
+        }
+        SaveWorkspaceLayout();
+    }
+
+    private void DetachWorkspacePanel(string? panelId)
+    {
+        if (string.IsNullOrWhiteSpace(panelId)) return;
+        var panel = GetPanelById(panelId);
+        if (!panel.CanDetach) return;
+        panel.IsVisible = true;
+        panel.IsDetached = true;
+        SaveWorkspaceLayout();
+    }
+
+    private void AttachWorkspacePanel(string? panelId)
+    {
+        if (string.IsNullOrWhiteSpace(panelId)) return;
+        var panel = GetPanelById(panelId);
+        panel.IsDetached = false;
+        panel.IsVisible = true;
+        SaveWorkspaceLayout();
+    }
 
     private void Login()
     {
         try
         {
+            ConnectToServer();
             var r = _api.Login(LoginText, PasswordText);
             if (r.Status == ResponseStatus.Ok)
             {
-                ConnectionState = "Онлайн";
+                IsAuthenticated = true;
+                SetConnectedState($"Авторизация успешна: {CurrentEndpoint}");
                 _poller.Start();
                 RefreshAll();
+                Notify(nameof(LoginSummary));
             }
-            else ConnectionState = "Вы в режиме оффлайн";
+            else
+            {
+                IsAuthenticated = false;
+                LastErrorMessage = r.Message;
+                IsConnectedToServer = true;
+                IsOnline = true;
+                ConnectionState = "Подключено";
+                ConnectionStatusDetail = string.IsNullOrWhiteSpace(r.Message) ? "Логин не выполнен." : r.Message;
+                LastStatusMessage = "Логин не выполнен.";
+                RefreshConnectionSummary();
+            }
         }
-        catch { ConnectionState = "Вы в режиме оффлайн"; }
+        catch (Exception ex)
+        {
+            SetConnectionError($"Ошибка входа: {ex.Message}");
+        }
     }
 
     private void RefreshAll()
     {
+        if (!IsConnectedToServer)
+        {
+            SetDisconnectedState("Нет активного подключения. Сначала подключитесь к серверу.");
+            return;
+        }
+
         try
         {
             LoadPending();
@@ -297,13 +772,12 @@ public class AdminMainViewModel : ViewModelBase
             ReferenceRefresh();
             BackupRefresh();
             DiagnosticsRefresh();
-            ConnectionState = "Онлайн";
-            Notify(nameof(ConnectionState));
+            LoadLocksSummary();
+            SetConnectedState($"Данные обновлены: {CurrentEndpoint}");
         }
-        catch
+        catch (Exception ex)
         {
-            ConnectionState = "Вы в режиме оффлайн";
-            Notify(nameof(ConnectionState));
+            SetConnectionError($"Ошибка обновления: {ex.Message}");
         }
     }
 
@@ -317,6 +791,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             PendingAccounts.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = S(m, "createdUtc") });
         }
+        RefreshConnectionSummary();
     }
 
     private void LoadPlayers()
@@ -329,6 +804,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             Players.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = $"online={S(m, "isOnline")}; last={S(m, "lastSeenUtc")}" });
         }
+        RefreshConnectionSummary();
     }
 
     private void LoadOwnerCharacters()
@@ -342,6 +818,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             Characters.Add(new RowVm { Id = S(m, "characterId"), Name = S(m, "name"), State = S(m, "archived"), Extra = S(m, "race") });
         }
+        RefreshConnectionSummary();
     }
 
     private void OpenCharacter()
@@ -392,7 +869,7 @@ public class AdminMainViewModel : ViewModelBase
         ReputationRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("reputation") ? r.Payload["reputation"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                ReputationRows.Add($"{S(m, "scope")}:{S(m, "groupKey")}={S(m, "value")}");
+                ReputationRows.Add($"{S(m, "scope")}:{S(m, "groupKey") }={S(m, "value")}");
 
         CompanionRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("companions") ? r.Payload["companions"] : new ArrayList()))
@@ -410,14 +887,9 @@ public class AdminMainViewModel : ViewModelBase
         foreach (var obj in ToList(r.Payload["items"]))
         {
             if (obj is not Dictionary<string, object> m) continue;
-            PendingRequests.Add(new RowVm
-            {
-                Id = S(m, "requestId"),
-                Name = S(m, "requestType"),
-                State = S(m, "status"),
-                Extra = S(m, "formula")
-            });
+            PendingRequests.Add(new RowVm { Id = S(m, "requestId"), Name = S(m, "requestType"), State = S(m, "status"), Extra = S(m, "formula") });
         }
+        RefreshConnectionSummary();
     }
 
     private void LoadRequestHistory()
@@ -443,17 +915,12 @@ public class AdminMainViewModel : ViewModelBase
                 DiceFeedRows.Add($"{S(m, "creatorUserId")} | {S(m, "formula")} | {total} | {S(m, "visibility")}");
             }
         }
+        RefreshConnectionSummary();
     }
 
     private void CombatStart()
     {
-        var participants = new[]
-        {
-            new Dictionary<string, object>
-            {
-                {"kind","Npc"}, {"entityId","npc-1"}, {"displayName","NPC-1"}, {"ownerUserId",""}
-            }
-        };
+        var participants = new[] { new Dictionary<string, object> { { "kind", "Npc" }, { "entityId", "npc-1" }, { "displayName", "NPC-1" }, { "ownerUserId", "" } } };
         _api.CombatStart(CombatSessionId, participants);
         CombatRefresh();
     }
@@ -466,13 +933,7 @@ public class AdminMainViewModel : ViewModelBase
 
     private void CombatAddParticipant()
     {
-        var participants = new[]
-        {
-            new Dictionary<string, object>
-            {
-                {"kind",NewParticipantKind}, {"entityId",Guid.NewGuid().ToString("N")}, {"displayName",NewParticipantName}, {"ownerUserId",""}
-            }
-        };
+        var participants = new[] { new Dictionary<string, object> { { "kind", NewParticipantKind }, { "entityId", Guid.NewGuid().ToString("N") }, { "displayName", NewParticipantName }, { "ownerUserId", "" } } };
         _api.CombatAddParticipant(CombatSessionId, participants);
         CombatRefresh();
     }
@@ -518,8 +979,8 @@ public class AdminMainViewModel : ViewModelBase
                     CombatHistoryRows.Add($"{S(m, "at")} | {S(m, "eventType")} | {S(m, "message")}");
             }
         }
+        RefreshConnectionSummary();
     }
-
 
     private void DefinitionsReload()
     {
@@ -587,7 +1048,6 @@ public class AdminMainViewModel : ViewModelBase
         LoadSkills();
     }
 
-
     private void ChatSend()
     {
         if (string.IsNullOrWhiteSpace(ChatMessageText)) return;
@@ -626,22 +1086,11 @@ public class AdminMainViewModel : ViewModelBase
         foreach (var item in ToList(restrictions.Payload.ContainsKey("restrictions") ? restrictions.Payload["restrictions"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
                 ChatRestrictionRows.Add($"{S(m, "userId")} muted={S(m, "muted")} reason={S(m, "reason")}");
+        RefreshConnectionSummary();
     }
 
-    private void ChatMuteUser()
-    {
-        if (string.IsNullOrWhiteSpace(ChatModerationUserId)) return;
-        _api.ChatRestrictionsMuteUser(ChatSessionId, ChatModerationUserId, ChatModerationReason);
-        ChatRefresh();
-    }
-
-    private void ChatUnmuteUser()
-    {
-        if (string.IsNullOrWhiteSpace(ChatModerationUserId)) return;
-        _api.ChatRestrictionsUnmuteUser(ChatSessionId, ChatModerationUserId);
-        ChatRefresh();
-    }
-
+    private void ChatMuteUser() { if (!string.IsNullOrWhiteSpace(ChatModerationUserId)) { _api.ChatRestrictionsMuteUser(ChatSessionId, ChatModerationUserId, ChatModerationReason); ChatRefresh(); } }
+    private void ChatUnmuteUser() { if (!string.IsNullOrWhiteSpace(ChatModerationUserId)) { _api.ChatRestrictionsUnmuteUser(ChatSessionId, ChatModerationUserId); ChatRefresh(); } }
     private void ChatLockPlayers() { _api.ChatRestrictionsLockPlayers(ChatSessionId); ChatRefresh(); }
     private void ChatUnlockPlayers() { _api.ChatRestrictionsUnlockPlayers(ChatSessionId); ChatRefresh(); }
 
@@ -650,7 +1099,6 @@ public class AdminMainViewModel : ViewModelBase
         _api.ChatSlowModeSet(ChatSessionId, ChatSlowPublicSeconds, ChatSlowHiddenSeconds, ChatSlowAdminOnlySeconds);
         ChatRefresh();
     }
-
 
     private void AudioRefresh()
     {
@@ -666,19 +1114,14 @@ public class AdminMainViewModel : ViewModelBase
                 if (item is Dictionary<string, object> m)
                     AudioLibraryRows.Add($"{S(m, "trackId")} | {S(m, "category")} | {S(m, "displayName")} | {S(m, "filePath")}");
         }
+        RefreshConnectionSummary();
     }
 
-    private void AudioSetMode()
-    {
-        _api.AudioModeSet(AudioSessionId, AudioModeInput, AudioCategoryInput);
-        AudioRefresh();
-    }
-
+    private void AudioSetMode() { _api.AudioModeSet(AudioSessionId, AudioModeInput, AudioCategoryInput); AudioRefresh(); }
     private void AudioClearOverride() { _api.AudioOverrideClear(AudioSessionId); AudioRefresh(); }
     private void AudioNextTrack() { _api.AudioTrackNext(AudioSessionId); AudioRefresh(); }
     private void AudioSelectTrack() { if (!string.IsNullOrWhiteSpace(AudioSelectedTrackId)) { _api.AudioTrackSelect(AudioSessionId, AudioSelectedTrackId); AudioRefresh(); } }
     private void AudioReloadLibrary() { _api.AudioTrackReload(); AudioRefresh(); }
-
 
     private void VisibilityLoad()
     {
@@ -694,22 +1137,22 @@ public class AdminMainViewModel : ViewModelBase
     private void VisibilitySave()
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
-        _api.VisibilityUpdate(new Dictionary<string, object>{{"characterId",SelectedCharacterId},{"hideDescriptionForOthers",VisHideDescription},{"hideBackstoryForOthers",VisHideBackstory},{"hideStatsForOthers",VisHideStats},{"hideReputationForOthers",VisHideReputation}});
+        _api.VisibilityUpdate(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "hideDescriptionForOthers", VisHideDescription }, { "hideBackstoryForOthers", VisHideBackstory }, { "hideStatsForOthers", VisHideStats }, { "hideReputationForOthers", VisHideReputation } });
         VisibilityLoad();
     }
 
     private void NotesRefresh()
     {
         NotesRows.Clear();
-        var r = _api.NotesList(new Dictionary<string, object>{{"sessionId",NoteSessionId},{"targetType",NoteTargetType},{"targetId",NoteTargetId}});
+        var r = _api.NotesList(new Dictionary<string, object> { { "sessionId", NoteSessionId }, { "targetType", NoteTargetType }, { "targetId", NoteTargetId } });
         foreach (var item in ToList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                NotesRows.Add($"{S(m,"noteId")} | {S(m,"visibility")} | {S(m,"title")} | {S(m,"text")}");
+                NotesRows.Add($"{S(m, "noteId")} | {S(m, "visibility")} | {S(m, "title")} | {S(m, "text")}");
     }
 
     private void NotesCreate()
     {
-        _api.NotesCreate(new Dictionary<string, object>{{"sessionId",NoteSessionId},{"targetType",NoteTargetType},{"targetId",NoteTargetId},{"title",NoteTitle},{"text",NoteText},{"visibility",NoteVisibility},{"noteType","Session"}});
+        _api.NotesCreate(new Dictionary<string, object> { { "sessionId", NoteSessionId }, { "targetType", NoteTargetType }, { "targetId", NoteTargetId }, { "title", NoteTitle }, { "text", NoteText }, { "visibility", NoteVisibility }, { "noteType", "Session" } });
         NotesRefresh();
     }
 
@@ -721,22 +1164,11 @@ public class AdminMainViewModel : ViewModelBase
         var r = _api.ReferenceList(ReferenceWorldId, ReferenceType);
         foreach (var item in ToList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                ReferenceRows.Add($"{S(m,"referenceId")} | {S(m,"referenceType")} | {S(m,"key")} | {S(m,"displayName")}");
+                ReferenceRows.Add($"{S(m, "referenceId")} | {S(m, "referenceType")} | {S(m, "key")} | {S(m, "displayName")}");
     }
 
-    private void ReferenceCreate()
-    {
-        _api.ReferenceCreate(new Dictionary<string, object>{{"worldId",ReferenceWorldId},{"referenceType",ReferenceType},{"key",ReferenceKey},{"displayName",ReferenceDisplayName},{"dataJson",ReferenceDataJson}});
-        ReferenceRefresh();
-    }
-
-    private void ReferenceUpdate()
-    {
-        if (string.IsNullOrWhiteSpace(ReferenceId)) return;
-        _api.ReferenceUpdate(new Dictionary<string, object>{{"referenceId",ReferenceId},{"displayName",ReferenceDisplayName},{"dataJson",ReferenceDataJson}});
-        ReferenceRefresh();
-    }
-
+    private void ReferenceCreate() { _api.ReferenceCreate(new Dictionary<string, object> { { "worldId", ReferenceWorldId }, { "referenceType", ReferenceType }, { "key", ReferenceKey }, { "displayName", ReferenceDisplayName }, { "dataJson", ReferenceDataJson } }); ReferenceRefresh(); }
+    private void ReferenceUpdate() { if (!string.IsNullOrWhiteSpace(ReferenceId)) { _api.ReferenceUpdate(new Dictionary<string, object> { { "referenceId", ReferenceId }, { "displayName", ReferenceDisplayName }, { "dataJson", ReferenceDataJson } }); ReferenceRefresh(); } }
     private void ReferenceArchive() { if (!string.IsNullOrWhiteSpace(ReferenceId)) { _api.ReferenceArchive(ReferenceId); ReferenceRefresh(); } }
 
     private void BackupRefresh()
@@ -745,12 +1177,12 @@ public class AdminMainViewModel : ViewModelBase
         var r = _api.BackupList();
         foreach (var item in ToList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                BackupRows.Add($"{S(m,"backupId")} | {S(m,"label")} | {S(m,"createdUtc")}");
+                BackupRows.Add($"{S(m, "backupId")} | {S(m, "label")} | {S(m, "createdUtc")}");
     }
 
-    private void BackupCreate() { _api.BackupCreate(string.IsNullOrWhiteSpace(BackupLabel)?"manual-backup":BackupLabel); BackupRefresh(); }
-    private void BackupRestore() { if(!string.IsNullOrWhiteSpace(SelectedBackupId)){ _api.BackupRestore(SelectedBackupId); BackupRefresh(); } }
-    private void BackupExport() { if(!string.IsNullOrWhiteSpace(SelectedBackupId)){ _api.BackupExport(SelectedBackupId); } }
+    private void BackupCreate() { _api.BackupCreate(string.IsNullOrWhiteSpace(BackupLabel) ? "manual-backup" : BackupLabel); BackupRefresh(); }
+    private void BackupRestore() { if (!string.IsNullOrWhiteSpace(SelectedBackupId)) { _api.BackupRestore(SelectedBackupId); BackupRefresh(); } }
+    private void BackupExport() { if (!string.IsNullOrWhiteSpace(SelectedBackupId)) { _api.BackupExport(SelectedBackupId); } }
 
     private void DiagnosticsRefresh()
     {
@@ -760,71 +1192,51 @@ public class AdminMainViewModel : ViewModelBase
         var s2 = _api.AdminSessionsList();
         DiagnosticsRows.Add("sessions payload size=" + ToList(s2.Payload.ContainsKey("items") ? s2.Payload["items"] : new ArrayList()).Count);
         var s3 = _api.AdminLocksList();
-        DiagnosticsRows.Add("locks=" + ToList(s3.Payload.ContainsKey("items") ? s3.Payload["items"] : new ArrayList()).Count);
+        LocksCount = ToList(s3.Payload.ContainsKey("items") ? s3.Payload["items"] : new ArrayList()).Count;
+        DiagnosticsRows.Add("locks=" + LocksCount);
+        RefreshConnectionSummary();
     }
 
-    private void ApproveRequest()
+    private void LoadLocksSummary()
     {
-        if (string.IsNullOrWhiteSpace(SelectedPendingRequestId)) return;
-        _api.ApproveRequest(SelectedPendingRequestId, RequestComment);
-        RefreshAll();
-    }
-
-    private void RejectRequest()
-    {
-        if (string.IsNullOrWhiteSpace(SelectedPendingRequestId)) return;
-        _api.RejectRequest(SelectedPendingRequestId, RequestComment);
-        RefreshAll();
-    }
-
-    private void AcquireLock()
-    {
-        var r = _api.AcquireCharacterLock(SelectedCharacterId);
-        LockStateText = r.Message;
-        Notify(nameof(LockStateText));
-    }
-
-    private void ReleaseLock()
-    {
-        var r = _api.ReleaseCharacterLock(SelectedCharacterId);
-        LockStateText = r.Message;
-        Notify(nameof(LockStateText));
-    }
-
-    private void ForceUnlock()
-    {
-        var r = _api.ForceReleaseCharacterLock(SelectedCharacterId);
-        LockStateText = r.Message;
-        Notify(nameof(LockStateText));
-    }
-
-    private void SaveBasicInfo()
-    {
-        _api.UpdateCharacterBasicInfo(new Dictionary<string, object>
+        if (DiagnosticsRows.Count == 0)
         {
-            { "characterId", SelectedCharacterId }, { "name", EditName }, { "race", EditRace }, { "height", EditHeight }, { "age", EditAge }, { "description", EditDescription }, { "backstory", EditBackstory }
-        });
+            DiagnosticsRefresh();
+        }
     }
 
-    private void SaveStats()
-    {
-        _api.UpdateCharacterStats(new Dictionary<string, object>
-        {
-            { "characterId", SelectedCharacterId }, { "health", Health }, { "physicalArmor", PhysicalArmor }, { "magicalArmor", MagicalArmor }, { "morale", Morale }, { "strength", Strength }, { "dexterity", Dexterity }, { "endurance", Endurance }, { "wisdom", Wisdom }, { "intellect", Intellect }, { "charisma", Charisma }
-        });
-    }
-
-    private void SaveMoney()
-    {
-        _api.UpdateCharacterMoney(new Dictionary<string, object>
-        {
-            { "characterId", SelectedCharacterId },
-            { "money", new Dictionary<string, object> { { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold } } }
-        });
-    }
-
+    private void ApproveRequest() { if (!string.IsNullOrWhiteSpace(SelectedPendingRequestId)) { _api.ApproveRequest(SelectedPendingRequestId, RequestComment); RefreshAll(); } }
+    private void RejectRequest() { if (!string.IsNullOrWhiteSpace(SelectedPendingRequestId)) { _api.RejectRequest(SelectedPendingRequestId, RequestComment); RefreshAll(); } }
+    private void AcquireLock() { var r = _api.AcquireCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); }
+    private void ReleaseLock() { var r = _api.ReleaseCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); }
+    private void ForceUnlock() { var r = _api.ForceReleaseCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); }
+    private void SaveBasicInfo() { _api.UpdateCharacterBasicInfo(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "name", EditName }, { "race", EditRace }, { "height", EditHeight }, { "age", EditAge }, { "description", EditDescription }, { "backstory", EditBackstory } }); }
+    private void SaveStats() { _api.UpdateCharacterStats(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "health", Health }, { "physicalArmor", PhysicalArmor }, { "magicalArmor", MagicalArmor }, { "morale", Morale }, { "strength", Strength }, { "dexterity", Dexterity }, { "endurance", Endurance }, { "wisdom", Wisdom }, { "intellect", Intellect }, { "charisma", Charisma } }); }
+    private void SaveMoney() { _api.UpdateCharacterMoney(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "money", new Dictionary<string, object> { { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold } } } }); }
     private void ApproveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) _api.ApproveAccount(SelectedPendingAccountId); RefreshAll(); }
     private void ArchiveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) _api.ArchiveAccount(SelectedPendingAccountId); RefreshAll(); }
+
+    private void RefreshOverviewActivity()
+    {
+        OverviewActivityRows.Clear();
+        OverviewActivityRows.Add(HasConnectionError ? $"Ошибка: {LastErrorMessage}" : LastStatusMessage);
+        if (PendingRequests.Count > 0) OverviewActivityRows.Add($"Требуют решения: {PendingRequests[0].Name} / {PendingRequests[0].State}");
+        if (PendingAccounts.Count > 0) OverviewActivityRows.Add($"Новый аккаунт: {PendingAccounts[0].Name}");
+        if (DiceFeedRows.Count > 0) OverviewActivityRows.Add($"Последний бросок: {DiceFeedRows[0]}");
+        if (ChatRows.Count > 0) OverviewActivityRows.Add($"Последнее сообщение: {ChatRows[0]}");
+        if (DiagnosticsRows.Count > 0) OverviewActivityRows.Add($"Диагностика: {DiagnosticsRows[0]}");
+        if (OverviewActivityRows.Count == 1 && string.IsNullOrWhiteSpace(OverviewActivityRows[0]))
+        {
+            OverviewActivityRows[0] = "Нет последних событий.";
+        }
+    }
+
+    public void Shutdown()
+    {
+        SaveConnectionSettings();
+        SaveWorkspaceLayout();
+        _client.Disconnect();
+    }
 
     private void NotifyAllEditor()
     {
@@ -833,9 +1245,30 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(Iron)); Notify(nameof(Bronze)); Notify(nameof(Silver)); Notify(nameof(Gold));
     }
 
+    private static T ReadJson<T>(string path, T fallback) where T : class
+    {
+        try
+        {
+            if (!File.Exists(path)) return fallback;
+            using var stream = File.OpenRead(path);
+            var serializer = new DataContractJsonSerializer(typeof(T));
+            return serializer.ReadObject(stream) as T ?? fallback;
+        }
+        catch
+        {
+            return fallback;
+        }
+    }
+
+    private static void WriteJson<T>(string path, T value) where T : class
+    {
+        using var stream = File.Create(path);
+        var serializer = new DataContractJsonSerializer(typeof(T));
+        serializer.WriteObject(stream, value);
+    }
+
     private static IList ToList(object value) => value as IList ?? new ArrayList();
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
-
 
 public class CombatTrackerViewModel : AdminMainViewModel { }
