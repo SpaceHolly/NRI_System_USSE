@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Net;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -80,6 +82,38 @@ public class CompanionVm : ViewModelBase
     public ObservableCollection<string> ClassRows { get; } = new ObservableCollection<string>();
 }
 
+
+public class ClassDirectionVm
+{
+    public string Key { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public string Summary { get; set; } = string.Empty;
+}
+
+public class ClassBranchVm
+{
+    public string Key { get; set; } = string.Empty;
+    public string DirectionKey { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Summary { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+}
+
+public class ClassEntryVm
+{
+    public string NodeId { get; set; } = string.Empty;
+    public string BranchKey { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Summary { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+}
+
+public class PublicProfileFieldVm
+{
+    public string Label { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
+}
+
 public class GameFeedItemVm
 {
     public string Kind { get; set; } = string.Empty;
@@ -98,20 +132,28 @@ public class ClassNodeVisualVm
 public class PlayerMainViewModel : ViewModelBase
 {
     private readonly ClientSessionState _session = new ClientSessionState();
+    private readonly ClientConfig _clientConfig;
+    private readonly JsonTcpClient _client;
     private readonly CommandApi _api;
     private readonly DispatcherTimer _poller;
 
     private string _connectionState = "Оффлайн";
     private bool _isAuthPopupOpen;
+    private bool _isConnectionPopupOpen;
     private string _selectedMainTab = "MyCharacters";
     private CompanionVm? _selectedCompanion;
+    private string _selectedClassDirectionKey = "defender";
+    private ClassBranchVm? _selectedClassBranch;
+    private ClassEntryVm? _selectedClassEntry;
 
     public PlayerMainViewModel()
     {
-        var client = new JsonTcpClient(new ClientConfig(), _session);
-        _api = new CommandApi(client);
+        _clientConfig = new ClientConfig();
+        _client = new JsonTcpClient(_clientConfig, _session);
+        _api = new CommandApi(_client);
 
         ToggleAuthPopupCommand = new RelayCommand(() => IsAuthPopupOpen = !IsAuthPopupOpen);
+        ToggleConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
         LoginCommand = new RelayCommand(Login);
         RegisterCommand = new RelayCommand(Register);
         RefreshCommand = new RelayCommand(RefreshAll);
@@ -135,13 +177,20 @@ public class PlayerMainViewModel : ViewModelBase
 
         AcquireClassNodeCommand = new RelayCommand(AcquireClassNode);
         AcquireSkillCommand = new RelayCommand(AcquireSkill);
+        ConnectToServerCommand = new RelayCommand(ConnectToServer);
+        ApplyConnectionSettingsCommand = new RelayCommand(ApplyConnectionSettings);
+        ResetConnectionDefaultsCommand = new RelayCommand(ResetConnectionDefaults);
+        UseLastConnectionCommand = new RelayCommand(UseSavedConnectionSettings);
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
         _poller.Tick += (_, _) => PollRefresh();
 
+        LoadConnectionSettings();
         InitializeClassVisualLayout();
+        InitializeDefaultPublicProfile();
         InitializeDefaultCharacterScaffolding();
         LoadLocalAudioSettings();
+        RefreshConnectionSummary();
     }
 
     public string LoginText { get; set; } = string.Empty;
@@ -150,6 +199,7 @@ public class PlayerMainViewModel : ViewModelBase
     public string SessionSummary { get; set; } = "Сессия: default";
 
     public bool IsAuthPopupOpen { get => _isAuthPopupOpen; set { _isAuthPopupOpen = value; Notify(); } }
+    public bool IsConnectionPopupOpen { get => _isConnectionPopupOpen; set { _isConnectionPopupOpen = value; Notify(); } }
     public string ConnectionState { get => _connectionState; set { _connectionState = value; Notify(); Notify(nameof(IsOnline)); Notify(nameof(IsAuthenticated)); } }
     public bool IsOnline => string.Equals(ConnectionState, "Онлайн", StringComparison.OrdinalIgnoreCase);
     public bool IsAuthenticated => IsOnline && !string.Equals(PlayerDisplayName, "Гость", StringComparison.OrdinalIgnoreCase);
@@ -157,6 +207,23 @@ public class PlayerMainViewModel : ViewModelBase
     public string SelectedMainTab { get => _selectedMainTab; set { _selectedMainTab = value; Notify(); } }
     public string SelectedCharacterId { get; set; } = string.Empty;
     public string PublicViewCharacterId { get; set; } = string.Empty;
+    public string ServerHostInput { get; set; } = "127.0.0.1";
+    public string ServerPortInput { get; set; } = "4600";
+    public string LastServerHost { get; set; } = "127.0.0.1";
+    public int LastServerPort { get; set; } = 4600;
+    public string ConnectionStatusDetail { get; set; } = "Не подключено";
+    public string ConnectedEndpointDisplay => $"{ServerHostInput}:{ServerPortInput}";
+    public string SelectedClassDirectionKey
+    {
+        get => _selectedClassDirectionKey;
+        set
+        {
+            if (_selectedClassDirectionKey == value) return;
+            _selectedClassDirectionKey = value;
+            Notify();
+            RebuildClassNavigation();
+        }
+    }
 
     public string CharacterName { get; set; } = string.Empty;
     public string CharacterRace { get; set; } = string.Empty;
@@ -222,6 +289,24 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> SkillRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> SkillCatalogRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<ClassNodeVisualVm> ClassNodes { get; } = new ObservableCollection<ClassNodeVisualVm>();
+    public ObservableCollection<ClassDirectionVm> ClassDirections { get; } = new ObservableCollection<ClassDirectionVm>();
+    public ObservableCollection<ClassBranchVm> ClassBranches { get; } = new ObservableCollection<ClassBranchVm>();
+    public ObservableCollection<ClassEntryVm> ClassEntries { get; } = new ObservableCollection<ClassEntryVm>();
+    public ClassBranchVm? SelectedClassBranch
+    {
+        get => _selectedClassBranch;
+        set
+        {
+            _selectedClassBranch = value;
+            Notify();
+            RebuildClassEntries();
+        }
+    }
+    public ClassEntryVm? SelectedClassEntry
+    {
+        get => _selectedClassEntry;
+        set { _selectedClassEntry = value; Notify(); NotifyClassDetail(); }
+    }
 
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> EventRows { get; } = new ObservableCollection<string>();
@@ -231,6 +316,9 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<GameFeedItemVm> GameFeedRows { get; } = new ObservableCollection<GameFeedItemVm>();
 
     public ObservableCollection<string> PublicCharacterRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<PublicProfileFieldVm> PublicProfileIdentityRows { get; } = new ObservableCollection<PublicProfileFieldVm>();
+    public ObservableCollection<PublicProfileFieldVm> PublicProfileSummaryRows { get; } = new ObservableCollection<PublicProfileFieldVm>();
+    public ObservableCollection<string> PublicProfileHiddenRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> NoteRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> AdminNoteRows { get; } = new ObservableCollection<string>();
 
@@ -239,8 +327,26 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> NoteTargetTypeOptions { get; } = new ObservableCollection<string> { "character", "session", "campaign" };
     public ObservableCollection<string> NoteVisibilityOptions { get; } = new ObservableCollection<string> { "Personal", "SharedWithOwner", "SessionShared" };
 
+    public string SelectedClassDirectionDisplay => GetDirectionLabel(SelectedClassDirectionKey);
+    public string SelectedClassBranchTitle => SelectedClassBranch?.Title ?? "Ветвь не выбрана";
+    public string SelectedClassBranchSummary => SelectedClassBranch?.Summary ?? "Выберите направление, чтобы увидеть доступные ветви развития.";
+    public string SelectedClassEntryTitle => SelectedClassEntry?.Title ?? "Класс не выбран";
+    public string SelectedClassEntrySummary => SelectedClassEntry?.Summary ?? "Выберите ветвь и класс, чтобы открыть карточку развития.";
+    public string SelectedClassEntryState => SelectedClassEntry?.Status ?? "Placeholder";
+    public string SelectedClassEntryRequirements => SelectedClassEntry == null ? "Данные о требованиях ещё не загружены." : $"Статус узла: {SelectedClassEntry.Status}. Полные требования и бонусы будут подключены позже.";
+    public bool HasClassBranches => ClassBranches.Count > 0;
+    public bool HasClassEntries => ClassEntries.Count > 0;
+    public bool HasSelectedClassEntry => SelectedClassEntry != null;
+
+    public string PublicProfileName { get; set; } = "Публичный профиль";
+    public string PublicProfileSubtitle { get; set; } = "Нет данных";
+    public string PublicProfileStatusText { get; set; } = "Данные ещё не загружены";
+    public string PublicProfileHintText { get; set; } = "Подключитесь к серверу, чтобы увидеть содержимое";
+    public string PublicProfileDescription { get; set; } = "После загрузки здесь появится игровая карточка другого персонажа.";
+    public bool HasPublicProfileData => PublicProfileIdentityRows.Count > 0 || PublicProfileSummaryRows.Count > 0 || PublicProfileHiddenRows.Count > 0;
 
     public ICommand ToggleAuthPopupCommand { get; }
+    public ICommand ToggleConnectionPopupCommand { get; }
     public ICommand LoginCommand { get; }
     public ICommand RegisterCommand { get; }
     public ICommand RefreshCommand { get; }
@@ -258,11 +364,16 @@ public class PlayerMainViewModel : ViewModelBase
     public ICommand NotesArchiveCommand { get; }
     public ICommand AcquireClassNodeCommand { get; }
     public ICommand AcquireSkillCommand { get; }
+    public ICommand ConnectToServerCommand { get; }
+    public ICommand ApplyConnectionSettingsCommand { get; }
+    public ICommand ResetConnectionDefaultsCommand { get; }
+    public ICommand UseLastConnectionCommand { get; }
 
     private void Login()
     {
         try
         {
+            EnsureConnected();
             var result = _api.Login(LoginText, PasswordText);
             if (result.Status != ResponseStatus.Ok)
             {
@@ -270,16 +381,16 @@ public class PlayerMainViewModel : ViewModelBase
                 return;
             }
 
-            ConnectionState = "Онлайн";
+            SetConnectedState();
             IsAuthPopupOpen = false;
             PlayerDisplayName = LoginText;
             SessionSummary = "Сессия: default";
             RefreshAll();
             _poller.Start();
         }
-        catch
+        catch (Exception ex)
         {
-            ConnectionState = "Оффлайн";
+            SetConnectionError(ex);
         }
     }
 
@@ -289,9 +400,9 @@ public class PlayerMainViewModel : ViewModelBase
         {
             _api.Register(LoginText, PasswordText);
         }
-        catch
+        catch (Exception ex)
         {
-            ConnectionState = "Оффлайн";
+            SetConnectionError(ex);
         }
     }
 
@@ -305,11 +416,11 @@ public class PlayerMainViewModel : ViewModelBase
             RefreshBottomPanel();
             RefreshNotes();
             NotifyHeader();
-            ConnectionState = "Онлайн";
+            SetConnectedState();
         }
-        catch
+        catch (Exception ex)
         {
-            ConnectionState = "Оффлайн";
+            SetConnectionError(ex);
         }
     }
 
@@ -319,9 +430,9 @@ public class PlayerMainViewModel : ViewModelBase
         {
             RefreshBottomPanel();
         }
-        catch
+        catch (Exception ex)
         {
-            ConnectionState = "Оффлайн";
+            SetConnectionError(ex);
         }
     }
 
@@ -475,7 +586,7 @@ public class PlayerMainViewModel : ViewModelBase
             _api.CreateDiceRequest(SelectedCharacterId, formula, ToServerDiceVisibility(DiceVisibilityInput), DiceDescriptionInput);
             RefreshBottomPanel();
         }
-        catch { ConnectionState = "Оффлайн"; }
+        catch (Exception ex) { SetConnectionError(ex); }
     }
 
     private void CancelRequest()
@@ -486,7 +597,7 @@ public class PlayerMainViewModel : ViewModelBase
             _api.CancelRequest(SelectedRequestId);
             RefreshBottomPanel();
         }
-        catch { ConnectionState = "Оффлайн"; }
+        catch (Exception ex) { SetConnectionError(ex); }
     }
 
     private void RefreshBottomPanel()
@@ -563,6 +674,16 @@ public class PlayerMainViewModel : ViewModelBase
         EnsureCollectionPlaceholder(EventRows, "Нет системных событий");
     }
 
+    private string ConnectionSettingsPath
+    {
+        get
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Nri.PlayerClient");
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            return Path.Combine(dir, "connection.settings.json");
+        }
+    }
+
     private string AudioSettingsPath
     {
         get
@@ -571,6 +692,181 @@ public class PlayerMainViewModel : ViewModelBase
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             return Path.Combine(dir, "audio.settings.json");
         }
+    }
+
+
+    private void LoadConnectionSettings()
+    {
+        try
+        {
+            if (File.Exists(ConnectionSettingsPath))
+            {
+                var map = JsonProtocolSerializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(ConnectionSettingsPath));
+                if (map != null)
+                {
+                    ServerHostInput = GetStringOrFallback(map, "serverHost", "127.0.0.1");
+                    ServerPortInput = GetStringOrFallback(map, "serverPort", "4600");
+                    LastServerHost = ServerHostInput;
+                    int.TryParse(ServerPortInput, NumberStyles.Integer, CultureInfo.InvariantCulture, out var loadedPort);
+                    LastServerPort = loadedPort <= 0 ? 4600 : loadedPort;
+                }
+            }
+            else
+            {
+                ServerHostInput = _clientConfig.ServerHost;
+                ServerPortInput = _clientConfig.ServerPort.ToString(CultureInfo.InvariantCulture);
+                LastServerHost = ServerHostInput;
+                LastServerPort = _clientConfig.ServerPort;
+                Notify(nameof(LastServerHost));
+                Notify(nameof(LastServerPort));
+            }
+
+            _client.UpdateEndpoint(ServerHostInput, LastServerPort);
+            Notify(nameof(ServerHostInput));
+            Notify(nameof(ServerPortInput));
+            Notify(nameof(ConnectedEndpointDisplay));
+        }
+        catch
+        {
+            ServerHostInput = "127.0.0.1";
+            ServerPortInput = "4600";
+            LastServerHost = ServerHostInput;
+            LastServerPort = 4600;
+        }
+    }
+
+    private void SaveConnectionSettings()
+    {
+        File.WriteAllText(ConnectionSettingsPath, JsonProtocolSerializer.Serialize(new Dictionary<string, object>
+        {
+            { "serverHost", ServerHostInput },
+            { "serverPort", ServerPortInput }
+        }));
+    }
+
+    private void ConnectToServer()
+    {
+        ApplyConnectionSettings();
+    }
+
+    private void ApplyConnectionSettings()
+    {
+        if (!TryValidateConnectionSettings(out var host, out var port, out var message))
+        {
+            SetDisconnectedState(message);
+            return;
+        }
+
+        try
+        {
+            _client.UpdateEndpoint(host, port);
+            _client.Connect();
+            ServerHostInput = host;
+            ServerPortInput = port.ToString(CultureInfo.InvariantCulture);
+            LastServerHost = host;
+            LastServerPort = port;
+            Notify(nameof(LastServerHost));
+            Notify(nameof(LastServerPort));
+            SaveConnectionSettings();
+            SetConnectedState();
+            IsConnectionPopupOpen = false;
+            Notify(nameof(ServerHostInput));
+            Notify(nameof(ServerPortInput));
+            RefreshConnectionSummary();
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex);
+        }
+    }
+
+    private void ResetConnectionDefaults()
+    {
+        ServerHostInput = "127.0.0.1";
+        ServerPortInput = "4600";
+        Notify(nameof(ServerHostInput));
+        Notify(nameof(ServerPortInput));
+        Notify(nameof(ConnectedEndpointDisplay));
+    }
+
+    private void UseSavedConnectionSettings()
+    {
+        ServerHostInput = LastServerHost;
+        ServerPortInput = LastServerPort.ToString(CultureInfo.InvariantCulture);
+        Notify(nameof(ServerHostInput));
+        Notify(nameof(ServerPortInput));
+        Notify(nameof(ConnectedEndpointDisplay));
+    }
+
+    private bool TryValidateConnectionSettings(out string host, out int port, out string error)
+    {
+        host = (ServerHostInput ?? string.Empty).Trim();
+        error = string.Empty;
+        port = 0;
+
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            error = "Неверный адрес";
+            return false;
+        }
+
+        if (!string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) && !IPAddress.TryParse(host, out _))
+        {
+            error = "Неверный адрес";
+            return false;
+        }
+
+        if (!int.TryParse(ServerPortInput, NumberStyles.Integer, CultureInfo.InvariantCulture, out port) || port < 1 || port > 65535)
+        {
+            error = "Неверный порт";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void EnsureConnected()
+    {
+        if (_client.ServerHost != ServerHostInput || _client.ServerPort.ToString(CultureInfo.InvariantCulture) != ServerPortInput)
+            ApplyConnectionSettings();
+        else
+            _client.Connect();
+    }
+
+    private void SetConnectedState()
+    {
+        ConnectionState = "Онлайн";
+        ConnectionStatusDetail = $"Подключено к {ServerHostInput}:{ServerPortInput}";
+        RefreshConnectionSummary();
+        Notify(nameof(ConnectionStatusDetail));
+    }
+
+    private void SetDisconnectedState(string message)
+    {
+        _client.Disconnect();
+        ConnectionState = "Оффлайн";
+        ConnectionStatusDetail = message;
+        RefreshConnectionSummary();
+        Notify(nameof(ConnectionStatusDetail));
+    }
+
+    private void SetConnectionError(Exception ex)
+    {
+        var message = ex switch
+        {
+            SocketException => "Сервер недоступен",
+            TimeoutException => "Не удалось подключиться к серверу: timeout",
+            InvalidOperationException => "Не удалось подключиться к серверу",
+            _ => string.IsNullOrWhiteSpace(ex.Message) ? "Не удалось подключиться к серверу" : ex.Message
+        };
+        SetDisconnectedState(message);
+    }
+
+    private void RefreshConnectionSummary()
+    {
+        SessionSummary = $"Сервер: {ServerHostInput}:{ServerPortInput}";
+        Notify(nameof(SessionSummary));
+        Notify(nameof(ConnectedEndpointDisplay));
     }
 
     private void RefreshAudioState()
@@ -641,10 +937,37 @@ public class PlayerMainViewModel : ViewModelBase
     private void LoadPublicCharacter()
     {
         PublicCharacterRows.Clear();
+        InitializeDefaultPublicProfile();
         if (string.IsNullOrWhiteSpace(PublicViewCharacterId)) return;
         var r = _api.CharacterPublicViewGet(PublicViewCharacterId);
         foreach (var kv in r.Payload)
             PublicCharacterRows.Add(kv.Key + " = " + Convert.ToString(kv.Value));
+
+        PublicProfileName = string.IsNullOrWhiteSpace(GetString(r.Payload, "name")) ? "Публичный профиль" : GetString(r.Payload, "name");
+        PublicProfileSubtitle = string.IsNullOrWhiteSpace(GetString(r.Payload, "race")) ? "Публичный профиль загружен" : $"Раса: {GetString(r.Payload, "race")}";
+        PublicProfileStatusText = "Данные профиля получены";
+        PublicProfileHintText = string.IsNullOrWhiteSpace(PublicViewCharacterId) ? "Подключитесь к серверу, чтобы увидеть содержимое" : $"Идентификатор просмотра: {PublicViewCharacterId}";
+        PublicProfileDescription = string.IsNullOrWhiteSpace(GetString(r.Payload, "description")) ? "Описание скрыто или ещё не загружено." : GetString(r.Payload, "description");
+
+        AddPublicProfileField(PublicProfileIdentityRows, "Имя", PublicProfileName);
+        AddPublicProfileField(PublicProfileIdentityRows, "Раса", GetStringOrFallback(r.Payload, "race", "Не указано"));
+        AddPublicProfileField(PublicProfileIdentityRows, "Возраст", GetStringOrFallback(r.Payload, "age", "Не указано"));
+        AddPublicProfileField(PublicProfileIdentityRows, "Рост", GetStringOrFallback(r.Payload, "height", "Не указано"));
+        AddPublicProfileField(PublicProfileSummaryRows, "Описание", GetStringOrFallback(r.Payload, "description", "Скрыто или недоступно"));
+        AddPublicProfileField(PublicProfileSummaryRows, "Предыстория", GetStringOrFallback(r.Payload, "backstory", "Скрыто или недоступно"));
+        AddPublicProfileField(PublicProfileSummaryRows, "Характеристики", GetStringOrFallback(r.Payload, "statsSummary", "Краткая сводка пока не предоставлена сервером"));
+
+        foreach (var hiddenKey in new[] { "hiddenFields", "hidden", "blockedFields" })
+        {
+            if (!r.Payload.ContainsKey(hiddenKey)) continue;
+            foreach (var item in ToObjectList(r.Payload[hiddenKey]))
+                PublicProfileHiddenRows.Add(Convert.ToString(item) ?? string.Empty);
+        }
+
+        if (PublicProfileHiddenRows.Count == 0)
+            PublicProfileHiddenRows.Add("Скрытые поля сервером не перечислены");
+
+        NotifyPublicProfile();
     }
 
     private void RefreshNotes()
@@ -718,6 +1041,7 @@ public class PlayerMainViewModel : ViewModelBase
             else node.State = "Locked";
         }
         Notify(nameof(ClassNodes));
+        RebuildClassNavigation();
 
         SkillRows.Clear();
         SkillCatalogRows.Clear();
@@ -733,8 +1057,25 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void AcquireClassNode(object? parameter)
     {
-        if (parameter is string nodeId && !string.IsNullOrWhiteSpace(nodeId))
-            SelectedClassNodeId = nodeId;
+        if (parameter is string key && !string.IsNullOrWhiteSpace(key))
+        {
+            if (ClassDirections.Any(d => d.Key == key))
+            {
+                SelectedClassDirectionKey = key;
+                return;
+            }
+
+            if (ClassBranches.Any(b => b.Key == key))
+            {
+                SelectedClassBranch = ClassBranches.First(b => b.Key == key);
+                return;
+            }
+
+            SelectedClassNodeId = key;
+            var entry = ClassEntries.FirstOrDefault(e => e.NodeId == key);
+            if (entry != null)
+                SelectedClassEntry = entry;
+        }
         if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedClassNodeId)) return;
         _api.ClassTreeAcquireNode(SelectedCharacterId, SelectedClassNodeId);
         LoadClassAndSkills();
@@ -749,14 +1090,23 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void InitializeClassVisualLayout()
     {
+        ClassDirections.Clear();
+        ClassDirections.Add(new ClassDirectionVm { Key = "defender", Label = "Защитник", Summary = "Оборона, стойкость и контроль линии фронта." });
+        ClassDirections.Add(new ClassDirectionVm { Key = "vanguard", Label = "Передовой", Summary = "Агрессивное продвижение и давление на противника." });
+        ClassDirections.Add(new ClassDirectionVm { Key = "ranger", Label = "Рейнджер", Summary = "Дистанция, мобильность и точечные удары." });
+        ClassDirections.Add(new ClassDirectionVm { Key = "samurai", Label = "Самурай", Summary = "Дисциплина, темп боя и контрудары." });
+        ClassDirections.Add(new ClassDirectionVm { Key = "mage", Label = "Маг", Summary = "Арканные эффекты, контроль и поддержка." });
+        ClassDirections.Add(new ClassDirectionVm { Key = "inventor", Label = "Изобретатель", Summary = "Тактические устройства и нестандартные решения." });
+
         ClassNodes.Clear();
         ClassNodes.Add(new ClassNodeVisualVm { NodeId = "novice", Title = "Новичок", State = "Start", X = 190, Y = 120 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "defender_branch_1", Title = "Ветвь защитника I", X = 190, Y = 12 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "vanguard_branch_1", Title = "Ветвь передового I", X = 322, Y = 68 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "ranger_branch_1", Title = "Ветвь рейнджера I", X = 322, Y = 186 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "samurai_branch_1", Title = "Ветвь самурая I", X = 190, Y = 242 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "mage_branch_1", Title = "Ветвь мага I", X = 58, Y = 186 });
-        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "inventor_branch_1", Title = "Ветвь изобретателя I", X = 58, Y = 68 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "defender_branch_1", Title = "Опорная стойка", State = "Locked", X = 190, Y = 12 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "vanguard_branch_1", Title = "Прорывной строй", State = "Locked", X = 322, Y = 68 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "ranger_branch_1", Title = "Дальняя тропа", State = "Locked", X = 322, Y = 186 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "samurai_branch_1", Title = "Путь клинка", State = "Locked", X = 190, Y = 242 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "mage_branch_1", Title = "Круг фокуса", State = "Locked", X = 58, Y = 186 });
+        ClassNodes.Add(new ClassNodeVisualVm { NodeId = "inventor_branch_1", Title = "Механический контур", State = "Locked", X = 58, Y = 68 });
+        RebuildClassNavigation();
     }
 
     private void AddStat(string label, Dictionary<string, object> map, string key) => StatsRows.Add(new StatRowVm { Label = label, Value = string.IsNullOrWhiteSpace(GetString(map, key)) ? "0" : GetString(map, key) });
@@ -813,7 +1163,154 @@ public class PlayerMainViewModel : ViewModelBase
         EnsureCollectionPlaceholder(NoteRows, "Нет заметок");
         RebuildStatGroups();
         EnsureCollectionPlaceholder(AdminNoteRows, "Нет советов от админов");
+        RebuildClassNavigation();
         BuildGameFeed();
+    }
+
+
+    private void InitializeDefaultPublicProfile()
+    {
+        PublicProfileIdentityRows.Clear();
+        PublicProfileSummaryRows.Clear();
+        PublicProfileHiddenRows.Clear();
+        PublicProfileName = "Публичный профиль";
+        PublicProfileSubtitle = "Нет данных";
+        PublicProfileStatusText = "Данные ещё не загружены";
+        PublicProfileHintText = "Подключитесь к серверу, чтобы увидеть содержимое";
+        PublicProfileDescription = "После загрузки здесь появятся имя, раса, описание и доступная сводка характеристик другого персонажа.";
+        NotifyPublicProfile();
+    }
+
+    private void RebuildClassNavigation()
+    {
+        ClassBranches.Clear();
+        var direction = ClassDirections.FirstOrDefault(d => d.Key == SelectedClassDirectionKey) ?? ClassDirections.FirstOrDefault();
+        if (direction == null)
+            return;
+
+        foreach (var node in ClassNodes.Where(n => n.NodeId != "novice" && n.NodeId.StartsWith(direction.Key, StringComparison.OrdinalIgnoreCase)))
+        {
+            ClassBranches.Add(new ClassBranchVm
+            {
+                Key = node.NodeId,
+                DirectionKey = direction.Key,
+                Title = node.Title,
+                Summary = $"Ветвь направления «{direction.Label}». Здесь позже появятся десятки специализированных классов.",
+                Status = node.State
+            });
+        }
+
+        if (ClassBranches.Count == 0)
+        {
+            ClassBranches.Add(new ClassBranchVm
+            {
+                Key = direction.Key + "_placeholder_branch",
+                DirectionKey = direction.Key,
+                Title = "Ветвь ещё не загружена",
+                Summary = "Сервер пока не прислал реальные ветви для этого направления.",
+                Status = "Placeholder"
+            });
+        }
+
+        SelectedClassBranch = ClassBranches.FirstOrDefault();
+        Notify(nameof(HasClassBranches));
+        Notify(nameof(SelectedClassDirectionDisplay));
+    }
+
+    private void RebuildClassEntries()
+    {
+        ClassEntries.Clear();
+        if (SelectedClassBranch == null)
+        {
+            SelectedClassEntry = null;
+            NotifyClassDetail();
+            return;
+        }
+
+        if (SelectedClassBranch.Key.EndsWith("_placeholder_branch", StringComparison.OrdinalIgnoreCase))
+        {
+            ClassEntries.Add(new ClassEntryVm
+            {
+                NodeId = SelectedClassBranch.Key + "_class",
+                BranchKey = SelectedClassBranch.Key,
+                Title = "Классы ещё не загружены",
+                Summary = "Когда сервер начнёт отдавать дерево развития, здесь появится список классов выбранной ветви.",
+                Status = "Placeholder"
+            });
+        }
+        else
+        {
+            var branchTitle = SelectedClassBranch.Title;
+            ClassEntries.Add(new ClassEntryVm
+            {
+                NodeId = SelectedClassBranch.Key,
+                BranchKey = SelectedClassBranch.Key,
+                Title = branchTitle,
+                Summary = "Стартовый узел ветви. Позже здесь будут уровни развития, развилки и специализации.",
+                Status = SelectedClassBranch.Status
+            });
+            ClassEntries.Add(new ClassEntryVm
+            {
+                NodeId = SelectedClassBranch.Key + "_advanced",
+                BranchKey = SelectedClassBranch.Key,
+                Title = branchTitle + " — развитие",
+                Summary = "Placeholder для следующего класса внутри выбранной ветви.",
+                Status = "Placeholder"
+            });
+        }
+
+        SelectedClassEntry = ClassEntries.FirstOrDefault();
+        Notify(nameof(HasClassEntries));
+        Notify(nameof(SelectedClassBranchTitle));
+        Notify(nameof(SelectedClassBranchSummary));
+    }
+
+    private void NotifyClassDetail()
+    {
+        Notify(nameof(SelectedClassDirectionDisplay));
+        Notify(nameof(SelectedClassBranchTitle));
+        Notify(nameof(SelectedClassBranchSummary));
+        Notify(nameof(SelectedClassEntryTitle));
+        Notify(nameof(SelectedClassEntrySummary));
+        Notify(nameof(SelectedClassEntryState));
+        Notify(nameof(SelectedClassEntryRequirements));
+        Notify(nameof(HasSelectedClassEntry));
+    }
+
+    private void AddPublicProfileField(ObservableCollection<PublicProfileFieldVm> target, string label, string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            target.Add(new PublicProfileFieldVm { Label = label, Value = value });
+    }
+
+    private void NotifyPublicProfile()
+    {
+        Notify(nameof(PublicProfileName));
+        Notify(nameof(PublicProfileSubtitle));
+        Notify(nameof(PublicProfileStatusText));
+        Notify(nameof(PublicProfileHintText));
+        Notify(nameof(PublicProfileDescription));
+        Notify(nameof(HasPublicProfileData));
+    }
+
+    private static string GetStringOrFallback(Dictionary<string, object> map, string key, string fallback)
+    {
+        var value = GetString(map, key);
+        return string.IsNullOrWhiteSpace(value) ? fallback : value;
+    }
+
+    private static string GetDirectionLabel(string key)
+    {
+        return key switch
+        {
+            "defender" => "Защитник",
+            "vanguard" => "Передовой",
+            "ranger" => "Рейнджер",
+            "samurai" => "Самурай",
+            "mage" => "Маг",
+            "inventor" => "Изобретатель",
+            _ => "Направление не выбрано"
+        };
     }
 
     private void EnsureCollectionPlaceholder(ObservableCollection<string> collection, string placeholder)
