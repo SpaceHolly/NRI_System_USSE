@@ -1,18 +1,20 @@
+using Nri.PlayerClient.Networking;
+using Nri.Shared.Configuration;
+using Nri.Shared.Contracts;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
-using System.Net;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Windows.Input;
 using System.Windows.Threading;
-using Nri.PlayerClient.Networking;
-using Nri.Shared.Configuration;
-using Nri.Shared.Contracts;
 
 namespace Nri.PlayerClient.ViewModels;
 
@@ -880,15 +882,31 @@ public class PlayerMainViewModel : ViewModelBase
     {
         try
         {
-            if (!File.Exists(AudioSettingsPath)) return;
-            var map = JsonProtocolSerializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(AudioSettingsPath));
-            if (map == null) return;
-            if (map.ContainsKey("volume")) double.TryParse(Convert.ToString(map["volume"]), out var vol); else vol = 0.7;
-            if (map.ContainsKey("muted")) bool.TryParse(Convert.ToString(map["muted"]), out var muted); else muted = false;
-            LocalVolume = Math.Max(0, Math.Min(1, vol));
+            if (!File.Exists(AudioSettingsPath))
+                return;
+
+            var map = JsonProtocolSerializer.Deserialize<Dictionary<string, object>>(
+             File.ReadAllText(AudioSettingsPath));
+
+            if (map == null)
+                return;
+
+            double volume = 0.7;
+            bool muted = false;
+
+            if (map.ContainsKey("volume"))
+                double.TryParse(Convert.ToString(map["volume"]), out volume);
+
+            if (map.ContainsKey("muted"))
+                bool.TryParse(Convert.ToString(map["muted"]), out muted);
+
+            LocalVolume = Math.Max(0, Math.Min(1, volume));
             LocalMuted = muted;
         }
-        catch { }
+        catch
+        {
+
+        }
     }
 
     private void ApplyAudioLocalSettings()
