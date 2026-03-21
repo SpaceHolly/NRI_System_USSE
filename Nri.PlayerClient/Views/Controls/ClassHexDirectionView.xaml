@@ -32,68 +32,46 @@
                                    Foreground="{StaticResource TextBrush}"/>
                     </Border>
 
-                    <TextBlock Text="Защитник"
-                               Width="110"
-                               TextAlignment="Center"
-                               FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               Canvas.Left="155"
-                               Canvas.Top="63"/>
-                    <TextBlock Text="Передовой"
-                               Width="92"
-                               TextAlignment="Center"
-                               FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               RenderTransformOrigin="0.5,0.5"
-                               Canvas.Left="262"
-                               Canvas.Top="102">
-                        <TextBlock.RenderTransform>
+                    <Button Canvas.Left="155" Canvas.Top="69" Width="110" Padding="2"
+                            Command="{Binding DirectionSelectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="defender"
+                            Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="SemiBold" Content="Защитник"/>
+                    <Button Canvas.Left="224" Canvas.Top="104" Width="92" Padding="2"
+                            Command="{Binding DirectionSelectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="vanguard"
+                            Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="SemiBold" Content="Передовой" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <Button.RenderTransform>
                             <RotateTransform Angle="60"/>
-                        </TextBlock.RenderTransform>
-                    </TextBlock>
-                    <TextBlock Text="Рейнджер"
-                               Width="92"
-                               TextAlignment="Center"
-                               FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               RenderTransformOrigin="0.5,0.5"
-                               Canvas.Left="262"
-                               Canvas.Top="182">
-                        <TextBlock.RenderTransform>
+                        </Button.RenderTransform>
+                    </Button>
+                    <Button Canvas.Left="226" Canvas.Top="176" Width="92" Padding="2"
+                            Command="{Binding DirectionSelectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="ranger"
+                            Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="SemiBold" Content="Рейнджер" RenderTransformOrigin="0.5,0.5">
+                        <Button.RenderTransform>
                             <RotateTransform Angle="-60"/>
-                        </TextBlock.RenderTransform>
-                    </TextBlock>
-                    <TextBlock Text="Самурай"
-                               Width="110"
-                               TextAlignment="Center"
-                               FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               Canvas.Left="155"
-                               Canvas.Top="224"/>
-                    <TextBlock Text="Маг"
-                               Width="84"
-                               TextAlignment="Center"
-                               FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               RenderTransformOrigin="0.5,0.5"
-                               Canvas.Left="74"
-                               Canvas.Top="184">
-                        <TextBlock.RenderTransform>
+                        </Button.RenderTransform>
+                    </Button>
+                    <Button Canvas.Left="155" Canvas.Top="220" Width="110" Padding="2"
+                            Command="{Binding DirectionSelectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="samurai"
+                            Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="SemiBold" Content="Самурай"/>
+                    <Button Canvas.Left="93" Canvas.Top="186" Width="84" Padding="2"
+                            Command="{Binding DirectionSelectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="mage"
+                            Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="SemiBold" Content="Маг" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <Button.RenderTransform>
                             <RotateTransform Angle="60"/>
-                        </TextBlock.RenderTransform>
-                    </TextBlock>
-                    <TextBlock Text="Изобретатель"
-                               Width="112"
-                               TextAlignment="Center"
-                               FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               RenderTransformOrigin="0.5,0.5"
-                               Canvas.Left="54"
-                               Canvas.Top="100">
-                        <TextBlock.RenderTransform>
+                        </Button.RenderTransform>
+                    </Button>
+                    <Button Canvas.Left="88" Canvas.Top="112" Width="112" Padding="2"
+                            Command="{Binding DirectionSelectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="inventor"
+                            Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="SemiBold" Content="Изобретатель" RenderTransformOrigin="0.5,0.5">
+                        <Button.RenderTransform>
                             <RotateTransform Angle="-60"/>
-                        </TextBlock.RenderTransform>
-                    </TextBlock>
+                        </Button.RenderTransform>
+                    </Button>
                 </Canvas>
             </Grid>
         </Viewbox>
