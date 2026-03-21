@@ -1,0 +1,1010 @@
+<Window x:Class="Nri.PlayerClient.Views.MainShellWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:Nri.PlayerClient.Views.Controls"
+        mc:Ignorable="d"
+        Title="NRI Player"
+        Height="900"
+        Width="1440"
+        MinHeight="740"
+        MinWidth="1180">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="230"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="NRI / Player" FontWeight="Bold" FontSize="18" Margin="0,0,16,0"/>
+                    <Border Style="{StaticResource StatusBadgeStyle}" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ConnectionState}" Foreground="White" FontWeight="SemiBold"/>
+                    </Border>
+                    <TextBlock Text="{Binding SessionSummary}" Margin="14,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Style="{StaticResource CardStyle}" Padding="8,4">
+                        <TextBlock Text="{Binding AudioStateText}" Width="260" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
+                    </Border>
+                    <Button Content="Обновить" Command="{Binding RefreshCommand}"/>
+                    <Button x:Name="ConnectionButton" Content="Сервер" Command="{Binding ToggleConnectionPopupCommand}"/>
+                    <Button x:Name="AuthButton" Content="Войти" Command="{Binding ToggleAuthPopupCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsAuthenticated}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Border Style="{StaticResource CardStyle}" Padding="8,4" Margin="8,0,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsAuthenticated}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding PlayerDisplayName}" FontWeight="SemiBold"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,8">
+            <Grid>
+                <TabControl>
+                    <TabItem Header="Мои персонажи">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid Margin="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Grid>
+                                <ListBox x:Name="MyCharactersList" ItemsSource="{Binding MyCharacters}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource CardStyle}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="16"/>
+                                                        <TextBlock Text="{Binding Race, StringFormat=Раса: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                        <TextBlock Text="{Binding Age, StringFormat=Возраст: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                        <TextBlock Text="{Binding Description}" Margin="0,6,0,0"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                                        <Border Style="{StaticResource CardStyle}" Padding="6,2">
+                                                            <TextBlock Text="{Binding IsActive, StringFormat=Активен: {0}}"/>
+                                                        </Border>
+                                                        <Border Style="{StaticResource CardStyle}" Padding="6,2">
+                                                            <TextBlock Text="{Binding Archived, StringFormat=Архив: {0}}"/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <Border Style="{StaticResource CardStyle}"
+                                        Background="{StaticResource PanelAltBrush}"
+                                        Padding="18"
+                                        Width="380"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        IsHitTestVisible="False">
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ElementName=MyCharactersList, Path=HasItems}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="Персонажи" FontWeight="Bold" FontSize="18" Margin="0,0,0,8" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Список персонажей не загружен" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Нет доступных персонажей" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,0" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Подключитесь к серверу или выберите сессию" Foreground="{StaticResource MutedBrush}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <Grid Grid.Column="1" Margin="8,0,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="12"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <Border Grid.Row="0" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                    <StackPanel>
+                                        <TextBlock Text="Настройки видимости моего персонажа" FontWeight="Bold" FontSize="16"/>
+                                        <TextBlock Text="Управляйте тем, какие сведения о вашем персонаже доступны другим игрокам." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,10"/>
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Персонаж" FontWeight="SemiBold"/>
+                                                <ComboBox SelectedValuePath="Id"
+                                                          DisplayMemberPath="Name"
+                                                          SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"
+                                                          ItemsSource="{Binding MyCharacters}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Vertical" Margin="8,20,0,0">
+                                                <Button Content="Загрузить детали" Command="{Binding LoadCharacterDetailsCommand}"/>
+                                                <Button Content="Загрузить visibility" Command="{Binding VisibilityLoadCommand}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Border Style="{StaticResource CardStyle}" Background="#FF223452">
+                                            <StackPanel>
+                                                <TextBlock Text="Параметры приватности" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                                <UniformGrid Columns="2">
+                                                    <CheckBox Content="Скрывать описание" IsChecked="{Binding VisHideDescription}"/>
+                                                    <CheckBox Content="Скрывать предысторию" IsChecked="{Binding VisHideBackstory}"/>
+                                                    <CheckBox Content="Скрывать характеристики" IsChecked="{Binding VisHideStats}"/>
+                                                    <CheckBox Content="Скрывать репутацию" IsChecked="{Binding VisHideReputation}"/>
+                                                </UniformGrid>
+                                            </StackPanel>
+                                        </Border>
+                                        <Button Content="Сохранить visibility" Command="{Binding VisibilitySaveCommand}" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="Публичный профиль другого персонажа" FontWeight="Bold" FontSize="16"/>
+                                            <TextBlock Text="Отдельная карточка просмотра чужого игрового профиля с учётом открытых и скрытых данных." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,10"/>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="ID / код персонажа" FontWeight="SemiBold"/>
+                                                    <TextBox Text="{Binding PublicViewCharacterId, UpdateSourceTrigger=PropertyChanged}"/>
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Content="Загрузить профиль" Command="{Binding PublicCharacterLoadCommand}" Margin="8,20,0,0"/>
+                                            </Grid>
+                                        </StackPanel>
+
+                                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="0,12,0,0">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding PublicProfileName}" FontWeight="Bold" FontSize="18"/>
+                                                    <TextBlock Text="{Binding PublicProfileSubtitle}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                                <Border Grid.Row="1" Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,10,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding PublicProfileStatusText}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{Binding PublicProfileHintText}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <TextBlock Grid.Row="2" Text="{Binding PublicProfileDescription}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                                                <Grid Grid.Row="3" Margin="0,12,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Style="{StaticResource CardStyle}" Background="#FF223452">
+                                                        <StackPanel>
+                                                            <TextBlock Text="Открытые данные" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                                            <ItemsControl ItemsSource="{Binding PublicProfileIdentityRows}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <DockPanel Margin="0,2,0,2">
+                                                                            <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                            <TextBlock Text="{Binding Value}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                                        </DockPanel>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                            <ItemsControl ItemsSource="{Binding PublicProfileSummaryRows}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <StackPanel Margin="0,6,0,0">
+                                                                            <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}"/>
+                                                                            <TextBlock Text="{Binding Value}" TextWrapping="Wrap"/>
+                                                                        </StackPanel>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="#FF223452" Margin="8,0,0,0">
+                                                        <StackPanel>
+                                                            <TextBlock Text="Скрыто / недоступно" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                                            <ItemsControl ItemsSource="{Binding PublicProfileHiddenRows}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Border Style="{StaticResource CardStyle}" Background="#FF1E2A40" Margin="0,0,0,6">
+                                                                            <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                                                                        </Border>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem Header="Активный персонаж">
+                        <Grid Margin="8">
+                            <TabControl>
+                                <TabItem Header="Обзор">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <Grid Margin="4">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="2*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding CharacterNameDisplay}" FontSize="22" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding CharacterRaceDisplay, StringFormat=Раса: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                        <TextBlock Text="{Binding CharacterAgeDisplay, StringFormat=Возраст: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                        <TextBlock Text="{Binding CharacterHeightDisplay, StringFormat=Рост: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="Описание" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding CharacterDescriptionDisplay}" Margin="0,0,0,8"/>
+                                                        <TextBlock Text="Предыстория" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding CharacterBackstoryDisplay}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+
+                                            <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="Характеристики" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Боевая группа" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                <ItemsControl ItemsSource="{Binding CoreStatRows}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <DockPanel Margin="0,2,0,2">
+                                                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                <TextBlock Text="{Binding Value}" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                            </DockPanel>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Атрибуты" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                <ItemsControl ItemsSource="{Binding AttributeStatRows}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <DockPanel Margin="0,2,0,2">
+                                                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                <TextBlock Text="{Binding Value}" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                            </DockPanel>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="3*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="Деньги" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                        <ItemsControl ItemsSource="{Binding MoneyRows}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <UniformGrid Columns="4"/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                            <Ellipse Width="12" Height="12" Fill="{Binding Color}" Margin="0,0,6,0"/>
+                                                                            <TextBlock Text="{Binding Name}" Width="95"/>
+                                                                            <TextBlock Text="{Binding Amount}" FontWeight="SemiBold"/>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="Монеты опыта" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                            <TextBlock Text="0" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="Система ещё не подключена" Foreground="{StaticResource MutedBrush}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+
+                                            <Border Grid.Row="3" Style="{StaticResource CardStyle}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="Инвентарь (preview)" FontWeight="Bold"/>
+                                                        <ItemsControl ItemsSource="{Binding InventoryRows}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="Владения (preview)" FontWeight="Bold"/>
+                                                        <ItemsControl ItemsSource="{Binding HoldingsRows}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="Компаньоны (preview)" FontWeight="Bold"/>
+                                                        <ItemsControl ItemsSource="{Binding Companions}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <TextBlock Text="{Binding Name}"/>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </ScrollViewer>
+                                </TabItem>
+
+                                <TabItem Header="Инвентарь">
+                                    <Grid Margin="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.2*"/>
+                                            <ColumnDefinition Width="1.4*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                            <Grid>
+                                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Список предметов" FontWeight="Bold" FontSize="16"/>
+                                                    <TextBlock Text="Инвентарь подготовлен под большой объём предметов и свойств." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                    <ListBox x:Name="InventoryList" ItemsSource="{Binding InventoryRows}"/>
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Border>
+                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <StackPanel>
+                                                    <TextBlock Text="Карточка предмета" FontWeight="Bold" FontSize="16"/>
+                                                    <TextBlock Text="{Binding ElementName=InventoryList, Path=SelectedItem, TargetNullValue=Предмет не выбран}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="Описание" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="Здесь появятся описание, владельцы, прочность, статус экипировки, заряд и вложенное содержимое." TextWrapping="Wrap"/>
+                                                    <TextBlock Text="Свойства" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                    <Border Style="{StaticResource CardStyle}" Background="#FF223452"><TextBlock Text="Поля свойств пока отображаются как UI-заглушка под реальный payload." TextWrapping="Wrap"/></Border>
+                                                </StackPanel>
+                                            </ScrollViewer>
+                                        </Border>
+                                    </Grid>
+                                </TabItem>
+
+                                <TabItem Header="Владения">
+                                    <Grid Margin="4">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Список владений" FontWeight="Bold" FontSize="16"/>
+                                                    <TextBlock Text="Корабли, поместья, участки и другие крупные сущности будут собраны здесь." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ListBox x:Name="HoldingsList" ItemsSource="{Binding HoldingsRows}"/></ScrollViewer>
+                                            </Grid>
+                                        </Border>
+                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+                                                <TextBlock Text="Карточка владения" FontWeight="Bold" FontSize="16"/>
+                                                <TextBlock Text="{Binding ElementName=HoldingsList, Path=SelectedItem, TargetNullValue=Владение не выбрано}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                <TextBlock Text="Тип и владельцы" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                <TextBlock Text="Здесь будут тип владения, список владельцев, описание, статус и дополнительные свойства." TextWrapping="Wrap"/>
+                                            </StackPanel></ScrollViewer>
+                                        </Border>
+                                    </Grid>
+                                </TabItem>
+
+                                <TabItem Header="Репутация">
+                                    <TabControl>
+                                        <TabItem Header="Фракции">
+                                            <Grid Margin="4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                                        <TextBlock Text="Крупные фракции" FontWeight="Bold" FontSize="16"/>
+                                                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ListBox x:Name="MajorFactionList" ItemsSource="{Binding ReputationRows}"><ListBox.ItemTemplate><DataTemplate><Border Style="{StaticResource CardStyle}" Background="#FF223452"><DockPanel><TextBlock Text="{Binding Label}" Width="170"/><TextBlock Text="{Binding Value}" FontWeight="SemiBold"/></DockPanel></Border></DataTemplate></ListBox.ItemTemplate></ListBox></ScrollViewer>
+                                                        <TextBlock Grid.Row="2" Text="Мелкие фракции" FontWeight="Bold" FontSize="16" Margin="0,8,0,8"/>
+                                                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto"><ListBox x:Name="MinorFactionList"><ListBoxItem>Гильдия портовых мастеров</ListBoxItem><ListBoxItem>Союз караванщиков</ListBoxItem><ListBoxItem>Круг архивариусов</ListBoxItem><ListBoxItem>Сторожевые посты границы</ListBoxItem><ListBoxItem>Местные общины</ListBoxItem></ListBox></ScrollViewer>
+                                                    </Grid>
+                                                </Border>
+                                                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                    <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+                                                        <TextBlock Text="Карточка репутации фракции" FontWeight="Bold" FontSize="16"/>
+                                                        <TextBlock Text="{Binding ElementName=MajorFactionList, Path=SelectedItem.Label, TargetNullValue=Фракция не выбрана}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                        <Grid Height="20" Margin="0,10,0,0"><Border Background="{StaticResource ReputationGradient}" CornerRadius="10"/><ProgressBar Minimum="-100" Maximum="100" Value="{Binding ElementName=MajorFactionList, Path=SelectedItem.Value}" Background="Transparent"/></Grid>
+                                                        <TextBlock Text="Описание и причины" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                        <TextBlock Text="Здесь будут краткое описание фракции, текущая репутация и список причин, почему отношение именно такое." TextWrapping="Wrap"/>
+                                                    </StackPanel></ScrollViewer>
+                                                </Border>
+                                            </Grid>
+                                        </TabItem>
+                                        <TabItem Header="Важные NPC">
+                                            <Grid Margin="4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                                        <TextBlock Text="Список важных NPC" FontWeight="Bold" FontSize="16"/>
+                                                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ListBox x:Name="NpcRepList"><ListBoxItem>Капитан Рейн</ListBoxItem><ListBoxItem>Архимаг Идрас</ListBoxItem><ListBoxItem>Леди Марен</ListBoxItem><ListBoxItem>Инженер Торвик</ListBoxItem></ListBox></ScrollViewer>
+                                                    </Grid>
+                                                </Border>
+                                                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                    <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+                                                        <TextBlock Text="Карточка отношений с NPC" FontWeight="Bold" FontSize="16"/>
+                                                        <TextBlock Text="{Binding ElementName=NpcRepList, Path=SelectedItem.Content, TargetNullValue=NPC не выбран}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                        <Grid Height="20" Margin="0,10,0,0"><Border Background="{StaticResource ReputationGradient}" CornerRadius="10"/><ProgressBar Minimum="-100" Maximum="100" Value="25" Background="Transparent"/></Grid>
+                                                        <TextBlock Text="Причины отношения" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                        <TextBlock Text="В этой карточке появятся описание NPC, текущая шкала репутации и история ключевых причин изменения отношения." TextWrapping="Wrap"/>
+                                                    </StackPanel></ScrollViewer>
+                                                </Border>
+                                            </Grid>
+                                        </TabItem>
+                                    </TabControl>
+                                </TabItem>
+
+                                <TabItem Header="Компаньоны">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="280"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ListBox x:Name="CompanionList"
+                                                 ItemsSource="{Binding Companions}"
+                                                 SelectedItem="{Binding SelectedCompanion, Mode=TwoWay}"
+                                                 DisplayMemberPath="NameDisplay"/>
+                                        <TabControl Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedCompanion}">
+                                            <TabItem Header="Обзор">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <Grid Margin="4">
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                        </Grid.RowDefinitions>
+                                                        <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="2*"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="{Binding NameDisplay}" FontSize="22" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding SpeciesDisplay, StringFormat=Вид: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                                </StackPanel>
+                                                                <StackPanel Grid.Column="1">
+                                                                    <TextBlock Text="Описание" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding NotesDisplay}" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                        <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Характеристики" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Border Grid.Column="0" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="Боевая группа" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                            <ItemsControl ItemsSource="{Binding CoreStatRows}">
+                                                                                <ItemsControl.ItemTemplate>
+                                                                                    <DataTemplate>
+                                                                                        <DockPanel Margin="0,2,0,2">
+                                                                                            <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                            <TextBlock Text="{Binding Value}" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                                        </DockPanel>
+                                                                                    </DataTemplate>
+                                                                                </ItemsControl.ItemTemplate>
+                                                                            </ItemsControl>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="Атрибуты" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                            <ItemsControl ItemsSource="{Binding AttributeStatRows}">
+                                                                                <ItemsControl.ItemTemplate>
+                                                                                    <DataTemplate>
+                                                                                        <DockPanel Margin="0,2,0,2">
+                                                                                            <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                            <TextBlock Text="{Binding Value}" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                                        </DockPanel>
+                                                                                    </DataTemplate>
+                                                                                </ItemsControl.ItemTemplate>
+                                                                            </ItemsControl>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </Grid>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Инвентарь" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                                <TextBlock Text="Содержимое инвентаря" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
+                                                                <ListBox ItemsSource="{Binding InventoryRows}"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </ScrollViewer>
+                                            </TabItem>
+                                            <TabItem Header="Владения">
+                                                <Grid Margin="4">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><StackPanel><TextBlock Text="Владения компаньона" FontWeight="Bold" FontSize="16"/><TextBlock Text="Список масштабируется и остаётся доступным при маленькой высоте окна." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/></StackPanel><ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ListBox x:Name="CompanionHoldingsList" ItemsSource="{Binding HoldingsRows}"/></ScrollViewer></Grid></Border>
+                                                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel><TextBlock Text="Карточка владения" FontWeight="Bold" FontSize="16"/><TextBlock Text="{Binding ElementName=CompanionHoldingsList, Path=SelectedItem, TargetNullValue=Владение не выбрано}" FontWeight="SemiBold" Margin="0,8,0,0"/><TextBlock Text="Здесь будут тип, описание, владельцы и свойства владения компаньона." TextWrapping="Wrap" Margin="0,8,0,0"/></StackPanel></ScrollViewer></Border>
+                                                </Grid>
+                                            </TabItem>
+                                            <TabItem Header="Навыки">
+                                                <Grid Margin="4">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><StackPanel><TextBlock Text="Навыки компаньона" FontWeight="Bold" FontSize="16"/><TextBlock Text="Список и карточка готовы под будущие реальные данные." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/></StackPanel><ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ListBox x:Name="CompanionSkillsList" ItemsSource="{Binding SkillsRows}"/></ScrollViewer></Grid></Border>
+                                                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel><TextBlock Text="Карточка навыка" FontWeight="Bold" FontSize="16"/><TextBlock Text="{Binding ElementName=CompanionSkillsList, Path=SelectedItem, TargetNullValue=Навык не выбран}" FontWeight="SemiBold" Margin="0,8,0,0"/><TextBlock Text="Тип" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/><TextBlock Text="Активный / пассивный / технический placeholder"/><TextBlock Text="Эффект и требования" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/><TextBlock Text="Здесь позже появятся описание, эффекты, требования и причина недоступности навыка компаньона." TextWrapping="Wrap"/></StackPanel></ScrollViewer></Border>
+                                                </Grid>
+                                            </TabItem>
+                                            <TabItem Header="Классы">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="*"/>
+                                                    </Grid.RowDefinitions>
+                                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                        <StackPanel>
+                                                            <TextBlock Text="Классовая схема компаньона" Foreground="{StaticResource MutedBrush}"/>
+                                                            <controls:ClassHexDirectionView Height="280" Margin="8"
+                                                                                            DirectionSelectCommand="{Binding DataContext.AcquireClassNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <Grid Grid.Row="1" Margin="0,8,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="1.1*"/>
+                                                            <ColumnDefinition Width="1.1*"/>
+                                                            <ColumnDefinition Width="1.4*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                            <Grid>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto"/>
+                                                                    <RowDefinition Height="*"/>
+                                                                </Grid.RowDefinitions>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="Ветви направления" FontWeight="Bold" FontSize="16"/>
+                                                                    <TextBlock Text="{Binding DataContext.SelectedClassDirectionDisplay, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                                                                </StackPanel>
+                                                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                                    <ListBox ItemsSource="{Binding DataContext.ClassBranches, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                             SelectedItem="{Binding DataContext.SelectedClassBranch, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}">
+                                                                        <ListBox.ItemTemplate>
+                                                                            <DataTemplate>
+                                                                                <Border Style="{StaticResource CardStyle}" Background="#FF223452">
+                                                                                    <StackPanel>
+                                                                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                                                                        <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                                    </StackPanel>
+                                                                                </Border>
+                                                                            </DataTemplate>
+                                                                        </ListBox.ItemTemplate>
+                                                                    </ListBox>
+                                                                </ScrollViewer>
+                                                            </Grid>
+                                                        </Border>
+                                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                            <Grid>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto"/>
+                                                                    <RowDefinition Height="*"/>
+                                                                </Grid.RowDefinitions>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="Классы ветви" FontWeight="Bold" FontSize="16"/>
+                                                                    <TextBlock Text="{Binding DataContext.SelectedClassBranchTitle, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                                                                </StackPanel>
+                                                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                                    <ListBox ItemsSource="{Binding DataContext.ClassEntries, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                             SelectedItem="{Binding DataContext.SelectedClassEntry, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}">
+                                                                        <ListBox.ItemTemplate>
+                                                                            <DataTemplate>
+                                                                                <Border Style="{StaticResource CardStyle}" Background="#FF223452">
+                                                                                    <StackPanel>
+                                                                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                                                                        <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                                    </StackPanel>
+                                                                                </Border>
+                                                                            </DataTemplate>
+                                                                        </ListBox.ItemTemplate>
+                                                                    </ListBox>
+                                                                </ScrollViewer>
+                                                            </Grid>
+                                                        </Border>
+                                                        <Border Grid.Column="2" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Карточка класса компаньона" FontWeight="Bold" FontSize="16"/>
+                                                                <TextBlock Text="{Binding DataContext.SelectedClassEntryTitle, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                                <TextBlock Text="{Binding DataContext.SelectedClassEntrySummary, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                <Border Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,10,0,0">
+                                                                    <StackPanel>
+                                                                        <TextBlock Text="Выбранное направление" Foreground="{StaticResource MutedBrush}"/>
+                                                                        <TextBlock Text="{Binding DataContext.SelectedClassDirectionDisplay, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="SemiBold"/>
+                                                                        <TextBlock Text="{Binding DataContext.SelectedClassEntryRequirements, RelativeSource={RelativeSource AncestorType=Window}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                                                    </StackPanel>
+                                                                </Border>
+                                                                <TextBlock Text="Классы компаньона пока остаются заглушкой до загрузки полного дерева развития с сервера." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Grid>
+                                                </ScrollViewer>
+                                            </TabItem>
+                                        </TabControl>
+                                    </Grid>
+                                </TabItem>
+
+                                <TabItem Header="Навыки">
+                                    <TabControl>
+                                        <TabItem Header="Справочник навыков">
+                                            <Grid Margin="4"><Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><StackPanel><TextBlock Text="Все навыки" FontWeight="Bold" FontSize="16"/><TextBlock Text="Справочник рассчитан на большое количество записей и отдельную карточку детали." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/></StackPanel><ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ListBox x:Name="SkillCatalogList" ItemsSource="{Binding SkillCatalogRows}"/></ScrollViewer></Grid></Border>
+                                                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel><TextBlock Text="Карточка навыка" FontWeight="Bold" FontSize="16"/><TextBlock Text="{Binding ElementName=SkillCatalogList, Path=SelectedItem, TargetNullValue=Навык не выбран}" FontWeight="SemiBold" Margin="0,8,0,0"/><TextBlock Text="Тип" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/><TextBlock Text="Пассивный / активный / особый placeholder"/><TextBlock Text="Описание" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/><TextBlock Text="Здесь будут полный эффект, описание, требования и взаимодействие с классами." TextWrapping="Wrap"/><TextBlock Text="Доступность" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/><TextBlock Text="Причина недоступности или условия получения будут показаны здесь." TextWrapping="Wrap"/></StackPanel></ScrollViewer></Border>
+                                            </Grid>
+                                        </TabItem>
+                                        <TabItem Header="Навыки персонажа/компаньона">
+                                            <Grid Margin="4"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                                <StackPanel Orientation="Horizontal"><TextBox Width="220" Text="{Binding SelectedSkillId, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Получить навык" Command="{Binding AcquireSkillCommand}"/></StackPanel>
+                                                <Grid Grid.Row="1" Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><StackPanel><TextBlock Text="Список навыков персонажа" FontWeight="Bold" FontSize="16"/><TextBlock Text="Навыки остаются доступными даже при маленькой высоте окна за счёт скролла." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/></StackPanel><ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><ListBox x:Name="CharacterSkillsList" ItemsSource="{Binding SkillRows}"/></ScrollViewer></Grid></Border>
+                                                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel><TextBlock Text="Карточка выбранного навыка" FontWeight="Bold" FontSize="16"/><TextBlock Text="{Binding ElementName=CharacterSkillsList, Path=SelectedItem, TargetNullValue=Навык не выбран}" FontWeight="SemiBold" Margin="0,8,0,0"/><TextBlock Text="Тип" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/><TextBlock Text="Боевой / социальный / ремесленный placeholder"/><TextBlock Text="Что даёт" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/><TextBlock Text="Здесь появятся эффекты, бонусы и влияние навыка на персонажа." TextWrapping="Wrap"/><TextBlock Text="Требования и доступность" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/><TextBlock Text="Условия получения и причина недоступности будут выводиться в этой карточке." TextWrapping="Wrap"/></StackPanel></ScrollViewer></Border>
+                                                </Grid>
+                                            </Grid>
+                                        </TabItem>
+                                    </TabControl>
+                                </TabItem>
+
+                                <TabItem Header="Классы">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBox Width="220" Text="{Binding SelectedClassNodeId, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <Button Content="Получить класс" Command="{Binding AcquireClassNodeCommand}"/>
+                                        </StackPanel>
+                                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,0" Background="{StaticResource PanelAltBrush}">
+                                            <StackPanel>
+                                                <TextBlock Text="Навигация по направлениям" FontWeight="Bold" FontSize="16"/>
+                                                <TextBlock Text="Центральный шестиугольник задаёт ось развития; ниже показываются только ветви и классы выбранного направления." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                                                <controls:ClassHexDirectionView Height="300" Margin="8"
+                                                                                DirectionSelectCommand="{Binding AcquireClassNodeCommand}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Grid Grid.Row="2" Margin="0,8,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="1.1*"/>
+                                                <ColumnDefinition Width="1.1*"/>
+                                                <ColumnDefinition Width="1.4*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="*"/>
+                                                    </Grid.RowDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="Ветви выбранного направления" FontWeight="Bold" FontSize="16"/>
+                                                        <TextBlock Text="{Binding SelectedClassDirectionDisplay}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                                                    </StackPanel>
+                                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                        <ListBox ItemsSource="{Binding ClassBranches}" SelectedItem="{Binding SelectedClassBranch, Mode=TwoWay}">
+                                                            <ListBox.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Style="{StaticResource CardStyle}" Background="#FF223452">
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                                                            <TextBlock Text="{Binding Status}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
+                                                                            <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ListBox.ItemTemplate>
+                                                        </ListBox>
+                                                    </ScrollViewer>
+                                                </Grid>
+                                            </Border>
+                                            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="*"/>
+                                                    </Grid.RowDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="Классы выбранной ветви" FontWeight="Bold" FontSize="16"/>
+                                                        <TextBlock Text="{Binding SelectedClassBranchTitle}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                                                    </StackPanel>
+                                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                        <ListBox ItemsSource="{Binding ClassEntries}" SelectedItem="{Binding SelectedClassEntry, Mode=TwoWay}">
+                                                            <ListBox.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Style="{StaticResource CardStyle}" Background="#FF223452">
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                                                            <TextBlock Text="{Binding Status}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
+                                                                            <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ListBox.ItemTemplate>
+                                                        </ListBox>
+                                                    </ScrollViewer>
+                                                </Grid>
+                                            </Border>
+                                            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="Карточка класса" FontWeight="Bold" FontSize="16"/>
+                                                    <TextBlock Text="{Binding SelectedClassEntryTitle}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="{Binding SelectedClassEntrySummary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                    <Border Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,10,0,0">
+                                                        <StackPanel>
+                                                            <TextBlock Text="Направление" Foreground="{StaticResource MutedBrush}"/>
+                                                            <TextBlock Text="{Binding SelectedClassDirectionDisplay}" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="Ветвь" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                            <TextBlock Text="{Binding SelectedClassBranchTitle}" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding SelectedClassEntryRequirements}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <TextBlock Text="Панель готова к масштабированию: вместо плоского списка здесь останется контекстная навигация по направлению, ветви и конкретному классу." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Grid>
+                                    </ScrollViewer>
+                                </TabItem>
+                            </TabControl>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.2*"/>
+                    <ColumnDefinition Width="1.3*"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,4">
+                        <ListBox ItemsSource="{Binding GameFeedRows}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource CardStyle}" Padding="8" Margin="0,0,0,3">
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                                <Setter Property="Background" Value="#FF1E2A40"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="Chat"><Setter Property="Background" Value="#FF1F314A"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="System"><Setter Property="Background" Value="#FF31263E"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="Dice"><Setter Property="Background" Value="#FF2B3B2D"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="Request"><Setter Property="Background" Value="#FF3A2C2C"/></DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Kind}" Width="72" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+                                            <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal">
+                        <ComboBox Width="160" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}"/>
+                        <TextBox Width="430" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button Content="Отправить" Command="{Binding ChatSendCommand}"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Column="1" Margin="8,0,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Заявка на бросок" FontWeight="Bold" Margin="0,0,0,6"/>
+                            <WrapPanel>
+                                <TextBlock Text="Кубов" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBox Width="60" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Грани" VerticalAlignment="Center" Margin="6,0,4,0"/>
+                                <TextBox Width="70" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Мод." VerticalAlignment="Center" Margin="6,0,4,0"/>
+                                <TextBox Width="60" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}"/>
+                            </WrapPanel>
+                            <WrapPanel>
+                                <ComboBox Width="130" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
+                                <TextBox Width="210" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}"/>
+                            </WrapPanel>
+                            <WrapPanel>
+                                <TextBox Width="200" Text="{Binding SelectedRequestId, UpdateSourceTrigger=PropertyChanged}"/>
+                                <Button Content="Создать" Command="{Binding CreateDiceRequestCommand}"/>
+                                <Button Content="Отменить" Command="{Binding CancelRequestCommand}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Состояние сессии" FontWeight="Bold"/>
+                            <ItemsControl ItemsSource="{Binding SessionStateRows}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Музыка" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding AudioStateText}" Margin="0,4,0,6"/>
+                            <WrapPanel>
+                                <TextBlock Text="Громкость" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <Slider Width="120" Minimum="0" Maximum="1" Value="{Binding LocalVolume, UpdateSourceTrigger=PropertyChanged}"/>
+                                <CheckBox Content="Mute" IsChecked="{Binding LocalMuted}" Margin="8,0,0,0"/>
+                            </WrapPanel>
+                            <Button Content="Применить" Command="{Binding AudioApplyLocalSettingsCommand}" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="3" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Заметки" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBlock Text="Личные заметки и советы админов" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
+                            <WrapPanel>
+                                <ComboBox Width="120" ItemsSource="{Binding NoteTargetTypeOptions}" SelectedItem="{Binding NoteTargetType}"/>
+                                <TextBox Width="120" Text="{Binding NoteTargetId, UpdateSourceTrigger=PropertyChanged}"/>
+                                <ComboBox Width="130" ItemsSource="{Binding NoteVisibilityOptions}" SelectedItem="{Binding NoteVisibility}"/>
+                            </WrapPanel>
+                            <TextBox Text="{Binding NoteTitle, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Text="{Binding NoteText, UpdateSourceTrigger=PropertyChanged}" Height="58" AcceptsReturn="True"/>
+                            <WrapPanel>
+                                <Button Content="Обновить" Command="{Binding NotesRefreshCommand}"/>
+                                <Button Content="Создать" Command="{Binding NotesCreateCommand}"/>
+                                <TextBox Width="120" Text="{Binding SelectedNoteId, UpdateSourceTrigger=PropertyChanged}"/>
+                                <Button Content="Архивировать" Command="{Binding NotesArchiveCommand}"/>
+                            </WrapPanel>
+                            <TextBlock Text="Мои заметки" FontWeight="SemiBold" Margin="0,6,0,2"/>
+                            <ListBox ItemsSource="{Binding NoteRows}" Height="52"/>
+                            <TextBlock Text="Советы от админов" FontWeight="SemiBold" Margin="0,6,0,2"/>
+                            <ListBox ItemsSource="{Binding AdminNoteRows}" Height="52"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Popup IsOpen="{Binding IsConnectionPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=ConnectionButton}" StaysOpen="False">
+            <Border Style="{StaticResource CardStyle}" Width="360" Background="{StaticResource PanelAltBrush}">
+                <StackPanel>
+                    <TextBlock Text="Подключение к серверу" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                    <TextBlock Text="IPv4 / адрес сервера"/>
+                    <TextBox Text="{Binding ServerHostInput, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Порт" Margin="0,8,0,0"/>
+                    <TextBox Text="{Binding ServerPortInput, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Border Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Текущий статус" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding ConnectionState}" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding ConnectionStatusDetail}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Последнее сохранённое подключение" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                    <TextBlock Text="{Binding LastServerHost}"/>
+                    <TextBlock Text="{Binding LastServerPort}" Foreground="{StaticResource MutedBrush}"/>
+                    <WrapPanel Margin="0,10,0,0">
+                        <Button Content="Подключиться" Command="{Binding ConnectToServerCommand}"/>
+                        <Button Content="Применить" Command="{Binding ApplyConnectionSettingsCommand}"/>
+                        <Button Content="Сбросить к localhost" Command="{Binding ResetConnectionDefaultsCommand}"/>
+                        <Button Content="Последний адрес" Command="{Binding UseLastConnectionCommand}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <Popup IsOpen="{Binding IsAuthPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=AuthButton}" StaysOpen="False">
+            <Border Style="{StaticResource CardStyle}" Width="320" Background="{StaticResource PanelAltBrush}">
+                <StackPanel>
+                    <TextBlock Text="Авторизация" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                    <TextBlock Text="Логин"/>
+                    <TextBox Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Пароль"/>
+                    <PasswordBox x:Name="AuthPasswordBox" PasswordChanged="OnAuthPasswordChanged"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                        <Button Content="Регистрация" Command="{Binding RegisterCommand}"/>
+                        <Button Content="Вход" Command="{Binding LoginCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</Window>
