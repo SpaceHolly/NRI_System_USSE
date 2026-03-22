@@ -217,8 +217,8 @@ public class AdminMainViewModel : ViewModelBase
         _client = new JsonTcpClient(new ClientConfig(), _session);
         _api = new CommandApi(_client);
 
-        LoginCommand = new RelayCommand(Login);
-        RefreshCommand = new RelayCommand(RefreshAll);
+        LoginCommand = new RelayCommand(() => RunUiAction("Авторизация", Login));
+        RefreshCommand = new RelayCommand(() => RunUiAction("Полное обновление данных", RefreshAll));
         OpenConnectionPopupCommand = new RelayCommand(() =>
         {
             IsAuthPopupOpen = false;
@@ -229,7 +229,7 @@ public class AdminMainViewModel : ViewModelBase
             IsConnectionPopupOpen = false;
             IsAuthPopupOpen = !IsAuthPopupOpen;
         });
-        ConnectToServerCommand = new RelayCommand(ConnectToServer);
+        ConnectToServerCommand = new RelayCommand(() => RunUiAction("Подключение к серверу", ConnectToServer));
         ApplyConnectionSettingsCommand = new RelayCommand(ApplyConnectionSettings);
         ResetConnectionDefaultsCommand = new RelayCommand(ResetConnectionDefaults);
         UseSavedConnectionSettingsCommand = new RelayCommand(UseSavedConnectionSettings);
@@ -407,12 +407,24 @@ public class AdminMainViewModel : ViewModelBase
     public string SelectedCharacterSummary => SelectedCharacter == null ? "Персонаж не выбран." : $"{SelectedCharacter.Name} • race: {SelectedCharacter.Extra} • archived: {SelectedCharacter.State}";
     public string SelectedRequestSummary => SelectedRequest == null ? "Активная заявка не выбрана." : $"{SelectedRequest.Name} • {SelectedRequest.State} • {SelectedRequest.Extra}";
     public string SelectedLockSummary => SelectedLock == null ? "Активный lock не выбран." : $"{SelectedLock.Name} • {SelectedLock.State} • {SelectedLock.Extra}";
+    public string CharacterActionSummary => !ArePrivilegedSectionsEnabled ? "Подключитесь и выполните вход, чтобы работать с персонажами." : SelectedCharacter == null ? "Выберите персонажа для editor / visibility / content actions." : IsBusy ? $"Выполняется: {BusyMessage}" : "Действия с персонажем доступны.";
+    public string ChatModerationSummary => !ArePrivilegedSectionsEnabled ? "Чат-модерация станет доступна после авторизации." : IsBusy ? $"Выполняется: {BusyMessage}" : string.IsNullOrWhiteSpace(ChatModerationUserId) ? "Для mute/unmute укажите userId; lock/slow mode уже доступны." : $"Готово к модерации пользователя {ChatModerationUserId}.";
+    public string SystemActionSummary => !ArePrivilegedSectionsEnabled ? "Системные инструменты требуют подключения и авторизации." : IsBusy ? $"Выполняется: {BusyMessage}" : "Системные действия готовы к запуску.";
     public string HeaderStatusSummary => HasConnectionError ? LastErrorMessage : $"{ConnectionStage} • {LoginState}";
     public bool CanManagePendingAccount => ArePrivilegedSectionsEnabled && SelectedPendingAccount != null && !IsBusy;
     public bool CanLoadPlayerCharacters => ArePrivilegedSectionsEnabled && SelectedPlayer != null && !IsBusy;
     public bool CanOpenSelectedCharacter => ArePrivilegedSectionsEnabled && SelectedCharacter != null && !IsBusy;
     public bool CanModerateSelectedRequest => ArePrivilegedSectionsEnabled && SelectedRequest != null && !IsBusy;
     public bool CanManageSelectedLock => ArePrivilegedSectionsEnabled && SelectedLock != null && !IsBusy;
+    public bool CanManageSelectedCharacter => ArePrivilegedSectionsEnabled && SelectedCharacter != null && !IsBusy;
+    public bool CanManageCharacterVisibility => ArePrivilegedSectionsEnabled && SelectedCharacter != null && !IsBusy;
+    public bool CanRefreshNotes => ArePrivilegedSectionsEnabled && !IsBusy;
+    public bool CanCreateNote => ArePrivilegedSectionsEnabled && !IsBusy;
+    public bool CanArchiveNote => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedNoteId);
+    public bool CanModerateChatUser => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(ChatModerationUserId);
+    public bool CanManageChatControls => ArePrivilegedSectionsEnabled && !IsBusy;
+    public bool CanManageWorkspace => !IsBusy;
+    public bool CanInitiateConnection => !IsBusy;
     public int SelectedContentTabIndex { get => _selectedContentTabIndex; set { if (_selectedContentTabIndex != value) { _selectedContentTabIndex = value; Notify(); } } }
     public int SelectedSystemTabIndex { get => _selectedSystemTabIndex; set { if (_selectedSystemTabIndex != value) { _selectedSystemTabIndex = value; Notify(); } } }
     public string WorkspaceLayoutPath => Path.Combine(_appDataDirectory, "workspace.layout.json");
@@ -977,6 +989,9 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(SelectedPlayerSummary));
         Notify(nameof(SelectedCharacterSummary));
         Notify(nameof(SelectedRequestSummary));
+        Notify(nameof(CharacterActionSummary));
+        Notify(nameof(ChatModerationSummary));
+        Notify(nameof(SystemActionSummary));
         Notify(nameof(SelectedLock));
         Notify(nameof(SelectedLockSummary));
         Notify(nameof(HeaderStatusSummary));
@@ -985,6 +1000,15 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(CanOpenSelectedCharacter));
         Notify(nameof(CanModerateSelectedRequest));
         Notify(nameof(CanManageSelectedLock));
+        Notify(nameof(CanManageSelectedCharacter));
+        Notify(nameof(CanManageCharacterVisibility));
+        Notify(nameof(CanRefreshNotes));
+        Notify(nameof(CanCreateNote));
+        Notify(nameof(CanArchiveNote));
+        Notify(nameof(CanModerateChatUser));
+        Notify(nameof(CanManageChatControls));
+        Notify(nameof(CanManageWorkspace));
+        Notify(nameof(CanInitiateConnection));
         Notify(nameof(CanControlContent));
         Notify(nameof(CanRefreshContent));
         Notify(nameof(CanAcquireClassNode));
