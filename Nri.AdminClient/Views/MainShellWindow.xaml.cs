@@ -9,9 +9,8 @@ namespace Nri.AdminClient.Views;
 
 public partial class MainShellWindow : Window
 {
-    private readonly Dictionary<string, DetachedPanelWindow> _panelWindows = new Dictionary<string, DetachedPanelWindow>();
+    private readonly Dictionary<string, DetachedPanelWindow> _panelWindows = new();
     private bool _isShuttingDown;
-    private bool _panelSubscriptionsAttached;
 
     public MainShellWindow()
     {
@@ -25,16 +24,10 @@ public partial class MainShellWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (_panelSubscriptionsAttached)
-        {
-            return;
-        }
-
         foreach (var panel in ViewModel.WorkspacePanels)
         {
             panel.PropertyChanged += OnPanelPropertyChanged;
         }
-        _panelSubscriptionsAttached = true;
 
         SynchronizeDetachedWindows();
     }
@@ -42,40 +35,23 @@ public partial class MainShellWindow : Window
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         _isShuttingDown = true;
+
         foreach (var window in _panelWindows.Values.ToList())
         {
-            window.BeginProgrammaticClose(attachPanelBack: false);
+            window.IsProgrammaticClose = true;
+            window.Close();
         }
+
         _panelWindows.Clear();
-        if (_panelSubscriptionsAttached)
-        {
-            foreach (var panel in ViewModel.WorkspacePanels)
-            {
-                panel.PropertyChanged -= OnPanelPropertyChanged;
-            }
-            _panelSubscriptionsAttached = false;
-        }
         ViewModel.Shutdown();
     }
 
     private void OnPanelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (_isShuttingDown)
-        {
-            return;
-        }
-
-        if (e.PropertyName == nameof(WorkspacePanelDescriptor.IsDetached) || e.PropertyName == nameof(WorkspacePanelDescriptor.IsVisible))
+        if (e.PropertyName == nameof(WorkspacePanelDescriptor.IsDetached) ||
+            e.PropertyName == nameof(WorkspacePanelDescriptor.IsVisible))
         {
             SynchronizeDetachedWindows();
-        }
-    }
-
-    private void OnDetachedWindowClosed(object? sender, System.EventArgs e)
-    {
-        if (sender is DetachedPanelWindow window)
-        {
-            _panelWindows.Remove(window.PanelId);
         }
     }
 
@@ -88,8 +64,21 @@ public partial class MainShellWindow : Window
                 if (!_panelWindows.ContainsKey(panel.PanelId))
                 {
                     var template = (DataTemplate)FindResource(panel.PanelId + "Template");
-                    var window = new DetachedPanelWindow(ViewModel, panel, template) { Owner = this };
-                    window.Closed += OnDetachedWindowClosed;
+                    var window = new DetachedPanelWindow(ViewModel, panel, template)
+                    {
+                        Owner = this
+                    };
+
+                    window.Closed += (_, _) =>
+                    {
+                        _panelWindows.Remove(panel.PanelId);
+
+                        if (!_isShuttingDown && panel.IsDetached)
+                        {
+                            panel.IsDetached = false;
+                        }
+                    };
+
                     _panelWindows[panel.PanelId] = window;
                     window.Show();
                 }
@@ -97,10 +86,8 @@ public partial class MainShellWindow : Window
             else if (_panelWindows.TryGetValue(panel.PanelId, out var existingWindow))
             {
                 _panelWindows.Remove(panel.PanelId);
-                if (!existingWindow.IsCloseInProgress)
-                {
-                    existingWindow.BeginProgrammaticClose(attachPanelBack: false);
-                }
+                existingWindow.IsProgrammaticClose = true;
+                existingWindow.Close();
             }
         }
     }
