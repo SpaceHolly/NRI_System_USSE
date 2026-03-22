@@ -11,6 +11,7 @@ public partial class MainShellWindow : Window
 {
     private readonly Dictionary<string, DetachedPanelWindow> _panelWindows = new Dictionary<string, DetachedPanelWindow>();
     private bool _isShuttingDown;
+    private bool _panelSubscriptionsAttached;
 
     public MainShellWindow()
     {
@@ -24,10 +25,16 @@ public partial class MainShellWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        if (_panelSubscriptionsAttached)
+        {
+            return;
+        }
+
         foreach (var panel in ViewModel.WorkspacePanels)
         {
             panel.PropertyChanged += OnPanelPropertyChanged;
         }
+        _panelSubscriptionsAttached = true;
 
         SynchronizeDetachedWindows();
     }
@@ -40,6 +47,14 @@ public partial class MainShellWindow : Window
             window.BeginProgrammaticClose(attachPanelBack: false);
         }
         _panelWindows.Clear();
+        if (_panelSubscriptionsAttached)
+        {
+            foreach (var panel in ViewModel.WorkspacePanels)
+            {
+                panel.PropertyChanged -= OnPanelPropertyChanged;
+            }
+            _panelSubscriptionsAttached = false;
+        }
         ViewModel.Shutdown();
     }
 
