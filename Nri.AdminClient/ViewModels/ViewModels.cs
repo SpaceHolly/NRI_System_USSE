@@ -201,6 +201,7 @@ public class AdminMainViewModel : ViewModelBase
     private string _selectedOwnerUserId = string.Empty;
     private string _selectedCharacterId = string.Empty;
     private string _selectedPendingRequestId = string.Empty;
+    private string _selectedCombatParticipantId = string.Empty;
 
     public AdminMainViewModel()
     {
@@ -238,6 +239,7 @@ public class AdminMainViewModel : ViewModelBase
         RefreshSelectedCharacterCommand = new RelayCommand(RefreshSelectedCharacter);
         RefreshPeopleSectionCommand = new RelayCommand(RefreshPeopleSection);
         RefreshModerationSectionCommand = new RelayCommand(RefreshModerationSection);
+        RefreshSessionSectionCommand = new RelayCommand(RefreshSessionSection);
         AcquireLockCommand = new RelayCommand(AcquireLock);
         ReleaseLockCommand = new RelayCommand(ReleaseLock);
         ForceUnlockCommand = new RelayCommand(ForceUnlock);
@@ -246,34 +248,34 @@ public class AdminMainViewModel : ViewModelBase
         SaveMoneyCommand = new RelayCommand(SaveMoney);
         ApproveRequestCommand = new RelayCommand(ApproveRequest);
         RejectRequestCommand = new RelayCommand(RejectRequest);
-        CombatStartCommand = new RelayCommand(CombatStart);
-        CombatEndCommand = new RelayCommand(CombatEnd);
-        CombatRefreshCommand = new RelayCommand(CombatRefresh);
-        CombatNextTurnCommand = new RelayCommand(CombatNextTurn);
-        CombatPrevTurnCommand = new RelayCommand(CombatPrevTurn);
-        CombatNextRoundCommand = new RelayCommand(CombatNextRound);
-        CombatSkipTurnCommand = new RelayCommand(CombatSkipTurn);
-        CombatAddParticipantCommand = new RelayCommand(CombatAddParticipant);
-        CombatRemoveParticipantCommand = new RelayCommand(CombatRemoveParticipant);
-        CombatDetachCompanionCommand = new RelayCommand(CombatDetachCompanion);
+        CombatStartCommand = new RelayCommand(() => RunUiAction("Запуск боя", CombatStart));
+        CombatEndCommand = new RelayCommand(() => RunUiAction("Завершение боя", CombatEnd));
+        CombatRefreshCommand = new RelayCommand(() => RunUiAction("Обновление боя", CombatRefresh));
+        CombatNextTurnCommand = new RelayCommand(() => RunUiAction("Переход к следующему ходу", CombatNextTurn));
+        CombatPrevTurnCommand = new RelayCommand(() => RunUiAction("Возврат к предыдущему ходу", CombatPrevTurn));
+        CombatNextRoundCommand = new RelayCommand(() => RunUiAction("Переход к следующему раунду", CombatNextRound));
+        CombatSkipTurnCommand = new RelayCommand(() => RunUiAction("Пропуск хода", CombatSkipTurn));
+        CombatAddParticipantCommand = new RelayCommand(() => RunUiAction("Добавление участника боя", CombatAddParticipant));
+        CombatRemoveParticipantCommand = new RelayCommand(() => RunUiAction("Удаление участника боя", CombatRemoveParticipant));
+        CombatDetachCompanionCommand = new RelayCommand(() => RunUiAction("Отвязка спутника", CombatDetachCompanion));
         DefinitionsReloadCommand = new RelayCommand(DefinitionsReload);
         LoadClassTreeCommand = new RelayCommand(LoadClassTree);
         AcquireClassNodeCommand = new RelayCommand(AcquireClassNode);
         LoadSkillsCommand = new RelayCommand(LoadSkills);
         AcquireSkillCommand = new RelayCommand(AcquireSkill);
-        ChatSendCommand = new RelayCommand(ChatSend);
-        ChatRefreshCommand = new RelayCommand(ChatRefresh);
+        ChatSendCommand = new RelayCommand(() => RunUiAction("Отправка сообщения", ChatSend));
+        ChatRefreshCommand = new RelayCommand(() => RunUiAction("Обновление чата", ChatRefresh));
         ChatMuteUserCommand = new RelayCommand(ChatMuteUser);
         ChatUnmuteUserCommand = new RelayCommand(ChatUnmuteUser);
         ChatLockPlayersCommand = new RelayCommand(ChatLockPlayers);
         ChatUnlockPlayersCommand = new RelayCommand(ChatUnlockPlayers);
         ChatSetSlowModeCommand = new RelayCommand(ChatSetSlowMode);
-        AudioRefreshCommand = new RelayCommand(AudioRefresh);
-        AudioSetModeCommand = new RelayCommand(AudioSetMode);
-        AudioClearOverrideCommand = new RelayCommand(AudioClearOverride);
-        AudioNextTrackCommand = new RelayCommand(AudioNextTrack);
-        AudioSelectTrackCommand = new RelayCommand(AudioSelectTrack);
-        AudioReloadLibraryCommand = new RelayCommand(AudioReloadLibrary);
+        AudioRefreshCommand = new RelayCommand(() => RunUiAction("Обновление аудио", AudioRefresh));
+        AudioSetModeCommand = new RelayCommand(() => RunUiAction("Смена режима аудио", AudioSetMode));
+        AudioClearOverrideCommand = new RelayCommand(() => RunUiAction("Сброс override аудио", AudioClearOverride));
+        AudioNextTrackCommand = new RelayCommand(() => RunUiAction("Следующий трек", AudioNextTrack));
+        AudioSelectTrackCommand = new RelayCommand(() => RunUiAction("Выбор трека", AudioSelectTrack));
+        AudioReloadLibraryCommand = new RelayCommand(() => RunUiAction("Перезагрузка аудиотеки", AudioReloadLibrary));
         VisibilityLoadCommand = new RelayCommand(VisibilityLoad);
         VisibilitySaveCommand = new RelayCommand(VisibilitySave);
         NotesRefreshCommand = new RelayCommand(NotesRefresh);
@@ -345,6 +347,17 @@ public class AdminMainViewModel : ViewModelBase
     public string SessionStateSummary => CombatRows.FirstOrDefault(row => row.StartsWith("Status:", StringComparison.OrdinalIgnoreCase))?.Split(':').Skip(1).FirstOrDefault()?.Trim() ?? (ArePrivilegedSectionsEnabled ? "Спокойное состояние" : "Недоступно до входа");
     public int ActiveCombatParticipantsCount => CombatRows.Count(row => row.StartsWith("P:", StringComparison.OrdinalIgnoreCase));
     public string CombatTrackerSummary => HasActiveCombat ? $"Бой активен • участников: {ActiveCombatParticipantsCount}" : ActiveCombatParticipantsCount > 0 ? $"Трекер загружен • участников: {ActiveCombatParticipantsCount}" : "Трекер боя ждёт данных";
+    public bool IsSessionActive => ArePrivilegedSectionsEnabled && (HasActiveCombat || ChatRows.Count > 0 || AudioLibraryRows.Count > 0 || !string.IsNullOrWhiteSpace(AudioStateText));
+    public int CombatOpponentsCount => CombatParticipantRows.Count(row => row.State.IndexOf("Npc", StringComparison.OrdinalIgnoreCase) >= 0 || row.State.IndexOf("Enemy", StringComparison.OrdinalIgnoreCase) >= 0);
+    public RowVm? SelectedCombatParticipant => CombatParticipantRows.FirstOrDefault(row => row.Id == SelectedCombatParticipantId);
+    public string SelectedCombatParticipantSummary => SelectedCombatParticipant == null ? "Активный участник боя не выбран." : $"{SelectedCombatParticipant.Name} • {SelectedCombatParticipant.State} • {SelectedCombatParticipant.Extra}";
+    public string SessionAttentionSummary => HasActiveCombat ? "Бой активен — проверьте трекер и порядок ходов." : ChatRows.Count > 0 ? "Есть сообщения и активность чата." : !string.IsNullOrWhiteSpace(AudioStateText) ? "Проверьте текущее аудио сессии." : "Сессия ожидает активности.";
+    public string ChatActivitySummary => ChatRows.Count == 0 ? "Нет доступных сообщений" : $"Последнее: {ChatRows[0]}";
+    public string AudioTrackSummary => string.IsNullOrWhiteSpace(AudioStateText) ? "Нет активного аудио" : AudioStateText;
+    public bool CanManageCombatSelection => ArePrivilegedSectionsEnabled && SelectedCombatParticipant != null && !IsBusy;
+    public bool CanControlCombat => ArePrivilegedSectionsEnabled && !IsBusy;
+    public bool CanSendChat => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(ChatMessageText);
+    public bool CanControlAudio => ArePrivilegedSectionsEnabled && !IsBusy;
     public string ContentSummary => $"Classes: {ClassTreeRows.Count} • Skills: {SkillStateRows.Count}";
     public string ReferenceSummary => ReferenceRows.Count == 0 ? "Reference data: нет загруженных записей" : $"Reference data: {ReferenceRows.Count} записей типа {ReferenceType}";
     public string BackupSummary => BackupRows.Count == 0 ? "Backups: ещё не загружены" : $"Backups: {BackupRows.Count}, последний: {BackupRows[0]}";
@@ -456,7 +469,21 @@ public class AdminMainViewModel : ViewModelBase
     public string CombatSessionId { get; set; } = "default";
     public string NewParticipantName { get; set; } = "New NPC";
     public string NewParticipantKind { get; set; } = "Npc";
-    public string SelectedCombatParticipantId { get; set; } = string.Empty;
+    public string SelectedCombatParticipantId
+    {
+        get => _selectedCombatParticipantId;
+        set
+        {
+            if (_selectedCombatParticipantId != value)
+            {
+                _selectedCombatParticipantId = value;
+                Notify();
+                Notify(nameof(SelectedCombatParticipant));
+                Notify(nameof(SelectedCombatParticipantSummary));
+                Notify(nameof(CanManageCombatSelection));
+            }
+        }
+    }
     public string LockStateText { get; set; } = string.Empty;
     public string SelectedClassNodeId { get; set; } = string.Empty;
     public string SelectedSkillId { get; set; } = string.Empty;
@@ -526,6 +553,7 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> RequestHistoryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> DiceFeedRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> CombatRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<RowVm> CombatParticipantRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> CombatHistoryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> ClassTreeRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> SkillStateRows { get; } = new ObservableCollection<string>();
@@ -569,6 +597,7 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand RefreshSelectedCharacterCommand { get; }
     public ICommand RefreshPeopleSectionCommand { get; }
     public ICommand RefreshModerationSectionCommand { get; }
+    public ICommand RefreshSessionSectionCommand { get; }
     public ICommand AcquireLockCommand { get; }
     public ICommand ReleaseLockCommand { get; }
     public ICommand ForceUnlockCommand { get; }
@@ -786,6 +815,17 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(SessionStateSummary));
         Notify(nameof(ActiveCombatParticipantsCount));
         Notify(nameof(CombatTrackerSummary));
+        Notify(nameof(IsSessionActive));
+        Notify(nameof(CombatOpponentsCount));
+        Notify(nameof(SelectedCombatParticipant));
+        Notify(nameof(SelectedCombatParticipantSummary));
+        Notify(nameof(SessionAttentionSummary));
+        Notify(nameof(ChatActivitySummary));
+        Notify(nameof(AudioTrackSummary));
+        Notify(nameof(CanManageCombatSelection));
+        Notify(nameof(CanControlCombat));
+        Notify(nameof(CanSendChat));
+        Notify(nameof(CanControlAudio));
         Notify(nameof(ContentSummary));
         Notify(nameof(ReferenceSummary));
         Notify(nameof(BackupSummary));
@@ -1295,6 +1335,7 @@ public class AdminMainViewModel : ViewModelBase
     private void CombatRefresh()
     {
         CombatRows.Clear();
+        CombatParticipantRows.Clear();
         var state = _api.CombatGetState(CombatSessionId);
         if (state.Status == ResponseStatus.Ok)
         {
@@ -1305,9 +1346,17 @@ public class AdminMainViewModel : ViewModelBase
             foreach (var item in ToList(state.Payload.ContainsKey("participants") ? state.Payload["participants"] : new ArrayList()))
             {
                 if (item is Dictionary<string, object> m)
-                    CombatRows.Add($"P:{S(m, "participantId")} {S(m, "displayName")} {S(m, "kind")} roll={S(m, "baseRoll")} st={S(m, "status")}");
+                {
+                    var participantId = S(m, "participantId");
+                    var displayName = S(m, "displayName");
+                    var kind = S(m, "kind");
+                    var extra = $"roll={S(m, "baseRoll")} • st={S(m, "status")}";
+                    CombatRows.Add($"P:{participantId} {displayName} {kind} {extra}");
+                    CombatParticipantRows.Add(new RowVm { Id = participantId, Name = displayName, State = kind, Extra = extra });
+                }
             }
         }
+        RestoreSelection(CombatParticipantRows, SelectedCombatParticipantId, value => SelectedCombatParticipantId = value);
 
         CombatHistoryRows.Clear();
         var history = _api.CombatGetHistory(CombatSessionId);
