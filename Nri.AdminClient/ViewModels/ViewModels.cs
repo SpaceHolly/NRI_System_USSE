@@ -1482,7 +1482,7 @@ public class AdminMainViewModel : ViewModelBase
         ReputationRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("reputation") ? r.Payload["reputation"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                ReputationRows.Add($"{S(m, "scope")}:{S(m, "groupKey") }={S(m, "value")}");
+                ReputationRows.Add($"{S(m, "scope")}:{S(m, "groupKey")}={S(m, "value")}");
 
         CompanionRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("companions") ? r.Payload["companions"] : new ArrayList()))
