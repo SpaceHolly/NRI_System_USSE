@@ -4,6 +4,8 @@ using MongoDB.Driver;
 using Nri.Server.Logging;
 using Nri.Shared.Configuration;
 using Nri.Shared.Domain;
+using System.IO;
+using MongoDB.Bson;
 
 namespace Nri.Server.Infrastructure;
 
@@ -74,6 +76,8 @@ public class MongoContext
     {
         var client = new MongoClient(config.Mongo.ConnectionString);
         var db = client.GetDatabase(config.Mongo.DatabaseName);
+
+        Console.WriteLine(db.Client.Cluster.Description);
 
         Accounts = db.GetCollection<UserAccount>("accounts");
         Profiles = db.GetCollection<UserProfile>("profiles");
