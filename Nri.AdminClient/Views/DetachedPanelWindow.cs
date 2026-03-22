@@ -2,31 +2,43 @@ using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Nri.AdminClient.ViewModels;
 
 namespace Nri.AdminClient.Views;
 
 public sealed class DetachedPanelWindow : Window
 {
-    private bool _isCloseInProgress;
-    private bool _isProgrammaticClose;
-    private bool _attachOnClose = true;
     private readonly AdminMainViewModel _viewModel;
     private readonly WorkspacePanelDescriptor _panel;
+
+    public bool IsProgrammaticClose { get; set; }
 
     public DetachedPanelWindow(AdminMainViewModel viewModel, WorkspacePanelDescriptor panel, DataTemplate template)
     {
         _viewModel = viewModel;
         _panel = panel;
-        Title = $"NRI / Admin — {panel.Title}";
+
+        Title = $"НРИ / Панель Админа — {panel.Title}";
         Width = panel.WindowWidth;
         Height = panel.WindowHeight;
         Left = panel.WindowLeft;
         Top = panel.WindowTop;
         MinWidth = 720;
         MinHeight = 480;
+
+        var bg = Application.Current.TryFindResource("BgBrush") as Brush;
+        var fg = Application.Current.TryFindResource("TextBrush") as Brush;
+
+        if (bg != null) Background = bg;
+        if (fg != null) Foreground = fg;
+
         DataContext = viewModel;
-        Content = new ContentControl { Content = panel, ContentTemplate = template };
+        Content = new ContentControl
+        {
+            Content = panel,
+            ContentTemplate = template
+        };
 
         Closing += OnClosing;
         Closed += OnClosed;
@@ -35,39 +47,20 @@ public sealed class DetachedPanelWindow : Window
     }
 
     public string PanelId => _panel.PanelId;
-    public bool IsCloseInProgress => _isCloseInProgress;
-
-    public void BeginProgrammaticClose(bool attachPanelBack)
-    {
-        if (_isCloseInProgress)
-        {
-            return;
-        }
-
-        _isProgrammaticClose = true;
-        _attachOnClose = attachPanelBack;
-        Close();
-    }
 
     private void OnClosing(object? sender, CancelEventArgs e)
     {
-        if (_isCloseInProgress)
-        {
-            return;
-        }
-
-        _isCloseInProgress = true;
         PersistBounds();
-
-        if (!_isProgrammaticClose && _attachOnClose)
-        {
-            _viewModel.AttachWorkspacePanelCommand.Execute(_panel.PanelId);
-        }
     }
 
     private void OnClosed(object? sender, EventArgs e)
     {
         PersistBounds();
+
+        if (!IsProgrammaticClose)
+        {
+            _viewModel.AttachWorkspacePanelCommand.Execute(_panel.PanelId);
+        }
     }
 
     private void PersistBounds()
