@@ -185,6 +185,7 @@ public class AdminMainViewModel : ViewModelBase
     private string _lastServerHost = "127.0.0.1";
     private int _lastServerPort = 5000;
     private bool _isConnectionPopupOpen;
+    private bool _isAuthPopupOpen;
     private bool _isOnline;
     private bool _isConnectedToServer;
     private bool _isAuthenticated;
@@ -192,6 +193,10 @@ public class AdminMainViewModel : ViewModelBase
     private string _lastStatusMessage = "Ожидание подключения";
     private int _locksCount;
     private string _selectedSection = "Обзор";
+    private string _selectedPendingAccountId = string.Empty;
+    private string _selectedOwnerUserId = string.Empty;
+    private string _selectedCharacterId = string.Empty;
+    private string _selectedPendingRequestId = string.Empty;
 
     public AdminMainViewModel()
     {
@@ -202,7 +207,16 @@ public class AdminMainViewModel : ViewModelBase
 
         LoginCommand = new RelayCommand(Login);
         RefreshCommand = new RelayCommand(RefreshAll);
-        OpenConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
+        OpenConnectionPopupCommand = new RelayCommand(() =>
+        {
+            IsAuthPopupOpen = false;
+            IsConnectionPopupOpen = !IsConnectionPopupOpen;
+        });
+        ToggleAuthPopupCommand = new RelayCommand(() =>
+        {
+            IsConnectionPopupOpen = false;
+            IsAuthPopupOpen = !IsAuthPopupOpen;
+        });
         ConnectToServerCommand = new RelayCommand(ConnectToServer);
         ApplyConnectionSettingsCommand = new RelayCommand(ApplyConnectionSettings);
         ResetConnectionDefaultsCommand = new RelayCommand(ResetConnectionDefaults);
@@ -211,6 +225,9 @@ public class AdminMainViewModel : ViewModelBase
         ArchiveCommand = new RelayCommand(ArchiveSelected);
         LoadOwnerCharactersCommand = new RelayCommand(LoadOwnerCharacters);
         OpenCharacterCommand = new RelayCommand(OpenCharacter);
+        OpenPlayerCharactersCommand = new RelayCommand(OpenPlayerCharacters);
+        FocusSelectedCharacterCommand = new RelayCommand(FocusSelectedCharacter);
+        FocusSelectedRequestCommand = new RelayCommand(FocusSelectedRequest);
         AcquireLockCommand = new RelayCommand(AcquireLock);
         ReleaseLockCommand = new RelayCommand(ReleaseLock);
         ForceUnlockCommand = new RelayCommand(ForceUnlock);
@@ -294,6 +311,7 @@ public class AdminMainViewModel : ViewModelBase
     public string LoginState => IsAuthenticated ? $"Администратор: {LoginSummary}" : IsConnectedToServer ? "Сервер доступен, войдите как админ" : "Не авторизован";
     public string SectionAccessHint => ArePrivilegedSectionsEnabled ? "Рабочие разделы активны" : IsConnectedToServer ? "Для рабочих разделов выполните вход" : "Подключитесь к серверу, чтобы активировать рабочие разделы";
     public bool IsConnectionPopupOpen { get => _isConnectionPopupOpen; set { _isConnectionPopupOpen = value; Notify(); } }
+    public bool IsAuthPopupOpen { get => _isAuthPopupOpen; set { _isAuthPopupOpen = value; Notify(); } }
     public string ServerHostInput { get => _serverHostInput; set { _serverHostInput = value; Notify(); } }
     public string ServerPortInput { get => _serverPortInput; set { _serverPortInput = value; Notify(); } }
     public string LastServerHost { get => _lastServerHost; set { _lastServerHost = value; Notify(); } }
@@ -317,13 +335,82 @@ public class AdminMainViewModel : ViewModelBase
     public string ReferenceSummary => ReferenceRows.Count == 0 ? "Reference data: нет загруженных записей" : $"Reference data: {ReferenceRows.Count} записей типа {ReferenceType}";
     public string BackupSummary => BackupRows.Count == 0 ? "Backups: ещё не загружены" : $"Backups: {BackupRows.Count}, последний: {BackupRows[0]}";
     public string WorkspaceSummary => $"Панели: встроено {WorkspacePanels.Count(panel => panel.IsVisible && !panel.IsDetached)}, вынесено {WorkspacePanels.Count(panel => panel.IsVisible && panel.IsDetached)}, скрыто {WorkspacePanels.Count(panel => !panel.IsVisible)}";
+    public RowVm? SelectedPendingAccount => PendingAccounts.FirstOrDefault(row => row.Id == SelectedPendingAccountId);
+    public RowVm? SelectedPlayer => Players.FirstOrDefault(row => row.Id == SelectedOwnerUserId);
+    public RowVm? SelectedCharacter => Characters.FirstOrDefault(row => row.Id == SelectedCharacterId);
+    public RowVm? SelectedRequest => PendingRequests.FirstOrDefault(row => row.Id == SelectedPendingRequestId);
+    public string SelectedPendingAccountSummary => SelectedPendingAccount == null ? "Выберите ожидающий аккаунт, чтобы увидеть детали и действия." : $"{SelectedPendingAccount.Name} • {SelectedPendingAccount.State} • {SelectedPendingAccount.Extra}";
+    public string SelectedPlayerSummary => SelectedPlayer == null ? "Выберите игрока, чтобы загрузить связанных персонажей." : $"{SelectedPlayer.Name} • {SelectedPlayer.State} • {SelectedPlayer.Extra}";
+    public string SelectedCharacterSummary => SelectedCharacter == null ? "Персонаж не выбран." : $"{SelectedCharacter.Name} • race: {SelectedCharacter.Extra} • archived: {SelectedCharacter.State}";
+    public string SelectedRequestSummary => SelectedRequest == null ? "Активная заявка не выбрана." : $"{SelectedRequest.Name} • {SelectedRequest.State} • {SelectedRequest.Extra}";
+    public string HeaderStatusSummary => HasConnectionError ? LastErrorMessage : $"{ConnectionStage} • {LoginState}";
     public string WorkspaceLayoutPath => Path.Combine(_appDataDirectory, "workspace.layout.json");
     public string ConnectionSettingsPath => Path.Combine(_appDataDirectory, "connection.settings.json");
 
-    public string SelectedPendingAccountId { get; set; } = string.Empty;
-    public string SelectedOwnerUserId { get; set; } = string.Empty;
-    public string SelectedCharacterId { get; set; } = string.Empty;
-    public string SelectedPendingRequestId { get; set; } = string.Empty;
+    public string SelectedPendingAccountId
+    {
+        get => _selectedPendingAccountId;
+        set
+        {
+            if (_selectedPendingAccountId != value)
+            {
+                _selectedPendingAccountId = value;
+                Notify();
+                Notify(nameof(SelectedPendingAccount));
+                Notify(nameof(SelectedPendingAccountSummary));
+            }
+        }
+    }
+
+    public string SelectedOwnerUserId
+    {
+        get => _selectedOwnerUserId;
+        set
+        {
+            if (_selectedOwnerUserId != value)
+            {
+                _selectedOwnerUserId = value;
+                Notify();
+                Notify(nameof(SelectedPlayer));
+                Notify(nameof(SelectedPlayerSummary));
+            }
+        }
+    }
+
+    public string SelectedCharacterId
+    {
+        get => _selectedCharacterId;
+        set
+        {
+            if (_selectedCharacterId != value)
+            {
+                _selectedCharacterId = value;
+                if (string.Equals(NoteTargetType, "character", StringComparison.OrdinalIgnoreCase))
+                {
+                    NoteTargetId = value;
+                    Notify(nameof(NoteTargetId));
+                }
+                Notify();
+                Notify(nameof(SelectedCharacter));
+                Notify(nameof(SelectedCharacterSummary));
+            }
+        }
+    }
+
+    public string SelectedPendingRequestId
+    {
+        get => _selectedPendingRequestId;
+        set
+        {
+            if (_selectedPendingRequestId != value)
+            {
+                _selectedPendingRequestId = value;
+                Notify();
+                Notify(nameof(SelectedRequest));
+                Notify(nameof(SelectedRequestSummary));
+            }
+        }
+    }
     public string RequestComment { get; set; } = string.Empty;
     public string CombatSessionId { get; set; } = "default";
     public string NewParticipantName { get; set; } = "New NPC";
@@ -422,6 +509,7 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand OpenConnectionPopupCommand { get; }
+    public ICommand ToggleAuthPopupCommand { get; }
     public ICommand ConnectToServerCommand { get; }
     public ICommand ApplyConnectionSettingsCommand { get; }
     public ICommand ResetConnectionDefaultsCommand { get; }
@@ -430,6 +518,9 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand ArchiveCommand { get; }
     public ICommand LoadOwnerCharactersCommand { get; }
     public ICommand OpenCharacterCommand { get; }
+    public ICommand OpenPlayerCharactersCommand { get; }
+    public ICommand FocusSelectedCharacterCommand { get; }
+    public ICommand FocusSelectedRequestCommand { get; }
     public ICommand AcquireLockCommand { get; }
     public ICommand ReleaseLockCommand { get; }
     public ICommand ForceUnlockCommand { get; }
@@ -577,6 +668,7 @@ public class AdminMainViewModel : ViewModelBase
             IsAuthenticated = false;
             SetConnectedState($"Соединение установлено: {host}:{port}");
             IsConnectionPopupOpen = false;
+            IsAuthPopupOpen = false;
         }
         catch (Exception ex)
         {
@@ -650,6 +742,15 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(ReferenceSummary));
         Notify(nameof(BackupSummary));
         Notify(nameof(WorkspaceSummary));
+        Notify(nameof(SelectedPendingAccount));
+        Notify(nameof(SelectedPlayer));
+        Notify(nameof(SelectedCharacter));
+        Notify(nameof(SelectedRequest));
+        Notify(nameof(SelectedPendingAccountSummary));
+        Notify(nameof(SelectedPlayerSummary));
+        Notify(nameof(SelectedCharacterSummary));
+        Notify(nameof(SelectedRequestSummary));
+        Notify(nameof(HeaderStatusSummary));
     }
 
     public void LoadWorkspaceLayout()
@@ -776,6 +877,43 @@ public class AdminMainViewModel : ViewModelBase
         RefreshConnectionSummary();
     }
 
+
+    private void OpenPlayerCharacters()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedOwnerUserId)) return;
+        LoadOwnerCharacters();
+        SelectedSection = "Люди";
+    }
+
+    private void FocusSelectedCharacter()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        SelectedSection = "Персонажи";
+        OpenCharacter();
+    }
+
+    private void FocusSelectedRequest()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedPendingRequestId)) return;
+        SelectedSection = "Модерация";
+    }
+
+    private void RestoreSelection(ObservableCollection<RowVm> source, string selectedId, Action<string> setter)
+    {
+        if (string.IsNullOrWhiteSpace(selectedId))
+        {
+            return;
+        }
+
+        if (source.Any(row => row.Id == selectedId))
+        {
+            setter(selectedId);
+            return;
+        }
+
+        setter(string.Empty);
+    }
+
     private void Login()
     {
         try
@@ -788,6 +926,7 @@ public class AdminMainViewModel : ViewModelBase
                 SetConnectedState($"Авторизация успешна: {CurrentEndpoint}");
                 _poller.Start();
                 RefreshAll();
+                IsAuthPopupOpen = false;
                 Notify(nameof(LoginSummary));
             }
             else
@@ -853,6 +992,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             PendingAccounts.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = S(m, "createdUtc") });
         }
+        RestoreSelection(PendingAccounts, SelectedPendingAccountId, value => SelectedPendingAccountId = value);
         RefreshConnectionSummary();
     }
 
@@ -866,6 +1006,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             Players.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = $"online={S(m, "isOnline")}; last={S(m, "lastSeenUtc")}" });
         }
+        RestoreSelection(Players, SelectedOwnerUserId, value => SelectedOwnerUserId = value);
         RefreshConnectionSummary();
     }
 
@@ -880,6 +1021,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             Characters.Add(new RowVm { Id = S(m, "characterId"), Name = S(m, "name"), State = S(m, "archived"), Extra = S(m, "race") });
         }
+        RestoreSelection(Characters, SelectedCharacterId, value => SelectedCharacterId = value);
         RefreshConnectionSummary();
     }
 
@@ -951,6 +1093,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             PendingRequests.Add(new RowVm { Id = S(m, "requestId"), Name = S(m, "requestType"), State = S(m, "status"), Extra = S(m, "formula") });
         }
+        RestoreSelection(PendingRequests, SelectedPendingRequestId, value => SelectedPendingRequestId = value);
         RefreshConnectionSummary();
     }
 

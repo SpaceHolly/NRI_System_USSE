@@ -10,6 +10,20 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
+        <Style x:Key="SectionHostTabControlStyle" TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Border Background="Transparent">
+                            <ContentPresenter ContentSource="SelectedContent"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <DataTemplate x:Key="CharacterEditorTemplate" DataType="{x:Type vm:WorkspacePanelDescriptor}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="8">
@@ -86,6 +100,7 @@
                     <StackPanel Grid.Column="1" Margin="8,0,0,0">
                         <Border Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Комментарий админа" Style="{StaticResource TitleTextStyle}"/><TextBox Height="80" TextWrapping="Wrap" Text="{Binding DataContext.RequestComment, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><WrapPanel><Button Content="Approve" Command="{Binding DataContext.ApproveRequestCommand, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Reject" Command="{Binding DataContext.RejectRequestCommand, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel></StackPanel></Border>
                         <Border Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="История заявок" Style="{StaticResource TitleTextStyle}"/><ItemsControl ItemsSource="{Binding DataContext.RequestHistoryRows, RelativeSource={RelativeSource AncestorType=Window}}"/></StackPanel></Border>
+                        <Border Style="{StaticResource SubtleCardStyle}" Margin="0,10,0,0"><StackPanel><TextBlock Text="Контекст выбора" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding SelectedPlayerSummary}" Margin="0,6,0,0"/><TextBlock Text="{Binding SelectedCharacterSummary}" Margin="0,4,0,0"/><TextBlock Text="{Binding SelectedRequestSummary}" Margin="0,4,0,0"/></StackPanel></Border>
                     </StackPanel>
                 </Grid>
             </Grid>
@@ -177,43 +192,23 @@
     <Grid Margin="12">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+        <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="10,8">
             <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="3*"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="NRI / Admin" Style="{StaticResource HeaderTitleTextStyle}" Margin="0,0,12,0"/>
-                        <Border Style="{StaticResource StatusBadgeStyle}"><TextBlock Text="{Binding ConnectionState}" Style="{StaticResource TitleTextStyle}"/></Border>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="NRI / Admin" Style="{StaticResource HeaderTitleTextStyle}" Margin="0,0,12,0"/>
+                    <Border Style="{StaticResource StatusBadgeStyle}" Margin="0,0,10,0"><TextBlock Text="{Binding ConnectionState}" Style="{StaticResource TitleTextStyle}"/></Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding HeaderStatusSummary}" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="{Binding SessionSummary}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" MaxWidth="700"/>
                     </StackPanel>
-                    <TextBlock Text="{Binding ConnectionStage}" Style="{StaticResource TitleTextStyle}" Margin="0,4,0,0"/>
-                    <TextBlock Text="{Binding ConnectionStatusDetail}" Margin="0,2,0,0"/>
-                    <TextBlock Text="{Binding SessionSummary}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
                 </StackPanel>
-                <WrapPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Border Style="{StaticResource SubtleCardStyle}" Padding="10,6"><TextBlock Text="{Binding CurrentEndpoint, StringFormat=Endpoint: {0}}"/></Border>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Style="{StaticResource SubtleCardStyle}" Padding="8,4"><TextBlock Text="{Binding CurrentEndpoint, StringFormat=Endpoint: {0}}" Width="220" TextTrimming="CharacterEllipsis"/></Border>
                     <Button Content="Обновить" Command="{Binding RefreshCommand}"/>
-                    <Button Style="{StaticResource GhostButtonStyle}" Content="Сервер" Command="{Binding OpenConnectionPopupCommand}"/>
-                </WrapPanel>
-                <StackPanel Grid.Column="2">
-                    <WrapPanel HorizontalAlignment="Right">
-                        <TextBlock Text="Логин" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox Width="130" Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBlock Text="Пароль" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                        <TextBox Width="130" Text="{Binding PasswordText, UpdateSourceTrigger=PropertyChanged}"/>
-                        <Button Content="Войти" Command="{Binding LoginCommand}"/>
-                    </WrapPanel>
-                    <TextBlock Text="{Binding LoginState}" HorizontalAlignment="Right" Margin="0,6,0,0"/>
-                    <TextBlock Text="{Binding LastErrorMessage}" HorizontalAlignment="Right" Margin="0,2,0,0">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasConnectionError}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                    <Button x:Name="ServerButton" Style="{StaticResource GhostButtonStyle}" Content="Сервер" Command="{Binding OpenConnectionPopupCommand}"/>
+                    <Button x:Name="AuthButton" Style="{StaticResource GhostButtonStyle}" Content="Авторизация" Command="{Binding ToggleAuthPopupCommand}"/>
+                    <Border Style="{StaticResource SubtleCardStyle}" Padding="8,4" Margin="6,0,0,0"><TextBlock Text="{Binding LoginState}" Width="230" TextTrimming="CharacterEllipsis"/></Border>
                 </StackPanel>
             </Grid>
         </Border>
@@ -232,12 +227,13 @@
                         <Button Style="{StaticResource SectionNavButtonStyle}" Content="Контент" Command="{Binding SelectSectionCommand}" CommandParameter="Контент"/>
                         <Button Style="{StaticResource SectionNavButtonStyle}" Content="Система" Command="{Binding SelectSectionCommand}" CommandParameter="Система"/>
                         <Border Style="{StaticResource SubtleCardStyle}" Margin="0,10,0,0"><StackPanel><TextBlock Text="Панели" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding WorkspaceSummary}" Margin="0,4,0,8"/><ItemsControl ItemsSource="{Binding WorkspacePanels}"><ItemsControl.ItemTemplate><DataTemplate><Border Style="{StaticResource SubtleCardStyle}" Padding="8" Margin="0,0,0,6"><StackPanel><DockPanel><StackPanel><TextBlock Text="{Binding Title}" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding PanelState}"/></StackPanel><TextBlock DockPanel.Dock="Right" Text="{Binding StateBadge}" FontSize="18" VerticalAlignment="Center"/></DockPanel><WrapPanel Margin="0,6,0,0"><Button Style="{StaticResource GhostButtonStyle}" Content="Показать" Command="{Binding DataContext.ShowWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.HideWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Открыть отдельно" Command="{Binding DataContext.DetachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}"/></WrapPanel></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
+                        <Border Style="{StaticResource SubtleCardStyle}" Margin="0,10,0,0"><StackPanel><TextBlock Text="Контекст выбора" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding SelectedPlayerSummary}" Margin="0,6,0,0"/><TextBlock Text="{Binding SelectedCharacterSummary}" Margin="0,4,0,0"/><TextBlock Text="{Binding SelectedRequestSummary}" Margin="0,4,0,0"/></StackPanel></Border>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
 
             <Grid Grid.Column="1" Margin="0,8,0,0">
-                <TabControl SelectedValue="{Binding SelectedSection}" SelectedValuePath="Tag">
+                <TabControl Style="{StaticResource SectionHostTabControlStyle}" SelectedValue="{Binding SelectedSection}" SelectedValuePath="Tag">
                     <TabItem Header="Обзор" Tag="Обзор">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <Grid Margin="8">
@@ -268,10 +264,10 @@
                                 <Border Grid.Column="2" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Locks" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding LocksCount}" FontSize="20"/></StackPanel></Border>
                             </Grid>
                             <TabControl Grid.Row="2" IsEnabled="{Binding ArePrivilegedSectionsEnabled}">
-                                <TabItem Header="Pending accounts"><Grid><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><DataGrid ItemsSource="{Binding PendingAccounts}" SelectedValuePath="Id" SelectedValue="{Binding SelectedPendingAccountId, UpdateSourceTrigger=PropertyChanged}"><DataGrid.Columns><DataGridTextColumn Header="AccountId" Binding="{Binding Id}"/><DataGridTextColumn Header="Login" Binding="{Binding Name}"/><DataGridTextColumn Header="Status" Binding="{Binding State}"/><DataGridTextColumn Header="Created" Binding="{Binding Extra}"/></DataGrid.Columns></DataGrid><StackPanel Orientation="Horizontal" Grid.Row="1"><Button Content="Подтвердить" Command="{Binding ApproveCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Архивировать" Command="{Binding ArchiveCommand}"/></StackPanel></Grid></TabItem>
-                                <TabItem Header="Players"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><DataGrid ItemsSource="{Binding Players}" SelectedValuePath="Id" SelectedValue="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}"><DataGrid.Columns><DataGridTextColumn Header="UserId" Binding="{Binding Id}"/><DataGridTextColumn Header="Login" Binding="{Binding Name}"/><DataGridTextColumn Header="Status" Binding="{Binding State}"/><DataGridTextColumn Header="Presence" Binding="{Binding Extra}"/></DataGrid.Columns></DataGrid><Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Выбранный игрок / действия" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="Используйте выбор игрока, затем переходите в Characters для загрузки списка персонажей." Margin="0,6,0,0"/><TextBlock Text="{Binding SelectedOwnerUserId, StringFormat=OwnerUserId: {0}}" Margin="0,6,0,0"/></StackPanel></Border></Grid></TabItem>
-                                <TabItem Header="Characters"><Border Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Персонажи по игроку" Style="{StaticResource TitleTextStyle}"/><WrapPanel><TextBox Width="250" Text="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Загрузить" Command="{Binding LoadOwnerCharactersCommand}"/></WrapPanel><ListBox ItemsSource="{Binding Characters}" DisplayMemberPath="Name"/></StackPanel></Border></TabItem>
-                                <TabItem Header="Locks"><Border Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Locks / диагностика" Style="{StaticResource TitleTextStyle}"/><ListBox ItemsSource="{Binding DiagnosticsRows}"/></StackPanel></Border></TabItem>
+                                <TabItem Header="Pending accounts"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><DataGrid ItemsSource="{Binding PendingAccounts}" SelectedValuePath="Id" SelectedValue="{Binding SelectedPendingAccountId, UpdateSourceTrigger=PropertyChanged}"><DataGrid.Columns><DataGridTextColumn Header="AccountId" Binding="{Binding Id}"/><DataGridTextColumn Header="Login" Binding="{Binding Name}"/><DataGridTextColumn Header="Status" Binding="{Binding State}"/><DataGridTextColumn Header="Created" Binding="{Binding Extra}"/></DataGrid.Columns></DataGrid><Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Выбранный pending account" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding SelectedPendingAccountSummary}" Margin="0,6,0,0"/><WrapPanel Margin="0,10,0,0"><Button Content="Подтвердить" Command="{Binding ApproveCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Архивировать" Command="{Binding ArchiveCommand}"/></WrapPanel></StackPanel></Border></Grid></TabItem>
+                                <TabItem Header="Players"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><DataGrid ItemsSource="{Binding Players}" SelectedValuePath="Id" SelectedValue="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}"><DataGrid.Columns><DataGridTextColumn Header="UserId" Binding="{Binding Id}"/><DataGridTextColumn Header="Login" Binding="{Binding Name}"/><DataGridTextColumn Header="Status" Binding="{Binding State}"/><DataGridTextColumn Header="Presence" Binding="{Binding Extra}"/></DataGrid.Columns></DataGrid><Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Игрок и связанные персонажи" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding SelectedPlayerSummary}" Margin="0,6,0,0"/><WrapPanel Margin="0,10,0,0"><Button Content="Загрузить персонажей" Command="{Binding OpenPlayerCharactersCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="К персонажам" Command="{Binding SelectSectionCommand}" CommandParameter="Персонажи"/></WrapPanel><TextBlock Text="{Binding SelectedOwnerUserId, StringFormat=OwnerUserId: {0}}" Margin="0,8,0,0"/></StackPanel></Border></Grid></TabItem>
+                                <TabItem Header="Characters"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Персонажи по игроку" Style="{StaticResource TitleTextStyle}"/><WrapPanel><TextBox Width="250" Text="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Загрузить" Command="{Binding LoadOwnerCharactersCommand}"/></WrapPanel><ListBox ItemsSource="{Binding Characters}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"/></StackPanel></Border><Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Контекст персонажа" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding SelectedCharacterSummary}" Margin="0,6,0,0"/><WrapPanel Margin="0,10,0,0"><Button Content="Открыть редактор" Command="{Binding FocusSelectedCharacterCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="К разделу персонажей" Command="{Binding SelectSectionCommand}" CommandParameter="Персонажи"/></WrapPanel></StackPanel></Border></Grid></TabItem>
+                                <TabItem Header="Locks"><Border Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Locks / attention" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding LocksCount, StringFormat=Активных локов: {0}}" Margin="0,6,0,8"/><ListBox ItemsSource="{Binding DiagnosticsRows}"/></StackPanel></Border></TabItem>
                             </TabControl>
                         </Grid>
                     </TabItem>
@@ -281,7 +277,7 @@
                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                             <Border Style="{StaticResource HintCardStyle}"><TextBlock Text="{Binding SectionAccessHint}"/></Border>
                             <Grid Grid.Row="1" IsEnabled="{Binding ArePrivilegedSectionsEnabled}"><Grid.ColumnDefinitions><ColumnDefinition Width="340"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Каталог персонажей" Style="{StaticResource SectionTitleTextStyle}"/><WrapPanel><TextBox Width="220" Text="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Загрузить" Command="{Binding LoadOwnerCharactersCommand}"/></WrapPanel><DataGrid ItemsSource="{Binding Characters}" SelectedValuePath="Id" SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" Height="240"><DataGrid.Columns><DataGridTextColumn Header="Id" Binding="{Binding Id}"/><DataGridTextColumn Header="Name" Binding="{Binding Name}"/><DataGridTextColumn Header="Race" Binding="{Binding Extra}"/></DataGrid.Columns></DataGrid><Border Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Связанные инструменты" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="CharacterEditor и Notes можно держать внутри окна или вынести наружу." Margin="0,6,0,0"/><TextBlock Text="Visibility доступен как встроенная вкладка справа." Margin="0,4,0,0"/></StackPanel></Border></StackPanel></Border>
+                            <Border Grid.Column="0" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Каталог персонажей" Style="{StaticResource SectionTitleTextStyle}"/><WrapPanel><TextBox Width="220" Text="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Загрузить" Command="{Binding LoadOwnerCharactersCommand}"/></WrapPanel><DataGrid ItemsSource="{Binding Characters}" SelectedValuePath="Id" SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" Height="220"><DataGrid.Columns><DataGridTextColumn Header="Id" Binding="{Binding Id}"/><DataGridTextColumn Header="Name" Binding="{Binding Name}"/><DataGridTextColumn Header="Race" Binding="{Binding Extra}"/></DataGrid.Columns></DataGrid><Border Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Текущий персонаж" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding SelectedCharacterSummary}" Margin="0,6,0,0"/><WrapPanel Margin="0,10,0,0"><Button Content="Открыть редактор" Command="{Binding OpenCharacterCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="К разделу People" Command="{Binding SelectSectionCommand}" CommandParameter="Люди"/></WrapPanel></StackPanel></Border><Border Style="{StaticResource SubtleCardStyle}"><StackPanel><TextBlock Text="Связанные инструменты" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="CharacterEditor и Notes можно держать внутри окна или вынести наружу." Margin="0,6,0,0"/><TextBlock Text="Visibility доступен как встроенная вкладка справа." Margin="0,4,0,0"/></StackPanel></Border></StackPanel></Border>
                             <TabControl Grid.Column="1" Margin="8,0,0,0">
                                 <TabItem Header="Editor"><ContentControl Content="{Binding CharacterEditorPanel}" ContentTemplate="{StaticResource CharacterEditorTemplate}"><ContentControl.Style><Style TargetType="ContentControl"><Style.Triggers><DataTrigger Binding="{Binding CharacterEditorPanel.IsVisible}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding CharacterEditorPanel.IsDetached}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></ContentControl.Style></ContentControl></TabItem>
                                 <TabItem Header="Visibility"><Border Style="{StaticResource CardStyle}"><StackPanel Margin="8"><TextBlock Text="Visibility management" Style="{StaticResource SectionTitleTextStyle}"/><WrapPanel><TextBox Width="220" Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Load" Command="{Binding VisibilityLoadCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Save" Command="{Binding VisibilitySaveCommand}"/></WrapPanel><CheckBox Content="Hide description" IsChecked="{Binding VisHideDescription, UpdateSourceTrigger=PropertyChanged}"/><CheckBox Content="Hide backstory" IsChecked="{Binding VisHideBackstory, UpdateSourceTrigger=PropertyChanged}"/><CheckBox Content="Hide stats" IsChecked="{Binding VisHideStats, UpdateSourceTrigger=PropertyChanged}"/><CheckBox Content="Hide reputation" IsChecked="{Binding VisHideReputation, UpdateSourceTrigger=PropertyChanged}"/></StackPanel></Border></TabItem>
@@ -296,7 +292,7 @@
                         <Grid Margin="8">
                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                             <Border Style="{StaticResource HintCardStyle}"><TextBlock Text="{Binding SectionAccessHint}"/></Border>
-                            <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Grid.Column="0" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Pending requests" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding PendingRequestsCount}" FontSize="20"/></StackPanel></Border><Border Grid.Column="1" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Dice feed" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding DiceFeedRows.Count, StringFormat=Entries: {0}}" FontSize="20"/></StackPanel></Border><Border Grid.Column="2" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Последний статус" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding LastStatusMessage}"/></StackPanel></Border></Grid>
+                            <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Grid.Column="0" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Pending requests" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding PendingRequestsCount}" FontSize="20"/></StackPanel></Border><Border Grid.Column="1" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Dice feed" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding DiceFeedRows.Count, StringFormat=Entries: {0}}" FontSize="20"/></StackPanel></Border><Border Grid.Column="2" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Выбранная заявка" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding SelectedRequestSummary}"/><WrapPanel Margin="0,6,0,0"><Button Content="К деталям" Command="{Binding FocusSelectedRequestCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding RefreshCommand}"/></WrapPanel></StackPanel></Border></Grid>
                             <TabControl Grid.Row="2" IsEnabled="{Binding ArePrivilegedSectionsEnabled}"><TabItem Header="Requests"><ContentControl Content="{Binding RequestsPanel}" ContentTemplate="{StaticResource RequestsTemplate}"><ContentControl.Style><Style TargetType="ContentControl"><Style.Triggers><DataTrigger Binding="{Binding RequestsPanel.IsVisible}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding RequestsPanel.IsDetached}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></ContentControl.Style></ContentControl></TabItem><TabItem Header="Dice"><ContentControl Content="{Binding DiceFeedPanel}" ContentTemplate="{StaticResource DiceFeedTemplate}"><ContentControl.Style><Style TargetType="ContentControl"><Style.Triggers><DataTrigger Binding="{Binding DiceFeedPanel.IsVisible}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding DiceFeedPanel.IsDetached}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></ContentControl.Style></ContentControl></TabItem><TabItem Header="События"><Border Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Сводка событий" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding OverviewActivityRows}"/></StackPanel></Border></TabItem></TabControl>
                         </Grid>
                     </TabItem>
@@ -306,27 +302,51 @@
                     <TabItem Header="Система" Tag="Система"><Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><Border Style="{StaticResource HintCardStyle}"><TextBlock Text="{Binding SectionAccessHint}"/></Border><Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Grid.Column="0" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Diagnostics" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding DiagnosticsSummary}"/></StackPanel></Border><Border Grid.Column="1" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Backups" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding BackupSummary}"/></StackPanel></Border><Border Grid.Column="2" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Reference data" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding ReferenceSummary}"/></StackPanel></Border></Grid><TabControl Grid.Row="2" IsEnabled="{Binding ArePrivilegedSectionsEnabled}"><TabItem Header="Reference data"><Border Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Системные reference data" Style="{StaticResource SectionTitleTextStyle}"/><TextBlock Text="{Binding ReferenceSummary}" Margin="0,6,0,8"/><ListBox ItemsSource="{Binding ReferenceRows}" Height="320"/></StackPanel></Border></TabItem><TabItem Header="Backups"><StackPanel Margin="8"><Border Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Backup management" Style="{StaticResource SectionTitleTextStyle}"/><TextBlock Text="{Binding BackupSummary}" Margin="0,6,0,8"/><WrapPanel><Button Style="{StaticResource GhostButtonStyle}" Content="Refresh" Command="{Binding BackupRefreshCommand}"/><TextBox Width="220" Text="{Binding BackupLabel, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Create backup" Command="{Binding BackupCreateCommand}"/></WrapPanel><WrapPanel><TextBox Width="220" Text="{Binding SelectedBackupId, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Restore" Command="{Binding BackupRestoreCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Export" Command="{Binding BackupExportCommand}"/></WrapPanel><ListBox ItemsSource="{Binding BackupRows}" Height="220"/></StackPanel></Border></StackPanel></TabItem><TabItem Header="Diagnostics"><StackPanel Margin="8"><Border Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Admin diagnostics" Style="{StaticResource SectionTitleTextStyle}"/><TextBlock Text="{Binding DiagnosticsSummary}" Margin="0,6,0,8"/><Button Style="{StaticResource GhostButtonStyle}" Content="Refresh diagnostics" Command="{Binding DiagnosticsRefreshCommand}" HorizontalAlignment="Left"/><ListBox ItemsSource="{Binding DiagnosticsRows}" Height="260"/></StackPanel></Border></StackPanel></TabItem></TabControl></Grid></TabItem>
                 </TabControl>
 
-                <Border Background="{StaticResource OverlayBrush}" Visibility="{Binding IsConnectionPopupOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Grid>
-                        <Border Style="{StaticResource CardStyle}" Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <StackPanel>
-                                <DockPanel>
-                                    <TextBlock Text="Подключение к серверу" Style="{StaticResource SectionTitleTextStyle}"/>
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="✕" Width="34" Padding="0" Command="{Binding OpenConnectionPopupCommand}"/>
-                                </DockPanel>
-                                <TextBlock Text="Host" Margin="0,10,0,0"/>
-                                <TextBox Text="{Binding ServerHostInput, UpdateSourceTrigger=PropertyChanged}"/>
-                                <TextBlock Text="Port" Margin="0,8,0,0"/>
-                                <TextBox Text="{Binding ServerPortInput, UpdateSourceTrigger=PropertyChanged}"/>
-                                <TextBlock Text="Статус" Style="{StaticResource TitleTextStyle}" Margin="0,10,0,0"/>
-                                <TextBlock Text="{Binding ConnectionStatusDetail}"/>
-                                <WrapPanel Margin="0,12,0,0"><Button Content="Подключиться" Command="{Binding ConnectToServerCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Применить" Command="{Binding ApplyConnectionSettingsCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Сбросить" Command="{Binding ResetConnectionDefaultsCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Последний адрес" Command="{Binding UseSavedConnectionSettingsCommand}"/></WrapPanel>
-                                <TextBlock Text="{Binding LastServerHost, StringFormat=Последний host: {0}}" Margin="0,8,0,0"/>
-                                <TextBlock Text="{Binding LastServerPort, StringFormat=Последний port: {0}}"/>
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-                </Border>
+                <Popup IsOpen="{Binding IsConnectionPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=ServerButton}" StaysOpen="False">
+                    <Border Style="{StaticResource CardStyle}" Width="420" Padding="12">
+                        <StackPanel>
+                            <DockPanel>
+                                <TextBlock Text="Подключение к серверу" Style="{StaticResource SectionTitleTextStyle}"/>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="✕" Width="34" Padding="0" Command="{Binding OpenConnectionPopupCommand}"/>
+                            </DockPanel>
+                            <TextBlock Text="Host" Margin="0,10,0,0"/>
+                            <TextBox Text="{Binding ServerHostInput, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Port" Margin="0,8,0,0"/>
+                            <TextBox Text="{Binding ServerPortInput, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="{Binding ConnectionStatusDetail}" Margin="0,10,0,0"/>
+                            <TextBlock Text="{Binding LastServerHost, StringFormat=Последний host: {0}}" Margin="0,8,0,0"/>
+                            <TextBlock Text="{Binding LastServerPort, StringFormat=Последний port: {0}}"/>
+                            <WrapPanel Margin="0,12,0,0"><Button Content="Подключиться" Command="{Binding ConnectToServerCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Применить" Command="{Binding ApplyConnectionSettingsCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Сбросить" Command="{Binding ResetConnectionDefaultsCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Последний адрес" Command="{Binding UseSavedConnectionSettingsCommand}"/></WrapPanel>
+                        </StackPanel>
+                    </Border>
+                </Popup>
+
+                <Popup IsOpen="{Binding IsAuthPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=AuthButton}" StaysOpen="False">
+                    <Border Style="{StaticResource CardStyle}" Width="360" Padding="12">
+                        <StackPanel>
+                            <DockPanel>
+                                <TextBlock Text="Авторизация" Style="{StaticResource SectionTitleTextStyle}"/>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="✕" Width="34" Padding="0" Command="{Binding ToggleAuthPopupCommand}"/>
+                            </DockPanel>
+                            <TextBlock Text="Логин" Margin="0,10,0,0"/>
+                            <TextBox Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Пароль" Margin="0,8,0,0"/>
+                            <TextBox Text="{Binding PasswordText, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="{Binding LoginState}" Margin="0,10,0,0"/>
+                            <TextBlock Text="{Binding LastErrorMessage}" Foreground="{StaticResource DangerBrush}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasConnectionError}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <Button Content="Войти" Command="{Binding LoginCommand}" Margin="0,12,0,0" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </Border>
+                </Popup>
             </Grid>
         </Grid>
     </Grid>
