@@ -399,7 +399,7 @@ public class AdminMainViewModel : ViewModelBase
     public RowVm? SelectedRequest => PendingRequests.FirstOrDefault(row => row.Id == SelectedPendingRequestId);
     public RowVm? SelectedClassNode => ClassTreeItems.FirstOrDefault(row => row.Id == SelectedClassNodeId);
     public RowVm? SelectedSkill => SkillRows.FirstOrDefault(row => row.Id == SelectedSkillId);
-    public RowVm? SelectedReference => ReferenceItems.FirstOrDefault(row => row.Id == SelectedReferenceId);
+    public RowVm? SelectedReference => ReferenceItems.FirstOrDefault(row => row.Id == ReferenceId);
     public RowVm? SelectedBackup => BackupItems.FirstOrDefault(row => row.Id == SelectedBackupId);
     public RowVm? SelectedDiagnostics => DiagnosticsItems.FirstOrDefault(row => row.Id == SelectedDiagnosticsId);
     public string SelectedPendingAccountSummary => SelectedPendingAccount == null ? "Выберите ожидающий аккаунт, чтобы увидеть детали и действия." : $"{SelectedPendingAccount.Name} • {SelectedPendingAccount.State} • {SelectedPendingAccount.Extra}";
@@ -1213,6 +1213,16 @@ public class AdminMainViewModel : ViewModelBase
         {
             LoadPendingRequests();
             LoadRequestHistory();
+        });
+    }
+
+    private void RefreshSessionSection()
+    {
+        RunUiAction("Обновление сессии", () =>
+        {
+            CombatRefresh();
+            ChatRefresh();
+            AudioRefresh();
         });
     }
 
