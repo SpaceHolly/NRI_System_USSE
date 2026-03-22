@@ -192,7 +192,11 @@ public class AdminMainViewModel : ViewModelBase
     private string _lastErrorMessage = string.Empty;
     private string _lastStatusMessage = "Ожидание подключения";
     private int _locksCount;
+    private bool _isBusy;
+    private string _busyMessage = string.Empty;
     private string _selectedSection = "Обзор";
+    private string _selectedCharacterWorkspaceTab = "Editor";
+    private string _selectedLockId = string.Empty;
     private string _selectedPendingAccountId = string.Empty;
     private string _selectedOwnerUserId = string.Empty;
     private string _selectedCharacterId = string.Empty;
@@ -228,6 +232,12 @@ public class AdminMainViewModel : ViewModelBase
         OpenPlayerCharactersCommand = new RelayCommand(OpenPlayerCharacters);
         FocusSelectedCharacterCommand = new RelayCommand(FocusSelectedCharacter);
         FocusSelectedRequestCommand = new RelayCommand(FocusSelectedRequest);
+        FocusCharacterEditorCommand = new RelayCommand(FocusCharacterEditor);
+        FocusCharacterNotesCommand = new RelayCommand(FocusCharacterNotes);
+        FocusCharacterVisibilityCommand = new RelayCommand(FocusCharacterVisibility);
+        RefreshSelectedCharacterCommand = new RelayCommand(RefreshSelectedCharacter);
+        RefreshPeopleSectionCommand = new RelayCommand(RefreshPeopleSection);
+        RefreshModerationSectionCommand = new RelayCommand(RefreshModerationSection);
         AcquireLockCommand = new RelayCommand(AcquireLock);
         ReleaseLockCommand = new RelayCommand(ReleaseLock);
         ForceUnlockCommand = new RelayCommand(ForceUnlock);
@@ -312,11 +322,15 @@ public class AdminMainViewModel : ViewModelBase
     public string SectionAccessHint => ArePrivilegedSectionsEnabled ? "Рабочие разделы активны" : IsConnectedToServer ? "Для рабочих разделов выполните вход" : "Подключитесь к серверу, чтобы активировать рабочие разделы";
     public bool IsConnectionPopupOpen { get => _isConnectionPopupOpen; set { _isConnectionPopupOpen = value; Notify(); } }
     public bool IsAuthPopupOpen { get => _isAuthPopupOpen; set { _isAuthPopupOpen = value; Notify(); } }
+    public bool IsBusy { get => _isBusy; set { _isBusy = value; Notify(); Notify(nameof(IsIdle)); } }
+    public bool IsIdle => !IsBusy;
+    public string BusyMessage { get => _busyMessage; set { _busyMessage = value; Notify(); } }
     public string ServerHostInput { get => _serverHostInput; set { _serverHostInput = value; Notify(); } }
     public string ServerPortInput { get => _serverPortInput; set { _serverPortInput = value; Notify(); } }
     public string LastServerHost { get => _lastServerHost; set { _lastServerHost = value; Notify(); } }
     public int LastServerPort { get => _lastServerPort; set { _lastServerPort = value; Notify(); } }
     public string SelectedSection { get => _selectedSection; set { _selectedSection = value; Notify(); } }
+    public string SelectedCharacterWorkspaceTab { get => _selectedCharacterWorkspaceTab; set { _selectedCharacterWorkspaceTab = value; Notify(); } }
     public string CurrentEndpoint => $"{_client.ServerHost}:{_client.ServerPort}";
     public string LoginSummary => string.IsNullOrWhiteSpace(LoginText) ? "Не авторизован" : LoginText;
     public int PendingAccountsCount => PendingAccounts.Count;
@@ -335,6 +349,7 @@ public class AdminMainViewModel : ViewModelBase
     public string ReferenceSummary => ReferenceRows.Count == 0 ? "Reference data: нет загруженных записей" : $"Reference data: {ReferenceRows.Count} записей типа {ReferenceType}";
     public string BackupSummary => BackupRows.Count == 0 ? "Backups: ещё не загружены" : $"Backups: {BackupRows.Count}, последний: {BackupRows[0]}";
     public string WorkspaceSummary => $"Панели: встроено {WorkspacePanels.Count(panel => panel.IsVisible && !panel.IsDetached)}, вынесено {WorkspacePanels.Count(panel => panel.IsVisible && panel.IsDetached)}, скрыто {WorkspacePanels.Count(panel => !panel.IsVisible)}";
+    public RowVm? SelectedLock => LockRows.FirstOrDefault(row => row.Id == SelectedLockId);
     public RowVm? SelectedPendingAccount => PendingAccounts.FirstOrDefault(row => row.Id == SelectedPendingAccountId);
     public RowVm? SelectedPlayer => Players.FirstOrDefault(row => row.Id == SelectedOwnerUserId);
     public RowVm? SelectedCharacter => Characters.FirstOrDefault(row => row.Id == SelectedCharacterId);
@@ -343,7 +358,13 @@ public class AdminMainViewModel : ViewModelBase
     public string SelectedPlayerSummary => SelectedPlayer == null ? "Выберите игрока, чтобы загрузить связанных персонажей." : $"{SelectedPlayer.Name} • {SelectedPlayer.State} • {SelectedPlayer.Extra}";
     public string SelectedCharacterSummary => SelectedCharacter == null ? "Персонаж не выбран." : $"{SelectedCharacter.Name} • race: {SelectedCharacter.Extra} • archived: {SelectedCharacter.State}";
     public string SelectedRequestSummary => SelectedRequest == null ? "Активная заявка не выбрана." : $"{SelectedRequest.Name} • {SelectedRequest.State} • {SelectedRequest.Extra}";
+    public string SelectedLockSummary => SelectedLock == null ? "Активный lock не выбран." : $"{SelectedLock.Name} • {SelectedLock.State} • {SelectedLock.Extra}";
     public string HeaderStatusSummary => HasConnectionError ? LastErrorMessage : $"{ConnectionStage} • {LoginState}";
+    public bool CanManagePendingAccount => ArePrivilegedSectionsEnabled && SelectedPendingAccount != null && !IsBusy;
+    public bool CanLoadPlayerCharacters => ArePrivilegedSectionsEnabled && SelectedPlayer != null && !IsBusy;
+    public bool CanOpenSelectedCharacter => ArePrivilegedSectionsEnabled && SelectedCharacter != null && !IsBusy;
+    public bool CanModerateSelectedRequest => ArePrivilegedSectionsEnabled && SelectedRequest != null && !IsBusy;
+    public bool CanManageSelectedLock => ArePrivilegedSectionsEnabled && SelectedLock != null && !IsBusy;
     public string WorkspaceLayoutPath => Path.Combine(_appDataDirectory, "workspace.layout.json");
     public string ConnectionSettingsPath => Path.Combine(_appDataDirectory, "connection.settings.json");
 
@@ -358,6 +379,7 @@ public class AdminMainViewModel : ViewModelBase
                 Notify();
                 Notify(nameof(SelectedPendingAccount));
                 Notify(nameof(SelectedPendingAccountSummary));
+                Notify(nameof(CanManagePendingAccount));
             }
         }
     }
@@ -373,6 +395,7 @@ public class AdminMainViewModel : ViewModelBase
                 Notify();
                 Notify(nameof(SelectedPlayer));
                 Notify(nameof(SelectedPlayerSummary));
+                Notify(nameof(CanLoadPlayerCharacters));
             }
         }
     }
@@ -393,6 +416,7 @@ public class AdminMainViewModel : ViewModelBase
                 Notify();
                 Notify(nameof(SelectedCharacter));
                 Notify(nameof(SelectedCharacterSummary));
+                Notify(nameof(CanOpenSelectedCharacter));
             }
         }
     }
@@ -408,6 +432,23 @@ public class AdminMainViewModel : ViewModelBase
                 Notify();
                 Notify(nameof(SelectedRequest));
                 Notify(nameof(SelectedRequestSummary));
+                Notify(nameof(CanModerateSelectedRequest));
+            }
+        }
+    }
+
+    public string SelectedLockId
+    {
+        get => _selectedLockId;
+        set
+        {
+            if (_selectedLockId != value)
+            {
+                _selectedLockId = value;
+                Notify();
+                Notify(nameof(SelectedLock));
+                Notify(nameof(SelectedLockSummary));
+                Notify(nameof(CanManageSelectedLock));
             }
         }
     }
@@ -495,6 +536,7 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> ReferenceRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> BackupRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> DiagnosticsRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<RowVm> LockRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> OverviewActivityRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<WorkspacePanelDescriptor> WorkspacePanels { get; } = new ObservableCollection<WorkspacePanelDescriptor>();
 
@@ -521,6 +563,12 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand OpenPlayerCharactersCommand { get; }
     public ICommand FocusSelectedCharacterCommand { get; }
     public ICommand FocusSelectedRequestCommand { get; }
+    public ICommand FocusCharacterEditorCommand { get; }
+    public ICommand FocusCharacterNotesCommand { get; }
+    public ICommand FocusCharacterVisibilityCommand { get; }
+    public ICommand RefreshSelectedCharacterCommand { get; }
+    public ICommand RefreshPeopleSectionCommand { get; }
+    public ICommand RefreshModerationSectionCommand { get; }
     public ICommand AcquireLockCommand { get; }
     public ICommand ReleaseLockCommand { get; }
     public ICommand ForceUnlockCommand { get; }
@@ -750,7 +798,14 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(SelectedPlayerSummary));
         Notify(nameof(SelectedCharacterSummary));
         Notify(nameof(SelectedRequestSummary));
+        Notify(nameof(SelectedLock));
+        Notify(nameof(SelectedLockSummary));
         Notify(nameof(HeaderStatusSummary));
+        Notify(nameof(CanManagePendingAccount));
+        Notify(nameof(CanLoadPlayerCharacters));
+        Notify(nameof(CanOpenSelectedCharacter));
+        Notify(nameof(CanModerateSelectedRequest));
+        Notify(nameof(CanManageSelectedLock));
     }
 
     public void LoadWorkspaceLayout()
@@ -881,14 +936,18 @@ public class AdminMainViewModel : ViewModelBase
     private void OpenPlayerCharacters()
     {
         if (string.IsNullOrWhiteSpace(SelectedOwnerUserId)) return;
-        LoadOwnerCharacters();
-        SelectedSection = "Люди";
+        RunUiAction("Загрузка персонажей игрока", () =>
+        {
+            LoadOwnerCharacters();
+            SelectedSection = "Люди";
+        });
     }
 
     private void FocusSelectedCharacter()
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
         SelectedSection = "Персонажи";
+        FocusCharacterEditor();
         OpenCharacter();
     }
 
@@ -896,6 +955,55 @@ public class AdminMainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(SelectedPendingRequestId)) return;
         SelectedSection = "Модерация";
+    }
+
+    private void FocusCharacterEditor()
+    {
+        SelectedSection = "Персонажи";
+        SelectedCharacterWorkspaceTab = "Editor";
+        ShowWorkspacePanel("CharacterEditor");
+    }
+
+    private void FocusCharacterNotes()
+    {
+        SelectedSection = "Персонажи";
+        SelectedCharacterWorkspaceTab = "Notes";
+        ShowWorkspacePanel("NotesManagement");
+    }
+
+    private void FocusCharacterVisibility()
+    {
+        SelectedSection = "Персонажи";
+        SelectedCharacterWorkspaceTab = "Visibility";
+    }
+
+    private void RefreshSelectedCharacter()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        RunUiAction("Обновление персонажа", OpenCharacter);
+    }
+
+    private void RefreshPeopleSection()
+    {
+        RunUiAction("Обновление раздела Люди", () =>
+        {
+            LoadPending();
+            LoadPlayers();
+            if (!string.IsNullOrWhiteSpace(SelectedOwnerUserId))
+            {
+                LoadOwnerCharacters();
+            }
+            LoadLocksSummary();
+        });
+    }
+
+    private void RefreshModerationSection()
+    {
+        RunUiAction("Обновление модерации", () =>
+        {
+            LoadPendingRequests();
+            LoadRequestHistory();
+        });
     }
 
     private void RestoreSelection(ObservableCollection<RowVm> source, string selectedId, Action<string> setter)
@@ -912,6 +1020,33 @@ public class AdminMainViewModel : ViewModelBase
         }
 
         setter(string.Empty);
+    }
+
+    private void RunUiAction(string message, Action action)
+    {
+        try
+        {
+            IsBusy = true;
+            BusyMessage = message;
+            LastStatusMessage = message;
+            action();
+            if (string.IsNullOrWhiteSpace(LastErrorMessage))
+            {
+                LastStatusMessage = message + " — готово";
+            }
+        }
+        catch (Exception ex)
+        {
+            LastErrorMessage = ex.Message;
+            LastStatusMessage = message + " — ошибка";
+            RefreshConnectionSummary();
+        }
+        finally
+        {
+            IsBusy = false;
+            BusyMessage = string.Empty;
+            RefreshConnectionSummary();
+        }
     }
 
     private void Login()
@@ -1396,30 +1531,43 @@ public class AdminMainViewModel : ViewModelBase
         DiagnosticsRows.Add("server utc=" + S(s1.Payload, "utcNow") + "; online=" + S(s1.Payload, "onlineUsers"));
         var s2 = _api.AdminSessionsList();
         DiagnosticsRows.Add("sessions payload size=" + ToList(s2.Payload.ContainsKey("items") ? s2.Payload["items"] : new ArrayList()).Count);
-        var s3 = _api.AdminLocksList();
-        LocksCount = ToList(s3.Payload.ContainsKey("items") ? s3.Payload["items"] : new ArrayList()).Count;
+        LoadLocksSummary();
         DiagnosticsRows.Add("locks=" + LocksCount);
         RefreshConnectionSummary();
     }
 
     private void LoadLocksSummary()
     {
-        if (DiagnosticsRows.Count == 0)
+        LockRows.Clear();
+        var locks = _api.AdminLocksList();
+        var items = ToList(locks.Payload.ContainsKey("items") ? locks.Payload["items"] : new ArrayList());
+        LocksCount = items.Count;
+        foreach (var item in items)
         {
-            DiagnosticsRefresh();
+            if (item is not Dictionary<string, object> map) continue;
+            var resourceId = FirstNonEmpty(S(map, "characterId"), S(map, "entityId"), S(map, "resourceId"), S(map, "lockId"));
+            var owner = FirstNonEmpty(S(map, "ownerUserId"), S(map, "ownerId"), S(map, "login"), "unknown owner");
+            var state = FirstNonEmpty(S(map, "lockType"), S(map, "scope"), S(map, "resourceType"), "lock");
+            var extra = string.Join(" • ", new[]
+            {
+                FirstNonEmpty(S(map, "resourceName"), S(map, "displayName"), resourceId),
+                FirstNonEmpty(S(map, "acquiredUtc"), S(map, "createdUtc"), S(map, "expiresUtc"))
+            }.Where(value => !string.IsNullOrWhiteSpace(value)));
+            LockRows.Add(new RowVm { Id = resourceId, Name = owner, State = state, Extra = extra });
         }
+        RestoreSelection(LockRows, SelectedLockId, value => SelectedLockId = value);
     }
 
-    private void ApproveRequest() { if (!string.IsNullOrWhiteSpace(SelectedPendingRequestId)) { _api.ApproveRequest(SelectedPendingRequestId, RequestComment); RefreshAll(); } }
-    private void RejectRequest() { if (!string.IsNullOrWhiteSpace(SelectedPendingRequestId)) { _api.RejectRequest(SelectedPendingRequestId, RequestComment); RefreshAll(); } }
-    private void AcquireLock() { var r = _api.AcquireCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); }
-    private void ReleaseLock() { var r = _api.ReleaseCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); }
-    private void ForceUnlock() { var r = _api.ForceReleaseCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); }
+    private void ApproveRequest() { if (!string.IsNullOrWhiteSpace(SelectedPendingRequestId)) { RunUiAction("Одобрение заявки", () => { _api.ApproveRequest(SelectedPendingRequestId, RequestComment); RefreshModerationSection(); }); } }
+    private void RejectRequest() { if (!string.IsNullOrWhiteSpace(SelectedPendingRequestId)) { RunUiAction("Отклонение заявки", () => { _api.RejectRequest(SelectedPendingRequestId, RequestComment); RefreshModerationSection(); }); } }
+    private void AcquireLock() { if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return; RunUiAction("Получение lock", () => { var r = _api.AcquireCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); LoadLocksSummary(); }); }
+    private void ReleaseLock() { if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return; RunUiAction("Снятие lock", () => { var r = _api.ReleaseCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); LoadLocksSummary(); }); }
+    private void ForceUnlock() { if (string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedLock != null) { SelectedCharacterId = SelectedLock.Id; } if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return; RunUiAction("Принудительное снятие lock", () => { var r = _api.ForceReleaseCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); LoadLocksSummary(); }); }
     private void SaveBasicInfo() { _api.UpdateCharacterBasicInfo(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "name", EditName }, { "race", EditRace }, { "height", EditHeight }, { "age", EditAge }, { "description", EditDescription }, { "backstory", EditBackstory } }); }
     private void SaveStats() { _api.UpdateCharacterStats(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "health", Health }, { "physicalArmor", PhysicalArmor }, { "magicalArmor", MagicalArmor }, { "morale", Morale }, { "strength", Strength }, { "dexterity", Dexterity }, { "endurance", Endurance }, { "wisdom", Wisdom }, { "intellect", Intellect }, { "charisma", Charisma } }); }
     private void SaveMoney() { _api.UpdateCharacterMoney(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "money", new Dictionary<string, object> { { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold } } } }); }
-    private void ApproveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) _api.ApproveAccount(SelectedPendingAccountId); RefreshAll(); }
-    private void ArchiveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) _api.ArchiveAccount(SelectedPendingAccountId); RefreshAll(); }
+    private void ApproveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Подтверждение аккаунта", () => { _api.ApproveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void ArchiveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Архивация аккаунта", () => { _api.ArchiveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
 
     private void RefreshOverviewActivity()
     {
@@ -1472,6 +1620,7 @@ public class AdminMainViewModel : ViewModelBase
         serializer.WriteObject(stream, value);
     }
 
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     private static IList ToList(object value) => value as IList ?? new ArrayList();
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
