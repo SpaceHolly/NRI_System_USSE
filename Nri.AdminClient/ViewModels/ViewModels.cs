@@ -202,6 +202,13 @@ public class AdminMainViewModel : ViewModelBase
     private string _selectedCharacterId = string.Empty;
     private string _selectedPendingRequestId = string.Empty;
     private string _selectedCombatParticipantId = string.Empty;
+    private string _selectedClassNodeId = string.Empty;
+    private string _selectedSkillId = string.Empty;
+    private string _selectedReferenceId = string.Empty;
+    private string _selectedBackupId = string.Empty;
+    private string _selectedDiagnosticsId = string.Empty;
+    private int _selectedContentTabIndex;
+    private int _selectedSystemTabIndex;
 
     public AdminMainViewModel()
     {
@@ -240,6 +247,8 @@ public class AdminMainViewModel : ViewModelBase
         RefreshPeopleSectionCommand = new RelayCommand(RefreshPeopleSection);
         RefreshModerationSectionCommand = new RelayCommand(RefreshModerationSection);
         RefreshSessionSectionCommand = new RelayCommand(RefreshSessionSection);
+        RefreshContentSectionCommand = new RelayCommand(RefreshContentSection);
+        RefreshSystemSectionCommand = new RelayCommand(RefreshSystemSection);
         AcquireLockCommand = new RelayCommand(AcquireLock);
         ReleaseLockCommand = new RelayCommand(ReleaseLock);
         ForceUnlockCommand = new RelayCommand(ForceUnlock);
@@ -258,11 +267,11 @@ public class AdminMainViewModel : ViewModelBase
         CombatAddParticipantCommand = new RelayCommand(() => RunUiAction("Добавление участника боя", CombatAddParticipant));
         CombatRemoveParticipantCommand = new RelayCommand(() => RunUiAction("Удаление участника боя", CombatRemoveParticipant));
         CombatDetachCompanionCommand = new RelayCommand(() => RunUiAction("Отвязка спутника", CombatDetachCompanion));
-        DefinitionsReloadCommand = new RelayCommand(DefinitionsReload);
-        LoadClassTreeCommand = new RelayCommand(LoadClassTree);
-        AcquireClassNodeCommand = new RelayCommand(AcquireClassNode);
-        LoadSkillsCommand = new RelayCommand(LoadSkills);
-        AcquireSkillCommand = new RelayCommand(AcquireSkill);
+        DefinitionsReloadCommand = new RelayCommand(() => RunUiAction("Перезагрузка definitions", DefinitionsReload));
+        LoadClassTreeCommand = new RelayCommand(() => RunUiAction("Загрузка class tree", LoadClassTree));
+        AcquireClassNodeCommand = new RelayCommand(() => RunUiAction("Выдача class node", AcquireClassNode));
+        LoadSkillsCommand = new RelayCommand(() => RunUiAction("Загрузка навыков", LoadSkills));
+        AcquireSkillCommand = new RelayCommand(() => RunUiAction("Выдача навыка", AcquireSkill));
         ChatSendCommand = new RelayCommand(() => RunUiAction("Отправка сообщения", ChatSend));
         ChatRefreshCommand = new RelayCommand(() => RunUiAction("Обновление чата", ChatRefresh));
         ChatMuteUserCommand = new RelayCommand(ChatMuteUser);
@@ -281,15 +290,20 @@ public class AdminMainViewModel : ViewModelBase
         NotesRefreshCommand = new RelayCommand(NotesRefresh);
         NotesCreateCommand = new RelayCommand(NotesCreate);
         NotesArchiveCommand = new RelayCommand(NotesArchive);
-        ReferenceRefreshCommand = new RelayCommand(ReferenceRefresh);
-        ReferenceCreateCommand = new RelayCommand(ReferenceCreate);
-        ReferenceUpdateCommand = new RelayCommand(ReferenceUpdate);
-        ReferenceArchiveCommand = new RelayCommand(ReferenceArchive);
-        BackupRefreshCommand = new RelayCommand(BackupRefresh);
-        BackupCreateCommand = new RelayCommand(BackupCreate);
-        BackupRestoreCommand = new RelayCommand(BackupRestore);
-        BackupExportCommand = new RelayCommand(BackupExport);
-        DiagnosticsRefreshCommand = new RelayCommand(DiagnosticsRefresh);
+        ReferenceRefreshCommand = new RelayCommand(() => RunUiAction("Обновление reference data", ReferenceRefresh));
+        ReferenceCreateCommand = new RelayCommand(() => RunUiAction("Создание reference data", ReferenceCreate));
+        ReferenceUpdateCommand = new RelayCommand(() => RunUiAction("Обновление reference data", ReferenceUpdate));
+        ReferenceArchiveCommand = new RelayCommand(() => RunUiAction("Архивация reference data", ReferenceArchive));
+        BackupRefreshCommand = new RelayCommand(() => RunUiAction("Обновление backup list", BackupRefresh));
+        BackupCreateCommand = new RelayCommand(() => RunUiAction("Создание backup", BackupCreate));
+        BackupRestoreCommand = new RelayCommand(() => RunUiAction("Восстановление backup", BackupRestore));
+        BackupExportCommand = new RelayCommand(() => RunUiAction("Экспорт backup", BackupExport));
+        DiagnosticsRefreshCommand = new RelayCommand(() => RunUiAction("Обновление diagnostics", DiagnosticsRefresh));
+        FocusContentClassesCommand = new RelayCommand(FocusContentClasses);
+        FocusContentReferenceCommand = new RelayCommand(FocusContentReference);
+        FocusSystemReferenceCommand = new RelayCommand(FocusSystemReference);
+        FocusSystemBackupsCommand = new RelayCommand(FocusSystemBackups);
+        FocusSystemDiagnosticsCommand = new RelayCommand(FocusSystemDiagnostics);
         SelectSectionCommand = new RelayCommand<string>(SelectSection);
         DetachWorkspacePanelCommand = new RelayCommand<string>(DetachWorkspacePanel);
         AttachWorkspacePanelCommand = new RelayCommand<string>(AttachWorkspacePanel);
@@ -343,7 +357,7 @@ public class AdminMainViewModel : ViewModelBase
     public bool HasActiveCombat => CombatRows.Any(row => row.IndexOf("Status:", StringComparison.OrdinalIgnoreCase) >= 0 && row.IndexOf("Ended", StringComparison.OrdinalIgnoreCase) < 0);
     public string ChatSummary => ChatRows.Count == 0 ? "Чат: нет данных" : $"Чат: {ChatRows.Count} сообщений";
     public string AudioSummary => string.IsNullOrWhiteSpace(AudioStateText) ? "Музыка: нет данных" : $"Музыка: {AudioStateText}";
-    public string DiagnosticsSummary => DiagnosticsRows.Count == 0 ? "Диагностика: не загружена" : DiagnosticsRows.First();
+    public string DiagnosticsSummary => DiagnosticsItems.Count == 0 ? "Диагностика: не загружена" : $"{DiagnosticsItems[0].Name} • {DiagnosticsItems[0].State} • {DiagnosticsItems[0].Extra}";
     public string SessionStateSummary => CombatRows.FirstOrDefault(row => row.StartsWith("Status:", StringComparison.OrdinalIgnoreCase))?.Split(':').Skip(1).FirstOrDefault()?.Trim() ?? (ArePrivilegedSectionsEnabled ? "Спокойное состояние" : "Недоступно до входа");
     public int ActiveCombatParticipantsCount => CombatRows.Count(row => row.StartsWith("P:", StringComparison.OrdinalIgnoreCase));
     public string CombatTrackerSummary => HasActiveCombat ? $"Бой активен • участников: {ActiveCombatParticipantsCount}" : ActiveCombatParticipantsCount > 0 ? $"Трекер загружен • участников: {ActiveCombatParticipantsCount}" : "Трекер боя ждёт данных";
@@ -358,15 +372,36 @@ public class AdminMainViewModel : ViewModelBase
     public bool CanControlCombat => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanSendChat => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(ChatMessageText);
     public bool CanControlAudio => ArePrivilegedSectionsEnabled && !IsBusy;
-    public string ContentSummary => $"Classes: {ClassTreeRows.Count} • Skills: {SkillStateRows.Count}";
-    public string ReferenceSummary => ReferenceRows.Count == 0 ? "Reference data: нет загруженных записей" : $"Reference data: {ReferenceRows.Count} записей типа {ReferenceType}";
-    public string BackupSummary => BackupRows.Count == 0 ? "Backups: ещё не загружены" : $"Backups: {BackupRows.Count}, последний: {BackupRows[0]}";
+    public string ContentSummary => $"Classes: {ClassTreeItems.Count} • Skills: {SkillRows.Count}";
+    public string ContentReadinessSummary => !ArePrivilegedSectionsEnabled ? "Подключитесь и войдите, чтобы работать с игровым контентом." : string.IsNullOrWhiteSpace(SelectedCharacterId) ? "Выберите персонажа в разделе Люди, чтобы загрузить progression data." : $"Контент для персонажа {SelectedCharacterId} готов к работе.";
+    public string SelectedClassSummary => SelectedClassNode == null ? "Класс / node не выбран." : $"{SelectedClassNode.Name} • {SelectedClassNode.State} • {SelectedClassNode.Extra}";
+    public string SelectedSkillSummary => SelectedSkill == null ? "Навык не выбран." : $"{SelectedSkill.Name} • {SelectedSkill.State} • {SelectedSkill.Extra}";
+    public string SelectedReferenceSummary => SelectedReference == null ? "Reference-запись не выбрана." : $"{SelectedReference.Name} • {SelectedReference.State} • {SelectedReference.Extra}";
+    public string SelectedContentSummary => SelectedClassNode != null ? SelectedClassSummary : SelectedSkill != null ? SelectedSkillSummary : SelectedReferenceSummary;
+    public string ReferenceSummary => ReferenceItems.Count == 0 ? "Reference data: нет загруженных записей" : $"Reference data: {ReferenceItems.Count} записей типа {ReferenceType}";
+    public string BackupSummary => BackupItems.Count == 0 ? "Backups: ещё не загружены" : $"Backups: {BackupItems.Count}, последний: {BackupItems[0].Name}";
+    public string DiagnosticsStatusSummary => DiagnosticsItems.Count == 0 ? "Diagnostics ещё не загружены" : DiagnosticsItems[0].Name;
+    public string SelectedBackupSummary => SelectedBackup == null ? "Backup не выбран." : $"{SelectedBackup.Name} • {SelectedBackup.State} • {SelectedBackup.Extra}";
+    public string SelectedDiagnosticsSummary => SelectedDiagnostics == null ? "Diagnostics запись не выбрана." : $"{SelectedDiagnostics.Name} • {SelectedDiagnostics.State} • {SelectedDiagnostics.Extra}";
+    public string SystemHealthSummary => DiagnosticsItems.Count == 0 ? "Служебные данные ещё не загружены." : $"Diagnostics: {DiagnosticsItems.Count} • Backups: {BackupItems.Count} • Reference: {ReferenceItems.Count}";
+    public bool CanControlContent => ArePrivilegedSectionsEnabled && !IsBusy;
+    public bool CanRefreshContent => ArePrivilegedSectionsEnabled && !IsBusy;
+    public bool CanAcquireClassNode => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedClassNode != null;
+    public bool CanAcquireSkill => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedSkill != null;
+    public bool CanManageReferenceRecord => ArePrivilegedSectionsEnabled && !IsBusy && SelectedReference != null;
+    public bool CanManageSelectedBackup => ArePrivilegedSectionsEnabled && !IsBusy && SelectedBackup != null;
+    public bool CanRefreshSystem => ArePrivilegedSectionsEnabled && !IsBusy;
     public string WorkspaceSummary => $"Панели: встроено {WorkspacePanels.Count(panel => panel.IsVisible && !panel.IsDetached)}, вынесено {WorkspacePanels.Count(panel => panel.IsVisible && panel.IsDetached)}, скрыто {WorkspacePanels.Count(panel => !panel.IsVisible)}";
     public RowVm? SelectedLock => LockRows.FirstOrDefault(row => row.Id == SelectedLockId);
     public RowVm? SelectedPendingAccount => PendingAccounts.FirstOrDefault(row => row.Id == SelectedPendingAccountId);
     public RowVm? SelectedPlayer => Players.FirstOrDefault(row => row.Id == SelectedOwnerUserId);
     public RowVm? SelectedCharacter => Characters.FirstOrDefault(row => row.Id == SelectedCharacterId);
     public RowVm? SelectedRequest => PendingRequests.FirstOrDefault(row => row.Id == SelectedPendingRequestId);
+    public RowVm? SelectedClassNode => ClassTreeItems.FirstOrDefault(row => row.Id == SelectedClassNodeId);
+    public RowVm? SelectedSkill => SkillRows.FirstOrDefault(row => row.Id == SelectedSkillId);
+    public RowVm? SelectedReference => ReferenceItems.FirstOrDefault(row => row.Id == SelectedReferenceId);
+    public RowVm? SelectedBackup => BackupItems.FirstOrDefault(row => row.Id == SelectedBackupId);
+    public RowVm? SelectedDiagnostics => DiagnosticsItems.FirstOrDefault(row => row.Id == SelectedDiagnosticsId);
     public string SelectedPendingAccountSummary => SelectedPendingAccount == null ? "Выберите ожидающий аккаунт, чтобы увидеть детали и действия." : $"{SelectedPendingAccount.Name} • {SelectedPendingAccount.State} • {SelectedPendingAccount.Extra}";
     public string SelectedPlayerSummary => SelectedPlayer == null ? "Выберите игрока, чтобы загрузить связанных персонажей." : $"{SelectedPlayer.Name} • {SelectedPlayer.State} • {SelectedPlayer.Extra}";
     public string SelectedCharacterSummary => SelectedCharacter == null ? "Персонаж не выбран." : $"{SelectedCharacter.Name} • race: {SelectedCharacter.Extra} • archived: {SelectedCharacter.State}";
@@ -378,6 +413,8 @@ public class AdminMainViewModel : ViewModelBase
     public bool CanOpenSelectedCharacter => ArePrivilegedSectionsEnabled && SelectedCharacter != null && !IsBusy;
     public bool CanModerateSelectedRequest => ArePrivilegedSectionsEnabled && SelectedRequest != null && !IsBusy;
     public bool CanManageSelectedLock => ArePrivilegedSectionsEnabled && SelectedLock != null && !IsBusy;
+    public int SelectedContentTabIndex { get => _selectedContentTabIndex; set { if (_selectedContentTabIndex != value) { _selectedContentTabIndex = value; Notify(); } } }
+    public int SelectedSystemTabIndex { get => _selectedSystemTabIndex; set { if (_selectedSystemTabIndex != value) { _selectedSystemTabIndex = value; Notify(); } } }
     public string WorkspaceLayoutPath => Path.Combine(_appDataDirectory, "workspace.layout.json");
     public string ConnectionSettingsPath => Path.Combine(_appDataDirectory, "connection.settings.json");
 
@@ -485,8 +522,38 @@ public class AdminMainViewModel : ViewModelBase
         }
     }
     public string LockStateText { get; set; } = string.Empty;
-    public string SelectedClassNodeId { get; set; } = string.Empty;
-    public string SelectedSkillId { get; set; } = string.Empty;
+    public string SelectedClassNodeId
+    {
+        get => _selectedClassNodeId;
+        set
+        {
+            if (_selectedClassNodeId != value)
+            {
+                _selectedClassNodeId = value;
+                Notify();
+                Notify(nameof(SelectedClassNode));
+                Notify(nameof(SelectedClassSummary));
+                Notify(nameof(SelectedContentSummary));
+                Notify(nameof(CanAcquireClassNode));
+            }
+        }
+    }
+    public string SelectedSkillId
+    {
+        get => _selectedSkillId;
+        set
+        {
+            if (_selectedSkillId != value)
+            {
+                _selectedSkillId = value;
+                Notify();
+                Notify(nameof(SelectedSkill));
+                Notify(nameof(SelectedSkillSummary));
+                Notify(nameof(SelectedContentSummary));
+                Notify(nameof(CanAcquireSkill));
+            }
+        }
+    }
     public string DefinitionVersionText { get; set; } = string.Empty;
     public string ChatSessionId { get; set; } = "default";
     public string ChatMessageText { get; set; } = string.Empty;
@@ -515,12 +582,63 @@ public class AdminMainViewModel : ViewModelBase
     public string SelectedNoteId { get; set; } = string.Empty;
     public string ReferenceWorldId { get; set; } = "default-world";
     public string ReferenceType { get; set; } = "race";
-    public string ReferenceId { get; set; } = string.Empty;
+    public string ReferenceId
+    {
+        get => _selectedReferenceId;
+        set
+        {
+            if (_selectedReferenceId != value)
+            {
+                _selectedReferenceId = value;
+                var selected = ReferenceItems.FirstOrDefault(row => row.Id == value);
+                if (selected != null)
+                {
+                    ReferenceDisplayName = selected.Name;
+                    ReferenceKey = selected.Extra.StartsWith("key=", StringComparison.OrdinalIgnoreCase) ? selected.Extra.Substring(4) : ReferenceKey;
+                    Notify(nameof(ReferenceDisplayName));
+                    Notify(nameof(ReferenceKey));
+                }
+                Notify();
+                Notify(nameof(SelectedReference));
+                Notify(nameof(SelectedReferenceSummary));
+                Notify(nameof(SelectedContentSummary));
+                Notify(nameof(CanManageReferenceRecord));
+            }
+        }
+    }
     public string ReferenceKey { get; set; } = string.Empty;
     public string ReferenceDisplayName { get; set; } = string.Empty;
     public string ReferenceDataJson { get; set; } = "{}";
     public string BackupLabel { get; set; } = string.Empty;
-    public string SelectedBackupId { get; set; } = string.Empty;
+    public string SelectedBackupId
+    {
+        get => _selectedBackupId;
+        set
+        {
+            if (_selectedBackupId != value)
+            {
+                _selectedBackupId = value;
+                Notify();
+                Notify(nameof(SelectedBackup));
+                Notify(nameof(SelectedBackupSummary));
+                Notify(nameof(CanManageSelectedBackup));
+            }
+        }
+    }
+    public string SelectedDiagnosticsId
+    {
+        get => _selectedDiagnosticsId;
+        set
+        {
+            if (_selectedDiagnosticsId != value)
+            {
+                _selectedDiagnosticsId = value;
+                Notify();
+                Notify(nameof(SelectedDiagnostics));
+                Notify(nameof(SelectedDiagnosticsSummary));
+            }
+        }
+    }
     public string EditName { get; set; } = string.Empty;
     public string EditRace { get; set; } = string.Empty;
     public string EditHeight { get; set; } = string.Empty;
@@ -555,15 +673,15 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> CombatRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<RowVm> CombatParticipantRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> CombatHistoryRows { get; } = new ObservableCollection<string>();
-    public ObservableCollection<string> ClassTreeRows { get; } = new ObservableCollection<string>();
-    public ObservableCollection<string> SkillStateRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<RowVm> ClassTreeItems { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<RowVm> SkillRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> ChatRestrictionRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> AudioLibraryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> NotesRows { get; } = new ObservableCollection<string>();
-    public ObservableCollection<string> ReferenceRows { get; } = new ObservableCollection<string>();
-    public ObservableCollection<string> BackupRows { get; } = new ObservableCollection<string>();
-    public ObservableCollection<string> DiagnosticsRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<RowVm> ReferenceItems { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<RowVm> BackupItems { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<RowVm> DiagnosticsItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> LockRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> OverviewActivityRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<WorkspacePanelDescriptor> WorkspacePanels { get; } = new ObservableCollection<WorkspacePanelDescriptor>();
@@ -598,6 +716,8 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand RefreshPeopleSectionCommand { get; }
     public ICommand RefreshModerationSectionCommand { get; }
     public ICommand RefreshSessionSectionCommand { get; }
+    public ICommand RefreshContentSectionCommand { get; }
+    public ICommand RefreshSystemSectionCommand { get; }
     public ICommand AcquireLockCommand { get; }
     public ICommand ReleaseLockCommand { get; }
     public ICommand ForceUnlockCommand { get; }
@@ -648,6 +768,11 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand BackupRestoreCommand { get; }
     public ICommand BackupExportCommand { get; }
     public ICommand DiagnosticsRefreshCommand { get; }
+    public ICommand FocusContentClassesCommand { get; }
+    public ICommand FocusContentReferenceCommand { get; }
+    public ICommand FocusSystemReferenceCommand { get; }
+    public ICommand FocusSystemBackupsCommand { get; }
+    public ICommand FocusSystemDiagnosticsCommand { get; }
     public ICommand SelectSectionCommand { get; }
     public ICommand DetachWorkspacePanelCommand { get; }
     public ICommand AttachWorkspacePanelCommand { get; }
@@ -827,8 +952,22 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(CanSendChat));
         Notify(nameof(CanControlAudio));
         Notify(nameof(ContentSummary));
+        Notify(nameof(ContentReadinessSummary));
+        Notify(nameof(SelectedClassNode));
+        Notify(nameof(SelectedSkill));
+        Notify(nameof(SelectedReference));
+        Notify(nameof(SelectedBackup));
+        Notify(nameof(SelectedDiagnostics));
+        Notify(nameof(SelectedClassSummary));
+        Notify(nameof(SelectedSkillSummary));
+        Notify(nameof(SelectedReferenceSummary));
+        Notify(nameof(SelectedContentSummary));
         Notify(nameof(ReferenceSummary));
         Notify(nameof(BackupSummary));
+        Notify(nameof(DiagnosticsStatusSummary));
+        Notify(nameof(SelectedBackupSummary));
+        Notify(nameof(SelectedDiagnosticsSummary));
+        Notify(nameof(SystemHealthSummary));
         Notify(nameof(WorkspaceSummary));
         Notify(nameof(SelectedPendingAccount));
         Notify(nameof(SelectedPlayer));
@@ -846,6 +985,13 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(CanOpenSelectedCharacter));
         Notify(nameof(CanModerateSelectedRequest));
         Notify(nameof(CanManageSelectedLock));
+        Notify(nameof(CanControlContent));
+        Notify(nameof(CanRefreshContent));
+        Notify(nameof(CanAcquireClassNode));
+        Notify(nameof(CanAcquireSkill));
+        Notify(nameof(CanManageReferenceRecord));
+        Notify(nameof(CanManageSelectedBackup));
+        Notify(nameof(CanRefreshSystem));
     }
 
     public void LoadWorkspaceLayout()
@@ -1044,6 +1190,60 @@ public class AdminMainViewModel : ViewModelBase
             LoadPendingRequests();
             LoadRequestHistory();
         });
+    }
+
+    private void RefreshContentSection()
+    {
+        RunUiAction("Обновление контента", () =>
+        {
+            DefinitionsReload();
+            if (!string.IsNullOrWhiteSpace(SelectedCharacterId))
+            {
+                LoadClassTree();
+                LoadSkills();
+            }
+            ReferenceRefresh();
+        });
+    }
+
+    private void RefreshSystemSection()
+    {
+        RunUiAction("Обновление системных инструментов", () =>
+        {
+            ReferenceRefresh();
+            BackupRefresh();
+            DiagnosticsRefresh();
+        });
+    }
+
+    private void FocusContentClasses()
+    {
+        SelectedSection = "Контент";
+        SelectedContentTabIndex = 0;
+    }
+
+    private void FocusContentReference()
+    {
+        SelectedSection = "Контент";
+        SelectedContentTabIndex = 1;
+    }
+
+    private void FocusSystemReference()
+    {
+        SelectedSection = "Система";
+        SelectedSystemTabIndex = 0;
+    }
+
+    private void FocusSystemBackups()
+    {
+        SelectedSection = "Система";
+        SelectedSystemTabIndex = 1;
+    }
+
+    private void FocusSystemDiagnostics()
+    {
+        SelectedSection = "Система";
+        SelectedSystemTabIndex = 2;
     }
 
     private void RestoreSelection(ObservableCollection<RowVm> source, string selectedId, Action<string> setter)
@@ -1381,7 +1581,7 @@ public class AdminMainViewModel : ViewModelBase
     private void LoadClassTree()
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
-        ClassTreeRows.Clear();
+        ClassTreeItems.Clear();
         var tree = _api.ClassTreeGet(SelectedCharacterId);
         if (tree.Status == ResponseStatus.Ok)
         {
@@ -1389,10 +1589,12 @@ public class AdminMainViewModel : ViewModelBase
             foreach (var d in ToList(tree.Payload.ContainsKey("directions") ? tree.Payload["directions"] : new ArrayList()))
             {
                 if (d is not Dictionary<string, object> dm) continue;
-                ClassTreeRows.Add($"[{S(dm, "directionId")}] branch={S(dm, "selectedBranchId")}");
+                var directionId = S(dm, "directionId");
+                var branchId = S(dm, "selectedBranchId");
+                ClassTreeItems.Add(new RowVm { Id = directionId, Name = $"Direction {directionId}", State = "Branch", Extra = $"selectedBranch={branchId}" });
                 foreach (var n in ToList(dm.ContainsKey("acquiredNodes") ? dm["acquiredNodes"] : new ArrayList()))
                     if (n is Dictionary<string, object> nm)
-                        ClassTreeRows.Add($"  + {S(nm, "nodeId")} at {S(nm, "acquiredAt")}");
+                        ClassTreeItems.Add(new RowVm { Id = S(nm, "nodeId"), Name = S(nm, "nodeId"), State = "Acquired", Extra = $"acquiredAt={S(nm, "acquiredAt")}" });
             }
         }
 
@@ -1403,9 +1605,10 @@ public class AdminMainViewModel : ViewModelBase
             {
                 if (d is not Dictionary<string, object> dm) continue;
                 if (S(dm, "available") == "True")
-                    ClassTreeRows.Add($"AVAILABLE {S(dm, "nodeId")} ({S(dm, "name")})");
+                    ClassTreeItems.Add(new RowVm { Id = S(dm, "nodeId"), Name = S(dm, "name"), State = "Available", Extra = $"nodeId={S(dm, "nodeId")}" });
             }
         }
+        RestoreSelection(ClassTreeItems, SelectedClassNodeId, value => SelectedClassNodeId = value);
         Notify(nameof(DefinitionVersionText));
     }
 
@@ -1420,14 +1623,21 @@ public class AdminMainViewModel : ViewModelBase
     private void LoadSkills()
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
-        SkillStateRows.Clear();
+        SkillRows.Clear();
         var r = _api.SkillsList(SelectedCharacterId);
         if (r.Status != ResponseStatus.Ok || !r.Payload.ContainsKey("items")) return;
         foreach (var item in ToList(r.Payload["items"]))
         {
             if (item is not Dictionary<string, object> m) continue;
-            SkillStateRows.Add($"{S(m, "skillId")} | {S(m, "name")} | type={S(m, "type")} | acquired={S(m, "acquired")} | available={S(m, "available")} | reason={S(m, "reason")}");
+            SkillRows.Add(new RowVm
+            {
+                Id = S(m, "skillId"),
+                Name = S(m, "name"),
+                State = $"type={S(m, "type")}",
+                Extra = $"acquired={S(m, "acquired")} • available={S(m, "available")} • reason={S(m, "reason")}"
+            });
         }
+        RestoreSelection(SkillRows, SelectedSkillId, value => SelectedSkillId = value);
     }
 
     private void AcquireSkill()
@@ -1549,11 +1759,18 @@ public class AdminMainViewModel : ViewModelBase
 
     private void ReferenceRefresh()
     {
-        ReferenceRows.Clear();
+        ReferenceItems.Clear();
         var r = _api.ReferenceList(ReferenceWorldId, ReferenceType);
         foreach (var item in ToList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                ReferenceRows.Add($"{S(m, "referenceId")} | {S(m, "referenceType")} | {S(m, "key")} | {S(m, "displayName")}");
+                ReferenceItems.Add(new RowVm
+                {
+                    Id = S(m, "referenceId"),
+                    Name = S(m, "displayName"),
+                    State = S(m, "referenceType"),
+                    Extra = $"key={S(m, "key")}"
+                });
+        RestoreSelection(ReferenceItems, ReferenceId, value => ReferenceId = value);
     }
 
     private void ReferenceCreate() { _api.ReferenceCreate(new Dictionary<string, object> { { "worldId", ReferenceWorldId }, { "referenceType", ReferenceType }, { "key", ReferenceKey }, { "displayName", ReferenceDisplayName }, { "dataJson", ReferenceDataJson } }); ReferenceRefresh(); }
@@ -1562,11 +1779,12 @@ public class AdminMainViewModel : ViewModelBase
 
     private void BackupRefresh()
     {
-        BackupRows.Clear();
+        BackupItems.Clear();
         var r = _api.BackupList();
         foreach (var item in ToList(r.Payload.ContainsKey("items") ? r.Payload["items"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                BackupRows.Add($"{S(m, "backupId")} | {S(m, "label")} | {S(m, "createdUtc")}");
+                BackupItems.Add(new RowVm { Id = S(m, "backupId"), Name = S(m, "label"), State = "Backup", Extra = S(m, "createdUtc") });
+        RestoreSelection(BackupItems, SelectedBackupId, value => SelectedBackupId = value);
     }
 
     private void BackupCreate() { _api.BackupCreate(string.IsNullOrWhiteSpace(BackupLabel) ? "manual-backup" : BackupLabel); BackupRefresh(); }
@@ -1575,13 +1793,14 @@ public class AdminMainViewModel : ViewModelBase
 
     private void DiagnosticsRefresh()
     {
-        DiagnosticsRows.Clear();
+        DiagnosticsItems.Clear();
         var s1 = _api.AdminServerStatus();
-        DiagnosticsRows.Add("server utc=" + S(s1.Payload, "utcNow") + "; online=" + S(s1.Payload, "onlineUsers"));
+        DiagnosticsItems.Add(new RowVm { Id = "server-status", Name = "Server status", State = $"online={S(s1.Payload, "onlineUsers")}", Extra = $"utc={S(s1.Payload, "utcNow")}" });
         var s2 = _api.AdminSessionsList();
-        DiagnosticsRows.Add("sessions payload size=" + ToList(s2.Payload.ContainsKey("items") ? s2.Payload["items"] : new ArrayList()).Count);
+        DiagnosticsItems.Add(new RowVm { Id = "sessions", Name = "Sessions payload", State = "Count", Extra = ToList(s2.Payload.ContainsKey("items") ? s2.Payload["items"] : new ArrayList()).Count.ToString() });
         LoadLocksSummary();
-        DiagnosticsRows.Add("locks=" + LocksCount);
+        DiagnosticsItems.Add(new RowVm { Id = "locks", Name = "Locks", State = "Count", Extra = LocksCount.ToString() });
+        RestoreSelection(DiagnosticsItems, SelectedDiagnosticsId, value => SelectedDiagnosticsId = value);
         RefreshConnectionSummary();
     }
 
@@ -1626,7 +1845,7 @@ public class AdminMainViewModel : ViewModelBase
         if (PendingAccounts.Count > 0) OverviewActivityRows.Add($"Новый аккаунт: {PendingAccounts[0].Name}");
         if (DiceFeedRows.Count > 0) OverviewActivityRows.Add($"Последний бросок: {DiceFeedRows[0]}");
         if (ChatRows.Count > 0) OverviewActivityRows.Add($"Последнее сообщение: {ChatRows[0]}");
-        if (DiagnosticsRows.Count > 0) OverviewActivityRows.Add($"Диагностика: {DiagnosticsRows[0]}");
+        if (DiagnosticsItems.Count > 0) OverviewActivityRows.Add($"Диагностика: {DiagnosticsItems[0].Name} / {DiagnosticsItems[0].Extra}");
         if (OverviewActivityRows.Count == 1 && string.IsNullOrWhiteSpace(OverviewActivityRows[0]))
         {
             OverviewActivityRows[0] = "Нет последних событий.";
