@@ -128,6 +128,12 @@ public static class CommandNames
     public const string AdminSkillsSetState = "admin.skills.setState";
     public const string AdminCharacterProgressRecalculate = "admin.character.progress.recalculate";
 
+    public const string AdminDefinitionsClassList = "admin.definitions.class.list";
+    public const string AdminDefinitionsClassGet = "admin.definitions.class.get";
+    public const string AdminDefinitionsClassSave = "admin.definitions.class.save";
+    public const string AdminDefinitionsSkillList = "admin.definitions.skill.list";
+    public const string AdminDefinitionsSkillGet = "admin.definitions.skill.get";
+    public const string AdminDefinitionsSkillSave = "admin.definitions.skill.save";
 
     public const string ChatSend = "chat.send";
     public const string ChatHistoryGet = "chat.history.get";
