@@ -109,7 +109,13 @@ public static class CommandNames
 
 
     public const string DefinitionsClassesGet = "definitions.classes.get";
+    public const string DefinitionsClassGet = "definitions.class.get";
+    public const string DefinitionsClassSave = "definitions.class.save";
+    public const string DefinitionsClassArchive = "definitions.class.archive";
     public const string DefinitionsSkillsGet = "definitions.skills.get";
+    public const string DefinitionsSkillGet = "definitions.skill.get";
+    public const string DefinitionsSkillSave = "definitions.skill.save";
+    public const string DefinitionsSkillArchive = "definitions.skill.archive";
     public const string DefinitionsReload = "definitions.reload";
     public const string DefinitionsVersionGet = "definitions.version.get";
 
@@ -128,6 +134,12 @@ public static class CommandNames
     public const string AdminSkillsSetState = "admin.skills.setState";
     public const string AdminCharacterProgressRecalculate = "admin.character.progress.recalculate";
 
+    public const string AdminDefinitionsClassList = "admin.definitions.class.list";
+    public const string AdminDefinitionsClassGet = "admin.definitions.class.get";
+    public const string AdminDefinitionsClassSave = "admin.definitions.class.save";
+    public const string AdminDefinitionsSkillList = "admin.definitions.skill.list";
+    public const string AdminDefinitionsSkillGet = "admin.definitions.skill.get";
+    public const string AdminDefinitionsSkillSave = "admin.definitions.skill.save";
 
     public const string ChatSend = "chat.send";
     public const string ChatHistoryGet = "chat.history.get";
