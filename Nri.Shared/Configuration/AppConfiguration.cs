@@ -7,7 +7,16 @@ public class ServerConfig
     public MongoConfig Mongo { get; set; } = new MongoConfig();
     public LoggingConfig Logging { get; set; } = new LoggingConfig();
     public TokenConfig Tokens { get; set; } = new TokenConfig();
+    public BootstrapAdminConfig BootstrapAdmin { get; set; } = new BootstrapAdminConfig();
     public string AudioFolderPath { get; set; } = "./audio";
+}
+
+public class BootstrapAdminConfig
+{
+    public bool Enabled { get; set; }
+    public string Login { get; set; } = "admin";
+    public string Password { get; set; } = string.Empty;
+    public bool PromoteExistingUser { get; set; } = true;
 }
 
 public class MongoConfig
