@@ -1,5 +1,10 @@
+using Nri.Server.Application.Services;
+using Nri.Server.Application.Validation;
+using Nri.Server.Audit;
+using Nri.Server.Handlers.Admin;
 using Nri.Server.Infrastructure;
 using Nri.Server.Logging;
+using Nri.Server.Transport;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
 
@@ -25,6 +30,14 @@ public static class ServiceRegistry
         var repositories = new MongoRepositoryFactory(mongo);
         var sessions = new SessionManager(config.Tokens, repositories);
         var hub = new ServiceHub(repositories, sessions, logger, config.AudioFolderPath);
+        var auditLogService = new AuditLogService(repositories, logger);
+        var validationService = new DefinitionValidationService(
+            new ClassDefinitionValidator(),
+            new SkillDefinitionValidator(),
+            new DefinitionReferenceValidator(repositories.ClassDefinitions, repositories.DefinitionSkills));
+        var classDefinitionService = new ClassDefinitionService(repositories.ClassDefinitions, validationService, auditLogService);
+        var skillDefinitionService = new SkillDefinitionService(repositories.DefinitionSkills, validationService, auditLogService);
+        var adminDefinitionRouter = new RequestRouter(new AdminDefinitionHandlers(repositories, classDefinitionService, skillDefinitionService).CreateHandlers());
 
         var dispatcher = new CommandDispatcher(logger, sessions);
 
@@ -105,6 +118,13 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.AdminClassTreeSetState, new DelegateCommandHandler(hub.AdminClassTreeSetState));
         dispatcher.Register(CommandNames.AdminSkillsSetState, new DelegateCommandHandler(hub.AdminSkillsSetState));
         dispatcher.Register(CommandNames.AdminCharacterProgressRecalculate, new DelegateCommandHandler(hub.AdminCharacterProgressRecalculate));
+
+        dispatcher.Register(CommandNames.AdminDefinitionsClassList, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.AdminDefinitionsClassGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.AdminDefinitionsClassSave, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.AdminDefinitionsSkillList, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.AdminDefinitionsSkillGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.AdminDefinitionsSkillSave, new RoutedCommandHandler(adminDefinitionRouter));
 
         dispatcher.Register(CommandNames.RequestCreate, new DelegateCommandHandler(hub.RequestCreate));
         dispatcher.Register(CommandNames.RequestCancel, new DelegateCommandHandler(hub.RequestCancel));
