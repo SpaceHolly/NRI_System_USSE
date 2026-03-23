@@ -19,6 +19,11 @@ public class SaveClassRequest
     public ClassDefinitionDto Definition { get; set; } = new ClassDefinitionDto();
 }
 
+public class ArchiveClassRequest
+{
+    public string Code { get; set; } = string.Empty;
+}
+
 public class GetSkillListRequest
 {
     public bool IncludeArchived { get; set; }
@@ -32,6 +37,11 @@ public class GetSkillByCodeRequest
 public class SaveSkillRequest
 {
     public SkillDefinitionDto Definition { get; set; } = new SkillDefinitionDto();
+}
+
+public class ArchiveSkillRequest
+{
+    public string Code { get; set; } = string.Empty;
 }
 
 public class GetClassListResponse
@@ -50,6 +60,12 @@ public class SaveClassResponse
     public bool Created { get; set; }
 }
 
+public class ArchiveClassResponse
+{
+    public string Code { get; set; } = string.Empty;
+    public bool Archived { get; set; }
+}
+
 public class GetSkillListResponse
 {
     public IReadOnlyCollection<SkillDefinitionDto> Items { get; set; } = Array.Empty<SkillDefinitionDto>();
@@ -64,6 +80,12 @@ public class SaveSkillResponse
 {
     public SkillDefinitionDto Item { get; set; } = new SkillDefinitionDto();
     public bool Created { get; set; }
+}
+
+public class ArchiveSkillResponse
+{
+    public string Code { get; set; } = string.Empty;
+    public bool Archived { get; set; }
 }
 
 public class ClassDefinitionDto

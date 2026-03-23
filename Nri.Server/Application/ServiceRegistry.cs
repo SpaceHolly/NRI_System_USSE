@@ -99,8 +99,14 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CombatParticipants, new DelegateCommandHandler(hub.CombatParticipants));
         dispatcher.Register(CommandNames.CombatTimeline, new DelegateCommandHandler(hub.CombatTimeline));
 
-        dispatcher.Register(CommandNames.DefinitionsClassesGet, new DelegateCommandHandler(hub.DefinitionsClassesGet));
-        dispatcher.Register(CommandNames.DefinitionsSkillsGet, new DelegateCommandHandler(hub.DefinitionsSkillsGet));
+        dispatcher.Register(CommandNames.DefinitionsClassesGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsClassGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsClassSave, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsClassArchive, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsSkillsGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsSkillGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsSkillSave, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsSkillArchive, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsReload, new DelegateCommandHandler(hub.DefinitionsReload));
         dispatcher.Register(CommandNames.DefinitionsVersionGet, new DelegateCommandHandler(hub.DefinitionsVersionGet));
 

@@ -29,6 +29,14 @@ public sealed class AdminDefinitionHandlers
     {
         return new IRequestHandler[]
         {
+            new DelegateRequestHandler(CommandNames.DefinitionsClassesGet, HandleGetClassList),
+            new DelegateRequestHandler(CommandNames.DefinitionsClassGet, HandleGetClassByCode),
+            new DelegateRequestHandler(CommandNames.DefinitionsClassSave, HandleSaveClass),
+            new DelegateRequestHandler(CommandNames.DefinitionsClassArchive, HandleArchiveClass),
+            new DelegateRequestHandler(CommandNames.DefinitionsSkillsGet, HandleGetSkillList),
+            new DelegateRequestHandler(CommandNames.DefinitionsSkillGet, HandleGetSkillByCode),
+            new DelegateRequestHandler(CommandNames.DefinitionsSkillSave, HandleSaveSkill),
+            new DelegateRequestHandler(CommandNames.DefinitionsSkillArchive, HandleArchiveSkill),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsClassList, HandleGetClassList),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsClassGet, HandleGetClassByCode),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsClassSave, HandleSaveClass),
@@ -64,6 +72,20 @@ public sealed class AdminDefinitionHandlers
         });
     }
 
+
+    private ResponseEnvelope HandleArchiveClass(CommandContext context)
+    {
+        var request = new ArchiveClassRequest { Code = RequireString(context.Request.Payload, "code") };
+        var actor = RequireActor(context);
+        var archived = _classService.Archive(request.Code, actor.Id);
+        var response = new ArchiveClassResponse { Code = request.Code, Archived = archived };
+        return Ok(archived ? "Class definition archived." : "Class definition already archived.", new Dictionary<string, object>
+        {
+            { "code", response.Code },
+            { "archived", response.Archived }
+        });
+    }
+
     private ResponseEnvelope HandleGetSkillList(CommandContext context)
     {
         var request = new GetSkillListRequest { IncludeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived") };
@@ -87,6 +109,20 @@ public sealed class AdminDefinitionHandlers
         {
             { "created", response.Created },
             { "item", ToPayload(response.Item) }
+        });
+    }
+
+
+    private ResponseEnvelope HandleArchiveSkill(CommandContext context)
+    {
+        var request = new ArchiveSkillRequest { Code = RequireString(context.Request.Payload, "code") };
+        var actor = RequireActor(context);
+        var archived = _skillService.Archive(request.Code, actor.Id);
+        var response = new ArchiveSkillResponse { Code = request.Code, Archived = archived };
+        return Ok(archived ? "Skill definition archived." : "Skill definition already archived.", new Dictionary<string, object>
+        {
+            { "code", response.Code },
+            { "archived", response.Archived }
         });
     }
 
