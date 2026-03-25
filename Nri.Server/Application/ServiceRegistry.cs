@@ -1,6 +1,8 @@
+using System.Linq;
 using Nri.Server.Application.Services;
 using Nri.Server.Application.Validation;
 using Nri.Server.Audit;
+using Nri.Server.Bootstrap;
 using Nri.Server.Handlers.Admin;
 using Nri.Server.Infrastructure;
 using Nri.Server.Logging;
@@ -28,6 +30,7 @@ public static class ServiceRegistry
     {
         var mongo = new MongoContext(config, logger);
         var repositories = new MongoRepositoryFactory(mongo);
+        BootstrapAdminInitializer.Ensure(config, repositories, logger);
         var sessions = new SessionManager(config.Tokens, repositories);
         var hub = new ServiceHub(repositories, sessions, logger, config.AudioFolderPath);
         var auditLogService = new AuditLogService(repositories, logger);
@@ -37,7 +40,11 @@ public static class ServiceRegistry
             new DefinitionReferenceValidator(repositories.ClassDefinitions, repositories.DefinitionSkills));
         var classDefinitionService = new ClassDefinitionService(repositories.ClassDefinitions, validationService, auditLogService);
         var skillDefinitionService = new SkillDefinitionService(repositories.DefinitionSkills, validationService, auditLogService);
-        var adminDefinitionRouter = new RequestRouter(new AdminDefinitionHandlers(repositories, classDefinitionService, skillDefinitionService).CreateHandlers());
+        var accountRoleService = new AccountRoleService(repositories, auditLogService);
+        var routedHandlers = new AdminDefinitionHandlers(repositories, classDefinitionService, skillDefinitionService).CreateHandlers()
+            .Concat(new AdminAccountRoleHandlers(repositories, accountRoleService).CreateHandlers())
+            .ToArray();
+        var adminDefinitionRouter = new RequestRouter(routedHandlers);
 
         var dispatcher = new CommandDispatcher(logger, sessions);
 
@@ -131,6 +138,9 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.AdminDefinitionsSkillList, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.AdminDefinitionsSkillGet, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.AdminDefinitionsSkillSave, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.AdminAccountRolesSet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.AdminAccountGrantAdmin, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.AdminAccountRevokeAdmin, new RoutedCommandHandler(adminDefinitionRouter));
 
         dispatcher.Register(CommandNames.RequestCreate, new DelegateCommandHandler(hub.RequestCreate));
         dispatcher.Register(CommandNames.RequestCancel, new DelegateCommandHandler(hub.RequestCancel));

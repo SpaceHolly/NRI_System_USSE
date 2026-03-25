@@ -45,6 +45,9 @@ public static class CommandNames
     public const string AdminAccountsArchive = "admin.accounts.archive";
     public const string AdminAccountProfile = "admin.accounts.profile";
     public const string AdminPlayersList = "admin.players.list";
+    public const string AdminAccountRolesSet = "admin.account.roles.set";
+    public const string AdminAccountGrantAdmin = "admin.account.grantAdmin";
+    public const string AdminAccountRevokeAdmin = "admin.account.revokeAdmin";
 
     public const string CharacterListMine = "character.list.mine";
     public const string CharacterListByOwner = "character.list.byOwner";

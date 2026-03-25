@@ -166,9 +166,9 @@ public sealed class WorkspacePanelDescriptor : ViewModelBase
 public sealed class ConnectionSettingsModel
 {
     [DataMember(Order = 1)] public string ServerHost { get; set; } = "127.0.0.1";
-    [DataMember(Order = 2)] public int ServerPort { get; set; } = 5000;
+    [DataMember(Order = 2)] public int ServerPort { get; set; } = 4600;
     [DataMember(Order = 3)] public string LastServerHost { get; set; } = "127.0.0.1";
-    [DataMember(Order = 4)] public int LastServerPort { get; set; } = 5000;
+    [DataMember(Order = 4)] public int LastServerPort { get; set; } = 4600;
 }
 
 [DataContract]
@@ -200,9 +200,9 @@ public class AdminMainViewModel : ViewModelBase
     private string _connectionStatusDetail = "Соединение не установлено.";
     private string _sessionSummary = "Сессия не активна";
     private string _serverHostInput = "127.0.0.1";
-    private string _serverPortInput = "5000";
+    private string _serverPortInput = "4600";
     private string _lastServerHost = "127.0.0.1";
-    private int _lastServerPort = 5000;
+    private int _lastServerPort = 4600;
     private bool _isConnectionPopupOpen;
     private bool _isAuthPopupOpen;
     private bool _isOnline;
@@ -1006,7 +1006,7 @@ public class AdminMainViewModel : ViewModelBase
     public void ResetConnectionDefaults()
     {
         ServerHostInput = "127.0.0.1";
-        ServerPortInput = "5000";
+        ServerPortInput = "4600";
         SetDisconnectedState("Используются значения по умолчанию.");
     }
 
