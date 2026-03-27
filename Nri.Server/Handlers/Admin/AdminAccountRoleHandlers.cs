@@ -67,7 +67,12 @@ public sealed class AdminAccountRoleHandlers
 
     private static IEnumerable<UserRole> ReadRoles(IDictionary<string, object> payload)
     {
-        if (!payload.TryGetValue("roles", out var raw) || !(raw is IEnumerable items)) return new[] { UserRole.Player };
+        if (!payload.TryGetValue("roles", out var raw) || !(raw is IEnumerable items))
+        {
+            yield return UserRole.Player;
+            yield break;
+        }
+
         foreach (var item in items)
         {
             if (Enum.TryParse<UserRole>(Convert.ToString(item), true, out var role))

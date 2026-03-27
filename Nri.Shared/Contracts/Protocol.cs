@@ -380,6 +380,6 @@ public static class JsonProtocolSerializer
             return enumerable.Cast<object?>().Select(NormalizeValue).ToArray();
         }
 
-        return Convert.ToString(value) ?? string.Empty;
+        return value;
     }
 }
