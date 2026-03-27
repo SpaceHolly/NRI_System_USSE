@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization.Json;
 using System.Text;
 
@@ -238,16 +240,46 @@ public class ResponseEnvelope
 
 public static class JsonProtocolSerializer
 {
+    private static readonly Type[] KnownPayloadTypes =
+    {
+        typeof(string[]),
+        typeof(object[]),
+        typeof(int[]),
+        typeof(long[]),
+        typeof(double[]),
+        typeof(bool[]),
+        typeof(List<string>),
+        typeof(List<object>),
+        typeof(List<int>),
+        typeof(List<long>),
+        typeof(List<double>),
+        typeof(List<bool>),
+        typeof(Dictionary<string, object>),
+        typeof(Dictionary<string, string>),
+        typeof(Dictionary<string, int>),
+        typeof(Dictionary<string, long>),
+        typeof(Dictionary<string, double>),
+        typeof(Dictionary<string, bool>),
+        typeof(List<Dictionary<string, object>>),
+        typeof(Dictionary<string, List<object>>),
+        typeof(Dictionary<string, string[]>),
+        typeof(Dictionary<string, object[]>)
+    };
+
+    private static readonly DataContractJsonSerializerSettings SerializerSettings = new DataContractJsonSerializerSettings
+    {
+        UseSimpleDictionaryFormat = true,
+        KnownTypes = KnownPayloadTypes
+    };
+
     public static string Serialize<T>(T value)
     {
-        var serializer = new DataContractJsonSerializer(typeof(T), new DataContractJsonSerializerSettings
-        {
-            UseSimpleDictionaryFormat = true
-        });
+        var serializer = new DataContractJsonSerializer(typeof(T), SerializerSettings);
+        object? payloadSafeValue = NormalizeEnvelopePayload(value);
 
         using (var stream = new MemoryStream())
         {
-            serializer.WriteObject(stream, value);
+            serializer.WriteObject(stream, payloadSafeValue);
             return Encoding.UTF8.GetString(stream.ToArray());
         }
     }
@@ -256,10 +288,7 @@ public static class JsonProtocolSerializer
     {
         if (string.IsNullOrWhiteSpace(json)) return default;
 
-        var serializer = new DataContractJsonSerializer(typeof(T), new DataContractJsonSerializerSettings
-        {
-            UseSimpleDictionaryFormat = true
-        });
+        var serializer = new DataContractJsonSerializer(typeof(T), SerializerSettings);
 
         using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(json)))
         {
@@ -267,5 +296,90 @@ public static class JsonProtocolSerializer
             if (value is T typed) return typed;
             return default;
         }
+    }
+
+    private static object? NormalizeEnvelopePayload<T>(T value)
+    {
+        if (value is ResponseEnvelope response)
+        {
+            return new ResponseEnvelope
+            {
+                RequestId = response.RequestId,
+                Status = response.Status,
+                ErrorCode = response.ErrorCode,
+                Message = response.Message,
+                TimestampUtc = response.TimestampUtc,
+                Version = response.Version,
+                Payload = NormalizeDictionary(response.Payload)
+            };
+        }
+
+        if (value is RequestEnvelope request)
+        {
+            return new RequestEnvelope
+            {
+                Command = request.Command,
+                RequestId = request.RequestId,
+                AuthToken = request.AuthToken,
+                SessionId = request.SessionId,
+                TimestampUtc = request.TimestampUtc,
+                Version = request.Version,
+                Payload = NormalizeDictionary(request.Payload)
+            };
+        }
+
+        return value;
+    }
+
+    private static Dictionary<string, object> NormalizeDictionary(Dictionary<string, object>? payload)
+    {
+        var source = payload ?? new Dictionary<string, object>();
+        var result = new Dictionary<string, object>(source.Count, StringComparer.Ordinal);
+        foreach (var item in source)
+        {
+            result[item.Key] = NormalizeValue(item.Value);
+        }
+
+        return result;
+    }
+
+    private static object? NormalizeValue(object? value)
+    {
+        if (value == null)
+        {
+            return null;
+        }
+
+        if (value is string || value is bool || value is byte || value is sbyte ||
+            value is short || value is ushort || value is int || value is uint ||
+            value is long || value is ulong || value is float || value is double ||
+            value is decimal || value is DateTime || value is Guid)
+        {
+            return value;
+        }
+
+        if (value is IDictionary<string, object> map)
+        {
+            return NormalizeDictionary(new Dictionary<string, object>(map));
+        }
+
+        if (value is IDictionary dictionary)
+        {
+            var normalized = new Dictionary<string, object>();
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                var key = Convert.ToString(entry.Key) ?? string.Empty;
+                normalized[key] = NormalizeValue(entry.Value);
+            }
+
+            return normalized;
+        }
+
+        if (value is IEnumerable enumerable && value is not string)
+        {
+            return enumerable.Cast<object?>().Select(NormalizeValue).ToArray();
+        }
+
+        return Convert.ToString(value) ?? string.Empty;
     }
 }
