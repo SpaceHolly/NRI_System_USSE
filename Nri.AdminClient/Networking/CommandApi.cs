@@ -62,8 +62,14 @@ public class CommandApi
     public ResponseEnvelope CombatDetachCompanion(string sessionId, string participantId) => Send(CommandNames.CombatDetachCompanion, new Dictionary<string, object> { { "sessionId", sessionId }, { "participantId", participantId } });
 
 
-    public ResponseEnvelope DefinitionsClassesGet() => Send(CommandNames.DefinitionsClassesGet);
-    public ResponseEnvelope DefinitionsSkillsGet() => Send(CommandNames.DefinitionsSkillsGet);
+    public ResponseEnvelope DefinitionsClassesGet(bool includeArchived = false) => Send(CommandNames.DefinitionsClassesGet, new Dictionary<string, object> { { "includeArchived", includeArchived } });
+    public ResponseEnvelope DefinitionClassGet(string code) => Send(CommandNames.DefinitionsClassGet, new Dictionary<string, object> { { "code", code } });
+    public ResponseEnvelope DefinitionClassSave(Dictionary<string, object> definition) => Send(CommandNames.DefinitionsClassSave, new Dictionary<string, object> { { "definition", definition } });
+    public ResponseEnvelope DefinitionClassArchive(string code) => Send(CommandNames.DefinitionsClassArchive, new Dictionary<string, object> { { "code", code } });
+    public ResponseEnvelope DefinitionsSkillsGet(bool includeArchived = false) => Send(CommandNames.DefinitionsSkillsGet, new Dictionary<string, object> { { "includeArchived", includeArchived } });
+    public ResponseEnvelope DefinitionSkillGet(string code) => Send(CommandNames.DefinitionsSkillGet, new Dictionary<string, object> { { "code", code } });
+    public ResponseEnvelope DefinitionSkillSave(Dictionary<string, object> definition) => Send(CommandNames.DefinitionsSkillSave, new Dictionary<string, object> { { "definition", definition } });
+    public ResponseEnvelope DefinitionSkillArchive(string code) => Send(CommandNames.DefinitionsSkillArchive, new Dictionary<string, object> { { "code", code } });
     public ResponseEnvelope DefinitionsReload() => Send(CommandNames.DefinitionsReload);
     public ResponseEnvelope DefinitionsVersionGet() => Send(CommandNames.DefinitionsVersionGet);
 

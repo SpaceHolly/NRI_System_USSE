@@ -14,6 +14,7 @@ using System.Windows.Threading;
 using Nri.AdminClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
+using Nri.Shared.Domain;
 
 namespace Nri.AdminClient.ViewModels;
 
@@ -63,6 +64,24 @@ public class RowVm : ViewModelBase
     public string Name { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public string Extra { get; set; } = string.Empty;
+}
+
+public sealed class SkillLevelEditorRowVm : ViewModelBase
+{
+    private int _level;
+    private string _description = string.Empty;
+
+    public int Level
+    {
+        get => _level;
+        set { if (_level != value) { _level = value; Notify(); } }
+    }
+
+    public string Description
+    {
+        get => _description;
+        set { if (_description != value) { _description = value; Notify(); } }
+    }
 }
 
 public sealed class WorkspacePanelDescriptor : ViewModelBase
@@ -147,9 +166,9 @@ public sealed class WorkspacePanelDescriptor : ViewModelBase
 public sealed class ConnectionSettingsModel
 {
     [DataMember(Order = 1)] public string ServerHost { get; set; } = "127.0.0.1";
-    [DataMember(Order = 2)] public int ServerPort { get; set; } = 5000;
+    [DataMember(Order = 2)] public int ServerPort { get; set; } = 4600;
     [DataMember(Order = 3)] public string LastServerHost { get; set; } = "127.0.0.1";
-    [DataMember(Order = 4)] public int LastServerPort { get; set; } = 5000;
+    [DataMember(Order = 4)] public int LastServerPort { get; set; } = 4600;
 }
 
 [DataContract]
@@ -181,9 +200,9 @@ public class AdminMainViewModel : ViewModelBase
     private string _connectionStatusDetail = "Соединение не установлено.";
     private string _sessionSummary = "Сессия не активна";
     private string _serverHostInput = "127.0.0.1";
-    private string _serverPortInput = "5000";
+    private string _serverPortInput = "4600";
     private string _lastServerHost = "127.0.0.1";
-    private int _lastServerPort = 5000;
+    private int _lastServerPort = 4600;
     private bool _isConnectionPopupOpen;
     private bool _isAuthPopupOpen;
     private bool _isOnline;
@@ -205,6 +224,8 @@ public class AdminMainViewModel : ViewModelBase
     private string _selectedClassNodeId = string.Empty;
     private string _selectedSkillId = string.Empty;
     private string _selectedReferenceId = string.Empty;
+    private string _selectedClassDefinitionCode = string.Empty;
+    private string _selectedSkillDefinitionCode = string.Empty;
     private string _selectedBackupId = string.Empty;
     private string _selectedDiagnosticsId = string.Empty;
     private int _selectedContentTabIndex;
@@ -268,6 +289,18 @@ public class AdminMainViewModel : ViewModelBase
         CombatRemoveParticipantCommand = new RelayCommand(() => RunUiAction("Удаление участника боя", CombatRemoveParticipant));
         CombatDetachCompanionCommand = new RelayCommand(() => RunUiAction("Отвязка спутника", CombatDetachCompanion));
         DefinitionsReloadCommand = new RelayCommand(() => RunUiAction("Перезагрузка definitions", DefinitionsReload));
+        RefreshDefinitionClassesCommand = new RelayCommand(() => RunUiAction("Загрузка definitions классов", RefreshDefinitionClasses));
+        NewClassDefinitionCommand = new RelayCommand(NewClassDefinition);
+        OpenSelectedClassDefinitionCommand = new RelayCommand(() => RunUiAction("Открытие definitions класса", OpenSelectedClassDefinition));
+        SaveClassDefinitionCommand = new RelayCommand(() => RunUiAction("Сохранение definitions класса", SaveClassDefinition));
+        ArchiveClassDefinitionCommand = new RelayCommand(() => RunUiAction("Архивация definitions класса", ArchiveClassDefinition));
+        RefreshDefinitionSkillsCommand = new RelayCommand(() => RunUiAction("Загрузка definitions навыков", RefreshDefinitionSkills));
+        NewSkillDefinitionCommand = new RelayCommand(NewSkillDefinition);
+        OpenSelectedSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Открытие definitions навыка", OpenSelectedSkillDefinition));
+        SaveSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Сохранение definitions навыка", SaveSkillDefinition));
+        ArchiveSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Архивация definitions навыка", ArchiveSkillDefinition));
+        AddSkillLevelCommand = new RelayCommand(AddSkillLevel);
+        RemoveSkillLevelCommand = new RelayCommand(RemoveSkillLevel);
         LoadClassTreeCommand = new RelayCommand(() => RunUiAction("Загрузка class tree", LoadClassTree));
         AcquireClassNodeCommand = new RelayCommand(() => RunUiAction("Выдача class node", AcquireClassNode));
         LoadSkillsCommand = new RelayCommand(() => RunUiAction("Загрузка навыков", LoadSkills));
@@ -372,12 +405,12 @@ public class AdminMainViewModel : ViewModelBase
     public bool CanControlCombat => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanSendChat => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(ChatMessageText);
     public bool CanControlAudio => ArePrivilegedSectionsEnabled && !IsBusy;
-    public string ContentSummary => $"Classes: {ClassTreeItems.Count} • Skills: {SkillRows.Count}";
-    public string ContentReadinessSummary => !ArePrivilegedSectionsEnabled ? "Подключитесь и войдите, чтобы работать с игровым контентом." : string.IsNullOrWhiteSpace(SelectedCharacterId) ? "Выберите персонажа в разделе Люди, чтобы загрузить progression data." : $"Контент для персонажа {SelectedCharacterId} готов к работе.";
-    public string SelectedClassSummary => SelectedClassNode == null ? "Класс / node не выбран." : $"{SelectedClassNode.Name} • {SelectedClassNode.State} • {SelectedClassNode.Extra}";
-    public string SelectedSkillSummary => SelectedSkill == null ? "Навык не выбран." : $"{SelectedSkill.Name} • {SelectedSkill.State} • {SelectedSkill.Extra}";
+    public string ContentSummary => $"Definitions classes: {ClassDefinitionRows.Count} • Definitions skills: {SkillDefinitionRows.Count}";
+    public string ContentReadinessSummary => !ArePrivilegedSectionsEnabled ? "Подключитесь и войдите, чтобы работать с definitions." : "Definitions классов и навыков готовы к обновлению и редактированию без перезапуска сервера.";
+    public string SelectedClassSummary => SelectedClassDefinition == null ? "Definitions класс не выбран." : $"{SelectedClassDefinition.Name} • {SelectedClassDefinition.State} • {SelectedClassDefinition.Extra}";
+    public string SelectedSkillSummary => SelectedSkillDefinition == null ? "Definitions навык не выбран." : $"{SelectedSkillDefinition.Name} • {SelectedSkillDefinition.State} • {SelectedSkillDefinition.Extra}";
     public string SelectedReferenceSummary => SelectedReference == null ? "Reference-запись не выбрана." : $"{SelectedReference.Name} • {SelectedReference.State} • {SelectedReference.Extra}";
-    public string SelectedContentSummary => SelectedClassNode != null ? SelectedClassSummary : SelectedSkill != null ? SelectedSkillSummary : SelectedReferenceSummary;
+    public string SelectedContentSummary => SelectedClassDefinition != null ? SelectedClassSummary : SelectedSkillDefinition != null ? SelectedSkillSummary : SelectedReferenceSummary;
     public string ReferenceSummary => ReferenceItems.Count == 0 ? "Reference data: нет загруженных записей" : $"Reference data: {ReferenceItems.Count} записей типа {ReferenceType}";
     public string BackupSummary => BackupItems.Count == 0 ? "Backups: ещё не загружены" : $"Backups: {BackupItems.Count}, последний: {BackupItems[0].Name}";
     public string DiagnosticsStatusSummary => DiagnosticsItems.Count == 0 ? "Diagnostics ещё не загружены" : DiagnosticsItems[0].Name;
@@ -386,6 +419,10 @@ public class AdminMainViewModel : ViewModelBase
     public string SystemHealthSummary => DiagnosticsItems.Count == 0 ? "Служебные данные ещё не загружены." : $"Diagnostics: {DiagnosticsItems.Count} • Backups: {BackupItems.Count} • Reference: {ReferenceItems.Count}";
     public bool CanControlContent => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanRefreshContent => ArePrivilegedSectionsEnabled && !IsBusy;
+    public bool CanManageClassDefinition => ArePrivilegedSectionsEnabled && !IsBusy;
+    public bool CanArchiveClassDefinition => ArePrivilegedSectionsEnabled && !IsBusy && SelectedClassDefinition != null;
+    public bool CanManageSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy;
+    public bool CanArchiveSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && SelectedSkillDefinition != null;
     public bool CanAcquireClassNode => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedClassNode != null;
     public bool CanAcquireSkill => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedSkill != null;
     public bool CanManageReferenceRecord => ArePrivilegedSectionsEnabled && !IsBusy && SelectedReference != null;
@@ -397,6 +434,8 @@ public class AdminMainViewModel : ViewModelBase
     public RowVm? SelectedPlayer => Players.FirstOrDefault(row => row.Id == SelectedOwnerUserId);
     public RowVm? SelectedCharacter => Characters.FirstOrDefault(row => row.Id == SelectedCharacterId);
     public RowVm? SelectedRequest => PendingRequests.FirstOrDefault(row => row.Id == SelectedPendingRequestId);
+    public RowVm? SelectedClassDefinition => ClassDefinitionRows.FirstOrDefault(row => row.Id == SelectedClassDefinitionCode);
+    public RowVm? SelectedSkillDefinition => SkillDefinitionRows.FirstOrDefault(row => row.Id == SelectedSkillDefinitionCode);
     public RowVm? SelectedClassNode => ClassTreeItems.FirstOrDefault(row => row.Id == SelectedClassNodeId);
     public RowVm? SelectedSkill => SkillRows.FirstOrDefault(row => row.Id == SelectedSkillId);
     public RowVm? SelectedReference => ReferenceItems.FirstOrDefault(row => row.Id == ReferenceId);
@@ -550,6 +589,40 @@ public class AdminMainViewModel : ViewModelBase
             }
         }
     }
+    public string SelectedClassDefinitionCode
+    {
+        get => _selectedClassDefinitionCode;
+        set
+        {
+            if (_selectedClassDefinitionCode != value)
+            {
+                _selectedClassDefinitionCode = value;
+                Notify();
+                Notify(nameof(SelectedClassDefinition));
+                Notify(nameof(SelectedClassSummary));
+                Notify(nameof(SelectedContentSummary));
+                Notify(nameof(CanArchiveClassDefinition));
+            }
+        }
+    }
+
+    public string SelectedSkillDefinitionCode
+    {
+        get => _selectedSkillDefinitionCode;
+        set
+        {
+            if (_selectedSkillDefinitionCode != value)
+            {
+                _selectedSkillDefinitionCode = value;
+                Notify();
+                Notify(nameof(SelectedSkillDefinition));
+                Notify(nameof(SelectedSkillSummary));
+                Notify(nameof(SelectedContentSummary));
+                Notify(nameof(CanArchiveSkillDefinition));
+            }
+        }
+    }
+
     public string SelectedSkillId
     {
         get => _selectedSkillId;
@@ -567,6 +640,31 @@ public class AdminMainViewModel : ViewModelBase
         }
     }
     public string DefinitionVersionText { get; set; } = string.Empty;
+    public string EditClassCode { get; set; } = string.Empty;
+    public string EditClassName { get; set; } = string.Empty;
+    public string EditClassDescription { get; set; } = string.Empty;
+    public string EditClassDirectionCode { get; set; } = string.Empty;
+    public string EditClassBranchCode { get; set; } = string.Empty;
+    public string EditClassRootClassCode { get; set; } = string.Empty;
+    public string EditClassParentClassCode { get; set; } = string.Empty;
+    public int EditClassLevel { get; set; } = 1;
+    public string EditClassGrantedSkillCodes { get; set; } = string.Empty;
+    public string EditClassRequiredClassCodes { get; set; } = string.Empty;
+    public bool EditClassIsActive { get; set; } = true;
+    public string EditClassStatus { get; set; } = DefinitionStatus.Draft.ToString();
+    public string EditSkillCode { get; set; } = string.Empty;
+    public string EditSkillName { get; set; } = string.Empty;
+    public string EditSkillDescription { get; set; } = string.Empty;
+    public int EditSkillTier { get; set; } = 1;
+    public int EditSkillMaxLevel { get; set; } = 1;
+    public string EditSkillCategory { get; set; } = SkillCategory.Undefined.ToString();
+    public bool EditSkillIsClassSkill { get; set; }
+    public string EditSkillRequiredClassCodes { get; set; } = string.Empty;
+    public string EditSkillRequiredSkillCodes { get; set; } = string.Empty;
+    public bool EditSkillIsActive { get; set; } = true;
+    public string EditSkillStatus { get; set; } = DefinitionStatus.Draft.ToString();
+    public string DefinitionHintText => string.IsNullOrWhiteSpace(EditClassParentClassCode) ? "Для корневого класса ParentClassCode можно оставить пустым." : "Если ParentClassCode задан, сервер ожидает Level = parent.Level + 1.";
+    public string SkillEditorHintText => SkillLevelEditorRows.Count == 0 ? "Добавьте хотя бы один уровень навыка перед сохранением." : $"Уровней навыка: {SkillLevelEditorRows.Count}. MaxLevel сейчас {EditSkillMaxLevel}.";
     public string ChatSessionId { get; set; } = "default";
     public string ChatMessageText { get; set; } = string.Empty;
     public string ChatMessageType { get; set; } = "Public";
@@ -685,6 +783,9 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> CombatRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<RowVm> CombatParticipantRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> CombatHistoryRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<RowVm> ClassDefinitionRows { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<RowVm> SkillDefinitionRows { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<SkillLevelEditorRowVm> SkillLevelEditorRows { get; } = new ObservableCollection<SkillLevelEditorRowVm>();
     public ObservableCollection<RowVm> ClassTreeItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> SkillRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
@@ -749,6 +850,18 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand CombatRemoveParticipantCommand { get; }
     public ICommand CombatDetachCompanionCommand { get; }
     public ICommand DefinitionsReloadCommand { get; }
+    public ICommand RefreshDefinitionClassesCommand { get; }
+    public ICommand NewClassDefinitionCommand { get; }
+    public ICommand OpenSelectedClassDefinitionCommand { get; }
+    public ICommand SaveClassDefinitionCommand { get; }
+    public ICommand ArchiveClassDefinitionCommand { get; }
+    public ICommand RefreshDefinitionSkillsCommand { get; }
+    public ICommand NewSkillDefinitionCommand { get; }
+    public ICommand OpenSelectedSkillDefinitionCommand { get; }
+    public ICommand SaveSkillDefinitionCommand { get; }
+    public ICommand ArchiveSkillDefinitionCommand { get; }
+    public ICommand AddSkillLevelCommand { get; }
+    public ICommand RemoveSkillLevelCommand { get; }
     public ICommand LoadClassTreeCommand { get; }
     public ICommand AcquireClassNodeCommand { get; }
     public ICommand LoadSkillsCommand { get; }
@@ -893,7 +1006,7 @@ public class AdminMainViewModel : ViewModelBase
     public void ResetConnectionDefaults()
     {
         ServerHostInput = "127.0.0.1";
-        ServerPortInput = "5000";
+        ServerPortInput = "4600";
         SetDisconnectedState("Используются значения по умолчанию.");
     }
 
@@ -1231,11 +1344,8 @@ public class AdminMainViewModel : ViewModelBase
         RunUiAction("Обновление контента", () =>
         {
             DefinitionsReload();
-            if (!string.IsNullOrWhiteSpace(SelectedCharacterId))
-            {
-                LoadClassTree();
-                LoadSkills();
-            }
+            RefreshDefinitionClasses();
+            RefreshDefinitionSkills();
             ReferenceRefresh();
         });
     }
@@ -1371,6 +1481,8 @@ public class AdminMainViewModel : ViewModelBase
             LoadPendingRequests();
             LoadRequestHistory();
             CombatRefresh();
+            RefreshDefinitionClasses();
+            RefreshDefinitionSkills();
             if (!string.IsNullOrWhiteSpace(SelectedCharacterId))
             {
                 LoadClassTree();
@@ -1607,9 +1719,168 @@ public class AdminMainViewModel : ViewModelBase
 
     private void DefinitionsReload()
     {
-        var r = _api.DefinitionsReload();
-        DefinitionVersionText = S(r.Payload, "version");
+        var r = EnsureSuccess(_api.DefinitionsReload());
+        DefinitionVersionText = FirstNonEmpty(S(r.Payload, "version"), DefinitionVersionText);
         Notify(nameof(DefinitionVersionText));
+    }
+
+    private void RefreshDefinitionClasses()
+    {
+        ClassDefinitionRows.Clear();
+        var response = EnsureSuccess(_api.DefinitionsClassesGet(true));
+        foreach (var item in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
+        {
+            if (item is not Dictionary<string, object> map) continue;
+            ClassDefinitionRows.Add(new RowVm
+            {
+                Id = S(map, "code"),
+                Name = FirstNonEmpty(S(map, "name"), S(map, "code")),
+                State = $"lvl={S(map, "level")} • {S(map, "status")}",
+                Extra = $"branch={S(map, "branchCode")} • direction={S(map, "directionCode")} • active={S(map, "isActive")}"
+            });
+        }
+        RestoreSelection(ClassDefinitionRows, SelectedClassDefinitionCode, value => SelectedClassDefinitionCode = value);
+        Notify(nameof(ContentSummary));
+        Notify(nameof(SelectedClassDefinition));
+        Notify(nameof(SelectedClassSummary));
+        Notify(nameof(SelectedContentSummary));
+    }
+
+    private void OpenSelectedClassDefinition()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedClassDefinitionCode)) return;
+        var response = EnsureSuccess(_api.DefinitionClassGet(SelectedClassDefinitionCode));
+        if (!response.Payload.TryGetValue("item", out var item) || item is not Dictionary<string, object> map) return;
+        ApplyClassDefinitionEditor(map);
+    }
+
+    private void NewClassDefinition()
+    {
+        SelectedClassDefinitionCode = string.Empty;
+        EditClassCode = string.Empty;
+        EditClassName = string.Empty;
+        EditClassDescription = string.Empty;
+        EditClassDirectionCode = string.Empty;
+        EditClassBranchCode = string.Empty;
+        EditClassRootClassCode = string.Empty;
+        EditClassParentClassCode = string.Empty;
+        EditClassLevel = 1;
+        EditClassGrantedSkillCodes = string.Empty;
+        EditClassRequiredClassCodes = string.Empty;
+        EditClassIsActive = true;
+        EditClassStatus = DefinitionStatus.Draft.ToString();
+        NotifyClassDefinitionEditor();
+    }
+
+    private void SaveClassDefinition()
+    {
+        var response = EnsureSuccess(_api.DefinitionClassSave(BuildClassDefinitionPayload()));
+        if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
+        {
+            ApplyClassDefinitionEditor(map);
+        }
+        RefreshDefinitionClasses();
+    }
+
+    private void ArchiveClassDefinition()
+    {
+        var code = FirstNonEmpty(SelectedClassDefinitionCode, EditClassCode);
+        if (string.IsNullOrWhiteSpace(code)) return;
+        EnsureSuccess(_api.DefinitionClassArchive(code));
+        RefreshDefinitionClasses();
+        if (string.Equals(EditClassCode, code, StringComparison.OrdinalIgnoreCase))
+        {
+            OpenSelectedClassDefinition();
+        }
+    }
+
+    private void RefreshDefinitionSkills()
+    {
+        SkillDefinitionRows.Clear();
+        var response = EnsureSuccess(_api.DefinitionsSkillsGet(true));
+        foreach (var item in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
+        {
+            if (item is not Dictionary<string, object> map) continue;
+            SkillDefinitionRows.Add(new RowVm
+            {
+                Id = S(map, "code"),
+                Name = FirstNonEmpty(S(map, "name"), S(map, "code")),
+                State = $"tier={S(map, "tier")} • {S(map, "status")}",
+                Extra = $"maxLevel={S(map, "maxLevel")} • category={S(map, "skillCategory")} • active={S(map, "isActive")}"
+            });
+        }
+        RestoreSelection(SkillDefinitionRows, SelectedSkillDefinitionCode, value => SelectedSkillDefinitionCode = value);
+        Notify(nameof(ContentSummary));
+        Notify(nameof(SelectedSkillDefinition));
+        Notify(nameof(SelectedSkillSummary));
+        Notify(nameof(SelectedContentSummary));
+    }
+
+    private void OpenSelectedSkillDefinition()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode)) return;
+        var response = EnsureSuccess(_api.DefinitionSkillGet(SelectedSkillDefinitionCode));
+        if (!response.Payload.TryGetValue("item", out var item) || item is not Dictionary<string, object> map) return;
+        ApplySkillDefinitionEditor(map);
+    }
+
+    private void NewSkillDefinition()
+    {
+        SelectedSkillDefinitionCode = string.Empty;
+        EditSkillCode = string.Empty;
+        EditSkillName = string.Empty;
+        EditSkillDescription = string.Empty;
+        EditSkillTier = 1;
+        EditSkillMaxLevel = 1;
+        EditSkillCategory = SkillCategory.Undefined.ToString();
+        EditSkillIsClassSkill = false;
+        EditSkillRequiredClassCodes = string.Empty;
+        EditSkillRequiredSkillCodes = string.Empty;
+        EditSkillIsActive = true;
+        EditSkillStatus = DefinitionStatus.Draft.ToString();
+        SkillLevelEditorRows.Clear();
+        SkillLevelEditorRows.Add(new SkillLevelEditorRowVm { Level = 1, Description = string.Empty });
+        NotifySkillDefinitionEditor();
+    }
+
+    private void SaveSkillDefinition()
+    {
+        var response = EnsureSuccess(_api.DefinitionSkillSave(BuildSkillDefinitionPayload()));
+        if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
+        {
+            ApplySkillDefinitionEditor(map);
+        }
+        RefreshDefinitionSkills();
+    }
+
+    private void ArchiveSkillDefinition()
+    {
+        var code = FirstNonEmpty(SelectedSkillDefinitionCode, EditSkillCode);
+        if (string.IsNullOrWhiteSpace(code)) return;
+        EnsureSuccess(_api.DefinitionSkillArchive(code));
+        RefreshDefinitionSkills();
+        if (string.Equals(EditSkillCode, code, StringComparison.OrdinalIgnoreCase))
+        {
+            OpenSelectedSkillDefinition();
+        }
+    }
+
+    private void AddSkillLevel()
+    {
+        SkillLevelEditorRows.Add(new SkillLevelEditorRowVm { Level = SkillLevelEditorRows.Count + 1, Description = string.Empty });
+        EditSkillMaxLevel = Math.Max(EditSkillMaxLevel, SkillLevelEditorRows.Count);
+        Notify(nameof(EditSkillMaxLevel));
+        Notify(nameof(SkillEditorHintText));
+    }
+
+    private void RemoveSkillLevel()
+    {
+        if (SkillLevelEditorRows.Count == 0) return;
+        SkillLevelEditorRows.RemoveAt(SkillLevelEditorRows.Count - 1);
+        for (var index = 0; index < SkillLevelEditorRows.Count; index++) SkillLevelEditorRows[index].Level = index + 1;
+        EditSkillMaxLevel = Math.Max(1, SkillLevelEditorRows.Count);
+        Notify(nameof(EditSkillMaxLevel));
+        Notify(nameof(SkillEditorHintText));
     }
 
     private void LoadClassTree()
@@ -1679,6 +1950,121 @@ public class AdminMainViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedSkillId)) return;
         _api.SkillsAcquire(SelectedCharacterId, SelectedSkillId);
         LoadSkills();
+    }
+
+    private void ApplyClassDefinitionEditor(Dictionary<string, object> map)
+    {
+        EditClassCode = S(map, "code");
+        EditClassName = S(map, "name");
+        EditClassDescription = S(map, "description");
+        EditClassDirectionCode = S(map, "directionCode");
+        EditClassBranchCode = S(map, "branchCode");
+        EditClassRootClassCode = S(map, "rootClassCode");
+        EditClassParentClassCode = S(map, "parentClassCode");
+        EditClassLevel = ParseInt(S(map, "level"), 1);
+        EditClassGrantedSkillCodes = string.Join(", ", ReadStringList(map, "grantedSkillCodes"));
+        EditClassRequiredClassCodes = string.Join(", ", ReadStringList(map, "requiredClassCodes"));
+        EditClassIsActive = ParseBool(S(map, "isActive"), true);
+        EditClassStatus = FirstNonEmpty(S(map, "status"), DefinitionStatus.Draft.ToString());
+        SelectedClassDefinitionCode = EditClassCode;
+        NotifyClassDefinitionEditor();
+    }
+
+    private void ApplySkillDefinitionEditor(Dictionary<string, object> map)
+    {
+        EditSkillCode = S(map, "code");
+        EditSkillName = S(map, "name");
+        EditSkillDescription = S(map, "description");
+        EditSkillTier = ParseInt(S(map, "tier"), 1);
+        EditSkillMaxLevel = ParseInt(S(map, "maxLevel"), 1);
+        EditSkillCategory = FirstNonEmpty(S(map, "skillCategory"), SkillCategory.Undefined.ToString());
+        EditSkillIsClassSkill = ParseBool(S(map, "isClassSkill"), false);
+        EditSkillRequiredClassCodes = string.Join(", ", ReadStringList(map, "requiredClassCodes"));
+        EditSkillRequiredSkillCodes = string.Join(", ", ReadStringList(map, "requiredSkillCodes"));
+        EditSkillIsActive = ParseBool(S(map, "isActive"), true);
+        EditSkillStatus = FirstNonEmpty(S(map, "status"), DefinitionStatus.Draft.ToString());
+        SkillLevelEditorRows.Clear();
+        foreach (var level in ReadMapList(map, "levels"))
+        {
+            SkillLevelEditorRows.Add(new SkillLevelEditorRowVm
+            {
+                Level = ParseInt(S(level, "level"), SkillLevelEditorRows.Count + 1),
+                Description = S(level, "description")
+            });
+        }
+        if (SkillLevelEditorRows.Count == 0) SkillLevelEditorRows.Add(new SkillLevelEditorRowVm { Level = 1, Description = string.Empty });
+        SelectedSkillDefinitionCode = EditSkillCode;
+        NotifySkillDefinitionEditor();
+    }
+
+    private Dictionary<string, object> BuildClassDefinitionPayload()
+    {
+        return new Dictionary<string, object>
+        {
+            { "code", EditClassCode },
+            { "name", EditClassName },
+            { "description", EditClassDescription },
+            { "directionCode", EditClassDirectionCode },
+            { "branchCode", EditClassBranchCode },
+            { "rootClassCode", EditClassRootClassCode },
+            { "parentClassCode", EditClassParentClassCode },
+            { "level", EditClassLevel },
+            { "grantedSkillCodes", SplitCsv(EditClassGrantedSkillCodes).Cast<object>().ToArray() },
+            { "requiredClassCodes", SplitCsv(EditClassRequiredClassCodes).Cast<object>().ToArray() },
+            { "isActive", EditClassIsActive },
+            { "status", EditClassStatus }
+        };
+    }
+
+    private Dictionary<string, object> BuildSkillDefinitionPayload()
+    {
+        return new Dictionary<string, object>
+        {
+            { "code", EditSkillCode },
+            { "name", EditSkillName },
+            { "description", EditSkillDescription },
+            { "tier", EditSkillTier },
+            { "maxLevel", EditSkillMaxLevel },
+            { "skillCategory", EditSkillCategory },
+            { "isClassSkill", EditSkillIsClassSkill },
+            { "requiredClassCodes", SplitCsv(EditSkillRequiredClassCodes).Cast<object>().ToArray() },
+            { "requiredSkillCodes", SplitCsv(EditSkillRequiredSkillCodes).Cast<object>().ToArray() },
+            { "levels", SkillLevelEditorRows.Select(level => new Dictionary<string, object>
+                {
+                    { "level", level.Level },
+                    { "description", level.Description },
+                    { "requirements", new object[0] },
+                    { "effects", new object[0] }
+                }).Cast<object>().ToArray() },
+            { "isActive", EditSkillIsActive },
+            { "status", EditSkillStatus }
+        };
+    }
+
+    private void NotifyClassDefinitionEditor()
+    {
+        Notify(nameof(EditClassCode)); Notify(nameof(EditClassName)); Notify(nameof(EditClassDescription)); Notify(nameof(EditClassDirectionCode)); Notify(nameof(EditClassBranchCode)); Notify(nameof(EditClassRootClassCode)); Notify(nameof(EditClassParentClassCode)); Notify(nameof(EditClassLevel)); Notify(nameof(EditClassGrantedSkillCodes)); Notify(nameof(EditClassRequiredClassCodes)); Notify(nameof(EditClassIsActive)); Notify(nameof(EditClassStatus)); Notify(nameof(DefinitionHintText));
+    }
+
+    private void NotifySkillDefinitionEditor()
+    {
+        Notify(nameof(EditSkillCode)); Notify(nameof(EditSkillName)); Notify(nameof(EditSkillDescription)); Notify(nameof(EditSkillTier)); Notify(nameof(EditSkillMaxLevel)); Notify(nameof(EditSkillCategory)); Notify(nameof(EditSkillIsClassSkill)); Notify(nameof(EditSkillRequiredClassCodes)); Notify(nameof(EditSkillRequiredSkillCodes)); Notify(nameof(EditSkillIsActive)); Notify(nameof(EditSkillStatus)); Notify(nameof(SkillEditorHintText));
+    }
+
+    private static int ParseInt(string value, int fallback) => int.TryParse(value, out var parsed) ? parsed : fallback;
+    private static bool ParseBool(string value, bool fallback) => bool.TryParse(value, out var parsed) ? parsed : fallback;
+    private static List<string> SplitCsv(string value) => value.Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Select(item => item.Trim()).Where(item => !string.IsNullOrWhiteSpace(item)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    private static List<string> ReadStringList(Dictionary<string, object> map, string key) => ToList(map.ContainsKey(key) ? map[key] : new ArrayList()).Cast<object>().Select(item => Convert.ToString(item) ?? string.Empty).Where(item => !string.IsNullOrWhiteSpace(item)).ToList();
+    private static List<Dictionary<string, object>> ReadMapList(Dictionary<string, object> map, string key) => ToList(map.ContainsKey(key) ? map[key] : new ArrayList()).OfType<Dictionary<string, object>>().ToList();
+    private ResponseEnvelope EnsureSuccess(ResponseEnvelope response)
+    {
+        if (response.Status != ResponseStatus.Ok)
+        {
+            throw new InvalidOperationException(string.IsNullOrWhiteSpace(response.Message) ? response.Status.ToString() : response.Message);
+        }
+
+        LastErrorMessage = string.Empty;
+        return response;
     }
 
     private void ChatSend()

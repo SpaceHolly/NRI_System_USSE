@@ -1102,69 +1102,134 @@
                                         </Grid.RowDefinitions>
                                         <Border Style="{StaticResource CardStyle}">
                                             <StackPanel>
-                                                <TextBlock Text="Управление игровым контентом" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                <TextBlock Text="Definitions классов и навыков" Style="{StaticResource SectionTitleTextStyle}"/>
                                                 <TextBlock Text="{Binding ContentReadinessSummary}" Margin="0,6,0,0"/>
                                                 <TextBlock Text="{Binding SelectedContentSummary}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding DefinitionVersionText, StringFormat=Version: {0}}" Margin="0,4,0,0"/>
                                                 <WrapPanel Margin="0,10,0,0">
                                                     <Button Style="{StaticResource GhostButtonStyle}" Content="Reload definitions" Command="{Binding DefinitionsReloadCommand}" IsEnabled="{Binding CanControlContent}"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Load class tree" Command="{Binding LoadClassTreeCommand}" IsEnabled="{Binding CanControlContent}"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Load skills" Command="{Binding LoadSkillsCommand}" IsEnabled="{Binding CanControlContent}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh classes" Command="{Binding RefreshDefinitionClassesCommand}" IsEnabled="{Binding CanManageClassDefinition}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh skills" Command="{Binding RefreshDefinitionSkillsCommand}" IsEnabled="{Binding CanManageSkillDefinition}"/>
                                                 </WrapPanel>
                                             </StackPanel>
                                         </Border>
-                                        <Grid Grid.Row="1">
+                                        <Grid Grid.Row="1" Margin="0,8,0,0">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="1.2*"/>
                                             </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Style="{StaticResource SubtleCardStyle}">
+                                            <Grid Grid.Column="0">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+                                                <Border Grid.Row="0" Style="{StaticResource SubtleCardStyle}">
+                                                    <StackPanel>
+                                                        <DockPanel Margin="0,0,0,8">
+                                                            <TextBlock Text="Class definitions" Style="{StaticResource TitleTextStyle}"/>
+                                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="New" Command="{Binding NewClassDefinitionCommand}" IsEnabled="{Binding CanManageClassDefinition}"/>
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Open" Command="{Binding OpenSelectedClassDefinitionCommand}" IsEnabled="{Binding CanArchiveClassDefinition}"/>
+                                                            </StackPanel>
+                                                        </DockPanel>
+                                                        <DataGrid ItemsSource="{Binding ClassDefinitionRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedClassDefinitionCode, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="180">
+                                                            <DataGrid.Columns>
+                                                                <DataGridTextColumn Header="Code" Binding="{Binding Id}" Width="*"/>
+                                                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                                                                <DataGridTextColumn Header="State" Binding="{Binding State}" Width="*"/>
+                                                            </DataGrid.Columns>
+                                                        </DataGrid>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Border Grid.Row="1" Style="{StaticResource SubtleCardStyle}">
+                                                    <StackPanel>
+                                                        <DockPanel Margin="0,0,0,8">
+                                                            <TextBlock Text="Skill definitions" Style="{StaticResource TitleTextStyle}"/>
+                                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="New" Command="{Binding NewSkillDefinitionCommand}" IsEnabled="{Binding CanManageSkillDefinition}"/>
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Open" Command="{Binding OpenSelectedSkillDefinitionCommand}" IsEnabled="{Binding CanArchiveSkillDefinition}"/>
+                                                            </StackPanel>
+                                                        </DockPanel>
+                                                        <DataGrid ItemsSource="{Binding SkillDefinitionRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedSkillDefinitionCode, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="180">
+                                                            <DataGrid.Columns>
+                                                                <DataGridTextColumn Header="Code" Binding="{Binding Id}" Width="*"/>
+                                                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                                                                <DataGridTextColumn Header="State" Binding="{Binding State}" Width="*"/>
+                                                            </DataGrid.Columns>
+                                                        </DataGrid>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
                                                 <StackPanel>
-                                                    <TextBlock Text="Classes" Style="{StaticResource TitleTextStyle}"/>
-                                                    <TextBox Text="{Binding SelectedClassNodeId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
-                                                    <Button Content="Acquire node" Command="{Binding AcquireClassNodeCommand}" IsEnabled="{Binding CanAcquireClassNode}" HorizontalAlignment="Left"/>
-                                                    <ListBox ItemsSource="{Binding ClassTreeItems}" SelectedValuePath="Id" SelectedValue="{Binding SelectedClassNodeId, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0">
-                                                        <ListBox.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <StackPanel>
-                                                                    <TextBlock Text="{Binding Name}"/>
-                                                                    <TextBlock Text="{Binding State}" Opacity="0.8"/>
-                                                                    <TextBlock Text="{Binding Extra}" Opacity="0.7" TextWrapping="Wrap"/>
+                                                    <Border Style="{StaticResource SubtleCardStyle}">
+                                                        <StackPanel>
+                                                            <TextBlock Text="Редактор класса" Style="{StaticResource TitleTextStyle}"/>
+                                                            <TextBlock Text="{Binding DefinitionHintText}" Margin="0,4,0,8" TextWrapping="Wrap" Opacity="0.75"/>
+                                                            <WrapPanel>
+                                                                <TextBox Width="150" Text="{Binding EditClassCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                <TextBox Width="220" Text="{Binding EditClassName, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                <TextBox Width="80" Text="{Binding EditClassLevel, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            </WrapPanel>
+                                                            <TextBox Margin="0,6,0,0" Text="{Binding EditClassDescription, UpdateSourceTrigger=PropertyChanged}" Height="60" TextWrapping="Wrap"/>
+                                                            <WrapPanel>
+                                                                <TextBox Width="140" Text="{Binding EditClassDirectionCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                <TextBox Width="140" Text="{Binding EditClassBranchCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                <TextBox Width="160" Text="{Binding EditClassRootClassCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                <TextBox Width="160" Text="{Binding EditClassParentClassCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            </WrapPanel>
+                                                            <TextBox Margin="0,6,0,0" Text="{Binding EditClassGrantedSkillCodes, UpdateSourceTrigger=PropertyChanged}" ToolTip="GrantedSkillCodes через запятую"/>
+                                                            <TextBox Margin="0,6,0,0" Text="{Binding EditClassRequiredClassCodes, UpdateSourceTrigger=PropertyChanged}" ToolTip="RequiredClassCodes через запятую"/>
+                                                            <WrapPanel Margin="0,6,0,0">
+                                                                <CheckBox Content="IsActive" IsChecked="{Binding EditClassIsActive}" Margin="0,0,12,0"/>
+                                                                <TextBox Width="140" Text="{Binding EditClassStatus, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            </WrapPanel>
+                                                            <WrapPanel Margin="0,8,0,0">
+                                                                <Button Content="Save class" Command="{Binding SaveClassDefinitionCommand}" IsEnabled="{Binding CanManageClassDefinition}"/>
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Archive class" Command="{Binding ArchiveClassDefinitionCommand}" IsEnabled="{Binding CanArchiveClassDefinition}"/>
+                                                            </WrapPanel>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,10,0,0">
+                                                        <StackPanel>
+                                                            <TextBlock Text="Редактор навыка" Style="{StaticResource TitleTextStyle}"/>
+                                                            <TextBlock Text="{Binding SkillEditorHintText}" Margin="0,4,0,8" TextWrapping="Wrap" Opacity="0.75"/>
+                                                            <WrapPanel>
+                                                                <TextBox Width="150" Text="{Binding EditSkillCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                <TextBox Width="220" Text="{Binding EditSkillName, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                <TextBox Width="80" Text="{Binding EditSkillTier, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                <TextBox Width="90" Text="{Binding EditSkillMaxLevel, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            </WrapPanel>
+                                                            <TextBox Margin="0,6,0,0" Text="{Binding EditSkillDescription, UpdateSourceTrigger=PropertyChanged}" Height="60" TextWrapping="Wrap"/>
+                                                            <WrapPanel>
+                                                                <TextBox Width="150" Text="{Binding EditSkillCategory, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                <CheckBox Content="IsClassSkill" IsChecked="{Binding EditSkillIsClassSkill}" Margin="12,6,12,0" VerticalAlignment="Center"/>
+                                                                <CheckBox Content="IsActive" IsChecked="{Binding EditSkillIsActive}" Margin="0,6,12,0" VerticalAlignment="Center"/>
+                                                                <TextBox Width="140" Text="{Binding EditSkillStatus, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            </WrapPanel>
+                                                            <TextBox Margin="0,6,0,0" Text="{Binding EditSkillRequiredClassCodes, UpdateSourceTrigger=PropertyChanged}" ToolTip="RequiredClassCodes через запятую"/>
+                                                            <TextBox Margin="0,6,0,0" Text="{Binding EditSkillRequiredSkillCodes, UpdateSourceTrigger=PropertyChanged}" ToolTip="RequiredSkillCodes через запятую"/>
+                                                            <DockPanel Margin="0,8,0,6">
+                                                                <TextBlock Text="Уровни навыка" Style="{StaticResource TitleTextStyle}"/>
+                                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="+ Level" Command="{Binding AddSkillLevelCommand}" IsEnabled="{Binding CanManageSkillDefinition}"/>
+                                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="- Level" Command="{Binding RemoveSkillLevelCommand}" IsEnabled="{Binding CanManageSkillDefinition}"/>
                                                                 </StackPanel>
-                                                            </DataTemplate>
-                                                        </ListBox.ItemTemplate>
-                                                    </ListBox>
+                                                            </DockPanel>
+                                                            <DataGrid ItemsSource="{Binding SkillLevelEditorRows}" AutoGenerateColumns="False" CanUserAddRows="False" MinHeight="160">
+                                                                <DataGrid.Columns>
+                                                                    <DataGridTextColumn Header="Level" Binding="{Binding Level, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+                                                                    <DataGridTextColumn Header="Description" Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                                                                </DataGrid.Columns>
+                                                            </DataGrid>
+                                                            <WrapPanel Margin="0,8,0,0">
+                                                                <Button Content="Save skill" Command="{Binding SaveSkillDefinitionCommand}" IsEnabled="{Binding CanManageSkillDefinition}"/>
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Archive skill" Command="{Binding ArchiveSkillDefinitionCommand}" IsEnabled="{Binding CanArchiveSkillDefinition}"/>
+                                                            </WrapPanel>
+                                                        </StackPanel>
+                                                    </Border>
                                                 </StackPanel>
-                                            </Border>
-                                            <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="Skills" Style="{StaticResource TitleTextStyle}"/>
-                                                    <TextBox Text="{Binding SelectedSkillId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
-                                                    <Button Content="Acquire skill" Command="{Binding AcquireSkillCommand}" IsEnabled="{Binding CanAcquireSkill}" HorizontalAlignment="Left"/>
-                                                    <ListBox ItemsSource="{Binding SkillRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedSkillId, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0">
-                                                        <ListBox.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <StackPanel>
-                                                                    <TextBlock Text="{Binding Name}"/>
-                                                                    <TextBlock Text="{Binding State}" Opacity="0.8"/>
-                                                                    <TextBlock Text="{Binding Extra}" Opacity="0.7" TextWrapping="Wrap"/>
-                                                                </StackPanel>
-                                                            </DataTemplate>
-                                                        </ListBox.ItemTemplate>
-                                                    </ListBox>
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Grid.Column="2" Style="{StaticResource SubtleCardStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="Детали и быстрые действия" Style="{StaticResource TitleTextStyle}"/>
-                                                    <TextBlock Text="{Binding SelectedClassSummary}" Margin="0,4,0,0" TextWrapping="Wrap"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Перейти к skills" Command="{Binding LoadSkillsCommand}" IsEnabled="{Binding CanControlContent}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
-                                                    <Separator Margin="0,10,0,10"/>
-                                                    <TextBlock Text="{Binding SelectedSkillSummary}" TextWrapping="Wrap"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Перейти к reference data" Command="{Binding FocusContentReferenceCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
-                                                    <TextBlock Text="Если сервер не поддерживает редактирование definitions, контур остаётся readonly и действия на выдачу доступны только через существующие acquire-команды." Margin="0,12,0,0" TextWrapping="Wrap" Opacity="0.75"/>
-                                                </StackPanel>
-                                            </Border>
+                                            </ScrollViewer>
                                         </Grid>
                                     </Grid>
                                 </TabItem>
