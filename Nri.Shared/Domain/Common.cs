@@ -291,14 +291,6 @@ public enum SkillType
     Activatable
 }
 
-public class SkillDefinition : EntityBase
-{
-    public string SkillCode { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public SkillType Type { get; set; }
-}
-
 public class SkillState
 {
     public string SkillCode { get; set; } = string.Empty;
