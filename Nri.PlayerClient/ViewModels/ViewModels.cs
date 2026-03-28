@@ -614,7 +614,8 @@ public class PlayerMainViewModel : ViewModelBase
     private void SendChat()
     {
         if (string.IsNullOrWhiteSpace(ChatTextInput)) return;
-        _api.ChatSend(ChatSessionId, ToServerChatType(ChatTypeInput), ChatTextInput);
+        var sessionId = ResolveChatSessionId();
+        _api.ChatSend(sessionId, ToServerChatType(ChatTypeInput), ChatTextInput);
         ChatTextInput = string.Empty;
         Notify(nameof(ChatTextInput));
         RefreshChat();
@@ -622,11 +623,13 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void RefreshChat()
     {
+        var sessionId = ResolveChatSessionId();
         ChatRows.Clear();
-        var chat = _api.ChatVisibleFeed(ChatSessionId, 80);
+        var chat = _api.ChatVisibleFeed(sessionId, 80);
         foreach (var item in ToObjectList(chat.Payload.ContainsKey("items") ? chat.Payload["items"] : new ArrayList()))
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item);
+            if (map == null) continue;
             ChatRows.Add($"{GetString(map, "createdUtc")} | {GetString(map, "type")} | {GetString(map, "senderDisplayName")}: {GetString(map, "text")}");
         }
 
@@ -1473,6 +1476,45 @@ public class PlayerMainViewModel : ViewModelBase
         }
 
         return "0";
+    }
+
+    private string ResolveChatSessionId()
+    {
+        var sessionId = string.IsNullOrWhiteSpace(ChatSessionId) ? "default" : ChatSessionId.Trim();
+        if (!string.Equals(ChatSessionId, sessionId, StringComparison.Ordinal))
+        {
+            ChatSessionId = sessionId;
+            Notify(nameof(ChatSessionId));
+        }
+
+        return sessionId;
+    }
+
+    private static Dictionary<string, object>? AsMap(object? value)
+    {
+        if (value is Dictionary<string, object> typedMap)
+        {
+            return typedMap;
+        }
+
+        if (value is IDictionary dictionary)
+        {
+            var map = new Dictionary<string, object>();
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                var key = Convert.ToString(entry.Key);
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    continue;
+                }
+
+                map[key] = entry.Value;
+            }
+
+            return map;
+        }
+
+        return null;
     }
 
     private static IList ToObjectList(object payload) => payload as IList ?? new ArrayList();

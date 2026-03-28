@@ -292,6 +292,11 @@ public static class JsonProtocolSerializer
 
     private static object? NormalizeEnvelopePayload<T>(T value)
     {
+        if (value is IDictionary<string, object> rootDictionary)
+        {
+            return NormalizeDictionary(new Dictionary<string, object>(rootDictionary));
+        }
+
         if (value is ResponseEnvelope response)
         {
             return new ResponseEnvelope
@@ -318,6 +323,11 @@ public static class JsonProtocolSerializer
                 Version = request.Version,
                 Payload = NormalizeDictionary(request.Payload)
             };
+        }
+
+        if (value is IEnumerable enumerable && value is not string)
+        {
+            return enumerable.Cast<object?>().Select(NormalizeValue).ToArray();
         }
 
         return value;

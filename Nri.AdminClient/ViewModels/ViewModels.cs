@@ -2070,7 +2070,8 @@ public class AdminMainViewModel : ViewModelBase
     private void ChatSend()
     {
         if (string.IsNullOrWhiteSpace(ChatMessageText)) return;
-        _api.ChatSend(ChatSessionId, ChatMessageType, ChatMessageText);
+        var sessionId = ResolveChatSessionId();
+        _api.ChatSend(sessionId, ChatMessageType, ChatMessageText);
         ChatMessageText = string.Empty;
         Notify(nameof(ChatMessageText));
         ChatRefresh();
@@ -2078,45 +2079,59 @@ public class AdminMainViewModel : ViewModelBase
 
     private void ChatRefresh()
     {
+        var sessionId = ResolveChatSessionId();
         ChatRows.Clear();
-        var history = _api.ChatHistoryGet(ChatSessionId, 80);
+        var history = _api.ChatHistoryGet(sessionId, 80);
         if (history.Status == ResponseStatus.Ok && history.Payload.ContainsKey("items"))
         {
             foreach (var item in ToList(history.Payload["items"]))
             {
-                if (item is not Dictionary<string, object> m) continue;
+                var m = AsMap(item);
+                if (m == null) continue;
                 ChatRows.Add($"{S(m, "createdUtc")} | {S(m, "type")} | {S(m, "senderDisplayName")}: {S(m, "text")}");
             }
         }
 
-        var unread = _api.ChatUnreadGet(ChatSessionId);
+        var unread = _api.ChatUnreadGet(sessionId);
         ChatUnreadText = "Unread: " + S(unread.Payload, "count");
         Notify(nameof(ChatUnreadText));
 
-        var slow = _api.ChatSlowModeGet(ChatSessionId);
+        var slow = _api.ChatSlowModeGet(sessionId);
         ChatSlowPublicSeconds = int.TryParse(S(slow.Payload, "publicSeconds"), out var ps) ? ps : 0;
         ChatSlowHiddenSeconds = int.TryParse(S(slow.Payload, "hiddenToAdminsSeconds"), out var hs) ? hs : 0;
         ChatSlowAdminOnlySeconds = int.TryParse(S(slow.Payload, "adminOnlySeconds"), out var a) ? a : 0;
         Notify(nameof(ChatSlowPublicSeconds)); Notify(nameof(ChatSlowHiddenSeconds)); Notify(nameof(ChatSlowAdminOnlySeconds));
 
         ChatRestrictionRows.Clear();
-        var restrictions = _api.ChatRestrictionsGet(ChatSessionId);
+        var restrictions = _api.ChatRestrictionsGet(sessionId);
         ChatRestrictionRows.Add("LockPlayers=" + S(restrictions.Payload, "lockPlayers"));
         foreach (var item in ToList(restrictions.Payload.ContainsKey("restrictions") ? restrictions.Payload["restrictions"] : new ArrayList()))
-            if (item is Dictionary<string, object> m)
+            if (AsMap(item) is { } m)
                 ChatRestrictionRows.Add($"{S(m, "userId")} muted={S(m, "muted")} reason={S(m, "reason")}");
         RefreshConnectionSummary();
     }
 
-    private void ChatMuteUser() { if (!string.IsNullOrWhiteSpace(ChatModerationUserId)) { _api.ChatRestrictionsMuteUser(ChatSessionId, ChatModerationUserId, ChatModerationReason); ChatRefresh(); } }
-    private void ChatUnmuteUser() { if (!string.IsNullOrWhiteSpace(ChatModerationUserId)) { _api.ChatRestrictionsUnmuteUser(ChatSessionId, ChatModerationUserId); ChatRefresh(); } }
-    private void ChatLockPlayers() { _api.ChatRestrictionsLockPlayers(ChatSessionId); ChatRefresh(); }
-    private void ChatUnlockPlayers() { _api.ChatRestrictionsUnlockPlayers(ChatSessionId); ChatRefresh(); }
+    private void ChatMuteUser() { if (!string.IsNullOrWhiteSpace(ChatModerationUserId)) { _api.ChatRestrictionsMuteUser(ResolveChatSessionId(), ChatModerationUserId, ChatModerationReason); ChatRefresh(); } }
+    private void ChatUnmuteUser() { if (!string.IsNullOrWhiteSpace(ChatModerationUserId)) { _api.ChatRestrictionsUnmuteUser(ResolveChatSessionId(), ChatModerationUserId); ChatRefresh(); } }
+    private void ChatLockPlayers() { _api.ChatRestrictionsLockPlayers(ResolveChatSessionId()); ChatRefresh(); }
+    private void ChatUnlockPlayers() { _api.ChatRestrictionsUnlockPlayers(ResolveChatSessionId()); ChatRefresh(); }
 
     private void ChatSetSlowMode()
     {
-        _api.ChatSlowModeSet(ChatSessionId, ChatSlowPublicSeconds, ChatSlowHiddenSeconds, ChatSlowAdminOnlySeconds);
+        _api.ChatSlowModeSet(ResolveChatSessionId(), ChatSlowPublicSeconds, ChatSlowHiddenSeconds, ChatSlowAdminOnlySeconds);
         ChatRefresh();
+    }
+
+    private string ResolveChatSessionId()
+    {
+        var sessionId = string.IsNullOrWhiteSpace(ChatSessionId) ? "default" : ChatSessionId.Trim();
+        if (!string.Equals(ChatSessionId, sessionId, StringComparison.Ordinal))
+        {
+            ChatSessionId = sessionId;
+            Notify(nameof(ChatSessionId));
+        }
+
+        return sessionId;
     }
 
     private void AudioRefresh()
@@ -2310,6 +2325,32 @@ public class AdminMainViewModel : ViewModelBase
 
     private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     private static IList ToList(object value) => value as IList ?? new ArrayList();
+    private static Dictionary<string, object>? AsMap(object? value)
+    {
+        if (value is Dictionary<string, object> typedMap)
+        {
+            return typedMap;
+        }
+
+        if (value is IDictionary dictionary)
+        {
+            var map = new Dictionary<string, object>();
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                var key = Convert.ToString(entry.Key);
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    continue;
+                }
+
+                map[key] = entry.Value;
+            }
+
+            return map;
+        }
+
+        return null;
+    }
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
 
