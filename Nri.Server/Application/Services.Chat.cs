@@ -177,9 +177,11 @@ public partial class ServiceHub
         var sessionId = RequireLength(PayloadReader.GetString(context.Request.Payload, "sessionId"), 1, 128, "sessionId");
         var limit = Math.Max(1, Math.Min(200, PayloadReader.GetInt(context.Request.Payload, "limit") ?? 50));
         var beforeTicks = PayloadReader.GetLong(context.Request.Payload, "beforeTicks");
+        var command = string.IsNullOrWhiteSpace(context.Request.Command) ? "chat.unknown" : context.Request.Command;
 
         var items = _repositories.ChatMessages.Find(Builders<ChatMessage>.Filter.Eq(x => x.SessionId, sessionId))
             .Where(x => CanViewChatMessage(actor, x));
+        var visibleCount = items.Count();
         if (beforeTicks.HasValue)
         {
             var dt = new DateTime(beforeTicks.Value, DateTimeKind.Utc);
@@ -187,16 +189,19 @@ public partial class ServiceHub
         }
 
         var page = items.OrderByDescending(x => x.CreatedUtc).Take(limit).OrderBy(x => x.CreatedUtc).ToList();
+        _logger.Debug($"[CHAT-DIAG-TEMP] read command={command} session={sessionId} older={older} beforeTicks={(beforeTicks.HasValue ? beforeTicks.Value.ToString() : "null")} visible={visibleCount} page={page.Count} limit={limit}");
         if (page.Count > 0)
         {
             UpdateReadState(sessionId, actor.Id, page.Last());
         }
 
-        return Ok("Chat history loaded.", new Dictionary<string, object>
+        var responsePayload = new Dictionary<string, object>
         {
             { "items", page.Select(ChatPayload).Cast<object>().ToArray() },
             { "nextBeforeTicks", page.Count > 0 ? (object)page.First().CreatedUtc.Ticks : 0L }
-        });
+        };
+        _logger.Debug($"[CHAT-DIAG-TEMP] response command={command} session={sessionId} payload.items={(responsePayload["items"] as Array)?.Length ?? 0}");
+        return Ok("Chat history loaded.", responsePayload);
     }
 
     private static ChatMessageType ParseChatType(string raw)
