@@ -2072,6 +2072,11 @@ public class AdminMainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(ChatMessageText)) return;
         var sessionId = ResolveChatSessionId();
+        if (string.Equals(ChatMessageType, "System", StringComparison.OrdinalIgnoreCase))
+        {
+            LastStatusMessage = "[CHAT-DIAG-TEMP][Admin] blocked client-side system message send";
+            return;
+        }
         _api.ChatSend(sessionId, ChatMessageType, ChatMessageText);
         ChatMessageText = string.Empty;
         Notify(nameof(ChatMessageText));
@@ -2081,26 +2086,26 @@ public class AdminMainViewModel : ViewModelBase
     private void ChatRefresh()
     {
         var sessionId = ResolveChatSessionId();
-        TraceChatDiagnostic($"request command={CommandNames.ChatHistoryGet} session={sessionId}");
+        TraceChatDiagnostic($"request command={CommandNames.ChatVisibleFeed} session={sessionId}");
         ChatRows.Clear();
-        var history = _api.ChatHistoryGet(sessionId, 80);
-        var historyItems = ExtractChatItems(history.Payload);
-        TraceChatDiagnostic($"response command={CommandNames.ChatHistoryGet} status={history.Status} payloadItems={historyItems.Count}");
-        if (history.Status == ResponseStatus.Ok)
+        var feed = _api.ChatVisibleFeed(sessionId, 80);
+        var feedItems = ExtractChatItems(feed.Payload);
+        TraceChatDiagnostic($"response command={CommandNames.ChatVisibleFeed} status={feed.Status} payloadItems={feedItems.Count}");
+        if (feed.Status == ResponseStatus.Ok)
         {
             var mappedCount = 0;
-            foreach (var item in historyItems)
+            foreach (var item in feedItems)
             {
                 var m = AsMap(item);
                 if (m == null) continue;
                 ChatRows.Add($"{S(m, "createdUtc")} | {S(m, "type")} | {S(m, "senderDisplayName")}: {S(m, "text")}");
                 mappedCount++;
             }
-            TraceChatDiagnostic($"mapped command={CommandNames.ChatHistoryGet} mappedItems={mappedCount} chatRows={ChatRows.Count}");
+            TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount} chatRows={ChatRows.Count}");
         }
         else
         {
-            TraceChatDiagnostic($"response-error command={CommandNames.ChatHistoryGet} message={history.Message}");
+            TraceChatDiagnostic($"response-error command={CommandNames.ChatVisibleFeed} message={feed.Message}");
         }
 
         var unread = _api.ChatUnreadGet(sessionId);

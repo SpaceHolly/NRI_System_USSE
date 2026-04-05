@@ -326,7 +326,7 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> AdminNoteRows { get; } = new ObservableCollection<string>();
 
     public ObservableCollection<string> DiceVisibilityOptions { get; } = new ObservableCollection<string> { "Общее", "Только мастеру", "Теневой" };
-    public ObservableCollection<string> ChatTypeOptions { get; } = new ObservableCollection<string> { "Общее", "Скрытое админам", "Только админам", "Системное" };
+    public ObservableCollection<string> ChatTypeOptions { get; } = new ObservableCollection<string> { "Общее", "Скрытое админам", "Только админам" };
     public ObservableCollection<string> NoteTargetTypeOptions { get; } = new ObservableCollection<string> { "character", "session", "campaign" };
     public ObservableCollection<string> NoteVisibilityOptions { get; } = new ObservableCollection<string> { "Personal", "SharedWithOwner", "SessionShared" };
 
@@ -616,7 +616,13 @@ public class PlayerMainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(ChatTextInput)) return;
         var sessionId = ResolveChatSessionId();
-        _api.ChatSend(sessionId, ToServerChatType(ChatTypeInput), ChatTextInput);
+        var serverType = ToServerChatType(ChatTypeInput);
+        if (string.Equals(serverType, "System", StringComparison.OrdinalIgnoreCase))
+        {
+            TraceChatDiagnostic("blocked client-side system message send");
+            return;
+        }
+        _api.ChatSend(sessionId, serverType, ChatTextInput);
         ChatTextInput = string.Empty;
         Notify(nameof(ChatTextInput));
         RefreshChat();
@@ -642,6 +648,7 @@ public class PlayerMainViewModel : ViewModelBase
         TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount} chatRows={ChatRows.Count}");
 
         EnsureCollectionPlaceholder(ChatRows, "Нет сообщений");
+        BuildGameFeed();
         TraceChatDiagnostic($"ui chatRows={ChatRows.Count} gameFeedRows={GameFeedRows.Count}");
     }
 
@@ -1418,7 +1425,6 @@ public class PlayerMainViewModel : ViewModelBase
             "Общее" => "Public",
             "Скрытое админам" => "HiddenToAdmins",
             "Только админам" => "AdminOnly",
-            "Системное" => "System",
             _ => "Public"
         };
     }
