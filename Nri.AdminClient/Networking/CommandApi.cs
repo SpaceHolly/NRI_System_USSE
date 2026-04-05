@@ -89,18 +89,8 @@ public class CommandApi
 
 
     public ResponseEnvelope ChatSend(string sessionId, string type, string text) => Send(CommandNames.ChatSend, new Dictionary<string, object> { { "sessionId", sessionId }, { "type", type }, { "text", text } });
-    public ResponseEnvelope ChatHistoryGet(string sessionId, int limit = 50, long beforeTicks = 0)
-    {
-        var payload = new Dictionary<string, object> { { "sessionId", sessionId }, { "limit", limit } };
-        if (beforeTicks > 0) payload["beforeTicks"] = beforeTicks;
-        return Send(CommandNames.ChatHistoryGet, payload);
-    }
-    public ResponseEnvelope ChatHistoryLoadMore(string sessionId, int limit = 50, long beforeTicks = 0)
-    {
-        var payload = new Dictionary<string, object> { { "sessionId", sessionId }, { "limit", limit } };
-        if (beforeTicks > 0) payload["beforeTicks"] = beforeTicks;
-        return Send(CommandNames.ChatHistoryLoadMore, payload);
-    }
+    public ResponseEnvelope ChatHistoryGet(string sessionId, int limit = 50, long beforeTicks = 0) => Send(CommandNames.ChatHistoryGet, new Dictionary<string, object> { { "sessionId", sessionId }, { "limit", limit }, { "beforeTicks", beforeTicks } });
+    public ResponseEnvelope ChatHistoryLoadMore(string sessionId, int limit = 50, long beforeTicks = 0) => Send(CommandNames.ChatHistoryLoadMore, new Dictionary<string, object> { { "sessionId", sessionId }, { "limit", limit }, { "beforeTicks", beforeTicks } });
     public ResponseEnvelope ChatVisibleFeed(string sessionId, int limit = 50) => Send(CommandNames.ChatVisibleFeed, new Dictionary<string, object> { { "sessionId", sessionId }, { "limit", limit } });
     public ResponseEnvelope ChatMarkRead(string sessionId, string upToMessageId = "") => Send(CommandNames.ChatMarkRead, new Dictionary<string, object> { { "sessionId", sessionId }, { "upToMessageId", upToMessageId } });
     public ResponseEnvelope ChatUnreadGet(string sessionId) => Send(CommandNames.ChatUnreadGet, new Dictionary<string, object> { { "sessionId", sessionId } });

@@ -2089,8 +2089,8 @@ public class AdminMainViewModel : ViewModelBase
         TraceChatDiagnostic($"request command={CommandNames.ChatVisibleFeed} session={sessionId}");
         ChatRows.Clear();
         var feed = _api.ChatVisibleFeed(sessionId, 80);
-        var feedItems = ExtractChatItems(feed.Payload);
-        TraceChatDiagnostic($"response command={CommandNames.ChatVisibleFeed} status={feed.Status} payloadItems={feedItems.Count}");
+        var feedItems = ExtractChatItems(feed.Payload, out var sourceKey, out var payloadKeys, out var rawItemsType);
+        TraceChatDiagnostic($"response command={CommandNames.ChatVisibleFeed} status={feed.Status} success={(feed.Status == ResponseStatus.Ok)} payloadKeys=[{payloadKeys}] sourceKey={sourceKey} rawItems={feedItems.Count} rawType={rawItemsType}");
         if (feed.Status == ResponseStatus.Ok)
         {
             var mappedCount = 0;
@@ -2101,12 +2101,13 @@ public class AdminMainViewModel : ViewModelBase
                 ChatRows.Add($"{S(m, "createdUtc")} | {S(m, "type")} | {S(m, "senderDisplayName")}: {S(m, "text")}");
                 mappedCount++;
             }
-            TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount} chatRows={ChatRows.Count}");
+            TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount}");
         }
         else
         {
             TraceChatDiagnostic($"response-error command={CommandNames.ChatVisibleFeed} message={feed.Message}");
         }
+        TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} uiCollection=ChatRows uiCount={ChatRows.Count}");
 
         var unread = _api.ChatUnreadGet(sessionId);
         ChatUnreadText = "Unread: " + S(unread.Payload, "count");
@@ -2342,10 +2343,46 @@ public class AdminMainViewModel : ViewModelBase
 
     private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     private static IList ToList(object value) => value as IList ?? new ArrayList();
-    private static IList ExtractChatItems(Dictionary<string, object> payload)
+    private static IList ExtractChatItems(Dictionary<string, object> payload, out string sourceKey, out string payloadKeys, out string rawItemsType)
     {
-        if (payload.ContainsKey("items")) return ToList(payload["items"]);
-        if (payload.ContainsKey("messages")) return ToList(payload["messages"]);
+        payloadKeys = string.Join(",", payload.Keys.OrderBy(x => x, StringComparer.Ordinal));
+        foreach (var key in new[] { "items", "messages", "feed", "history" })
+        {
+            if (!payload.ContainsKey(key))
+            {
+                continue;
+            }
+
+            var normalized = NormalizePayloadList(payload[key], out rawItemsType);
+            sourceKey = key;
+            return normalized;
+        }
+
+        foreach (var entry in payload)
+        {
+            if (entry.Value is string)
+            {
+                continue;
+            }
+
+            if (entry.Value is IEnumerable)
+            {
+                var normalized = NormalizePayloadList(entry.Value, out rawItemsType);
+                sourceKey = entry.Key;
+                return normalized;
+            }
+        }
+
+        sourceKey = "<none>";
+        rawItemsType = "<none>";
+        return new ArrayList();
+    }
+
+    private static IList NormalizePayloadList(object? payloadValue, out string rawItemsType)
+    {
+        rawItemsType = payloadValue?.GetType().Name ?? "null";
+        if (payloadValue is IList list) return list;
+        if (payloadValue is IEnumerable enumerable && payloadValue is not string) return enumerable.Cast<object>().ToArray();
         return new ArrayList();
     }
 
