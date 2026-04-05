@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -619,21 +620,29 @@ public class PlayerMainViewModel : ViewModelBase
         ChatTextInput = string.Empty;
         Notify(nameof(ChatTextInput));
         RefreshChat();
+        BuildGameFeed();
     }
 
     private void RefreshChat()
     {
         var sessionId = ResolveChatSessionId();
+        TraceChatDiagnostic($"request command={CommandNames.ChatVisibleFeed} session={sessionId}");
         ChatRows.Clear();
         var chat = _api.ChatVisibleFeed(sessionId, 80);
-        foreach (var item in ToObjectList(chat.Payload.ContainsKey("items") ? chat.Payload["items"] : new ArrayList()))
+        var chatItems = ExtractChatItems(chat.Payload);
+        TraceChatDiagnostic($"response command={CommandNames.ChatVisibleFeed} status={chat.Status} payloadItems={chatItems.Count}");
+        var mappedCount = 0;
+        foreach (var item in chatItems)
         {
             var map = AsMap(item);
             if (map == null) continue;
             ChatRows.Add($"{GetString(map, "createdUtc")} | {GetString(map, "type")} | {GetString(map, "senderDisplayName")}: {GetString(map, "text")}");
+            mappedCount++;
         }
+        TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount} chatRows={ChatRows.Count}");
 
         EnsureCollectionPlaceholder(ChatRows, "Нет сообщений");
+        TraceChatDiagnostic($"ui chatRows={ChatRows.Count} gameFeedRows={GameFeedRows.Count}");
     }
 
     private void RefreshDiceAndRequests()
@@ -1515,6 +1524,21 @@ public class PlayerMainViewModel : ViewModelBase
         }
 
         return null;
+    }
+
+    private static IList ExtractChatItems(Dictionary<string, object> payload)
+    {
+        if (payload.ContainsKey("items")) return ToObjectList(payload["items"]);
+        if (payload.ContainsKey("messages")) return ToObjectList(payload["messages"]);
+        return new ArrayList();
+    }
+
+    private void TraceChatDiagnostic(string message)
+    {
+        var line = "[CHAT-DIAG-TEMP][Player] " + message;
+        Debug.WriteLine(line);
+        ConnectionStatusDetail = line;
+        Notify(nameof(ConnectionStatusDetail));
     }
 
     private static IList ToObjectList(object payload) => payload as IList ?? new ArrayList();

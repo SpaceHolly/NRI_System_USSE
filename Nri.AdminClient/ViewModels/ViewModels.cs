@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -2080,16 +2081,26 @@ public class AdminMainViewModel : ViewModelBase
     private void ChatRefresh()
     {
         var sessionId = ResolveChatSessionId();
+        TraceChatDiagnostic($"request command={CommandNames.ChatHistoryGet} session={sessionId}");
         ChatRows.Clear();
         var history = _api.ChatHistoryGet(sessionId, 80);
-        if (history.Status == ResponseStatus.Ok && history.Payload.ContainsKey("items"))
+        var historyItems = ExtractChatItems(history.Payload);
+        TraceChatDiagnostic($"response command={CommandNames.ChatHistoryGet} status={history.Status} payloadItems={historyItems.Count}");
+        if (history.Status == ResponseStatus.Ok)
         {
-            foreach (var item in ToList(history.Payload["items"]))
+            var mappedCount = 0;
+            foreach (var item in historyItems)
             {
                 var m = AsMap(item);
                 if (m == null) continue;
                 ChatRows.Add($"{S(m, "createdUtc")} | {S(m, "type")} | {S(m, "senderDisplayName")}: {S(m, "text")}");
+                mappedCount++;
             }
+            TraceChatDiagnostic($"mapped command={CommandNames.ChatHistoryGet} mappedItems={mappedCount} chatRows={ChatRows.Count}");
+        }
+        else
+        {
+            TraceChatDiagnostic($"response-error command={CommandNames.ChatHistoryGet} message={history.Message}");
         }
 
         var unread = _api.ChatUnreadGet(sessionId);
@@ -2108,6 +2119,7 @@ public class AdminMainViewModel : ViewModelBase
         foreach (var item in ToList(restrictions.Payload.ContainsKey("restrictions") ? restrictions.Payload["restrictions"] : new ArrayList()))
             if (AsMap(item) is { } m)
                 ChatRestrictionRows.Add($"{S(m, "userId")} muted={S(m, "muted")} reason={S(m, "reason")}");
+        TraceChatDiagnostic($"ui chatRows={ChatRows.Count} restrictionsRows={ChatRestrictionRows.Count}");
         RefreshConnectionSummary();
     }
 
@@ -2325,6 +2337,20 @@ public class AdminMainViewModel : ViewModelBase
 
     private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     private static IList ToList(object value) => value as IList ?? new ArrayList();
+    private static IList ExtractChatItems(Dictionary<string, object> payload)
+    {
+        if (payload.ContainsKey("items")) return ToList(payload["items"]);
+        if (payload.ContainsKey("messages")) return ToList(payload["messages"]);
+        return new ArrayList();
+    }
+
+    private void TraceChatDiagnostic(string message)
+    {
+        var line = "[CHAT-DIAG-TEMP][Admin] " + message;
+        Debug.WriteLine(line);
+        LastStatusMessage = line;
+    }
+
     private static Dictionary<string, object>? AsMap(object? value)
     {
         if (value is Dictionary<string, object> typedMap)
