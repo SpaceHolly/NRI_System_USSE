@@ -1,3 +1,4 @@
+using Nri.PlayerClient.Diagnostics;
 using Nri.PlayerClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
@@ -151,9 +152,10 @@ public class PlayerMainViewModel : ViewModelBase
 
     public PlayerMainViewModel()
     {
-        _clientConfig = new ClientConfig();
+        _clientConfig = App.ClientConfig;
         _client = new JsonTcpClient(_clientConfig, _session);
         _api = new CommandApi(_client);
+        ClientLogService.Instance.Info("PlayerMainViewModel initialized");
 
         ToggleAuthPopupCommand = new RelayCommand(() => IsAuthPopupOpen = !IsAuthPopupOpen);
         ToggleConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
@@ -377,10 +379,12 @@ public class PlayerMainViewModel : ViewModelBase
         try
         {
             EnsureConnected();
+            ClientLogService.Instance.Info($"Login attempt: user={LoginText}");
             var result = _api.Login(LoginText, PasswordText);
             if (result.Status != ResponseStatus.Ok)
             {
                 ConnectionState = "Оффлайн";
+                ClientLogService.Instance.Warn($"Login failed: user={LoginText}; message={result.Message}");
                 return;
             }
 
@@ -389,6 +393,7 @@ public class PlayerMainViewModel : ViewModelBase
             PlayerDisplayName = LoginText;
             SessionSummary = "Сессия: default";
             RefreshAll();
+            ClientLogService.Instance.Info($"Login success: user={LoginText}");
             _poller.Start();
         }
         catch (Exception ex)
@@ -622,6 +627,7 @@ public class PlayerMainViewModel : ViewModelBase
             TraceChatDiagnostic("blocked client-side system message send");
             return;
         }
+        ClientLogService.Instance.Info($"Chat send requested: sessionId={sessionId}; command={CommandNames.ChatSend}");
         _api.ChatSend(sessionId, serverType, ChatTextInput);
         ChatTextInput = string.Empty;
         Notify(nameof(ChatTextInput));
@@ -880,6 +886,7 @@ public class PlayerMainViewModel : ViewModelBase
             InvalidOperationException => "Не удалось подключиться к серверу",
             _ => string.IsNullOrWhiteSpace(ex.Message) ? "Не удалось подключиться к серверу" : ex.Message
         };
+        ClientLogService.Instance.Error("Connection error", ex);
         SetDisconnectedState(message);
     }
 
@@ -1418,6 +1425,14 @@ public class PlayerMainViewModel : ViewModelBase
             vm.AttributeStatRows.Add(row);
     }
 
+
+    public void Shutdown()
+    {
+        ClientLogService.Instance.Info("Logout / shutdown requested from Player client");
+        _poller.Stop();
+        _client.Disconnect();
+    }
+
     private string ToServerChatType(string uiType)
     {
         return uiType switch
@@ -1577,8 +1592,8 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void TraceChatDiagnostic(string message)
     {
-        var line = "[CHAT-DIAG-TEMP][Player] " + message;
-        Debug.WriteLine(line);
+        var line = "[CHAT-DIAG][Player] " + message;
+        ClientLogService.Instance.Info(line);
         ConnectionStatusDetail = line;
         Notify(nameof(ConnectionStatusDetail));
     }

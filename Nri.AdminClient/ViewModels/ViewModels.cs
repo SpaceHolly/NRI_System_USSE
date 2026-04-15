@@ -12,6 +12,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Nri.AdminClient.Diagnostics;
 using Nri.AdminClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
@@ -236,7 +237,8 @@ public class AdminMainViewModel : ViewModelBase
     {
         Directory.CreateDirectory(_appDataDirectory);
 
-        _client = new JsonTcpClient(new ClientConfig(), _session);
+        _client = new JsonTcpClient(App.ClientConfig, _session);
+        ClientLogService.Instance.Info("AdminMainViewModel initialized");
         _api = new CommandApi(_client);
 
         LoginCommand = new RelayCommand(() => RunUiAction("Авторизация", Login));
@@ -990,6 +992,7 @@ public class AdminMainViewModel : ViewModelBase
         {
             _client.UpdateEndpoint(host, port);
             _client.Connect();
+            ClientLogService.Instance.Info($"Server connection established: {host}:{port}");
             LastServerHost = host;
             LastServerPort = port;
             SaveConnectionSettings();
@@ -1000,6 +1003,7 @@ public class AdminMainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            ClientLogService.Instance.Error($"Server connection failed: {host}:{port}", ex);
             SetConnectionError($"Не удалось подключиться к {host}:{port}. {ex.Message}");
         }
     }
@@ -1439,6 +1443,7 @@ public class AdminMainViewModel : ViewModelBase
         try
         {
             ConnectToServer();
+            ClientLogService.Instance.Info($"Login attempt: user={LoginText}");
             var r = _api.Login(LoginText, PasswordText);
             if (r.Status == ResponseStatus.Ok)
             {
@@ -1448,6 +1453,7 @@ public class AdminMainViewModel : ViewModelBase
                 RefreshAll();
                 IsAuthPopupOpen = false;
                 Notify(nameof(LoginSummary));
+                ClientLogService.Instance.Info($"Login success: user={LoginText}");
             }
             else
             {
@@ -1459,6 +1465,7 @@ public class AdminMainViewModel : ViewModelBase
                 ConnectionStatusDetail = string.IsNullOrWhiteSpace(r.Message) ? "Логин не выполнен." : r.Message;
                 LastStatusMessage = "Логин не выполнен.";
                 RefreshConnectionSummary();
+                ClientLogService.Instance.Warn($"Login failed: user={LoginText}; message={r.Message}");
             }
         }
         catch (Exception ex)
@@ -2074,9 +2081,11 @@ public class AdminMainViewModel : ViewModelBase
         var sessionId = ResolveChatSessionId();
         if (string.Equals(ChatMessageType, "System", StringComparison.OrdinalIgnoreCase))
         {
-            LastStatusMessage = "[CHAT-DIAG-TEMP][Admin] blocked client-side system message send";
+            LastStatusMessage = "[CHAT-DIAG][Admin] blocked client-side system message send";
+            ClientLogService.Instance.Warn(LastStatusMessage);
             return;
         }
+        ClientLogService.Instance.Info($"Chat send requested: sessionId={sessionId}; command={CommandNames.ChatSend}");
         _api.ChatSend(sessionId, ChatMessageType, ChatMessageText);
         ChatMessageText = string.Empty;
         Notify(nameof(ChatMessageText));
@@ -2309,6 +2318,7 @@ public class AdminMainViewModel : ViewModelBase
     {
         SaveConnectionSettings();
         SaveWorkspaceLayout();
+        ClientLogService.Instance.Info("Logout / shutdown requested from Admin client");
         _client.Disconnect();
     }
 
@@ -2388,8 +2398,8 @@ public class AdminMainViewModel : ViewModelBase
 
     private void TraceChatDiagnostic(string message)
     {
-        var line = "[CHAT-DIAG-TEMP][Admin] " + message;
-        Debug.WriteLine(line);
+        var line = "[CHAT-DIAG][Admin] " + message;
+        ClientLogService.Instance.Info(line);
         LastStatusMessage = line;
     }
 
