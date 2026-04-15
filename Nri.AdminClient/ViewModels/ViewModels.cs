@@ -394,8 +394,8 @@ public class AdminMainViewModel : ViewModelBase
     public string LastServerHost { get => _lastServerHost; set { _lastServerHost = value; Notify(); } }
     public int LastServerPort { get => _lastServerPort; set { _lastServerPort = value; Notify(); } }
     public string SelectedSection { get => _selectedSection; set { _selectedSection = value; Notify(); } }
-    public string CharactersSearchText { get => _charactersSearchText; set { _charactersSearchText = value; Notify(); Notify(nameof(FilteredCharacters)); } }
-    public string LocksSearchText { get => _locksSearchText; set { _locksSearchText = value; Notify(); Notify(nameof(FilteredLockRows)); } }
+    public string CharactersSearchText { get => _charactersSearchText; set { _charactersSearchText = value; Notify(); Notify(nameof(FilteredCharacters)); var filtered = FilteredCharacters.Count(); ClientLogService.Instance.Info($"ui-filter section=Люди block=Персонажи query={_charactersSearchText} loaded={Characters.Count} filtered={filtered} visible={filtered}"); } }
+    public string LocksSearchText { get => _locksSearchText; set { _locksSearchText = value; Notify(); Notify(nameof(FilteredLockRows)); var filtered = FilteredLockRows.Count(); ClientLogService.Instance.Info($"ui-filter section=Люди block=Блокировки query={_locksSearchText} loaded={LockRows.Count} filtered={filtered} visible={filtered}"); } }
     public string SelectedCharacterWorkspaceTab { get => _selectedCharacterWorkspaceTab; set { _selectedCharacterWorkspaceTab = value; Notify(); } }
     public string CurrentEndpoint => $"{_client.ServerHost}:{_client.ServerPort}";
     public string LoginSummary => string.IsNullOrWhiteSpace(LoginText) ? "Не авторизован" : LoginText;
@@ -1348,6 +1348,7 @@ public class AdminMainViewModel : ViewModelBase
                 LoadOwnerCharacters();
             }
             LoadLocksSummary();
+            ClientLogService.Instance.Info($"ui-refresh section=Люди final pending={PendingAccounts.Count} players={Players.Count} characters={Characters.Count} locks={LockRows.Count}");
         });
     }
 
@@ -1357,6 +1358,7 @@ public class AdminMainViewModel : ViewModelBase
         {
             LoadPendingRequests();
             LoadRequestHistory();
+            ClientLogService.Instance.Info($"ui-refresh section=Модерация final requests={PendingRequests.Count} history={RequestHistoryRows.Count} dice={DiceFeedRows.Count}");
         });
     }
 
@@ -1367,6 +1369,7 @@ public class AdminMainViewModel : ViewModelBase
             CombatRefresh();
             ChatRefresh();
             AudioRefresh();
+            ClientLogService.Instance.Info($"ui-refresh section=Сессия final combatRows={CombatRows.Count} chatRows={ChatRows.Count} audioRows={AudioLibraryRows.Count}");
         });
     }
 
@@ -1377,7 +1380,7 @@ public class AdminMainViewModel : ViewModelBase
             DefinitionsReload();
             RefreshDefinitionClasses();
             RefreshDefinitionSkills();
-            ReferenceRefresh();
+            ClientLogService.Instance.Info($"ui-refresh section=Контент final classes={ClassDefinitionRows.Count} skills={SkillDefinitionRows.Count}");
         });
     }
 
@@ -1385,9 +1388,9 @@ public class AdminMainViewModel : ViewModelBase
     {
         RunUiAction("Обновление системных инструментов", () =>
         {
-            ReferenceRefresh();
             BackupRefresh();
             DiagnosticsRefresh();
+            ClientLogService.Instance.Info($"ui-refresh section=Система final backups={BackupItems.Count} diagnostics={DiagnosticsItems.Count}");
         });
     }
 
@@ -1586,6 +1589,8 @@ public class AdminMainViewModel : ViewModelBase
             Characters.Add(new RowVm { Id = S(m, "characterId"), Name = S(m, "name"), State = S(m, "archived"), Extra = S(m, "race") });
         }
         Notify(nameof(FilteredCharacters));
+        var visibleCharacters = FilteredCharacters.Count();
+        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Персонажи loaded={Characters.Count} filtered={visibleCharacters} visible={visibleCharacters}");
         RestoreSelection(Characters, SelectedCharacterId, value => SelectedCharacterId = value);
         RefreshConnectionSummary();
     }
