@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Nri.AdminClient.Diagnostics;
 using Nri.Shared.Contracts;
 
 namespace Nri.AdminClient.Networking;
@@ -144,6 +146,18 @@ public class CommandApi
 
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
-        return _client.Send(new RequestEnvelope { Command = command, Payload = payload ?? new Dictionary<string, object>() });
+        var body = payload ?? new Dictionary<string, object>();
+        ClientLogService.Instance.Info($"Command send: {command}; payloadKeys={body.Count}");
+        try
+        {
+            var response = _client.Send(new RequestEnvelope { Command = command, Payload = body });
+            ClientLogService.Instance.Info($"Command response: {command}; status={response.Status}; message={response.Message}");
+            return response;
+        }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Error($"Command failed: {command}", ex);
+            throw;
+        }
     }
 }
