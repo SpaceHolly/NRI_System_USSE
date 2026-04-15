@@ -43,6 +43,7 @@ public class ClientConfig
     public string ServerHost { get; set; } = "127.0.0.1";
     public int ServerPort { get; set; } = 4600;
     public bool RememberLastUser { get; set; } = true;
+    public bool PreserveClientLogs { get; set; }
 }
 
 public class UpdaterConfig

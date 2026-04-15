@@ -1,3 +1,4 @@
+using Nri.PlayerClient.Diagnostics;
 using Nri.PlayerClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
@@ -151,9 +152,10 @@ public class PlayerMainViewModel : ViewModelBase
 
     public PlayerMainViewModel()
     {
-        _clientConfig = new ClientConfig();
+        _clientConfig = App.ClientConfig;
         _client = new JsonTcpClient(_clientConfig, _session);
         _api = new CommandApi(_client);
+        ClientLogService.Instance.Info("PlayerMainViewModel initialized");
 
         ToggleAuthPopupCommand = new RelayCommand(() => IsAuthPopupOpen = !IsAuthPopupOpen);
         ToggleConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
@@ -377,10 +379,12 @@ public class PlayerMainViewModel : ViewModelBase
         try
         {
             EnsureConnected();
+            ClientLogService.Instance.Info($"Login attempt: user={LoginText}");
             var result = _api.Login(LoginText, PasswordText);
             if (result.Status != ResponseStatus.Ok)
             {
                 ConnectionState = "Оффлайн";
+                ClientLogService.Instance.Warn($"Login failed: user={LoginText}; message={result.Message}");
                 return;
             }
 
@@ -389,6 +393,7 @@ public class PlayerMainViewModel : ViewModelBase
             PlayerDisplayName = LoginText;
             SessionSummary = "Сессия: default";
             RefreshAll();
+            ClientLogService.Instance.Info($"Login success: user={LoginText}");
             _poller.Start();
         }
         catch (Exception ex)
@@ -622,6 +627,7 @@ public class PlayerMainViewModel : ViewModelBase
             TraceChatDiagnostic("blocked client-side system message send");
             return;
         }
+        ClientLogService.Instance.Info($"Chat send requested: sessionId={sessionId}; command={CommandNames.ChatSend}");
         _api.ChatSend(sessionId, serverType, ChatTextInput);
         ChatTextInput = string.Empty;
         Notify(nameof(ChatTextInput));
@@ -637,10 +643,11 @@ public class PlayerMainViewModel : ViewModelBase
         var chat = _api.ChatVisibleFeed(sessionId, 80);
         var chatItems = ExtractChatItems(chat.Payload, out var sourceKey, out var payloadKeys, out var rawItemsType);
         TraceChatDiagnostic($"response command={CommandNames.ChatVisibleFeed} status={chat.Status} success={(chat.Status == ResponseStatus.Ok)} payloadKeys=[{payloadKeys}] sourceKey={sourceKey} rawItems={chatItems.Count} rawType={rawItemsType}");
+        LogFirstChatItemShape(chatItems, CommandNames.ChatVisibleFeed);
         var mappedCount = 0;
         foreach (var item in chatItems)
         {
-            var map = AsMap(item);
+            var map = AsMap(item, CommandNames.ChatVisibleFeed);
             if (map == null) continue;
             ChatRows.Add($"{GetString(map, "createdUtc")} | {GetString(map, "type")} | {GetString(map, "senderDisplayName")}: {GetString(map, "text")}");
             mappedCount++;
@@ -880,6 +887,7 @@ public class PlayerMainViewModel : ViewModelBase
             InvalidOperationException => "Не удалось подключиться к серверу",
             _ => string.IsNullOrWhiteSpace(ex.Message) ? "Не удалось подключиться к серверу" : ex.Message
         };
+        ClientLogService.Instance.Error("Connection error", ex);
         SetDisconnectedState(message);
     }
 
@@ -1418,6 +1426,14 @@ public class PlayerMainViewModel : ViewModelBase
             vm.AttributeStatRows.Add(row);
     }
 
+
+    public void Shutdown()
+    {
+        ClientLogService.Instance.Info("Logout / shutdown requested from Player client");
+        _poller.Stop();
+        _client.Disconnect();
+    }
+
     private string ToServerChatType(string uiType)
     {
         return uiType switch
@@ -1505,10 +1521,11 @@ public class PlayerMainViewModel : ViewModelBase
         return sessionId;
     }
 
-    private static Dictionary<string, object>? AsMap(object? value)
+    private Dictionary<string, object>? AsMap(object? value, string context)
     {
         if (value is Dictionary<string, object> typedMap)
         {
+            TraceChatDiagnostic($"map-shape command={context} branch=Dictionary<string,object> count={typedMap.Count}");
             return typedMap;
         }
 
@@ -1526,10 +1543,178 @@ public class PlayerMainViewModel : ViewModelBase
                 map[key] = entry.Value;
             }
 
-            return map;
+            TraceChatDiagnostic($"map-shape command={context} branch=IDictionary count={map.Count}");
+            return map.Count > 0 ? map : null;
         }
 
+        if (value is object[] objectArray)
+        {
+            if (TryConvertObjectArrayToMap(objectArray, out var objectArrayMap))
+            {
+                TraceChatDiagnostic($"map-shape command={context} branch=object[] count={objectArrayMap.Count}");
+                return objectArrayMap;
+            }
+
+            TraceChatDiagnostic($"map-shape command={context} branch=object[] fallback=failed length={objectArray.Length}");
+            return null;
+        }
+
+        if (value is IEnumerable enumerable && value is not string)
+        {
+            if (TryConvertEnumerableToMap(enumerable, out var enumerableMap))
+            {
+                TraceChatDiagnostic($"map-shape command={context} branch=IEnumerable count={enumerableMap.Count}");
+                return enumerableMap;
+            }
+
+            TraceChatDiagnostic($"map-shape command={context} branch=IEnumerable fallback=failed type={value.GetType().FullName}");
+            return null;
+        }
+
+        TraceChatDiagnostic($"map-shape command={context} branch=unsupported type={value?.GetType().FullName ?? "null"}");
         return null;
+    }
+
+    private void LogFirstChatItemShape(IList items, string command)
+    {
+        if (items.Count == 0)
+        {
+            TraceChatDiagnostic($"first-item command={command} type=<none>");
+            return;
+        }
+
+        var firstItem = items[0];
+        var firstType = firstItem?.GetType().FullName ?? "null";
+        TraceChatDiagnostic($"first-item command={command} type={firstType}");
+
+        if (firstItem is IEnumerable enumerable && firstItem is not string)
+        {
+            var innerTypes = enumerable
+                .Cast<object?>()
+                .Take(6)
+                .Select(item => item?.GetType().FullName ?? "null")
+                .ToArray();
+            TraceChatDiagnostic($"first-item-inner command={command} sampleTypes=[{string.Join(",", innerTypes)}]");
+        }
+
+        if (TryConvertPairLike(firstItem, out var key, out _, out var pairShape))
+        {
+            TraceChatDiagnostic($"first-item-pair command={command} shape={pairShape} key={key}");
+        }
+    }
+
+    private static bool TryConvertObjectArrayToMap(object[] source, out Dictionary<string, object> map)
+    {
+        map = new Dictionary<string, object>(StringComparer.Ordinal);
+        if (source.Length == 0)
+        {
+            return false;
+        }
+
+        var asPairs = true;
+        foreach (var item in source)
+        {
+            if (!TryConvertPairLike(item, out var key, out var value, out _))
+            {
+                asPairs = false;
+                break;
+            }
+
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                map[key] = value;
+            }
+        }
+
+        if (asPairs && map.Count > 0)
+        {
+            return true;
+        }
+
+        if (source.Length % 2 != 0)
+        {
+            return false;
+        }
+
+        map.Clear();
+        for (var i = 0; i < source.Length; i += 2)
+        {
+            var key = Convert.ToString(source[i]);
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                continue;
+            }
+
+            map[key] = source[i + 1];
+        }
+
+        return map.Count > 0;
+    }
+
+    private static bool TryConvertEnumerableToMap(IEnumerable source, out Dictionary<string, object> map)
+    {
+        map = new Dictionary<string, object>(StringComparer.Ordinal);
+        foreach (var item in source)
+        {
+            if (!TryConvertPairLike(item, out var key, out var value, out _))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                map[key] = value;
+            }
+        }
+
+        return map.Count > 0;
+    }
+
+    private static bool TryConvertPairLike(object? value, out string key, out object? mappedValue, out string shape)
+    {
+        key = string.Empty;
+        mappedValue = null;
+        shape = "unknown";
+
+        if (value is DictionaryEntry dictionaryEntry)
+        {
+            key = Convert.ToString(dictionaryEntry.Key) ?? string.Empty;
+            mappedValue = dictionaryEntry.Value;
+            shape = "DictionaryEntry";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value is object[] objectPair && objectPair.Length == 2)
+        {
+            key = Convert.ToString(objectPair[0]) ?? string.Empty;
+            mappedValue = objectPair[1];
+            shape = "object[2]";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value is IList listPair && listPair.Count == 2)
+        {
+            key = Convert.ToString(listPair[0]) ?? string.Empty;
+            mappedValue = listPair[1];
+            shape = "IList[2]";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value != null)
+        {
+            var valueType = value.GetType();
+            var keyProperty = valueType.GetProperty("Key");
+            var valueProperty = valueType.GetProperty("Value");
+            if (keyProperty != null && valueProperty != null)
+            {
+                key = Convert.ToString(keyProperty.GetValue(value)) ?? string.Empty;
+                mappedValue = valueProperty.GetValue(value);
+                shape = valueType.FullName ?? valueType.Name;
+                return !string.IsNullOrWhiteSpace(key);
+            }
+        }
+
+        return false;
     }
 
     private static IList ExtractChatItems(Dictionary<string, object> payload, out string sourceKey, out string payloadKeys, out string rawItemsType)
@@ -1577,8 +1762,8 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void TraceChatDiagnostic(string message)
     {
-        var line = "[CHAT-DIAG-TEMP][Player] " + message;
-        Debug.WriteLine(line);
+        var line = "[CHAT-DIAG][Player] " + message;
+        ClientLogService.Instance.Info(line);
         ConnectionStatusDetail = line;
         Notify(nameof(ConnectionStatusDetail));
     }

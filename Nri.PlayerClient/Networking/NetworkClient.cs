@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Net.Sockets;
+using Nri.PlayerClient.Diagnostics;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
 
@@ -47,6 +48,7 @@ public class JsonTcpClient : IJsonTcpClient
         Disconnect();
         _config.ServerHost = normalizedHost;
         _config.ServerPort = port;
+        ClientLogService.Instance.Info($"Endpoint updated: {normalizedHost}:{port}");
     }
 
     public void Connect()
@@ -54,18 +56,22 @@ public class JsonTcpClient : IJsonTcpClient
         if (_tcpClient != null && _tcpClient.Connected)
             return;
 
+        ClientLogService.Instance.Info($"Connecting to server: {_config.ServerHost}:{_config.ServerPort}");
         Disconnect();
         _tcpClient = new TcpClient();
         var connectTask = _tcpClient.ConnectAsync(_config.ServerHost, _config.ServerPort);
         if (!connectTask.Wait(TimeSpan.FromSeconds(5)))
         {
             Disconnect();
-            throw new TimeoutException("Connection timeout.");
+            var timeout = new TimeoutException("Connection timeout.");
+            ClientLogService.Instance.Error("Network connection timeout", timeout);
+            throw timeout;
         }
 
         var stream = _tcpClient.GetStream();
         _reader = new StreamReader(stream);
         _writer = new StreamWriter(stream) { AutoFlush = true };
+        ClientLogService.Instance.Info($"Connected to server: {_config.ServerHost}:{_config.ServerPort}");
     }
 
     public ResponseEnvelope Send(RequestEnvelope request)
@@ -73,18 +79,26 @@ public class JsonTcpClient : IJsonTcpClient
         if (_tcpClient == null || !_tcpClient.Connected || _reader == null || _writer == null)
             Connect();
 
-        request.AuthToken = request.AuthToken ?? _session.AuthToken;
-        var json = JsonProtocolSerializer.Serialize(request);
-        _writer!.WriteLine(json);
+        try
+        {
+            request.AuthToken = request.AuthToken ?? _session.AuthToken;
+            var json = JsonProtocolSerializer.Serialize(request);
+            _writer!.WriteLine(json);
 
-        var responseJson = _reader!.ReadLine();
-        var response = JsonProtocolSerializer.Deserialize<ResponseEnvelope>(responseJson ?? string.Empty)
-                       ?? new ResponseEnvelope { Status = ResponseStatus.Error, ErrorCode = ErrorCode.InvalidRequest, Message = "Empty response." };
+            var responseJson = _reader!.ReadLine();
+            var response = JsonProtocolSerializer.Deserialize<ResponseEnvelope>(responseJson ?? string.Empty)
+                           ?? new ResponseEnvelope { Status = ResponseStatus.Error, ErrorCode = ErrorCode.InvalidRequest, Message = "Empty response." };
 
-        if (response.Payload.ContainsKey("authToken"))
-            _session.AuthToken = Convert.ToString(response.Payload["authToken"]);
+            if (response.Payload.ContainsKey("authToken"))
+                _session.AuthToken = Convert.ToString(response.Payload["authToken"]);
 
-        return response;
+            return response;
+        }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Error($"Network send failed for command={request.Command}", ex);
+            throw;
+        }
     }
 
     public void Disconnect()
@@ -95,6 +109,7 @@ public class JsonTcpClient : IJsonTcpClient
         _reader = null;
         _writer = null;
         _tcpClient = null;
+        ClientLogService.Instance.Info("Disconnected from server");
     }
 
     public void Dispose() => Disconnect();
