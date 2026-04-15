@@ -37,14 +37,14 @@
                     <WrapPanel Margin="0,0,0,8">
                         <TextBox Width="280" Text="{Binding DataContext.SelectedCharacterId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                         <Button Content="Открыть" Command="{Binding DataContext.OpenCharacterCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Lock" Command="{Binding DataContext.AcquireLockCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Release" Command="{Binding DataContext.ReleaseLockCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Force unlock" Command="{Binding DataContext.ForceUnlockCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedLock, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                        <Button Style="{StaticResource GhostButtonStyle}" Content="Заблокировать" Command="{Binding DataContext.AcquireLockCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                        <Button Style="{StaticResource GhostButtonStyle}" Content="Снять блок" Command="{Binding DataContext.ReleaseLockCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                        <Button Style="{StaticResource GhostButtonStyle}" Content="Принудительно снять" Command="{Binding DataContext.ForceUnlockCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedLock, RelativeSource={RelativeSource AncestorType=Window}}"/>
                     </WrapPanel>
                     <Border Style="{StaticResource SubtleCardStyle}">
                         <TextBlock Text="{Binding DataContext.LockStateText, RelativeSource={RelativeSource AncestorType=Window}}"/>
                     </Border>
-                    <TextBlock Text="Basic info" Style="{StaticResource SectionTitleTextStyle}" Margin="0,8,0,4"/>
+                    <TextBlock Text="Основные данные" Style="{StaticResource SectionTitleTextStyle}" Margin="0,8,0,4"/>
                     <WrapPanel>
                         <TextBox Width="180" Text="{Binding DataContext.EditName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                         <TextBox Width="160" Text="{Binding DataContext.EditRace, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
@@ -54,7 +54,7 @@
                     <TextBox Height="70" TextWrapping="Wrap" Text="{Binding DataContext.EditDescription, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBox Height="90" TextWrapping="Wrap" Text="{Binding DataContext.EditBackstory, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                     <Button Content="Сохранить basic" Command="{Binding DataContext.SaveBasicInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}" HorizontalAlignment="Left" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    <TextBlock Text="Stats" Style="{StaticResource SectionTitleTextStyle}" Margin="0,8,0,4"/>
+                    <TextBlock Text="Характеристики" Style="{StaticResource SectionTitleTextStyle}" Margin="0,8,0,4"/>
                     <WrapPanel>
                         <TextBox Width="70" Text="{Binding DataContext.Health, RelativeSource={RelativeSource AncestorType=Window}}"/>
                         <TextBox Width="70" Text="{Binding DataContext.PhysicalArmor, RelativeSource={RelativeSource AncestorType=Window}}"/>
@@ -68,7 +68,7 @@
                         <TextBox Width="70" Text="{Binding DataContext.Charisma, RelativeSource={RelativeSource AncestorType=Window}}"/>
                     </WrapPanel>
                     <Button Content="Сохранить stats" Command="{Binding DataContext.SaveStatsCommand, RelativeSource={RelativeSource AncestorType=Window}}" HorizontalAlignment="Left" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    <TextBlock Text="Money" Style="{StaticResource SectionTitleTextStyle}" Margin="0,8,0,4"/>
+                    <TextBlock Text="Ресурсы" Style="{StaticResource SectionTitleTextStyle}" Margin="0,8,0,4"/>
                     <WrapPanel>
                         <TextBox Width="70" Text="{Binding DataContext.Iron, RelativeSource={RelativeSource AncestorType=Window}}"/>
                         <TextBox Width="70" Text="{Binding DataContext.Bronze, RelativeSource={RelativeSource AncestorType=Window}}"/>
@@ -85,25 +85,25 @@
                         </Grid.ColumnDefinitions>
                         <Border Grid.Column="0" Style="{StaticResource SubtleCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="Inventory" Style="{StaticResource TitleTextStyle}"/>
+                                <TextBlock Text="Инвентарь" Style="{StaticResource TitleTextStyle}"/>
                                 <ItemsControl ItemsSource="{Binding DataContext.InventoryRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="Companions" Style="{StaticResource TitleTextStyle}"/>
+                                <TextBlock Text="Спутники" Style="{StaticResource TitleTextStyle}"/>
                                 <ItemsControl ItemsSource="{Binding DataContext.CompanionRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="2" Style="{StaticResource SubtleCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="Holdings" Style="{StaticResource TitleTextStyle}"/>
+                                <TextBlock Text="Владения" Style="{StaticResource TitleTextStyle}"/>
                                 <ItemsControl ItemsSource="{Binding DataContext.HoldingsRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="3" Style="{StaticResource SubtleCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="Reputation" Style="{StaticResource TitleTextStyle}"/>
+                                <TextBlock Text="Репутация" Style="{StaticResource TitleTextStyle}"/>
                                 <ItemsControl ItemsSource="{Binding DataContext.ReputationRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </StackPanel>
                         </Border>
@@ -119,7 +119,7 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Pending requests" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Заявки на модерацию" Style="{StaticResource SectionTitleTextStyle}"/>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Requests"/>
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Requests"/>
@@ -132,10 +132,10 @@
                     </Grid.ColumnDefinitions>
                     <DataGrid ItemsSource="{Binding DataContext.PendingRequests, RelativeSource={RelativeSource AncestorType=Window}}" SelectedValuePath="Id" SelectedValue="{Binding DataContext.SelectedPendingRequestId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="RequestId" Binding="{Binding Id}"/>
-                            <DataGridTextColumn Header="Type" Binding="{Binding Name}"/>
-                            <DataGridTextColumn Header="Status" Binding="{Binding State}"/>
-                            <DataGridTextColumn Header="Details" Binding="{Binding Extra}"/>
+                            <DataGridTextColumn Header="Идентификатор" Binding="{Binding Id}"/>
+                            <DataGridTextColumn Header="Тип" Binding="{Binding Name}"/>
+                            <DataGridTextColumn Header="Статус" Binding="{Binding State}"/>
+                            <DataGridTextColumn Header="Детали" Binding="{Binding Extra}"/>
                         </DataGrid.Columns>
                     </DataGrid>
                     <StackPanel Grid.Column="1" Margin="8,0,0,0">
@@ -144,8 +144,8 @@
                                 <TextBlock Text="Комментарий админа" Style="{StaticResource TitleTextStyle}"/>
                                 <TextBox Height="80" TextWrapping="Wrap" Text="{Binding DataContext.RequestComment, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                                 <WrapPanel>
-                                    <Button Content="Approve" Command="{Binding DataContext.ApproveRequestCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateSelectedRequest, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Reject" Command="{Binding DataContext.RejectRequestCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateSelectedRequest, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                    <Button Content="Одобрить" Command="{Binding DataContext.ApproveRequestCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateSelectedRequest, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Отклонить" Command="{Binding DataContext.RejectRequestCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateSelectedRequest, RelativeSource={RelativeSource AncestorType=Window}}"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -172,7 +172,7 @@
         <DataTemplate x:Key="DiceFeedTemplate" DataType="{x:Type vm:WorkspacePanelDescriptor}">
             <StackPanel Margin="8">
                 <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Dice feed" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Лента бросков" Style="{StaticResource SectionTitleTextStyle}"/>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="DiceFeed"/>
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="DiceFeed"/>
@@ -189,7 +189,7 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Combat tracker" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Трекер боя" Style="{StaticResource SectionTitleTextStyle}"/>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CombatTracker"/>
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CombatTracker"/>
@@ -203,25 +203,25 @@
                     <StackPanel Margin="8">
                         <WrapPanel>
                             <TextBox Width="160" Text="{Binding DataContext.CombatSessionId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Content="Start" Command="{Binding DataContext.CombatStartCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="End" Command="{Binding DataContext.CombatEndCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh" Command="{Binding DataContext.CombatRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Content="Запустить" Command="{Binding DataContext.CombatStartCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Завершить" Command="{Binding DataContext.CombatEndCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DataContext.CombatRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}"/>
                         </WrapPanel>
                         <WrapPanel>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="NextTurn" Command="{Binding DataContext.CombatNextTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="PrevTurn" Command="{Binding DataContext.CombatPrevTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="NextRound" Command="{Binding DataContext.CombatNextRoundCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="SkipTurn" Command="{Binding DataContext.CombatSkipTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Следующий ход" Command="{Binding DataContext.CombatNextTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Предыдущий ход" Command="{Binding DataContext.CombatPrevTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Следующий раунд" Command="{Binding DataContext.CombatNextRoundCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Пропустить ход" Command="{Binding DataContext.CombatSkipTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
                         </WrapPanel>
                         <WrapPanel>
                             <TextBox Width="160" Text="{Binding DataContext.NewParticipantName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                             <TextBox Width="100" Text="{Binding DataContext.NewParticipantKind, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Content="AddParticipant" Command="{Binding DataContext.CombatAddParticipantCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Content="Добавить участника" Command="{Binding DataContext.CombatAddParticipantCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
                         </WrapPanel>
                         <WrapPanel>
                             <TextBox Width="220" Text="{Binding DataContext.SelectedCombatParticipantId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Remove" Command="{Binding DataContext.CombatRemoveParticipantCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageCombatSelection, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="DetachCompanion" Command="{Binding DataContext.CombatDetachCompanionCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageCombatSelection, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Удалить" Command="{Binding DataContext.CombatRemoveParticipantCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageCombatSelection, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Отвязать спутника" Command="{Binding DataContext.CombatDetachCompanionCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageCombatSelection, RelativeSource={RelativeSource AncestorType=Window}}"/>
                         </WrapPanel>
                         <TextBlock Text="{Binding DataContext.SelectedCombatParticipantSummary, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,4,0,8" TextWrapping="Wrap"/>
                         <ListBox ItemsSource="{Binding DataContext.CombatRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
@@ -243,7 +243,7 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Notes management" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Управление заметками" Style="{StaticResource SectionTitleTextStyle}"/>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="NotesManagement"/>
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="NotesManagement"/>
@@ -261,17 +261,17 @@
                                 <TextBox Width="120" Text="{Binding DataContext.NoteSessionId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                                 <TextBox Width="120" Text="{Binding DataContext.NoteTargetType, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                                 <TextBox Width="180" Text="{Binding DataContext.NoteTargetId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh" Command="{Binding DataContext.NotesRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanRefreshNotes, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DataContext.NotesRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanRefreshNotes, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </WrapPanel>
                             <TextBox Text="{Binding DataContext.NoteTitle, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                             <TextBox Height="80" TextWrapping="Wrap" Text="{Binding DataContext.NoteText, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                             <WrapPanel>
                                 <TextBox Width="140" Text="{Binding DataContext.NoteVisibility, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                                <Button Content="Create" Command="{Binding DataContext.NotesCreateCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanCreateNote, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <Button Content="Создать" Command="{Binding DataContext.NotesCreateCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanCreateNote, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </WrapPanel>
                             <WrapPanel>
                                 <TextBox Width="220" Text="{Binding DataContext.SelectedNoteId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Archive" Command="{Binding DataContext.NotesArchiveCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanArchiveNote, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <Button Style="{StaticResource GhostButtonStyle}" Content="Архивировать" Command="{Binding DataContext.NotesArchiveCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanArchiveNote, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </WrapPanel>
                         </StackPanel>
                     </Border>
@@ -288,7 +288,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Session chat" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Чат сессии" Style="{StaticResource SectionTitleTextStyle}"/>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="SessionChat"/>
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="SessionChat"/>
@@ -330,8 +330,8 @@
                     <StackPanel>
                         <WrapPanel Margin="0,0,0,8">
                             <TextBox Width="170" Margin="0,0,8,0" Text="{Binding DataContext.ChatSessionId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBox Width="130" Margin="0,0,8,0" Text="{Binding DataContext.ChatMessageType, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh" Command="{Binding DataContext.ChatRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <ComboBox Width="170" Margin="0,0,8,0" ItemsSource="{Binding DataContext.ChatMessageTypeOptions, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding DataContext.ChatMessageType, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DataContext.ChatRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}"/>
                         </WrapPanel>
                         <Border Style="{StaticResource CardStyle}" Padding="8">
                             <Grid>
@@ -352,18 +352,18 @@
                             <TextBox Text="{Binding DataContext.ChatModerationUserId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                             <TextBox Text="{Binding DataContext.ChatModerationReason, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                             <WrapPanel>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Mute" Command="{Binding DataContext.ChatMuteUserCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateChatUser, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Unmute" Command="{Binding DataContext.ChatUnmuteUserCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateChatUser, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <Button Style="{StaticResource GhostButtonStyle}" Content="Мут" Command="{Binding DataContext.ChatMuteUserCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateChatUser, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <Button Style="{StaticResource GhostButtonStyle}" Content="Снять мут" Command="{Binding DataContext.ChatUnmuteUserCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateChatUser, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </WrapPanel>
                             <WrapPanel>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Lock players" Command="{Binding DataContext.ChatLockPlayersCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageChatControls, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Unlock players" Command="{Binding DataContext.ChatUnlockPlayersCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageChatControls, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <Button Style="{StaticResource GhostButtonStyle}" Content="Блокировать игроков" Command="{Binding DataContext.ChatLockPlayersCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageChatControls, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <Button Style="{StaticResource GhostButtonStyle}" Content="Разблокировать игроков" Command="{Binding DataContext.ChatUnlockPlayersCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageChatControls, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </WrapPanel>
                             <WrapPanel>
                                 <TextBox Width="60" Text="{Binding DataContext.ChatSlowPublicSeconds, RelativeSource={RelativeSource AncestorType=Window}}"/>
                                 <TextBox Width="60" Text="{Binding DataContext.ChatSlowHiddenSeconds, RelativeSource={RelativeSource AncestorType=Window}}"/>
                                 <TextBox Width="60" Text="{Binding DataContext.ChatSlowAdminOnlySeconds, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Slow mode" Command="{Binding DataContext.ChatSetSlowModeCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageChatControls, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <Button Style="{StaticResource GhostButtonStyle}" Content="Медленный режим" Command="{Binding DataContext.ChatSetSlowModeCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageChatControls, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </WrapPanel>
                             <ListBox ItemsSource="{Binding DataContext.ChatRestrictionRows, RelativeSource={RelativeSource AncestorType=Window}}" Height="140"/>
                         </StackPanel>
@@ -380,7 +380,7 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Session audio" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Аудио сессии" Style="{StaticResource SectionTitleTextStyle}"/>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="SessionAudio"/>
                         <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="SessionAudio"/>
@@ -393,15 +393,15 @@
                             <TextBox Width="140" Text="{Binding DataContext.AudioSessionId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                             <TextBox Width="120" Text="{Binding DataContext.AudioModeInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                             <TextBox Width="120" Text="{Binding DataContext.AudioCategoryInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh" Command="{Binding DataContext.AudioRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Content="Set mode" Command="{Binding DataContext.AudioSetModeCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Next" Command="{Binding DataContext.AudioNextTrackCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Clear override" Command="{Binding DataContext.AudioClearOverrideCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DataContext.AudioRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Content="Применить режим" Command="{Binding DataContext.AudioSetModeCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Следующий" Command="{Binding DataContext.AudioNextTrackCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Сбросить override" Command="{Binding DataContext.AudioClearOverrideCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
                         </WrapPanel>
                         <WrapPanel>
                             <TextBox Width="220" Text="{Binding DataContext.AudioSelectedTrackId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Content="Select track" Command="{Binding DataContext.AudioSelectTrackCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Reload library" Command="{Binding DataContext.AudioReloadLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Content="Выбрать трек" Command="{Binding DataContext.AudioSelectTrackCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить библиотеку" Command="{Binding DataContext.AudioReloadLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
                         </WrapPanel>
                     </StackPanel>
                 </Border>
@@ -423,7 +423,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="NRI / Admin" Style="{StaticResource HeaderTitleTextStyle}" Margin="0,0,12,0"/>
+                    <TextBlock Text="NRI / Админ" Style="{StaticResource HeaderTitleTextStyle}" Margin="0,0,12,0"/>
                     <Border Style="{StaticResource StatusBadgeStyle}" Margin="0,0,10,0" Height="28">
                         <TextBlock Text="{Binding ConnectionState}" Style="{StaticResource TitleTextStyle}"/>
                     </Border>
@@ -446,15 +446,9 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Style="{StaticResource SubtleCardStyle}" Padding="8,4">
-                        <TextBlock Text="{Binding CurrentEndpoint, StringFormat=Endpoint: {0}}" Width="220" TextTrimming="CharacterEllipsis"/>
-                    </Border>
                     <Button Content="Обновить" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsIdle}"/>
-                    <Button x:Name="ServerButton" Style="{StaticResource GhostButtonStyle}" Content="Сервер" Command="{Binding OpenConnectionPopupCommand}"/>
-                    <Button x:Name="AuthButton" Style="{StaticResource GhostButtonStyle}" Content="Авторизация" Command="{Binding ToggleAuthPopupCommand}"/>
-                    <Border Style="{StaticResource SubtleCardStyle}" Padding="8,4" Margin="6,0,0,0" Height="26">
-                        <TextBlock Text="{Binding LoginState}" Width="230" TextTrimming="CharacterEllipsis"/>
-                    </Border>
+                    <Button x:Name="ServerButton" Style="{StaticResource GhostButtonStyle}" Content="Подключение" Command="{Binding OpenConnectionPopupCommand}"/>
+                    <Button x:Name="AuthButton" Style="{StaticResource GhostButtonStyle}" Content="Вход" Command="{Binding ToggleAuthPopupCommand}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -493,10 +487,20 @@
                                                         <TextBlock DockPanel.Dock="Right" Text="{Binding StateBadge}" FontSize="18" VerticalAlignment="Center"/>
                                                     </DockPanel>
                                                     <WrapPanel Margin="0,6,0,0">
-                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Показать" Command="{Binding DataContext.ShowWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}" IsEnabled="{Binding DataContext.CanManageWorkspace, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.HideWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}" IsEnabled="{Binding DataContext.CanManageWorkspace, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Открыть отдельно" Command="{Binding DataContext.DetachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}" IsEnabled="{Binding DataContext.CanManageWorkspace, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}" IsEnabled="{Binding DataContext.CanManageWorkspace, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                        <Button Style="{StaticResource GhostButtonStyle}" CommandParameter="{Binding PanelId}" IsEnabled="{Binding DataContext.CanManageWorkspace, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
+                                                                    <Setter Property="Content" Value="Открыть отдельно"/>
+                                                                    <Setter Property="Command" Value="{Binding DataContext.DetachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsDetached}" Value="True">
+                                                                            <Setter Property="Content" Value="Вернуть в окно"/>
+                                                                            <Setter Property="Command" Value="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                        </Button>
                                                     </WrapPanel>
                                                 </StackPanel>
                                             </Border>
@@ -539,23 +543,23 @@
                                         <StackPanel>
                                             <TextBlock Text="Соединение" Style="{StaticResource TitleTextStyle}"/>
                                             <TextBlock Text="{Binding ConnectionStage}" FontSize="18"/>
-                                            <TextBlock Text="{Binding CurrentEndpoint}"/>
+                                            <TextBlock Text="{Binding ConnectionStatusDetail}" TextWrapping="Wrap"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Grid.Column="1" Style="{StaticResource SummaryMetricCardStyle}">
                                         <StackPanel>
                                             <TextBlock Text="Люди" Style="{StaticResource TitleTextStyle}"/>
-                                            <TextBlock Text="{Binding PendingAccountsCount, StringFormat=Pending: {0}}"/>
-                                            <TextBlock Text="{Binding PlayersCount, StringFormat=Players: {0}}"/>
-                                            <TextBlock Text="{Binding ActivePlayersCount, StringFormat=Online: {0}}"/>
+                                            <TextBlock Text="{Binding PendingAccountsCount, StringFormat=Ожидают подтверждения: {0}}"/>
+                                            <TextBlock Text="{Binding PlayersCount, StringFormat=Игроков: {0}}"/>
+                                            <TextBlock Text="{Binding ActivePlayersCount, StringFormat=Онлайн: {0}}"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Grid.Column="2" Style="{StaticResource SummaryMetricCardStyle}">
                                         <StackPanel>
                                             <TextBlock Text="Персонажи" Style="{StaticResource TitleTextStyle}"/>
-                                            <TextBlock Text="{Binding CharactersCount, StringFormat=Characters: {0}}"/>
-                                            <TextBlock Text="{Binding LocksCount, StringFormat=Locks: {0}}"/>
-                                            <TextBlock Text="{Binding HasActiveCombat, StringFormat=Combat active: {0}}"/>
+                                            <TextBlock Text="{Binding CharactersCount, StringFormat=Всего: {0}}"/>
+                                            <TextBlock Text="{Binding LocksCount, StringFormat=Блокировок: {0}}"/>
+                                            <TextBlock Text="{Binding HasActiveCombat, StringFormat=Бой активен: {0}}"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Grid.Column="3" Style="{StaticResource SummaryMetricCardStyle}">
@@ -574,20 +578,18 @@
                                     </Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" Style="{StaticResource CardStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Обязательное ядро" Style="{StaticResource SectionTitleTextStyle}"/>
+                                            <TextBlock Text="Сводка подключения" Style="{StaticResource SectionTitleTextStyle}"/>
                                             <TextBlock Text="{Binding ConnectionStatusDetail}" Margin="0,6,0,0"/>
                                             <TextBlock Text="{Binding LastStatusMessage}" Margin="0,4,0,0"/>
-                                            <TextBlock Text="{Binding LastErrorMessage}" Margin="0,4,0,0"/>
                                             <TextBlock Text="{Binding SectionAccessHint}" Margin="0,4,0,0"/>
-                                            <TextBlock Text="{Binding DiagnosticsSummary}" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Grid.Column="1" Style="{StaticResource CardStyle}">
                                         <StackPanel>
                                             <TextBlock Text="Требует внимания" Style="{StaticResource SectionTitleTextStyle}"/>
-                                            <TextBlock Text="{Binding PendingRequestsCount, StringFormat=Pending requests: {0}}" Margin="0,6,0,0"/>
-                                            <TextBlock Text="{Binding LocksCount, StringFormat=Locks: {0}}"/>
-                                            <TextBlock Text="{Binding PendingAccountsCount, StringFormat=Pending accounts: {0}}"/>
+                                            <TextBlock Text="{Binding PendingRequestsCount, StringFormat=Заявок на модерацию: {0}}" Margin="0,6,0,0"/>
+                                            <TextBlock Text="{Binding LocksCount, StringFormat=Активных блокировок: {0}}"/>
+                                            <TextBlock Text="{Binding PendingAccountsCount, StringFormat=Ожидают подтверждения: {0}}"/>
                                         </StackPanel>
                                     </Border>
                                 </Grid>
@@ -619,25 +621,25 @@
                                 </Grid.ColumnDefinitions>
                                 <Border Grid.Column="0" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Pending" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Ожидают" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding PendingAccountsCount}" FontSize="20"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="1" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Players online" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Игроки онлайн" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding ActivePlayersCount}" FontSize="20"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="2" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Locks" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Блокировки" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding LocksCount}" FontSize="20"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
                             <TabControl Grid.Row="2" IsEnabled="{Binding ArePrivilegedSectionsEnabled}">
-                                <TabItem Header="Pending accounts">
+                                <TabItem Header="Ожидающие аккаунты">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="2*"/>
@@ -645,15 +647,15 @@
                                         </Grid.ColumnDefinitions>
                                         <DataGrid ItemsSource="{Binding PendingAccounts}" SelectedValuePath="Id" SelectedValue="{Binding SelectedPendingAccountId, UpdateSourceTrigger=PropertyChanged}">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="AccountId" Binding="{Binding Id}"/>
-                                                <DataGridTextColumn Header="Login" Binding="{Binding Name}"/>
-                                                <DataGridTextColumn Header="Status" Binding="{Binding State}"/>
-                                                <DataGridTextColumn Header="Created" Binding="{Binding Extra}"/>
+                                                <DataGridTextColumn Header="Идентификатор" Binding="{Binding Id}" Width="1.8*"/>
+                                                <DataGridTextColumn Header="Логин" Binding="{Binding Name}" Width="1.2*"/>
+                                                <DataGridTextColumn Header="Статус" Binding="{Binding State}" Width="*"/>
+                                                <DataGridTextColumn Header="Создан" Binding="{Binding Extra}" Width="1.4*"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                         <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}">
                                             <StackPanel>
-                                                <TextBlock Text="Выбранный pending account" Style="{StaticResource TitleTextStyle}"/>
+                                                <TextBlock Text="Выбранный ожидающий аккаунт" Style="{StaticResource TitleTextStyle}"/>
                                                 <TextBlock Text="{Binding SelectedPendingAccountSummary}" Margin="0,6,0,0"/>
                                                 <WrapPanel Margin="0,10,0,0">
                                                     <Button Content="Подтвердить" Command="{Binding ApproveCommand}" IsEnabled="{Binding CanManagePendingAccount}"/>
@@ -664,7 +666,7 @@
                                         </Border>
                                     </Grid>
                                 </TabItem>
-                                <TabItem Header="Players">
+                                <TabItem Header="Игроки">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="2*"/>
@@ -672,10 +674,10 @@
                                         </Grid.ColumnDefinitions>
                                         <DataGrid ItemsSource="{Binding Players}" SelectedValuePath="Id" SelectedValue="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="UserId" Binding="{Binding Id}"/>
-                                                <DataGridTextColumn Header="Login" Binding="{Binding Name}"/>
-                                                <DataGridTextColumn Header="Status" Binding="{Binding State}"/>
-                                                <DataGridTextColumn Header="Presence" Binding="{Binding Extra}"/>
+                                                <DataGridTextColumn Header="Идентификатор" Binding="{Binding Id}" Width="1.8*"/>
+                                                <DataGridTextColumn Header="Логин" Binding="{Binding Name}" Width="1.2*"/>
+                                                <DataGridTextColumn Header="Статус" Binding="{Binding State}" Width="*"/>
+                                                <DataGridTextColumn Header="Присутствие" Binding="{Binding Extra}" Width="1.2*"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                         <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}">
@@ -686,12 +688,12 @@
                                                     <Button Content="Загрузить персонажей" Command="{Binding OpenPlayerCharactersCommand}" IsEnabled="{Binding CanLoadPlayerCharacters}"/>
                                                     <Button Style="{StaticResource GhostButtonStyle}" Content="К персонажам" Command="{Binding SelectSectionCommand}" CommandParameter="Персонажи" IsEnabled="{Binding CanLoadPlayerCharacters}"/>
                                                 </WrapPanel>
-                                                <TextBlock Text="{Binding SelectedOwnerUserId, StringFormat=OwnerUserId: {0}}" Margin="0,8,0,0"/>
+                                                <TextBlock Text="{Binding SelectedOwnerUserId, StringFormat=ID игрока: {0}}" Margin="0,8,0,0"/>
                                             </StackPanel>
                                         </Border>
                                     </Grid>
                                 </TabItem>
-                                <TabItem Header="Characters">
+                                <TabItem Header="Персонажи">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="2*"/>
@@ -704,7 +706,8 @@
                                                     <TextBox Width="250" Text="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}"/>
                                                     <Button Content="Загрузить" Command="{Binding LoadOwnerCharactersCommand}"/>
                                                 </WrapPanel>
-                                                <ListBox ItemsSource="{Binding Characters}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBox Margin="0,8,0,6" Text="{Binding CharactersSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по имени, id или дополнительному полю"/>
+                                                <ListBox ItemsSource="{Binding FilteredCharacters}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"/>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}">
@@ -719,7 +722,7 @@
                                         </Border>
                                     </Grid>
                                 </TabItem>
-                                <TabItem Header="Locks">
+                                <TabItem Header="Блокировки">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="2*"/>
@@ -727,18 +730,19 @@
                                         </Grid.ColumnDefinitions>
                                         <Border Style="{StaticResource SubtleCardStyle}">
                                             <StackPanel>
-                                                <TextBlock Text="Locks / attention" Style="{StaticResource TitleTextStyle}"/>
+                                                <TextBlock Text="Блокировки / внимание" Style="{StaticResource TitleTextStyle}"/>
                                                 <TextBlock Text="{Binding LocksCount, StringFormat=Активных локов: {0}}" Margin="0,6,0,8"/>
-                                                <ListBox ItemsSource="{Binding LockRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedLockId, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="Extra"/>
+                                                <TextBox Margin="0,0,0,6" Text="{Binding LocksSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по владельцу, id или описанию"/>
+                                                <ListBox ItemsSource="{Binding FilteredLockRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedLockId, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="Extra"/>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}">
                                             <StackPanel>
-                                                <TextBlock Text="Выбранный lock" Style="{StaticResource TitleTextStyle}"/>
+                                                <TextBlock Text="Выбранная блокировка" Style="{StaticResource TitleTextStyle}"/>
                                                 <TextBlock Text="{Binding SelectedLockSummary}" Margin="0,6,0,0"/>
                                                 <WrapPanel Margin="0,10,0,0">
-                                                    <Button Content="Force unlock" Command="{Binding ForceUnlockCommand}" IsEnabled="{Binding CanManageSelectedLock}"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить locks" Command="{Binding RefreshPeopleSectionCommand}" IsEnabled="{Binding IsIdle}"/>
+                                                    <Button Content="Принудительно снять" Command="{Binding ForceUnlockCommand}" IsEnabled="{Binding CanManageSelectedLock}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить блокировки" Command="{Binding RefreshPeopleSectionCommand}" IsEnabled="{Binding IsIdle}"/>
                                                 </WrapPanel>
                                             </StackPanel>
                                         </Border>
@@ -772,7 +776,7 @@
                                         <DataGrid ItemsSource="{Binding Characters}" SelectedValuePath="Id" SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" Height="220">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="Id" Binding="{Binding Id}"/>
-                                                <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
+                                                <DataGridTextColumn Header="Название" Binding="{Binding Name}"/>
                                                 <DataGridTextColumn Header="Race" Binding="{Binding Extra}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
@@ -798,7 +802,7 @@
                                     </StackPanel>
                                 </Border>
                                 <TabControl Grid.Column="1" Margin="8,0,0,0" SelectedValue="{Binding SelectedCharacterWorkspaceTab}" SelectedValuePath="Tag">
-                                    <TabItem Header="Editor" Tag="Editor">
+                                    <TabItem Header="Редактор" Tag="Editor">
                                         <ContentControl Content="{Binding CharacterEditorPanel}" ContentTemplate="{StaticResource CharacterEditorTemplate}">
                                             <ContentControl.Style>
                                                 <Style TargetType="ContentControl">
@@ -814,24 +818,24 @@
                                             </ContentControl.Style>
                                         </ContentControl>
                                     </TabItem>
-                                    <TabItem Header="Visibility" Tag="Visibility">
+                                    <TabItem Header="Видимость" Tag="Visibility">
                                         <Border Style="{StaticResource CardStyle}">
                                             <StackPanel Margin="8">
-                                                <TextBlock Text="Visibility management" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                <TextBlock Text="Настройки видимости" Style="{StaticResource SectionTitleTextStyle}"/>
                                                 <TextBlock Text="{Binding CharacterActionSummary}" Margin="0,6,0,8" TextWrapping="Wrap"/>
                                                 <WrapPanel>
                                                     <TextBox Width="220" Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"/>
-                                                    <Button Content="Load" Command="{Binding VisibilityLoadCommand}" IsEnabled="{Binding CanManageCharacterVisibility}"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Save" Command="{Binding VisibilitySaveCommand}" IsEnabled="{Binding CanManageCharacterVisibility}"/>
+                                                    <Button Content="Загрузить" Command="{Binding VisibilityLoadCommand}" IsEnabled="{Binding CanManageCharacterVisibility}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Сохранить" Command="{Binding VisibilitySaveCommand}" IsEnabled="{Binding CanManageCharacterVisibility}"/>
                                                 </WrapPanel>
-                                                <CheckBox Content="Hide description" IsChecked="{Binding VisHideDescription, UpdateSourceTrigger=PropertyChanged}"/>
-                                                <CheckBox Content="Hide backstory" IsChecked="{Binding VisHideBackstory, UpdateSourceTrigger=PropertyChanged}"/>
-                                                <CheckBox Content="Hide stats" IsChecked="{Binding VisHideStats, UpdateSourceTrigger=PropertyChanged}"/>
-                                                <CheckBox Content="Hide reputation" IsChecked="{Binding VisHideReputation, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <CheckBox Content="Скрыть описание" IsChecked="{Binding VisHideDescription, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <CheckBox Content="Скрыть предысторию" IsChecked="{Binding VisHideBackstory, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <CheckBox Content="Скрыть характеристики" IsChecked="{Binding VisHideStats, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <CheckBox Content="Скрыть репутацию" IsChecked="{Binding VisHideReputation, UpdateSourceTrigger=PropertyChanged}"/>
                                             </StackPanel>
                                         </Border>
                                     </TabItem>
-                                    <TabItem Header="Notes" Tag="Notes">
+                                    <TabItem Header="Заметки" Tag="Notes">
                                         <ContentControl Content="{Binding NotesPanel}" ContentTemplate="{StaticResource NotesManagementTemplate}">
                                             <ContentControl.Style>
                                                 <Style TargetType="ContentControl">
@@ -847,7 +851,7 @@
                                             </ContentControl.Style>
                                         </ContentControl>
                                     </TabItem>
-                                    <TabItem Header="Content">
+                                    <TabItem Header="Контент">
                                         <Border Style="{StaticResource CardStyle}">
                                             <StackPanel Margin="8">
                                                 <TextBlock Text="Игровой контент вынесен в отдельный раздел." Style="{StaticResource SectionTitleTextStyle}"/>
@@ -882,13 +886,13 @@
                                 </Grid.ColumnDefinitions>
                                 <Border Grid.Column="0" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Pending requests" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Заявки на модерацию" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding PendingRequestsCount}" FontSize="20"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="1" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Dice feed" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Лента бросков" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding DiceFeedRows.Count, StringFormat=Entries: {0}}" FontSize="20"/>
                                     </StackPanel>
                                 </Border>
@@ -904,7 +908,7 @@
                                 </Border>
                             </Grid>
                             <TabControl Grid.Row="2" IsEnabled="{Binding ArePrivilegedSectionsEnabled}">
-                                <TabItem Header="Requests">
+                                <TabItem Header="Заявки">
                                     <ContentControl Content="{Binding RequestsPanel}" ContentTemplate="{StaticResource RequestsTemplate}">
                                         <ContentControl.Style>
                                             <Style TargetType="ContentControl">
@@ -920,7 +924,7 @@
                                         </ContentControl.Style>
                                     </ContentControl>
                                 </TabItem>
-                                <TabItem Header="Dice">
+                                <TabItem Header="Броски">
                                     <ContentControl Content="{Binding DiceFeedPanel}" ContentTemplate="{StaticResource DiceFeedTemplate}">
                                         <ContentControl.Style>
                                             <Style TargetType="ContentControl">
@@ -975,7 +979,7 @@
                                 </Border>
                                 <Border Grid.Column="1" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Combat tracker" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Трекер боя" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding CombatTrackerSummary}"/>
                                         <TextBlock Text="{Binding HasActiveCombat, StringFormat=Активен: {0}}" Margin="0,4,0,0"/>
                                         <TextBlock Text="{Binding ActiveCombatParticipantsCount, StringFormat=Участников: {0}}"/>
@@ -1002,21 +1006,21 @@
                                 </Border>
                             </Grid>
                             <TabControl Grid.Row="2" IsEnabled="{Binding ArePrivilegedSectionsEnabled}">
-                                <TabItem Header="Overview">
+                                <TabItem Header="Обзор">
                                     <Border Style="{StaticResource CardStyle}">
                                         <StackPanel>
                                             <TextBlock Text="Контур ведущего" Style="{StaticResource SectionTitleTextStyle}"/>
                                             <TextBlock Text="{Binding SessionAttentionSummary}" Margin="0,6,0,0"/>
                                             <WrapPanel Margin="0,10,0,0">
                                                 <Button Content="Обновить сессию" Command="{Binding RefreshSessionSectionCommand}" IsEnabled="{Binding IsIdle}"/>
-                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Combat" Command="{Binding CombatRefreshCommand}" IsEnabled="{Binding IsIdle}"/>
-                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Chat" Command="{Binding ChatRefreshCommand}" IsEnabled="{Binding IsIdle}"/>
-                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Audio" Command="{Binding AudioRefreshCommand}" IsEnabled="{Binding IsIdle}"/>
+                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Бой" Command="{Binding CombatRefreshCommand}" IsEnabled="{Binding IsIdle}"/>
+                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Чат" Command="{Binding ChatRefreshCommand}" IsEnabled="{Binding IsIdle}"/>
+                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Аудио" Command="{Binding AudioRefreshCommand}" IsEnabled="{Binding IsIdle}"/>
                                             </WrapPanel>
                                         </StackPanel>
                                     </Border>
                                 </TabItem>
-                                <TabItem Header="Combat">
+                                <TabItem Header="Бой">
                                     <ContentControl Content="{Binding CombatTrackerPanel}" ContentTemplate="{StaticResource CombatTrackerTemplate}">
                                         <ContentControl.Style>
                                             <Style TargetType="ContentControl">
@@ -1032,7 +1036,7 @@
                                         </ContentControl.Style>
                                     </ContentControl>
                                 </TabItem>
-                                <TabItem Header="Chat">
+                                <TabItem Header="Чат">
                                     <ContentControl Content="{Binding SessionChatPanel}" ContentTemplate="{StaticResource SessionChatTemplate}">
                                         <ContentControl.Style>
                                             <Style TargetType="ContentControl">
@@ -1048,7 +1052,7 @@
                                         </ContentControl.Style>
                                     </ContentControl>
                                 </TabItem>
-                                <TabItem Header="Audio">
+                                <TabItem Header="Аудио">
                                     <ContentControl Content="{Binding SessionAudioPanel}" ContentTemplate="{StaticResource SessionAudioTemplate}">
                                         <ContentControl.Style>
                                             <Style TargetType="ContentControl">
@@ -1069,9 +1073,9 @@
                                         <StackPanel>
                                             <TextBlock Text="Контур сессии" Style="{StaticResource SectionTitleTextStyle}"/>
                                             <TextBlock Text="Раздел собирает бой, чат и аудио в одном рабочем месте без изменения серверных контрактов." Margin="0,6,0,0"/>
-                                            <TextBlock Text="{Binding CombatTrackerPanel.PanelState, StringFormat=Combat tracker: {0}}" Margin="0,8,0,0"/>
-                                            <TextBlock Text="{Binding SessionChatPanel.PanelState, StringFormat=Session chat: {0}}"/>
-                                            <TextBlock Text="{Binding SessionAudioPanel.PanelState, StringFormat=Session audio: {0}}"/>
+                                            <TextBlock Text="{Binding CombatTrackerPanel.PanelState, StringFormat=Трекер боя: {0}}" Margin="0,8,0,0"/>
+                                            <TextBlock Text="{Binding SessionChatPanel.PanelState, StringFormat=Чат сессии: {0}}"/>
+                                            <TextBlock Text="{Binding SessionAudioPanel.PanelState, StringFormat=Аудио сессии: {0}}"/>
                                         </StackPanel>
                                     </Border>
                                 </TabItem>
@@ -1099,13 +1103,13 @@
                                     <StackPanel>
                                         <TextBlock Text="Прогрессия" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding ContentSummary}"/>
-                                        <TextBlock Text="{Binding DefinitionVersionText, StringFormat=Definitions: {0}}" Margin="0,4,0,0"/>
+                                        <TextBlock Text="{Binding DefinitionVersionText, StringFormat=Определения: {0}}" Margin="0,4,0,0"/>
                                         <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить контент" Command="{Binding RefreshContentSectionCommand}" IsEnabled="{Binding CanRefreshContent}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="1" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Classes" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Классы" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding ClassTreeItems.Count, StringFormat=Строк в дереве: {0}}"/>
                                         <TextBlock Text="{Binding SelectedClassSummary}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         <Button Style="{StaticResource GhostButtonStyle}" Content="К class/skill зоне" Command="{Binding FocusContentClassesCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
@@ -1113,7 +1117,7 @@
                                 </Border>
                                 <Border Grid.Column="2" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Skills" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Навыки" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding SkillRows.Count, StringFormat=Состояний навыков: {0}}"/>
                                         <TextBlock Text="{Binding SelectedSkillSummary}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         <Button Style="{StaticResource GhostButtonStyle}" Content="К class/skill зоне" Command="{Binding FocusContentClassesCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
@@ -1121,7 +1125,7 @@
                                 </Border>
                                 <Border Grid.Column="3" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Reference data" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Справочные данные" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding ReferenceSummary}"/>
                                         <TextBlock Text="{Binding SelectedReferenceSummary}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         <Button Style="{StaticResource GhostButtonStyle}" Content="К reference зоне" Command="{Binding FocusContentReferenceCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
@@ -1129,7 +1133,7 @@
                                 </Border>
                             </Grid>
                             <TabControl Grid.Row="2" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" SelectedIndex="{Binding SelectedContentTabIndex}">
-                                <TabItem Header="Classes / Skills">
+                                <TabItem Header="Классы / Навыки">
                                     <Grid Margin="8">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
@@ -1137,14 +1141,14 @@
                                         </Grid.RowDefinitions>
                                         <Border Style="{StaticResource CardStyle}">
                                             <StackPanel>
-                                                <TextBlock Text="Definitions классов и навыков" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                <TextBlock Text="Определения классов и навыков" Style="{StaticResource SectionTitleTextStyle}"/>
                                                 <TextBlock Text="{Binding ContentReadinessSummary}" Margin="0,6,0,0"/>
                                                 <TextBlock Text="{Binding SelectedContentSummary}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                                 <TextBlock Text="{Binding DefinitionVersionText, StringFormat=Version: {0}}" Margin="0,4,0,0"/>
                                                 <WrapPanel Margin="0,10,0,0">
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Reload definitions" Command="{Binding DefinitionsReloadCommand}" IsEnabled="{Binding CanControlContent}"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh classes" Command="{Binding RefreshDefinitionClassesCommand}" IsEnabled="{Binding CanManageClassDefinition}"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh skills" Command="{Binding RefreshDefinitionSkillsCommand}" IsEnabled="{Binding CanManageSkillDefinition}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Перезагрузить определения" Command="{Binding DefinitionsReloadCommand}" IsEnabled="{Binding CanControlContent}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить классы" Command="{Binding RefreshDefinitionClassesCommand}" IsEnabled="{Binding CanManageClassDefinition}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить навыки" Command="{Binding RefreshDefinitionSkillsCommand}" IsEnabled="{Binding CanManageSkillDefinition}"/>
                                                 </WrapPanel>
                                             </StackPanel>
                                         </Border>
@@ -1161,17 +1165,17 @@
                                                 <Border Grid.Row="0" Style="{StaticResource SubtleCardStyle}">
                                                     <StackPanel>
                                                         <DockPanel Margin="0,0,0,8">
-                                                            <TextBlock Text="Class definitions" Style="{StaticResource TitleTextStyle}"/>
+                                                            <TextBlock Text="Определения классов" Style="{StaticResource TitleTextStyle}"/>
                                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="New" Command="{Binding NewClassDefinitionCommand}" IsEnabled="{Binding CanManageClassDefinition}"/>
-                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Open" Command="{Binding OpenSelectedClassDefinitionCommand}" IsEnabled="{Binding CanArchiveClassDefinition}"/>
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Создать" Command="{Binding NewClassDefinitionCommand}" IsEnabled="{Binding CanManageClassDefinition}"/>
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Открыть" Command="{Binding OpenSelectedClassDefinitionCommand}" IsEnabled="{Binding CanArchiveClassDefinition}"/>
                                                             </StackPanel>
                                                         </DockPanel>
                                                         <DataGrid ItemsSource="{Binding ClassDefinitionRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedClassDefinitionCode, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="180">
                                                             <DataGrid.Columns>
-                                                                <DataGridTextColumn Header="Code" Binding="{Binding Id}" Width="*"/>
-                                                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
-                                                                <DataGridTextColumn Header="State" Binding="{Binding State}" Width="*"/>
+                                                                <DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="*"/>
+                                                                <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
+                                                                <DataGridTextColumn Header="Состояние" Binding="{Binding State}" Width="*"/>
                                                             </DataGrid.Columns>
                                                         </DataGrid>
                                                     </StackPanel>
@@ -1179,17 +1183,17 @@
                                                 <Border Grid.Row="1" Style="{StaticResource SubtleCardStyle}">
                                                     <StackPanel>
                                                         <DockPanel Margin="0,0,0,8">
-                                                            <TextBlock Text="Skill definitions" Style="{StaticResource TitleTextStyle}"/>
+                                                            <TextBlock Text="Определения навыков" Style="{StaticResource TitleTextStyle}"/>
                                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="New" Command="{Binding NewSkillDefinitionCommand}" IsEnabled="{Binding CanManageSkillDefinition}"/>
-                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Open" Command="{Binding OpenSelectedSkillDefinitionCommand}" IsEnabled="{Binding CanArchiveSkillDefinition}"/>
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Создать" Command="{Binding NewSkillDefinitionCommand}" IsEnabled="{Binding CanManageSkillDefinition}"/>
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Открыть" Command="{Binding OpenSelectedSkillDefinitionCommand}" IsEnabled="{Binding CanArchiveSkillDefinition}"/>
                                                             </StackPanel>
                                                         </DockPanel>
                                                         <DataGrid ItemsSource="{Binding SkillDefinitionRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedSkillDefinitionCode, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="180">
                                                             <DataGrid.Columns>
-                                                                <DataGridTextColumn Header="Code" Binding="{Binding Id}" Width="*"/>
-                                                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
-                                                                <DataGridTextColumn Header="State" Binding="{Binding State}" Width="*"/>
+                                                                <DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="*"/>
+                                                                <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
+                                                                <DataGridTextColumn Header="Состояние" Binding="{Binding State}" Width="*"/>
                                                             </DataGrid.Columns>
                                                         </DataGrid>
                                                     </StackPanel>
@@ -1220,8 +1224,8 @@
                                                                 <TextBox Width="140" Text="{Binding EditClassStatus, UpdateSourceTrigger=PropertyChanged}"/>
                                                             </WrapPanel>
                                                             <WrapPanel Margin="0,8,0,0">
-                                                                <Button Content="Save class" Command="{Binding SaveClassDefinitionCommand}" IsEnabled="{Binding CanManageClassDefinition}"/>
-                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Archive class" Command="{Binding ArchiveClassDefinitionCommand}" IsEnabled="{Binding CanArchiveClassDefinition}"/>
+                                                                <Button Content="Сохранить класс" Command="{Binding SaveClassDefinitionCommand}" IsEnabled="{Binding CanManageClassDefinition}"/>
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Архивировать класс" Command="{Binding ArchiveClassDefinitionCommand}" IsEnabled="{Binding CanArchiveClassDefinition}"/>
                                                             </WrapPanel>
                                                         </StackPanel>
                                                     </Border>
@@ -1258,8 +1262,8 @@
                                                                 </DataGrid.Columns>
                                                             </DataGrid>
                                                             <WrapPanel Margin="0,8,0,0">
-                                                                <Button Content="Save skill" Command="{Binding SaveSkillDefinitionCommand}" IsEnabled="{Binding CanManageSkillDefinition}"/>
-                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Archive skill" Command="{Binding ArchiveSkillDefinitionCommand}" IsEnabled="{Binding CanArchiveSkillDefinition}"/>
+                                                                <Button Content="Сохранить навык" Command="{Binding SaveSkillDefinitionCommand}" IsEnabled="{Binding CanManageSkillDefinition}"/>
+                                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Архивировать навык" Command="{Binding ArchiveSkillDefinitionCommand}" IsEnabled="{Binding CanArchiveSkillDefinition}"/>
                                                             </WrapPanel>
                                                         </StackPanel>
                                                     </Border>
@@ -1281,16 +1285,16 @@
                                                 <WrapPanel>
                                                     <TextBox Width="120" Text="{Binding ReferenceWorldId, UpdateSourceTrigger=PropertyChanged}"/>
                                                     <TextBox Width="120" Text="{Binding ReferenceType, UpdateSourceTrigger=PropertyChanged}"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh" Command="{Binding ReferenceRefreshCommand}" IsEnabled="{Binding CanControlContent}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding ReferenceRefreshCommand}" IsEnabled="{Binding CanControlContent}"/>
                                                 </WrapPanel>
                                                 <TextBox Text="{Binding ReferenceId, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0"/>
                                                 <TextBox Text="{Binding ReferenceKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0"/>
                                                 <TextBox Text="{Binding ReferenceDisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0"/>
                                                 <TextBox Text="{Binding ReferenceDataJson, UpdateSourceTrigger=PropertyChanged}" Height="80" TextWrapping="Wrap" Margin="0,6,0,0"/>
                                                 <WrapPanel Margin="0,8,0,0">
-                                                    <Button Content="Create" Command="{Binding ReferenceCreateCommand}" IsEnabled="{Binding CanControlContent}"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Update" Command="{Binding ReferenceUpdateCommand}" IsEnabled="{Binding CanManageReferenceRecord}"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Archive" Command="{Binding ReferenceArchiveCommand}" IsEnabled="{Binding CanManageReferenceRecord}"/>
+                                                    <Button Content="Создать" Command="{Binding ReferenceCreateCommand}" IsEnabled="{Binding CanControlContent}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding ReferenceUpdateCommand}" IsEnabled="{Binding CanManageReferenceRecord}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Архивировать" Command="{Binding ReferenceArchiveCommand}" IsEnabled="{Binding CanManageReferenceRecord}"/>
                                                 </WrapPanel>
                                             </StackPanel>
                                         </Border>
@@ -1334,14 +1338,14 @@
                                 </Grid.ColumnDefinitions>
                                 <Border Grid.Column="0" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="System health" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Состояние системы" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding SystemHealthSummary}" TextWrapping="Wrap"/>
                                         <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить систему" Command="{Binding RefreshSystemSectionCommand}" IsEnabled="{Binding CanRefreshSystem}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="1" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Diagnostics" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Диагностика" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding DiagnosticsStatusSummary}" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding SelectedDiagnosticsSummary}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         <Button Style="{StaticResource GhostButtonStyle}" Content="К diagnostics" Command="{Binding FocusSystemDiagnosticsCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
@@ -1349,7 +1353,7 @@
                                 </Border>
                                 <Border Grid.Column="2" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Backups" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Резервные копии" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding BackupSummary}" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding SelectedBackupSummary}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         <Button Style="{StaticResource GhostButtonStyle}" Content="К backups" Command="{Binding FocusSystemBackupsCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
@@ -1357,7 +1361,7 @@
                                 </Border>
                                 <Border Grid.Column="3" Style="{StaticResource SummaryMetricCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Reference data" Style="{StaticResource TitleTextStyle}"/>
+                                        <TextBlock Text="Справочные данные" Style="{StaticResource TitleTextStyle}"/>
                                         <TextBlock Text="{Binding ReferenceSummary}" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding SelectedReferenceSummary}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         <Button Style="{StaticResource GhostButtonStyle}" Content="К reference" Command="{Binding FocusSystemReferenceCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
@@ -1365,7 +1369,7 @@
                                 </Border>
                             </Grid>
                             <TabControl Grid.Row="2" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" SelectedIndex="{Binding SelectedSystemTabIndex}">
-                                <TabItem Header="Reference data">
+                                <TabItem Header="Справочные данные">
                                     <Grid Margin="8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="2*"/>
@@ -1377,14 +1381,14 @@
                                                 <TextBlock Text="{Binding ReferenceSummary}" Margin="0,6,0,0"/>
                                                 <TextBlock Text="{Binding SelectedReferenceSummary}" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                 <WrapPanel>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh" Command="{Binding ReferenceRefreshCommand}" IsEnabled="{Binding CanRefreshSystem}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding ReferenceRefreshCommand}" IsEnabled="{Binding CanRefreshSystem}"/>
                                                     <Button Style="{StaticResource GhostButtonStyle}" Content="К контенту" Command="{Binding FocusContentReferenceCommand}"/>
                                                 </WrapPanel>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}" Margin="8,0,0,0">
                                             <StackPanel>
-                                                <TextBlock Text="Reference rows" Style="{StaticResource TitleTextStyle}"/>
+                                                <TextBlock Text="Строки справочника" Style="{StaticResource TitleTextStyle}"/>
                                                 <ListBox ItemsSource="{Binding ReferenceItems}" SelectedValuePath="Id" SelectedValue="{Binding ReferenceId, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0">
                                                     <ListBox.ItemTemplate>
                                                         <DataTemplate>
@@ -1400,7 +1404,7 @@
                                         </Border>
                                     </Grid>
                                 </TabItem>
-                                <TabItem Header="Backups">
+                                <TabItem Header="Резервные копии">
                                     <Grid Margin="8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="2*"/>
@@ -1408,25 +1412,25 @@
                                         </Grid.ColumnDefinitions>
                                         <Border Style="{StaticResource CardStyle}">
                                             <StackPanel>
-                                                <TextBlock Text="Backup management" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                <TextBlock Text="Управление резервными копиями" Style="{StaticResource SectionTitleTextStyle}"/>
                                                 <TextBlock Text="{Binding BackupSummary}" Margin="0,6,0,0"/>
                                                 <TextBlock Text="{Binding SelectedBackupSummary}" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                 <WrapPanel>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh" Command="{Binding BackupRefreshCommand}" IsEnabled="{Binding CanRefreshSystem}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding BackupRefreshCommand}" IsEnabled="{Binding CanRefreshSystem}"/>
                                                     <TextBox Width="220" Text="{Binding BackupLabel, UpdateSourceTrigger=PropertyChanged}"/>
-                                                    <Button Content="Create backup" Command="{Binding BackupCreateCommand}" IsEnabled="{Binding CanRefreshSystem}"/>
+                                                    <Button Content="Создать копию" Command="{Binding BackupCreateCommand}" IsEnabled="{Binding CanRefreshSystem}"/>
                                                 </WrapPanel>
                                                 <WrapPanel Margin="0,8,0,0">
                                                     <TextBox Width="220" Text="{Binding SelectedBackupId, UpdateSourceTrigger=PropertyChanged}"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Restore" Command="{Binding BackupRestoreCommand}" IsEnabled="{Binding CanManageSelectedBackup}"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Export" Command="{Binding BackupExportCommand}" IsEnabled="{Binding CanManageSelectedBackup}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Восстановить" Command="{Binding BackupRestoreCommand}" IsEnabled="{Binding CanManageSelectedBackup}"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Экспортировать" Command="{Binding BackupExportCommand}" IsEnabled="{Binding CanManageSelectedBackup}"/>
                                                 </WrapPanel>
                                                 <TextBlock Text="Если серверная часть не поддерживает дополнительные backup-операции, клиент оставляет только доступные команды refresh/create/restore/export." Margin="0,12,0,0" TextWrapping="Wrap" Opacity="0.75"/>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}" Margin="8,0,0,0">
                                             <StackPanel>
-                                                <TextBlock Text="Backup rows" Style="{StaticResource TitleTextStyle}"/>
+                                                <TextBlock Text="Список копий" Style="{StaticResource TitleTextStyle}"/>
                                                 <ListBox ItemsSource="{Binding BackupItems}" SelectedValuePath="Id" SelectedValue="{Binding SelectedBackupId, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0">
                                                     <ListBox.ItemTemplate>
                                                         <DataTemplate>
@@ -1442,7 +1446,7 @@
                                         </Border>
                                     </Grid>
                                 </TabItem>
-                                <TabItem Header="Diagnostics">
+                                <TabItem Header="Диагностика">
                                     <Grid Margin="8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="2*"/>
@@ -1450,18 +1454,18 @@
                                         </Grid.ColumnDefinitions>
                                         <Border Style="{StaticResource CardStyle}">
                                             <StackPanel>
-                                                <TextBlock Text="Admin diagnostics" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                <TextBlock Text="Диагностика админа" Style="{StaticResource SectionTitleTextStyle}"/>
                                                 <TextBlock Text="{Binding DiagnosticsSummary}" Margin="0,6,0,0" TextWrapping="Wrap"/>
                                                 <TextBlock Text="{Binding SelectedDiagnosticsSummary}" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                 <WrapPanel>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Refresh diagnostics" Command="{Binding DiagnosticsRefreshCommand}" IsEnabled="{Binding CanRefreshSystem}" HorizontalAlignment="Left"/>
+                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить диагностику" Command="{Binding DiagnosticsRefreshCommand}" IsEnabled="{Binding CanRefreshSystem}" HorizontalAlignment="Left"/>
                                                     <Button Style="{StaticResource GhostButtonStyle}" Content="К backup list" Command="{Binding FocusSystemBackupsCommand}"/>
                                                 </WrapPanel>
                                             </StackPanel>
                                         </Border>
                                         <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}" Margin="8,0,0,0">
                                             <StackPanel>
-                                                <TextBlock Text="Diagnostics rows" Style="{StaticResource TitleTextStyle}"/>
+                                                <TextBlock Text="Строки диагностики" Style="{StaticResource TitleTextStyle}"/>
                                                 <ListBox ItemsSource="{Binding DiagnosticsItems}" SelectedValuePath="Id" SelectedValue="{Binding SelectedDiagnosticsId, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0">
                                                     <ListBox.ItemTemplate>
                                                         <DataTemplate>
@@ -1489,9 +1493,9 @@
                                 <TextBlock Text="Подключение к серверу" Style="{StaticResource SectionTitleTextStyle}"/>
                                 <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="✕" Width="34" Padding="0" Command="{Binding OpenConnectionPopupCommand}"/>
                             </DockPanel>
-                            <TextBlock Text="Host" Margin="0,10,0,0"/>
+                            <TextBlock Text="Хост" Margin="0,10,0,0"/>
                             <TextBox Text="{Binding ServerHostInput, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBlock Text="Port" Margin="0,8,0,0"/>
+                            <TextBlock Text="Порт" Margin="0,8,0,0"/>
                             <TextBox Text="{Binding ServerPortInput, UpdateSourceTrigger=PropertyChanged}"/>
                             <TextBlock Text="{Binding ConnectionStatusDetail}" Margin="0,10,0,0"/>
                             <TextBlock Text="{Binding LastServerHost, StringFormat=Последний host: {0}}" Margin="0,8,0,0"/>

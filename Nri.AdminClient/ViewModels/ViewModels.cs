@@ -242,6 +242,8 @@ public class AdminMainViewModel : ViewModelBase
     private string _selectedDiagnosticsId = string.Empty;
     private int _selectedContentTabIndex;
     private int _selectedSystemTabIndex;
+    private string _charactersSearchText = string.Empty;
+    private string _locksSearchText = string.Empty;
 
     public AdminMainViewModel()
     {
@@ -392,6 +394,8 @@ public class AdminMainViewModel : ViewModelBase
     public string LastServerHost { get => _lastServerHost; set { _lastServerHost = value; Notify(); } }
     public int LastServerPort { get => _lastServerPort; set { _lastServerPort = value; Notify(); } }
     public string SelectedSection { get => _selectedSection; set { _selectedSection = value; Notify(); } }
+    public string CharactersSearchText { get => _charactersSearchText; set { _charactersSearchText = value; Notify(); Notify(nameof(FilteredCharacters)); } }
+    public string LocksSearchText { get => _locksSearchText; set { _locksSearchText = value; Notify(); Notify(nameof(FilteredLockRows)); } }
     public string SelectedCharacterWorkspaceTab { get => _selectedCharacterWorkspaceTab; set { _selectedCharacterWorkspaceTab = value; Notify(); } }
     public string CurrentEndpoint => $"{_client.ServerHost}:{_client.ServerPort}";
     public string LoginSummary => string.IsNullOrWhiteSpace(LoginText) ? "Не авторизован" : LoginText;
@@ -418,18 +422,18 @@ public class AdminMainViewModel : ViewModelBase
     public bool CanControlCombat => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanSendChat => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(ChatMessageText);
     public bool CanControlAudio => ArePrivilegedSectionsEnabled && !IsBusy;
-    public string ContentSummary => $"Definitions classes: {ClassDefinitionRows.Count} • Definitions skills: {SkillDefinitionRows.Count}";
-    public string ContentReadinessSummary => !ArePrivilegedSectionsEnabled ? "Подключитесь и войдите, чтобы работать с definitions." : "Definitions классов и навыков готовы к обновлению и редактированию без перезапуска сервера.";
-    public string SelectedClassSummary => SelectedClassDefinition == null ? "Definitions класс не выбран." : $"{SelectedClassDefinition.Name} • {SelectedClassDefinition.State} • {SelectedClassDefinition.Extra}";
-    public string SelectedSkillSummary => SelectedSkillDefinition == null ? "Definitions навык не выбран." : $"{SelectedSkillDefinition.Name} • {SelectedSkillDefinition.State} • {SelectedSkillDefinition.Extra}";
+    public string ContentSummary => $"Классов: {ClassDefinitionRows.Count} • Навыков: {SkillDefinitionRows.Count}";
+    public string ContentReadinessSummary => !ArePrivilegedSectionsEnabled ? "Подключитесь и войдите, чтобы работать с контентом." : "Определения классов и навыков готовы к обновлению и редактированию.";
+    public string SelectedClassSummary => SelectedClassDefinition == null ? "Класс не выбран." : $"{SelectedClassDefinition.Name} • {SelectedClassDefinition.State} • {SelectedClassDefinition.Extra}";
+    public string SelectedSkillSummary => SelectedSkillDefinition == null ? "Навык не выбран." : $"{SelectedSkillDefinition.Name} • {SelectedSkillDefinition.State} • {SelectedSkillDefinition.Extra}";
     public string SelectedReferenceSummary => SelectedReference == null ? "Reference-запись не выбрана." : $"{SelectedReference.Name} • {SelectedReference.State} • {SelectedReference.Extra}";
     public string SelectedContentSummary => SelectedClassDefinition != null ? SelectedClassSummary : SelectedSkillDefinition != null ? SelectedSkillSummary : SelectedReferenceSummary;
-    public string ReferenceSummary => ReferenceItems.Count == 0 ? "Reference data: нет загруженных записей" : $"Reference data: {ReferenceItems.Count} записей типа {ReferenceType}";
-    public string BackupSummary => BackupItems.Count == 0 ? "Backups: ещё не загружены" : $"Backups: {BackupItems.Count}, последний: {BackupItems[0].Name}";
-    public string DiagnosticsStatusSummary => DiagnosticsItems.Count == 0 ? "Diagnostics ещё не загружены" : DiagnosticsItems[0].Name;
+    public string ReferenceSummary => ReferenceItems.Count == 0 ? "Справочные данные: нет загруженных записей" : $"Справочные данные: {ReferenceItems.Count} записей типа {ReferenceType}";
+    public string BackupSummary => BackupItems.Count == 0 ? "Резервные копии: ещё не загружены" : $"Резервные копии: {BackupItems.Count}, последняя: {BackupItems[0].Name}";
+    public string DiagnosticsStatusSummary => DiagnosticsItems.Count == 0 ? "Диагностика ещё не загружена" : DiagnosticsItems[0].Name;
     public string SelectedBackupSummary => SelectedBackup == null ? "Backup не выбран." : $"{SelectedBackup.Name} • {SelectedBackup.State} • {SelectedBackup.Extra}";
-    public string SelectedDiagnosticsSummary => SelectedDiagnostics == null ? "Diagnostics запись не выбрана." : $"{SelectedDiagnostics.Name} • {SelectedDiagnostics.State} • {SelectedDiagnostics.Extra}";
-    public string SystemHealthSummary => DiagnosticsItems.Count == 0 ? "Служебные данные ещё не загружены." : $"Diagnostics: {DiagnosticsItems.Count} • Backups: {BackupItems.Count} • Reference: {ReferenceItems.Count}";
+    public string SelectedDiagnosticsSummary => SelectedDiagnostics == null ? "Строка диагностики не выбрана." : $"{SelectedDiagnostics.Name} • {SelectedDiagnostics.State} • {SelectedDiagnostics.Extra}";
+    public string SystemHealthSummary => DiagnosticsItems.Count == 0 ? "Служебные данные ещё не загружены." : $"Диагностика: {DiagnosticsItems.Count} • Резервные копии: {BackupItems.Count} • Справочные данные: {ReferenceItems.Count}";
     public bool CanControlContent => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanRefreshContent => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanManageClassDefinition => ArePrivilegedSectionsEnabled && !IsBusy;
@@ -680,7 +684,8 @@ public class AdminMainViewModel : ViewModelBase
     public string SkillEditorHintText => SkillLevelEditorRows.Count == 0 ? "Добавьте хотя бы один уровень навыка перед сохранением." : $"Уровней навыка: {SkillLevelEditorRows.Count}. MaxLevel сейчас {EditSkillMaxLevel}.";
     public string ChatSessionId { get; set; } = "default";
     public string ChatMessageText { get; set; } = string.Empty;
-    public string ChatMessageType { get; set; } = "Public";
+    public string ChatMessageType { get; set; } = "Обычный";
+    public ObservableCollection<string> ChatMessageTypeOptions { get; } = new ObservableCollection<string> { "Обычный", "Скрытый", "Только для админов" };
     public string ChatModerationUserId { get; set; } = string.Empty;
     public string ChatModerationReason { get; set; } = string.Empty;
     public int ChatSlowPublicSeconds { get; set; }
@@ -810,6 +815,16 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<RowVm> BackupItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> DiagnosticsItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> LockRows { get; } = new ObservableCollection<RowVm>();
+    public IEnumerable<RowVm> FilteredCharacters => string.IsNullOrWhiteSpace(CharactersSearchText)
+        ? Characters
+        : Characters.Where(row => row.Name.IndexOf(CharactersSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                  || row.Id.IndexOf(CharactersSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                  || row.Extra.IndexOf(CharactersSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+    public IEnumerable<RowVm> FilteredLockRows => string.IsNullOrWhiteSpace(LocksSearchText)
+        ? LockRows
+        : LockRows.Where(row => row.Name.IndexOf(LocksSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                || row.Id.IndexOf(LocksSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                || row.Extra.IndexOf(LocksSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
     public ObservableCollection<string> OverviewActivityRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<WorkspacePanelDescriptor> WorkspacePanels { get; } = new ObservableCollection<WorkspacePanelDescriptor>();
 
@@ -1065,7 +1080,7 @@ public class AdminMainViewModel : ViewModelBase
 
     public void RefreshConnectionSummary()
     {
-        SessionSummary = $"Endpoint: {CurrentEndpoint} • Stage: {ConnectionStage} • {LoginState} • Pending: {PendingAccountsCount} • Players: {PlayersCount} • Characters: {CharactersCount} • Requests: {PendingRequestsCount} • Locks: {LocksCount}";
+        SessionSummary = $"Стадия: {ConnectionStage} • {LoginState} • Ожидают: {PendingAccountsCount} • Игроков: {PlayersCount} • Персонажей: {CharactersCount} • Заявок: {PendingRequestsCount} • Блокировок: {LocksCount}";
         RefreshOverviewActivity();
         Notify(nameof(CurrentEndpoint));
         Notify(nameof(LoginSummary));
@@ -1204,7 +1219,7 @@ public class AdminMainViewModel : ViewModelBase
         WorkspacePanels.Add(new WorkspacePanelDescriptor("NotesManagement", "Заметки мастера", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("Requests", "Заявки", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("DiceFeed", "Лента бросков", canDetach: true));
-        WorkspacePanels.Add(new WorkspacePanelDescriptor("CombatTracker", "Combat tracker", canDetach: true));
+        WorkspacePanels.Add(new WorkspacePanelDescriptor("CombatTracker", "Трекер боя", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("SessionChat", "Чат сессии", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("SessionAudio", "Музыка сессии", canDetach: true));
     }
@@ -1495,18 +1510,25 @@ public class AdminMainViewModel : ViewModelBase
 
         try
         {
+            ClientLogService.Instance.Info("ui-refresh section=Люди step=LoadPending");
             LoadPending();
+            ClientLogService.Instance.Info("ui-refresh section=Люди step=LoadPlayers");
             LoadPlayers();
+            ClientLogService.Instance.Info("ui-refresh section=Модерация step=LoadPendingRequests");
             LoadPendingRequests();
             LoadRequestHistory();
+            ClientLogService.Instance.Info("ui-refresh section=Сессия step=CombatRefresh");
             CombatRefresh();
+            ClientLogService.Instance.Info("ui-refresh section=Контент step=RefreshDefinitionClasses");
             RefreshDefinitionClasses();
             RefreshDefinitionSkills();
             if (!string.IsNullOrWhiteSpace(SelectedCharacterId))
             {
+                ClientLogService.Instance.Info("ui-refresh section=Персонажи step=LoadClassTree+LoadSkills");
                 LoadClassTree();
                 LoadSkills();
             }
+            ClientLogService.Instance.Info("ui-refresh section=Сессия step=ChatRefresh");
             ChatRefresh();
             AudioRefresh();
             NotesRefresh();
@@ -1532,6 +1554,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             PendingAccounts.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = S(m, "createdUtc") });
         }
+        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Ожидающие raw={ToList(r.Payload["items"]).Count} shown={PendingAccounts.Count}");
         RestoreSelection(PendingAccounts, SelectedPendingAccountId, value => SelectedPendingAccountId = value);
         RefreshConnectionSummary();
     }
@@ -1546,6 +1569,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             Players.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = $"online={S(m, "isOnline")}; last={S(m, "lastSeenUtc")}" });
         }
+        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Игроки raw={ToList(r.Payload["items"]).Count} shown={Players.Count}");
         RestoreSelection(Players, SelectedOwnerUserId, value => SelectedOwnerUserId = value);
         RefreshConnectionSummary();
     }
@@ -1561,6 +1585,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             Characters.Add(new RowVm { Id = S(m, "characterId"), Name = S(m, "name"), State = S(m, "archived"), Extra = S(m, "race") });
         }
+        Notify(nameof(FilteredCharacters));
         RestoreSelection(Characters, SelectedCharacterId, value => SelectedCharacterId = value);
         RefreshConnectionSummary();
     }
@@ -1633,6 +1658,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             PendingRequests.Add(new RowVm { Id = S(m, "requestId"), Name = S(m, "requestType"), State = S(m, "status"), Extra = S(m, "formula") });
         }
+        ClientLogService.Instance.Info($"ui-refresh section=Модерация block=Заявки raw={ToList(r.Payload["items"]).Count} shown={PendingRequests.Count}");
         RestoreSelection(PendingRequests, SelectedPendingRequestId, value => SelectedPendingRequestId = value);
         RefreshConnectionSummary();
     }
@@ -2090,14 +2116,9 @@ public class AdminMainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(ChatMessageText)) return;
         var sessionId = ResolveChatSessionId();
-        if (string.Equals(ChatMessageType, "System", StringComparison.OrdinalIgnoreCase))
-        {
-            LastStatusMessage = "[CHAT-DIAG][Admin] blocked client-side system message send";
-            ClientLogService.Instance.Warn(LastStatusMessage);
-            return;
-        }
-        ClientLogService.Instance.Info($"Chat send requested: sessionId={sessionId}; command={CommandNames.ChatSend}");
-        _api.ChatSend(sessionId, ChatMessageType, ChatMessageText);
+        var serverChatType = MapChatTypeToServer(ChatMessageType);
+        ClientLogService.Instance.Info($"Chat send requested: sessionId={sessionId}; command={CommandNames.ChatSend}; uiType={ChatMessageType}; serverType={serverChatType}");
+        _api.ChatSend(sessionId, serverChatType, ChatMessageText);
         ChatMessageText = string.Empty;
         Notify(nameof(ChatMessageText));
         ChatRefresh();
@@ -2186,7 +2207,13 @@ public class AdminMainViewModel : ViewModelBase
     private void AudioRefresh()
     {
         var state = _api.AudioStateGet(AudioSessionId);
-        AudioStateText = $"mode={S(state.Payload, "mode")}; category={S(state.Payload, "category")}; track={S(state.Payload, "trackName")}; pos={S(state.Payload, "positionSeconds")}; override={S(state.Payload, "overrideEnabled")}; playback={S(state.Payload, "playbackState")}";
+        var mode = S(state.Payload, "mode");
+        var category = S(state.Payload, "category");
+        var track = FirstNonEmpty(S(state.Payload, "trackName"), "не выбрано");
+        var position = FirstNonEmpty(S(state.Payload, "positionSeconds"), "0");
+        var playback = FirstNonEmpty(S(state.Payload, "playbackState"), "нет данных");
+        AudioStateText = $"Режим: {mode}; Категория: {category}; Трек: {track}; Позиция: {position} сек.; Состояние: {playback}";
+        ClientLogService.Instance.Info($"ui-audio-refresh section=Сессия stateLoaded=true tracksRaw={state.Payload.Count}");
         Notify(nameof(AudioStateText));
 
         AudioLibraryRows.Clear();
@@ -2307,6 +2334,8 @@ public class AdminMainViewModel : ViewModelBase
             }.Where(value => !string.IsNullOrWhiteSpace(value)));
             LockRows.Add(new RowVm { Id = resourceId, Name = owner, State = state, Extra = extra });
         }
+        Notify(nameof(FilteredLockRows));
+        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Блокировки raw={items.Count} shown={LockRows.Count}");
         RestoreSelection(LockRows, SelectedLockId, value => SelectedLockId = value);
     }
 
@@ -2696,6 +2725,16 @@ public class AdminMainViewModel : ViewModelBase
         }
 
         return false;
+    }
+
+    private static string MapChatTypeToServer(string uiType)
+    {
+        return uiType switch
+        {
+            "Скрытый" => "HiddenToAdmins",
+            "Только для админов" => "AdminOnly",
+            _ => "Public"
+        };
     }
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
