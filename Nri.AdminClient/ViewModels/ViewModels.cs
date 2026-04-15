@@ -10,6 +10,8 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Nri.AdminClient.Diagnostics;
@@ -66,6 +68,14 @@ public class RowVm : ViewModelBase
     public string Name { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public string Extra { get; set; } = string.Empty;
+}
+
+public sealed class ChatMessageRowVm : ViewModelBase
+{
+    public string Sender { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+    public string Timestamp { get; set; } = string.Empty;
+    public bool IsSystem { get; set; }
 }
 
 public sealed class SkillLevelEditorRowVm : ViewModelBase
@@ -792,6 +802,7 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<RowVm> ClassTreeItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> SkillRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<ChatMessageRowVm> ChatMessageRows { get; } = new ObservableCollection<ChatMessageRowVm>();
     public ObservableCollection<string> ChatRestrictionRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> AudioLibraryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> NotesRows { get; } = new ObservableCollection<string>();
@@ -2097,6 +2108,7 @@ public class AdminMainViewModel : ViewModelBase
         var sessionId = ResolveChatSessionId();
         TraceChatDiagnostic($"request command={CommandNames.ChatVisibleFeed} session={sessionId}");
         ChatRows.Clear();
+        ChatMessageRows.Clear();
         var feed = _api.ChatVisibleFeed(sessionId, 80);
         var feedItems = ExtractChatItems(feed.Payload, out var sourceKey, out var payloadKeys, out var rawItemsType);
         TraceChatDiagnostic($"response command={CommandNames.ChatVisibleFeed} status={feed.Status} success={(feed.Status == ResponseStatus.Ok)} payloadKeys=[{payloadKeys}] sourceKey={sourceKey} rawItems={feedItems.Count} rawType={rawItemsType}");
@@ -2104,20 +2116,29 @@ public class AdminMainViewModel : ViewModelBase
         if (feed.Status == ResponseStatus.Ok)
         {
             var mappedCount = 0;
+            var filteredCount = 0;
             foreach (var item in feedItems)
             {
                 var m = AsMap(item, CommandNames.ChatVisibleFeed);
                 if (m == null) continue;
-                ChatRows.Add($"{S(m, "createdUtc")} | {S(m, "type")} | {S(m, "senderDisplayName")}: {S(m, "text")}");
                 mappedCount++;
+                var row = BuildChatMessageRow(m);
+                if (row == null)
+                {
+                    filteredCount++;
+                    continue;
+                }
+
+                ChatRows.Add($"{row.Sender}: {row.Text}");
+                ChatMessageRows.Add(row);
             }
-            TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount}");
+            TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount} filteredOut={filteredCount} displayItems={ChatMessageRows.Count}");
         }
         else
         {
             TraceChatDiagnostic($"response-error command={CommandNames.ChatVisibleFeed} message={feed.Message}");
         }
-        TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} uiCollection=ChatRows uiCount={ChatRows.Count}");
+        TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} uiCollection=ChatMessageRows uiCount={ChatMessageRows.Count}");
 
         var unread = _api.ChatUnreadGet(sessionId);
         ChatUnreadText = "Unread: " + S(unread.Payload, "count");
@@ -2135,7 +2156,7 @@ public class AdminMainViewModel : ViewModelBase
         foreach (var item in ToList(restrictions.Payload.ContainsKey("restrictions") ? restrictions.Payload["restrictions"] : new ArrayList()))
             if (AsMap(item) is { } m)
                 ChatRestrictionRows.Add($"{S(m, "userId")} muted={S(m, "muted")} reason={S(m, "reason")}");
-        TraceChatDiagnostic($"ui chatRows={ChatRows.Count} restrictionsRows={ChatRestrictionRows.Count}");
+        TraceChatDiagnostic($"ui chatRows={ChatRows.Count} chatMessageRows={ChatMessageRows.Count} restrictionsRows={ChatRestrictionRows.Count}");
         RefreshConnectionSummary();
     }
 
@@ -2600,6 +2621,78 @@ public class AdminMainViewModel : ViewModelBase
                 shape = valueType.FullName ?? valueType.Name;
                 return !string.IsNullOrWhiteSpace(key);
             }
+        }
+
+        return false;
+    }
+
+    private ChatMessageRowVm? BuildChatMessageRow(Dictionary<string, object> map)
+    {
+        var sender = FirstNonEmpty(S(map, "senderDisplayName"), S(map, "senderUserId"), "Система");
+        var text = FirstNonEmpty(S(map, "text"), S(map, "message"), S(map, "body"));
+        var type = FirstNonEmpty(S(map, "type"), "Public");
+        var createdRaw = FirstNonEmpty(S(map, "createdUtc"), S(map, "createdAt"), S(map, "at"));
+        var timestamp = FormatChatTimestamp(createdRaw);
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            TraceChatDiagnostic("chat-filter reason=empty-text");
+            return null;
+        }
+
+        if (IsPlaceholderText(text))
+        {
+            TraceChatDiagnostic($"chat-filter reason=placeholder-text value={text}");
+            return null;
+        }
+
+        return new ChatMessageRowVm
+        {
+            Sender = sender,
+            Text = text,
+            Timestamp = timestamp,
+            IsSystem = string.Equals(type, "System", StringComparison.OrdinalIgnoreCase)
+        };
+    }
+
+    private static bool IsPlaceholderText(string text)
+    {
+        return string.Equals(text, "Нет сообщений", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(text, "Нет системных событий", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FormatChatTimestamp(string rawValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            return string.Empty;
+        }
+
+        if (TryParseServerTimestamp(rawValue, out var parsed))
+        {
+            var local = parsed.ToLocalTime();
+            return local.Date == DateTime.Now.Date
+                ? local.ToString("HH:mm", CultureInfo.InvariantCulture)
+                : local.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture);
+        }
+
+        return rawValue;
+    }
+
+    private static bool TryParseServerTimestamp(string rawValue, out DateTime utcValue)
+    {
+        utcValue = default;
+        var dateMatch = Regex.Match(rawValue, @"^/Date\(([-+]?\d+)");
+        if (dateMatch.Success && long.TryParse(dateMatch.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var milliseconds))
+        {
+            utcValue = DateTimeOffset.FromUnixTimeMilliseconds(milliseconds).UtcDateTime;
+            return true;
+        }
+
+        if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var parsed))
+        {
+            utcValue = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
+            return true;
         }
 
         return false;

@@ -1017,8 +1017,8 @@
         <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2.2*"/>
-                    <ColumnDefinition Width="1.3*"/>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="1*"/>
                 </Grid.ColumnDefinitions>
 
                 <Grid>
@@ -1026,25 +1026,46 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,4">
-                        <ListBox ItemsSource="{Binding GameFeedRows}">
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,6" Padding="6">
+                        <ListBox ItemsSource="{Binding ChatMessageRows}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Style="{StaticResource CardStyle}" Padding="8" Margin="0,0,0,3">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding Kind}" Width="72" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
-                                            <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,6">
+                                        <StackPanel>
+                                            <TextBlock TextWrapping="Wrap">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSystem}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                                <Run Text="{Binding Sender}" FontWeight="SemiBold"/>
+                                                <Run Text=": "/>
+                                                <Run Text="{Binding Text}"/>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </Border>
-                    <StackPanel Grid.Row="1" Orientation="Horizontal">
-                        <ComboBox Width="160" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}"/>
-                        <TextBox Width="430" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}"/>
-                        <Button Content="Отправить" Command="{Binding ChatSendCommand}"/>
-                    </StackPanel>
+                    <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="170"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="120"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0" Margin="0,0,8,0" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}"/>
+                            <TextBox Grid.Column="1" Margin="0,0,8,0" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}" MinHeight="34" VerticalContentAlignment="Center"/>
+                            <Button Grid.Column="2" Content="Отправить" Command="{Binding ChatSendCommand}" MinHeight="34"/>
+                        </Grid>
+                    </Border>
                 </Grid>
 
                 <Grid Grid.Column="1" Margin="8,0,0,0">
