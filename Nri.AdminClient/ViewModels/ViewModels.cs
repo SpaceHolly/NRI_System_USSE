@@ -2100,12 +2100,13 @@ public class AdminMainViewModel : ViewModelBase
         var feed = _api.ChatVisibleFeed(sessionId, 80);
         var feedItems = ExtractChatItems(feed.Payload, out var sourceKey, out var payloadKeys, out var rawItemsType);
         TraceChatDiagnostic($"response command={CommandNames.ChatVisibleFeed} status={feed.Status} success={(feed.Status == ResponseStatus.Ok)} payloadKeys=[{payloadKeys}] sourceKey={sourceKey} rawItems={feedItems.Count} rawType={rawItemsType}");
+        LogFirstChatItemShape(feedItems, CommandNames.ChatVisibleFeed);
         if (feed.Status == ResponseStatus.Ok)
         {
             var mappedCount = 0;
             foreach (var item in feedItems)
             {
-                var m = AsMap(item);
+                var m = AsMap(item, CommandNames.ChatVisibleFeed);
                 if (m == null) continue;
                 ChatRows.Add($"{S(m, "createdUtc")} | {S(m, "type")} | {S(m, "senderDisplayName")}: {S(m, "text")}");
                 mappedCount++;
@@ -2403,10 +2404,11 @@ public class AdminMainViewModel : ViewModelBase
         LastStatusMessage = line;
     }
 
-    private static Dictionary<string, object>? AsMap(object? value)
+    private Dictionary<string, object>? AsMap(object? value, string context)
     {
         if (value is Dictionary<string, object> typedMap)
         {
+            TraceChatDiagnostic($"map-shape command={context} branch=Dictionary<string,object> count={typedMap.Count}");
             return typedMap;
         }
 
@@ -2424,10 +2426,183 @@ public class AdminMainViewModel : ViewModelBase
                 map[key] = entry.Value;
             }
 
-            return map;
+            TraceChatDiagnostic($"map-shape command={context} branch=IDictionary count={map.Count}");
+            return map.Count > 0 ? map : null;
         }
 
+        if (value is object[] objectArray)
+        {
+            if (TryConvertObjectArrayToMap(objectArray, out var objectArrayMap))
+            {
+                TraceChatDiagnostic($"map-shape command={context} branch=object[] count={objectArrayMap.Count}");
+                return objectArrayMap;
+            }
+
+            TraceChatDiagnostic($"map-shape command={context} branch=object[] fallback=failed length={objectArray.Length}");
+            return null;
+        }
+
+        if (value is IEnumerable enumerable && value is not string)
+        {
+            if (TryConvertEnumerableToMap(enumerable, out var enumerableMap))
+            {
+                TraceChatDiagnostic($"map-shape command={context} branch=IEnumerable count={enumerableMap.Count}");
+                return enumerableMap;
+            }
+
+            TraceChatDiagnostic($"map-shape command={context} branch=IEnumerable fallback=failed type={value.GetType().FullName}");
+            return null;
+        }
+
+        TraceChatDiagnostic($"map-shape command={context} branch=unsupported type={value?.GetType().FullName ?? "null"}");
         return null;
+    }
+
+    private Dictionary<string, object>? AsMap(object? value)
+    {
+        return AsMap(value, "generic");
+    }
+
+    private void LogFirstChatItemShape(IList items, string command)
+    {
+        if (items.Count == 0)
+        {
+            TraceChatDiagnostic($"first-item command={command} type=<none>");
+            return;
+        }
+
+        var firstItem = items[0];
+        var firstType = firstItem?.GetType().FullName ?? "null";
+        TraceChatDiagnostic($"first-item command={command} type={firstType}");
+
+        if (firstItem is IEnumerable enumerable && firstItem is not string)
+        {
+            var innerTypes = enumerable
+                .Cast<object?>()
+                .Take(6)
+                .Select(item => item?.GetType().FullName ?? "null")
+                .ToArray();
+            TraceChatDiagnostic($"first-item-inner command={command} sampleTypes=[{string.Join(",", innerTypes)}]");
+        }
+
+        if (TryConvertPairLike(firstItem, out var key, out _, out var pairShape))
+        {
+            TraceChatDiagnostic($"first-item-pair command={command} shape={pairShape} key={key}");
+        }
+    }
+
+    private static bool TryConvertObjectArrayToMap(object[] source, out Dictionary<string, object> map)
+    {
+        map = new Dictionary<string, object>(StringComparer.Ordinal);
+        if (source.Length == 0)
+        {
+            return false;
+        }
+
+        var asPairs = true;
+        foreach (var item in source)
+        {
+            if (!TryConvertPairLike(item, out var key, out var value, out _))
+            {
+                asPairs = false;
+                break;
+            }
+
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                map[key] = value;
+            }
+        }
+
+        if (asPairs && map.Count > 0)
+        {
+            return true;
+        }
+
+        if (source.Length % 2 != 0)
+        {
+            return false;
+        }
+
+        map.Clear();
+        for (var i = 0; i < source.Length; i += 2)
+        {
+            var key = Convert.ToString(source[i]);
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                continue;
+            }
+
+            map[key] = source[i + 1];
+        }
+
+        return map.Count > 0;
+    }
+
+    private static bool TryConvertEnumerableToMap(IEnumerable source, out Dictionary<string, object> map)
+    {
+        map = new Dictionary<string, object>(StringComparer.Ordinal);
+        foreach (var item in source)
+        {
+            if (!TryConvertPairLike(item, out var key, out var value, out _))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                map[key] = value;
+            }
+        }
+
+        return map.Count > 0;
+    }
+
+    private static bool TryConvertPairLike(object? value, out string key, out object? mappedValue, out string shape)
+    {
+        key = string.Empty;
+        mappedValue = null;
+        shape = "unknown";
+
+        if (value is DictionaryEntry dictionaryEntry)
+        {
+            key = Convert.ToString(dictionaryEntry.Key) ?? string.Empty;
+            mappedValue = dictionaryEntry.Value;
+            shape = "DictionaryEntry";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value is object[] objectPair && objectPair.Length == 2)
+        {
+            key = Convert.ToString(objectPair[0]) ?? string.Empty;
+            mappedValue = objectPair[1];
+            shape = "object[2]";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value is IList listPair && listPair.Count == 2)
+        {
+            key = Convert.ToString(listPair[0]) ?? string.Empty;
+            mappedValue = listPair[1];
+            shape = "IList[2]";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value != null)
+        {
+            var valueType = value.GetType();
+            var keyProperty = valueType.GetProperty("Key");
+            var valueProperty = valueType.GetProperty("Value");
+            if (keyProperty != null && valueProperty != null)
+            {
+                key = Convert.ToString(keyProperty.GetValue(value)) ?? string.Empty;
+                mappedValue = valueProperty.GetValue(value);
+                shape = valueType.FullName ?? valueType.Name;
+                return !string.IsNullOrWhiteSpace(key);
+            }
+        }
+
+        return false;
     }
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
