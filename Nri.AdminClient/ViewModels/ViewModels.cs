@@ -244,6 +244,8 @@ public class AdminMainViewModel : ViewModelBase
     private int _selectedSystemTabIndex;
     private string _charactersSearchText = string.Empty;
     private string _locksSearchText = string.Empty;
+    private string _classSearchText = string.Empty;
+    private string _skillSearchText = string.Empty;
 
     public AdminMainViewModel()
     {
@@ -397,6 +399,8 @@ public class AdminMainViewModel : ViewModelBase
     public string CharactersSearchText { get => _charactersSearchText; set { _charactersSearchText = value; Notify(); Notify(nameof(FilteredCharacters)); var filtered = FilteredCharacters.Count(); ClientLogService.Instance.Info($"ui-filter section=Люди block=Персонажи query={_charactersSearchText} loaded={Characters.Count} filtered={filtered} visible={filtered}"); } }
     public string LocksSearchText { get => _locksSearchText; set { _locksSearchText = value; Notify(); Notify(nameof(FilteredLockRows)); var filtered = FilteredLockRows.Count(); ClientLogService.Instance.Info($"ui-filter section=Люди block=Блокировки query={_locksSearchText} loaded={LockRows.Count} filtered={filtered} visible={filtered}"); } }
     public string SelectedCharacterWorkspaceTab { get => _selectedCharacterWorkspaceTab; set { _selectedCharacterWorkspaceTab = value; Notify(); } }
+    public string ClassSearchText { get => _classSearchText; set { _classSearchText = value; Notify(); Notify(nameof(FilteredClassDefinitionRows)); ClientLogService.Instance.Info($"ui-filter section=Контент block=Классы query={_classSearchText} loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}"); } }
+    public string SkillSearchText { get => _skillSearchText; set { _skillSearchText = value; Notify(); Notify(nameof(FilteredSkillDefinitionRows)); ClientLogService.Instance.Info($"ui-filter section=Контент block=Навыки query={_skillSearchText} loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}"); } }
     public string CurrentEndpoint => $"{_client.ServerHost}:{_client.ServerPort}";
     public string LoginSummary => string.IsNullOrWhiteSpace(LoginText) ? "Не авторизован" : LoginText;
     public int PendingAccountsCount => PendingAccounts.Count;
@@ -787,6 +791,11 @@ public class AdminMainViewModel : ViewModelBase
     public long Bronze { get; set; }
     public long Silver { get; set; }
     public long Gold { get; set; }
+    public long Platinum { get; set; }
+    public long Orichalcum { get; set; }
+    public long Adamant { get; set; }
+    public long Sovereign { get; set; }
+    public long ExperienceCoins { get; set; }
 
     public ObservableCollection<RowVm> PendingAccounts { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> Players { get; } = new ObservableCollection<RowVm>();
@@ -825,6 +834,16 @@ public class AdminMainViewModel : ViewModelBase
         : LockRows.Where(row => row.Name.IndexOf(LocksSearchText, StringComparison.OrdinalIgnoreCase) >= 0
                                 || row.Id.IndexOf(LocksSearchText, StringComparison.OrdinalIgnoreCase) >= 0
                                 || row.Extra.IndexOf(LocksSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+    public IEnumerable<RowVm> FilteredClassDefinitionRows => string.IsNullOrWhiteSpace(ClassSearchText)
+        ? ClassDefinitionRows
+        : ClassDefinitionRows.Where(row => row.Name.IndexOf(ClassSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                           || row.Id.IndexOf(ClassSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                           || row.Extra.IndexOf(ClassSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+    public IEnumerable<RowVm> FilteredSkillDefinitionRows => string.IsNullOrWhiteSpace(SkillSearchText)
+        ? SkillDefinitionRows
+        : SkillDefinitionRows.Where(row => row.Name.IndexOf(SkillSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                           || row.Id.IndexOf(SkillSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                           || row.Extra.IndexOf(SkillSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
     public ObservableCollection<string> OverviewActivityRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<WorkspacePanelDescriptor> WorkspacePanels { get; } = new ObservableCollection<WorkspacePanelDescriptor>();
 
@@ -1628,6 +1647,12 @@ public class AdminMainViewModel : ViewModelBase
             long.TryParse(S(money, "Bronze"), out l); Bronze = l;
             long.TryParse(S(money, "Silver"), out l); Silver = l;
             long.TryParse(S(money, "Gold"), out l); Gold = l;
+            long.TryParse(S(money, "Platinum"), out l); Platinum = l;
+            long.TryParse(S(money, "Orichalcum"), out l); Orichalcum = l;
+            long.TryParse(S(money, "Adamant"), out l); Adamant = l;
+            long.TryParse(S(money, "Sovereign"), out l); Sovereign = l;
+            long.TryParse(S(money, "ExperienceCoins"), out l); ExperienceCoins = l;
+            ClientLogService.Instance.Info($"ui-refresh section=Персонажи block=Финансы loadedCurrencies={money.Count}");
         }
 
         InventoryRows.Clear();
@@ -1789,6 +1814,7 @@ public class AdminMainViewModel : ViewModelBase
                 Extra = $"branch={S(map, "branchCode")} • direction={S(map, "directionCode")} • active={S(map, "isActive")}"
             });
         }
+        ClientLogService.Instance.Info($"ui-refresh section=Контент block=Классы loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}");
         RestoreSelection(ClassDefinitionRows, SelectedClassDefinitionCode, value => SelectedClassDefinitionCode = value);
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedClassDefinition));
@@ -1859,6 +1885,7 @@ public class AdminMainViewModel : ViewModelBase
                 Extra = $"maxLevel={S(map, "maxLevel")} • category={S(map, "skillCategory")} • active={S(map, "isActive")}"
             });
         }
+        ClientLogService.Instance.Info($"ui-refresh section=Контент block=Навыки loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}");
         RestoreSelection(SkillDefinitionRows, SelectedSkillDefinitionCode, value => SelectedSkillDefinitionCode = value);
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedSkillDefinition));
@@ -2165,6 +2192,7 @@ public class AdminMainViewModel : ViewModelBase
             TraceChatDiagnostic($"response-error command={CommandNames.ChatVisibleFeed} message={feed.Message}");
         }
         TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} uiCollection=ChatMessageRows uiCount={ChatMessageRows.Count}");
+        ClientLogService.Instance.Info($"ui-refresh section=Сессия block=Чат loaded={ChatRows.Count} visible={ChatMessageRows.Count}");
 
         var unread = _api.ChatUnreadGet(sessionId);
         ChatUnreadText = "Unread: " + S(unread.Payload, "count");
@@ -2351,7 +2379,7 @@ public class AdminMainViewModel : ViewModelBase
     private void ForceUnlock() { if (string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedLock != null) { SelectedCharacterId = SelectedLock.Id; } if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return; RunUiAction("Принудительное снятие lock", () => { var r = _api.ForceReleaseCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); LoadLocksSummary(); }); }
     private void SaveBasicInfo() { _api.UpdateCharacterBasicInfo(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "name", EditName }, { "race", EditRace }, { "height", EditHeight }, { "age", EditAge }, { "description", EditDescription }, { "backstory", EditBackstory } }); }
     private void SaveStats() { _api.UpdateCharacterStats(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "health", Health }, { "physicalArmor", PhysicalArmor }, { "magicalArmor", MagicalArmor }, { "morale", Morale }, { "strength", Strength }, { "dexterity", Dexterity }, { "endurance", Endurance }, { "wisdom", Wisdom }, { "intellect", Intellect }, { "charisma", Charisma } }); }
-    private void SaveMoney() { _api.UpdateCharacterMoney(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "money", new Dictionary<string, object> { { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold } } } }); }
+    private void SaveMoney() { _api.UpdateCharacterMoney(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "money", new Dictionary<string, object> { { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold }, { "Platinum", Platinum }, { "Orichalcum", Orichalcum }, { "Adamant", Adamant }, { "Sovereign", Sovereign }, { "ExperienceCoins", ExperienceCoins } } } }); ClientLogService.Instance.Info("ui-action section=Персонажи action=SaveMoney"); }
     private void ApproveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Подтверждение аккаунта", () => { _api.ApproveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
     private void ArchiveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Архивация аккаунта", () => { _api.ArchiveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
 
@@ -2382,7 +2410,7 @@ public class AdminMainViewModel : ViewModelBase
     {
         Notify(nameof(EditName)); Notify(nameof(EditRace)); Notify(nameof(EditHeight)); Notify(nameof(EditAge)); Notify(nameof(EditDescription)); Notify(nameof(EditBackstory));
         Notify(nameof(Health)); Notify(nameof(PhysicalArmor)); Notify(nameof(MagicalArmor)); Notify(nameof(Morale)); Notify(nameof(Strength)); Notify(nameof(Dexterity)); Notify(nameof(Endurance)); Notify(nameof(Wisdom)); Notify(nameof(Intellect)); Notify(nameof(Charisma));
-        Notify(nameof(Iron)); Notify(nameof(Bronze)); Notify(nameof(Silver)); Notify(nameof(Gold));
+        Notify(nameof(Iron)); Notify(nameof(Bronze)); Notify(nameof(Silver)); Notify(nameof(Gold)); Notify(nameof(Platinum)); Notify(nameof(Orichalcum)); Notify(nameof(Adamant)); Notify(nameof(Sovereign)); Notify(nameof(ExperienceCoins));
     }
 
     private static T ReadJson<T>(string path, T fallback) where T : class

@@ -82,12 +82,14 @@ public partial class MainShellWindow : Window
                     };
 
                     _panelWindows[panel.PanelId] = window;
+                    ClientLogService.Instance.Info($"ui-panel action=open panel={panel.PanelId}");
                     window.Show();
                 }
             }
             else if (_panelWindows.TryGetValue(panel.PanelId, out var existingWindow))
             {
                 _panelWindows.Remove(panel.PanelId);
+                ClientLogService.Instance.Info($"ui-panel action=close panel={panel.PanelId}");
                 existingWindow.IsProgrammaticClose = true;
                 existingWindow.Close();
             }
