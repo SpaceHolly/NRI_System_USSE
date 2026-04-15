@@ -29,84 +29,42 @@
                 <StackPanel Margin="8">
                     <DockPanel Margin="0,0,0,8">
                         <TextBlock Text="Редактор персонажа" Style="{StaticResource SectionTitleTextStyle}"/>
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CharacterEditor"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CharacterEditor"/>
-                        </StackPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Вернуть в основное окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CharacterEditor"/>
                     </DockPanel>
-                    <WrapPanel Margin="0,0,0,8">
-                        <TextBox Width="280" Text="{Binding DataContext.SelectedCharacterId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                        <Button Content="Открыть" Command="{Binding DataContext.OpenCharacterCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Заблокировать" Command="{Binding DataContext.AcquireLockCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Снять блок" Command="{Binding DataContext.ReleaseLockCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Принудительно снять" Command="{Binding DataContext.ForceUnlockCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedLock, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    </WrapPanel>
-                    <Border Style="{StaticResource SubtleCardStyle}">
-                        <TextBlock Text="{Binding DataContext.LockStateText, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    </Border>
-                    <TextBlock Text="Основные данные" Style="{StaticResource SectionTitleTextStyle}" Margin="0,8,0,4"/>
-                    <WrapPanel>
-                        <TextBox Width="180" Text="{Binding DataContext.EditName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBox Width="160" Text="{Binding DataContext.EditRace, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBox Width="120" Text="{Binding DataContext.EditHeight, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBox Width="80" Text="{Binding DataContext.EditAge, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                    </WrapPanel>
-                    <TextBox Height="70" TextWrapping="Wrap" Text="{Binding DataContext.EditDescription, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBox Height="90" TextWrapping="Wrap" Text="{Binding DataContext.EditBackstory, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                    <Button Content="Сохранить basic" Command="{Binding DataContext.SaveBasicInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}" HorizontalAlignment="Left" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    <TextBlock Text="Характеристики" Style="{StaticResource SectionTitleTextStyle}" Margin="0,8,0,4"/>
-                    <WrapPanel>
-                        <TextBox Width="70" Text="{Binding DataContext.Health, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.PhysicalArmor, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.MagicalArmor, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.Morale, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.Strength, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.Dexterity, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.Endurance, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.Wisdom, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.Intellect, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.Charisma, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    </WrapPanel>
-                    <Button Content="Сохранить stats" Command="{Binding DataContext.SaveStatsCommand, RelativeSource={RelativeSource AncestorType=Window}}" HorizontalAlignment="Left" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    <TextBlock Text="Ресурсы" Style="{StaticResource SectionTitleTextStyle}" Margin="0,8,0,4"/>
-                    <WrapPanel>
-                        <TextBox Width="70" Text="{Binding DataContext.Iron, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.Bronze, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.Silver, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <TextBox Width="70" Text="{Binding DataContext.Gold, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    </WrapPanel>
-                    <Button Content="Сохранить money" Command="{Binding DataContext.SaveMoneyCommand, RelativeSource={RelativeSource AncestorType=Window}}" HorizontalAlignment="Left" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    <Grid Margin="0,8,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Style="{StaticResource SubtleCardStyle}">
+                    <TextBlock Text="{Binding DataContext.SelectedCharacterSummary, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
                             <StackPanel>
-                                <TextBlock Text="Инвентарь" Style="{StaticResource TitleTextStyle}"/>
-                                <ItemsControl ItemsSource="{Binding DataContext.InventoryRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <TextBlock Text="Основная информация" Style="{StaticResource TitleTextStyle}"/>
+                                <TextBlock Text="Имя" Margin="0,6,0,0"/><TextBox Text="{Binding DataContext.EditName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Раса" Margin="0,6,0,0"/><TextBox Text="{Binding DataContext.EditRace, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Рост / Возраст" Margin="0,6,0,0"/>
+                                <WrapPanel><TextBox Width="140" Text="{Binding DataContext.EditHeight, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><TextBox Width="100" Text="{Binding DataContext.EditAge, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/></WrapPanel>
+                                <TextBlock Text="Описание" Margin="0,6,0,0"/><TextBox Height="70" TextWrapping="Wrap" Text="{Binding DataContext.EditDescription, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Предыстория" Margin="0,6,0,0"/><TextBox Height="90" TextWrapping="Wrap" Text="{Binding DataContext.EditBackstory, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                         </Border>
-                        <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}">
+                        <Border Grid.Column="1" Style="{StaticResource CardStyle}">
                             <StackPanel>
-                                <TextBlock Text="Спутники" Style="{StaticResource TitleTextStyle}"/>
-                                <ItemsControl ItemsSource="{Binding DataContext.CompanionRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <TextBlock Text="Видимость и заметки" Style="{StaticResource TitleTextStyle}"/>
+                                <CheckBox Content="Скрыть описание" IsChecked="{Binding DataContext.VisHideDescription, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                                <CheckBox Content="Скрыть предысторию" IsChecked="{Binding DataContext.VisHideBackstory, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                                <CheckBox Content="Скрыть характеристики" IsChecked="{Binding DataContext.VisHideStats, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                                <CheckBox Content="Скрыть репутацию" IsChecked="{Binding DataContext.VisHideReputation, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                                <WrapPanel Margin="0,8,0,0"><Button Content="Загрузить" Command="{Binding DataContext.VisibilityLoadCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageCharacterVisibility, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Сохранить" Command="{Binding DataContext.VisibilitySaveCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageCharacterVisibility, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel>
+                                <Separator Margin="0,8,0,8"/>
+                                <TextBlock Text="Финансы" Style="{StaticResource TitleTextStyle}"/>
+                                <UniformGrid Columns="3" Margin="0,6,0,0"><StackPanel><TextBlock Text="Железная"/><TextBox Text="{Binding DataContext.Iron, RelativeSource={RelativeSource AncestorType=Window}}"/></StackPanel><StackPanel><TextBlock Text="Бронзовая"/><TextBox Text="{Binding DataContext.Bronze, RelativeSource={RelativeSource AncestorType=Window}}"/></StackPanel><StackPanel><TextBlock Text="Серебряная"/><TextBox Text="{Binding DataContext.Silver, RelativeSource={RelativeSource AncestorType=Window}}"/></StackPanel><StackPanel><TextBlock Text="Золотая"/><TextBox Text="{Binding DataContext.Gold, RelativeSource={RelativeSource AncestorType=Window}}"/></StackPanel><StackPanel><TextBlock Text="Платиновая"/><TextBox Text="{Binding DataContext.Platinum, RelativeSource={RelativeSource AncestorType=Window}}"/></StackPanel><StackPanel><TextBlock Text="Орихалк"/><TextBox Text="{Binding DataContext.Orichalcum, RelativeSource={RelativeSource AncestorType=Window}}"/></StackPanel><StackPanel><TextBlock Text="Адамант"/><TextBox Text="{Binding DataContext.Adamant, RelativeSource={RelativeSource AncestorType=Window}}"/></StackPanel><StackPanel><TextBlock Text="Государева"/><TextBox Text="{Binding DataContext.Sovereign, RelativeSource={RelativeSource AncestorType=Window}}"/></StackPanel><StackPanel><TextBlock Text="Монеты опыта"/><TextBox Text="{Binding DataContext.ExperienceCoins, RelativeSource={RelativeSource AncestorType=Window}}"/></StackPanel></UniformGrid>
+                                <Button Margin="0,8,0,0" HorizontalAlignment="Left" Content="Сохранить финансы" Command="{Binding DataContext.SaveMoneyCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageSelectedCharacter, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             </StackPanel>
                         </Border>
-                        <Border Grid.Column="2" Style="{StaticResource SubtleCardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="Владения" Style="{StaticResource TitleTextStyle}"/>
-                                <ItemsControl ItemsSource="{Binding DataContext.HoldingsRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="3" Style="{StaticResource SubtleCardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="Репутация" Style="{StaticResource TitleTextStyle}"/>
-                                <ItemsControl ItemsSource="{Binding DataContext.ReputationRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            </StackPanel>
-                        </Border>
+                    </Grid>
+                    <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <Border Style="{StaticResource CardStyle}" Margin="0,0,8,8"><StackPanel><TextBlock Text="Инвентарь" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding DataContext.InventoryRows, RelativeSource={RelativeSource AncestorType=Window}}" MinHeight="130"/></StackPanel></Border>
+                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="0,0,0,8"><StackPanel><TextBlock Text="Спутники" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding DataContext.CompanionRows, RelativeSource={RelativeSource AncestorType=Window}}" MinHeight="130"/></StackPanel></Border>
+                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,8,0"><StackPanel><TextBlock Text="Владения" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding DataContext.HoldingsRows, RelativeSource={RelativeSource AncestorType=Window}}" MinHeight="130"/></StackPanel></Border>
+                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Репутация" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding DataContext.ReputationRows, RelativeSource={RelativeSource AncestorType=Window}}" MinHeight="130"/></StackPanel></Border>
                     </Grid>
                 </StackPanel>
             </ScrollViewer>
@@ -114,298 +72,69 @@
 
         <DataTemplate x:Key="RequestsTemplate" DataType="{x:Type vm:WorkspacePanelDescriptor}">
             <Grid Margin="8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Заявки на модерацию" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Requests"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Requests"/>
-                    </StackPanel>
-                </DockPanel>
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="3*"/>
-                    </Grid.ColumnDefinitions>
-                    <DataGrid ItemsSource="{Binding DataContext.PendingRequests, RelativeSource={RelativeSource AncestorType=Window}}" SelectedValuePath="Id" SelectedValue="{Binding DataContext.SelectedPendingRequestId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Идентификатор" Binding="{Binding Id}"/>
-                            <DataGridTextColumn Header="Тип" Binding="{Binding Name}"/>
-                            <DataGridTextColumn Header="Статус" Binding="{Binding State}"/>
-                            <DataGridTextColumn Header="Детали" Binding="{Binding Extra}"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                        <Border Style="{StaticResource SubtleCardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="Комментарий админа" Style="{StaticResource TitleTextStyle}"/>
-                                <TextBox Height="80" TextWrapping="Wrap" Text="{Binding DataContext.RequestComment, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                                <WrapPanel>
-                                    <Button Content="Одобрить" Command="{Binding DataContext.ApproveRequestCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateSelectedRequest, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Отклонить" Command="{Binding DataContext.RejectRequestCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateSelectedRequest, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                </WrapPanel>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource SubtleCardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="История заявок" Style="{StaticResource TitleTextStyle}"/>
-                                <ItemsControl ItemsSource="{Binding DataContext.RequestHistoryRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource SubtleCardStyle}" Margin="0,10,0,0">
-                            <StackPanel>
-                                <TextBlock Text="Контекст выбора" Style="{StaticResource TitleTextStyle}"/>
-                                <TextBlock Text="{Binding SelectedPlayerSummary}" Margin="0,6,0,0"/>
-                                <TextBlock Text="{Binding SelectedCharacterSummary}" Margin="0,4,0,0"/>
-                                <TextBlock Text="{Binding SelectedRequestSummary}" Margin="0,4,0,0"/>
-                                <TextBlock Text="{Binding CharacterActionSummary}" Margin="0,4,0,0" TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <DockPanel Margin="0,0,0,8"><TextBlock Text="Заявки" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Вернуть в основное окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Requests"/></DockPanel>
+                <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="2.4*"/><ColumnDefinition Width="1.8*"/></Grid.ColumnDefinitions>
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <DataGrid ItemsSource="{Binding DataContext.PendingRequests, RelativeSource={RelativeSource AncestorType=Window}}" SelectedValuePath="Id" SelectedValue="{Binding DataContext.SelectedPendingRequestId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"><DataGrid.Columns><DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="1.4*"/><DataGridTextColumn Header="Тип" Binding="{Binding Name}" Width="1.1*"/><DataGridTextColumn Header="Статус" Binding="{Binding State}" Width="1*"/><DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="2*"/></DataGrid.Columns></DataGrid>
+                        <WrapPanel Grid.Row="1" Margin="0,8,0,0"><Button Content="Одобрить" Command="{Binding DataContext.ApproveRequestCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateSelectedRequest, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Отклонить" Command="{Binding DataContext.RejectRequestCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateSelectedRequest, RelativeSource={RelativeSource AncestorType=Window}}"/><TextBox Width="260" Text="{Binding DataContext.RequestComment, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}" ToolTip="Комментарий модератора"/></WrapPanel>
+                    </Grid>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0"><StackPanel><TextBlock Text="Контекст" Style="{StaticResource SectionTitleTextStyle}"/><TextBlock Text="{Binding DataContext.SelectedRequestSummary, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,6,0,0" TextWrapping="Wrap"/><TextBlock Text="{Binding DataContext.SelectedPlayerSummary, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,6,0,0" TextWrapping="Wrap"/><TextBlock Text="{Binding DataContext.SelectedCharacterSummary, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,6,0,0" TextWrapping="Wrap"/><Border Style="{StaticResource SubtleCardStyle}" Margin="0,10,0,0"><StackPanel><TextBlock Text="История заявок" Style="{StaticResource TitleTextStyle}"/><ListBox ItemsSource="{Binding DataContext.RequestHistoryRows, RelativeSource={RelativeSource AncestorType=Window}}" MinHeight="220"/></StackPanel></Border></StackPanel></Border>
                 </Grid>
             </Grid>
         </DataTemplate>
 
         <DataTemplate x:Key="DiceFeedTemplate" DataType="{x:Type vm:WorkspacePanelDescriptor}">
-            <StackPanel Margin="8">
-                <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Лента бросков" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="DiceFeed"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="DiceFeed"/>
-                    </StackPanel>
-                </DockPanel>
-                <ListBox ItemsSource="{Binding DataContext.DiceFeedRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
-            </StackPanel>
+            <Grid Margin="8">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <DockPanel Margin="0,0,0,8"><TextBlock Text="Лента бросков" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Вернуть в основное окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="DiceFeed"/></DockPanel>
+                <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="8">
+                    <ListBox ItemsSource="{Binding DataContext.DiceFeedRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                </Border>
+            </Grid>
         </DataTemplate>
 
         <DataTemplate x:Key="CombatTrackerTemplate" DataType="{x:Type vm:WorkspacePanelDescriptor}">
             <Grid Margin="8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Трекер боя" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CombatTracker"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CombatTracker"/>
-                    </StackPanel>
-                </DockPanel>
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="3*"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Margin="8">
-                        <WrapPanel>
-                            <TextBox Width="160" Text="{Binding DataContext.CombatSessionId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Content="Запустить" Command="{Binding DataContext.CombatStartCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Завершить" Command="{Binding DataContext.CombatEndCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DataContext.CombatRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        </WrapPanel>
-                        <WrapPanel>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Следующий ход" Command="{Binding DataContext.CombatNextTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Предыдущий ход" Command="{Binding DataContext.CombatPrevTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Следующий раунд" Command="{Binding DataContext.CombatNextRoundCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Пропустить ход" Command="{Binding DataContext.CombatSkipTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        </WrapPanel>
-                        <WrapPanel>
-                            <TextBox Width="160" Text="{Binding DataContext.NewParticipantName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBox Width="100" Text="{Binding DataContext.NewParticipantKind, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Content="Добавить участника" Command="{Binding DataContext.CombatAddParticipantCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        </WrapPanel>
-                        <WrapPanel>
-                            <TextBox Width="220" Text="{Binding DataContext.SelectedCombatParticipantId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Удалить" Command="{Binding DataContext.CombatRemoveParticipantCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageCombatSelection, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Отвязать спутника" Command="{Binding DataContext.CombatDetachCompanionCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageCombatSelection, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        </WrapPanel>
-                        <TextBlock Text="{Binding DataContext.SelectedCombatParticipantSummary, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                        <ListBox ItemsSource="{Binding DataContext.CombatRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    </StackPanel>
-                    <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="История боя" Style="{StaticResource TitleTextStyle}"/>
-                            <ListBox ItemsSource="{Binding DataContext.CombatHistoryRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        </StackPanel>
-                    </Border>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <DockPanel Margin="0,0,0,8"><TextBlock Text="Трекер боя" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Вернуть в основное окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CombatTracker"/></DockPanel>
+                <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="1.5*"/><ColumnDefinition Width="1.3*"/><ColumnDefinition Width="1.8*"/></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0"><StackPanel><TextBlock Text="Управление боем" Style="{StaticResource SectionTitleTextStyle}"/><WrapPanel Margin="0,8,0,0"><TextBox Width="150" Text="{Binding DataContext.CombatSessionId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Запустить" Command="{Binding DataContext.CombatStartCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Завершить" Command="{Binding DataContext.CombatEndCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel><WrapPanel Margin="0,8,0,0"><Button Style="{StaticResource GhostButtonStyle}" Content="Следующий ход" Command="{Binding DataContext.CombatNextTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Предыдущий ход" Command="{Binding DataContext.CombatPrevTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Следующий раунд" Command="{Binding DataContext.CombatNextRoundCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Пропустить" Command="{Binding DataContext.CombatSkipTurnCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel></StackPanel></Border>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="0,0,8,0"><StackPanel><TextBlock Text="Участники" Style="{StaticResource SectionTitleTextStyle}"/><WrapPanel Margin="0,8,0,0"><TextBox Width="130" Text="{Binding DataContext.NewParticipantName, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><TextBox Width="90" Text="{Binding DataContext.NewParticipantKind, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Добавить" Command="{Binding DataContext.CombatAddParticipantCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlCombat, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel><WrapPanel Margin="0,8,0,0"><TextBox Width="210" Text="{Binding DataContext.SelectedCombatParticipantId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Удалить" Command="{Binding DataContext.CombatRemoveParticipantCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageCombatSelection, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel><ListBox ItemsSource="{Binding DataContext.CombatRows, RelativeSource={RelativeSource AncestorType=Window}}" MinHeight="220" Margin="0,8,0,0"/></StackPanel></Border>
+                    <Border Grid.Column="2" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="История боя" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding DataContext.CombatHistoryRows, RelativeSource={RelativeSource AncestorType=Window}}" MinHeight="320"/></StackPanel></Border>
                 </Grid>
             </Grid>
         </DataTemplate>
 
         <DataTemplate x:Key="NotesManagementTemplate" DataType="{x:Type vm:WorkspacePanelDescriptor}">
             <Grid Margin="8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Управление заметками" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="NotesManagement"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="NotesManagement"/>
-                    </StackPanel>
-                </DockPanel>
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="3*"/>
-                    </Grid.ColumnDefinitions>
-                    <Border Style="{StaticResource SubtleCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="{Binding DataContext.CharacterActionSummary, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,0,8" TextWrapping="Wrap"/>
-                            <WrapPanel>
-                                <TextBox Width="120" Text="{Binding DataContext.NoteSessionId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                                <TextBox Width="120" Text="{Binding DataContext.NoteTargetType, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                                <TextBox Width="180" Text="{Binding DataContext.NoteTargetId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DataContext.NotesRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanRefreshNotes, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            </WrapPanel>
-                            <TextBox Text="{Binding DataContext.NoteTitle, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBox Height="80" TextWrapping="Wrap" Text="{Binding DataContext.NoteText, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <WrapPanel>
-                                <TextBox Width="140" Text="{Binding DataContext.NoteVisibility, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                                <Button Content="Создать" Command="{Binding DataContext.NotesCreateCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanCreateNote, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            </WrapPanel>
-                            <WrapPanel>
-                                <TextBox Width="220" Text="{Binding DataContext.SelectedNoteId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Архивировать" Command="{Binding DataContext.NotesArchiveCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanArchiveNote, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            </WrapPanel>
-                        </StackPanel>
-                    </Border>
-                    <ListBox Grid.Column="1" ItemsSource="{Binding DataContext.NotesRows, RelativeSource={RelativeSource AncestorType=Window}}" Margin="8"/>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <DockPanel Margin="0,0,0,8"><TextBlock Text="Заметки мастера" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Вернуть в основное окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="NotesManagement"/></DockPanel>
+                <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="1.5*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Новая заметка" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="Заголовок" Margin="0,6,0,2"/><TextBox Text="{Binding DataContext.NoteTitle, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Текст" Margin="0,6,0,2"/><TextBox Height="90" TextWrapping="Wrap" Text="{Binding DataContext.NoteText, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Видимость" Margin="0,6,0,2"/><ComboBox Width="180" SelectedValuePath="Tag" SelectedValue="{Binding DataContext.NoteVisibility, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"><ComboBoxItem Content="Личное" Tag="Private"/><ComboBoxItem Content="Для ведущего" Tag="Moderator"/><ComboBoxItem Content="Публичное" Tag="Public"/></ComboBox><TextBlock Text="Поиск/цель" Margin="0,6,0,2"/><TextBox Text="{Binding DataContext.NoteTargetId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><WrapPanel Margin="0,8,0,0"><Button Content="Создать" Command="{Binding DataContext.NotesCreateCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanCreateNote, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DataContext.NotesRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanRefreshNotes, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel></StackPanel></Border>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0"><StackPanel><TextBlock Text="Список заметок" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding DataContext.NotesRows, RelativeSource={RelativeSource AncestorType=Window}}" MinHeight="300"/></StackPanel></Border>
                 </Grid>
             </Grid>
         </DataTemplate>
 
         <DataTemplate x:Key="SessionChatTemplate" DataType="{x:Type vm:WorkspacePanelDescriptor}">
             <Grid Margin="8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Чат сессии" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="SessionChat"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="SessionChat"/>
-                    </StackPanel>
-                </DockPanel>
-                <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="6">
-                    <ListBox ItemsSource="{Binding DataContext.ChatMessageRows, RelativeSource={RelativeSource AncestorType=Window}}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,6">
-                                    <StackPanel>
-                                        <TextBlock TextWrapping="Wrap">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSystem}" Value="True">
-                                                            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                            <Run Text="{Binding Sender}" FontWeight="SemiBold"/>
-                                            <Run Text=": "/>
-                                            <Run Text="{Binding Text}"/>
-                                        </TextBlock>
-                                        <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Border>
-                <Grid Grid.Row="2">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2.8*"/>
-                        <ColumnDefinition Width="1.2*"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <WrapPanel Margin="0,0,0,8">
-                            <TextBox Width="170" Margin="0,0,8,0" Text="{Binding DataContext.ChatSessionId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <ComboBox Width="170" Margin="0,0,8,0" ItemsSource="{Binding DataContext.ChatMessageTypeOptions, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding DataContext.ChatMessageType, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DataContext.ChatRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        </WrapPanel>
-                        <Border Style="{StaticResource CardStyle}" Padding="8">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="120"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0" Margin="0,0,8,0" MinHeight="34" VerticalContentAlignment="Center" Text="{Binding DataContext.ChatMessageText, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                                <Button Grid.Column="1" Content="Отправить" MinHeight="34" Command="{Binding DataContext.ChatSendCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanSendChat, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            </Grid>
-                        </Border>
-                        <TextBlock Text="{Binding DataContext.ChatUnreadText, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                    </StackPanel>
-                    <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Модерация" Style="{StaticResource TitleTextStyle}"/>
-                            <TextBlock Text="{Binding DataContext.ChatModerationSummary, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,6,0,8" TextWrapping="Wrap"/>
-                            <TextBox Text="{Binding DataContext.ChatModerationUserId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBox Text="{Binding DataContext.ChatModerationReason, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <WrapPanel>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Мут" Command="{Binding DataContext.ChatMuteUserCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateChatUser, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Снять мут" Command="{Binding DataContext.ChatUnmuteUserCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateChatUser, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            </WrapPanel>
-                            <WrapPanel>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Блокировать игроков" Command="{Binding DataContext.ChatLockPlayersCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageChatControls, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Разблокировать игроков" Command="{Binding DataContext.ChatUnlockPlayersCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageChatControls, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            </WrapPanel>
-                            <WrapPanel>
-                                <TextBox Width="60" Text="{Binding DataContext.ChatSlowPublicSeconds, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                <TextBox Width="60" Text="{Binding DataContext.ChatSlowHiddenSeconds, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                <TextBox Width="60" Text="{Binding DataContext.ChatSlowAdminOnlySeconds, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Медленный режим" Command="{Binding DataContext.ChatSetSlowModeCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageChatControls, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            </WrapPanel>
-                            <ListBox ItemsSource="{Binding DataContext.ChatRestrictionRows, RelativeSource={RelativeSource AncestorType=Window}}" Height="140"/>
-                        </StackPanel>
-                    </Border>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <DockPanel Margin="0,0,0,8"><TextBlock Text="Чат сессии" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Вернуть в основное окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="SessionChat"/></DockPanel>
+                <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0"><ListBox ItemsSource="{Binding DataContext.ChatMessageRows, RelativeSource={RelativeSource AncestorType=Window}}"><ListBox.ItemTemplate><DataTemplate DataType="{x:Type vm:ChatMessageRowVm}"><Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,6"><StackPanel><TextBlock TextWrapping="Wrap"><Run Text="{Binding Sender}" FontWeight="SemiBold"/><Run Text=": "/><Run Text="{Binding Text}"/></TextBlock><TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}"/></StackPanel></Border></DataTemplate></ListBox.ItemTemplate></ListBox></Border>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Модерация чата" Style="{StaticResource SectionTitleTextStyle}"/><TextBlock Text="Пользователь" Margin="0,8,0,2"/><ComboBox SelectedValuePath="Tag" SelectedValue="{Binding DataContext.ChatModerationUserId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"><ComboBoxItem Content="Выбрать пользователя" Tag=""/><ComboBoxItem Content="Ввести ID вручную" Tag="manual"/></ComboBox><TextBlock Text="Причина" Margin="0,6,0,2"/><TextBox Text="{Binding DataContext.ChatModerationReason, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><WrapPanel Margin="0,8,0,0"><Button Style="{StaticResource GhostButtonStyle}" Content="Мут" Command="{Binding DataContext.ChatMuteUserCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateChatUser, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Снять мут" Command="{Binding DataContext.ChatUnmuteUserCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanModerateChatUser, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel><TextBlock Text="Медленный режим (сек.)" Margin="0,8,0,2"/><WrapPanel><TextBox Width="58" Text="{Binding DataContext.ChatSlowPublicSeconds, RelativeSource={RelativeSource AncestorType=Window}}"/><TextBox Width="58" Text="{Binding DataContext.ChatSlowHiddenSeconds, RelativeSource={RelativeSource AncestorType=Window}}"/><TextBox Width="58" Text="{Binding DataContext.ChatSlowAdminOnlySeconds, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Применить медленный режим" Command="{Binding DataContext.ChatSetSlowModeCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanManageChatControls, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel><ListBox Margin="0,8,0,0" ItemsSource="{Binding DataContext.ChatRestrictionRows, RelativeSource={RelativeSource AncestorType=Window}}" MinHeight="180"/></StackPanel></Border>
                 </Grid>
+                <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions><WrapPanel><ComboBox Width="150" SelectedValuePath="Tag" SelectedValue="{Binding DataContext.ChatSessionId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"><ComboBoxItem Content="Канал: Основная" Tag="default"/></ComboBox><ComboBox Width="170" ItemsSource="{Binding DataContext.ChatMessageTypeOptions, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding DataContext.ChatMessageType, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DataContext.ChatRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel><Grid Grid.Column="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="110"/></Grid.ColumnDefinitions><TextBox Margin="0,0,8,0" Text="{Binding DataContext.ChatMessageText, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><Button Grid.Column="1" Content="Отправить" Command="{Binding DataContext.ChatSendCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanSendChat, RelativeSource={RelativeSource AncestorType=Window}}"/></Grid></Grid>
             </Grid>
         </DataTemplate>
 
         <DataTemplate x:Key="SessionAudioTemplate" DataType="{x:Type vm:WorkspacePanelDescriptor}">
             <Grid Margin="8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <DockPanel Margin="0,0,0,8">
-                    <TextBlock Text="Аудио сессии" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Вернуть в окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="SessionAudio"/>
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="Скрыть" Command="{Binding DataContext.ToggleWorkspacePanelVisibilityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="SessionAudio"/>
-                    </StackPanel>
-                </DockPanel>
-                <Border Grid.Row="1" Style="{StaticResource SubtleCardStyle}">
-                    <StackPanel>
-                        <TextBlock Text="{Binding DataContext.AudioStateText, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        <WrapPanel>
-                            <TextBox Width="140" Text="{Binding DataContext.AudioSessionId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBox Width="120" Text="{Binding DataContext.AudioModeInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBox Width="120" Text="{Binding DataContext.AudioCategoryInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DataContext.AudioRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Content="Применить режим" Command="{Binding DataContext.AudioSetModeCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Следующий" Command="{Binding DataContext.AudioNextTrackCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Сбросить override" Command="{Binding DataContext.AudioClearOverrideCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        </WrapPanel>
-                        <WrapPanel>
-                            <TextBox Width="220" Text="{Binding DataContext.AudioSelectedTrackId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                            <Button Content="Выбрать трек" Command="{Binding DataContext.AudioSelectTrackCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить библиотеку" Command="{Binding DataContext.AudioReloadLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                        </WrapPanel>
-                    </StackPanel>
-                </Border>
-                <ListBox Grid.Row="2" ItemsSource="{Binding DataContext.AudioLibraryRows, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <DockPanel Margin="0,0,0,8"><TextBlock Text="Музыка сессии" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Вернуть в основное окно" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="SessionAudio"/></DockPanel>
+                <Border Grid.Row="1" Style="{StaticResource CardStyle}"><StackPanel><WrapPanel><ComboBox Width="150" SelectedValuePath="Tag" SelectedValue="{Binding DataContext.AudioSessionId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"><ComboBoxItem Content="Сессия: Основная" Tag="default"/></ComboBox><ComboBox Width="160" Text="{Binding DataContext.AudioModeInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}" IsEditable="True"><ComboBoxItem Content="ambient"/><ComboBoxItem Content="combat"/><ComboBoxItem Content="dialog"/></ComboBox><TextBox Width="160" Text="{Binding DataContext.AudioCategoryInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DataContext.AudioRefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Content="Применить" Command="{Binding DataContext.AudioSetModeCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel><WrapPanel Margin="0,8,0,0"><TextBox Width="220" Text="{Binding DataContext.AudioSelectedTrackId, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Выбрать трек" Command="{Binding DataContext.AudioSelectTrackCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Следующий" Command="{Binding DataContext.AudioNextTrackCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Сбросить" Command="{Binding DataContext.AudioClearOverrideCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/></WrapPanel></StackPanel></Border>
+                <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,8,0,0"><StackPanel><DockPanel><TextBlock Text="Библиотека треков" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Перезагрузить библиотеку" Command="{Binding DataContext.AudioReloadLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}" IsEnabled="{Binding DataContext.CanControlAudio, RelativeSource={RelativeSource AncestorType=Window}}"/></DockPanel><DataGrid ItemsSource="{Binding DataContext.AudioLibraryRows, RelativeSource={RelativeSource AncestorType=Window}}" MinHeight="260"/></StackPanel></Border>
             </Grid>
         </DataTemplate>
     </Window.Resources>

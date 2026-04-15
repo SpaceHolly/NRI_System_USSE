@@ -1291,6 +1291,7 @@ public class AdminMainViewModel : ViewModelBase
         if (!panel.CanDetach) return;
         panel.IsVisible = true;
         panel.IsDetached = true;
+        ClientLogService.Instance.Info($"ui-panel action=detach panel={panel.PanelId}");
         SaveWorkspaceLayout();
         RefreshConnectionSummary();
     }
@@ -1301,6 +1302,7 @@ public class AdminMainViewModel : ViewModelBase
         var panel = GetPanelById(panelId);
         panel.IsDetached = false;
         panel.IsVisible = true;
+        ClientLogService.Instance.Info($"ui-panel action=attach panel={panel.PanelId}");
         SaveWorkspaceLayout();
         RefreshConnectionSummary();
     }

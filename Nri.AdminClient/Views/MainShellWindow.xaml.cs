@@ -65,7 +65,9 @@ public partial class MainShellWindow : Window
             {
                 if (!_panelWindows.ContainsKey(panel.PanelId))
                 {
-                    var template = (DataTemplate)FindResource(panel.PanelId + "Template");
+                    var templateKey = panel.PanelId + "Template";
+                    var template = (DataTemplate)FindResource(templateKey);
+                    ClientLogService.Instance.Info($"ui-panel template-load panel={panel.PanelId} template={templateKey}");
                     var window = new DetachedPanelWindow(ViewModel, panel, template)
                     {
                         Owner = this
