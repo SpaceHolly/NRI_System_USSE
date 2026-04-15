@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using Nri.AdminClient.Diagnostics;
 using Nri.AdminClient.ViewModels;
 
 namespace Nri.AdminClient.Views;
@@ -35,6 +36,7 @@ public partial class MainShellWindow : Window
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         _isShuttingDown = true;
+        ClientLogService.Instance.Info("Main window closing (Admin)");
 
         foreach (var window in _panelWindows.Values.ToList())
         {
@@ -63,7 +65,9 @@ public partial class MainShellWindow : Window
             {
                 if (!_panelWindows.ContainsKey(panel.PanelId))
                 {
-                    var template = (DataTemplate)FindResource(panel.PanelId + "Template");
+                    var templateKey = panel.PanelId + "Template";
+                    var template = (DataTemplate)FindResource(templateKey);
+                    ClientLogService.Instance.Info($"ui-panel template-load panel={panel.PanelId} template={templateKey}");
                     var window = new DetachedPanelWindow(ViewModel, panel, template)
                     {
                         Owner = this
@@ -80,12 +84,14 @@ public partial class MainShellWindow : Window
                     };
 
                     _panelWindows[panel.PanelId] = window;
+                    ClientLogService.Instance.Info($"ui-panel action=open panel={panel.PanelId}");
                     window.Show();
                 }
             }
             else if (_panelWindows.TryGetValue(panel.PanelId, out var existingWindow))
             {
                 _panelWindows.Remove(panel.PanelId);
+                ClientLogService.Instance.Info($"ui-panel action=close panel={panel.PanelId}");
                 existingWindow.IsProgrammaticClose = true;
                 existingWindow.Close();
             }
