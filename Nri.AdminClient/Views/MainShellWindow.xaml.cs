@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using Nri.AdminClient.Diagnostics;
 using Nri.AdminClient.ViewModels;
 
 namespace Nri.AdminClient.Views;
@@ -35,6 +36,7 @@ public partial class MainShellWindow : Window
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         _isShuttingDown = true;
+        ClientLogService.Instance.Info("Main window closing (Admin)");
 
         foreach (var window in _panelWindows.Values.ToList())
         {

@@ -10,8 +10,11 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Nri.AdminClient.Diagnostics;
 using Nri.AdminClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
@@ -65,6 +68,14 @@ public class RowVm : ViewModelBase
     public string Name { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public string Extra { get; set; } = string.Empty;
+}
+
+public sealed class ChatMessageRowVm : ViewModelBase
+{
+    public string Sender { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+    public string Timestamp { get; set; } = string.Empty;
+    public bool IsSystem { get; set; }
 }
 
 public sealed class SkillLevelEditorRowVm : ViewModelBase
@@ -236,7 +247,8 @@ public class AdminMainViewModel : ViewModelBase
     {
         Directory.CreateDirectory(_appDataDirectory);
 
-        _client = new JsonTcpClient(new ClientConfig(), _session);
+        _client = new JsonTcpClient(App.ClientConfig, _session);
+        ClientLogService.Instance.Info("AdminMainViewModel initialized");
         _api = new CommandApi(_client);
 
         LoginCommand = new RelayCommand(() => RunUiAction("Авторизация", Login));
@@ -790,6 +802,7 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<RowVm> ClassTreeItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> SkillRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<ChatMessageRowVm> ChatMessageRows { get; } = new ObservableCollection<ChatMessageRowVm>();
     public ObservableCollection<string> ChatRestrictionRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> AudioLibraryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> NotesRows { get; } = new ObservableCollection<string>();
@@ -990,6 +1003,7 @@ public class AdminMainViewModel : ViewModelBase
         {
             _client.UpdateEndpoint(host, port);
             _client.Connect();
+            ClientLogService.Instance.Info($"Server connection established: {host}:{port}");
             LastServerHost = host;
             LastServerPort = port;
             SaveConnectionSettings();
@@ -1000,6 +1014,7 @@ public class AdminMainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            ClientLogService.Instance.Error($"Server connection failed: {host}:{port}", ex);
             SetConnectionError($"Не удалось подключиться к {host}:{port}. {ex.Message}");
         }
     }
@@ -1439,6 +1454,7 @@ public class AdminMainViewModel : ViewModelBase
         try
         {
             ConnectToServer();
+            ClientLogService.Instance.Info($"Login attempt: user={LoginText}");
             var r = _api.Login(LoginText, PasswordText);
             if (r.Status == ResponseStatus.Ok)
             {
@@ -1448,6 +1464,7 @@ public class AdminMainViewModel : ViewModelBase
                 RefreshAll();
                 IsAuthPopupOpen = false;
                 Notify(nameof(LoginSummary));
+                ClientLogService.Instance.Info($"Login success: user={LoginText}");
             }
             else
             {
@@ -1459,6 +1476,7 @@ public class AdminMainViewModel : ViewModelBase
                 ConnectionStatusDetail = string.IsNullOrWhiteSpace(r.Message) ? "Логин не выполнен." : r.Message;
                 LastStatusMessage = "Логин не выполнен.";
                 RefreshConnectionSummary();
+                ClientLogService.Instance.Warn($"Login failed: user={LoginText}; message={r.Message}");
             }
         }
         catch (Exception ex)
@@ -2074,9 +2092,11 @@ public class AdminMainViewModel : ViewModelBase
         var sessionId = ResolveChatSessionId();
         if (string.Equals(ChatMessageType, "System", StringComparison.OrdinalIgnoreCase))
         {
-            LastStatusMessage = "[CHAT-DIAG-TEMP][Admin] blocked client-side system message send";
+            LastStatusMessage = "[CHAT-DIAG][Admin] blocked client-side system message send";
+            ClientLogService.Instance.Warn(LastStatusMessage);
             return;
         }
+        ClientLogService.Instance.Info($"Chat send requested: sessionId={sessionId}; command={CommandNames.ChatSend}");
         _api.ChatSend(sessionId, ChatMessageType, ChatMessageText);
         ChatMessageText = string.Empty;
         Notify(nameof(ChatMessageText));
@@ -2088,26 +2108,37 @@ public class AdminMainViewModel : ViewModelBase
         var sessionId = ResolveChatSessionId();
         TraceChatDiagnostic($"request command={CommandNames.ChatVisibleFeed} session={sessionId}");
         ChatRows.Clear();
+        ChatMessageRows.Clear();
         var feed = _api.ChatVisibleFeed(sessionId, 80);
         var feedItems = ExtractChatItems(feed.Payload, out var sourceKey, out var payloadKeys, out var rawItemsType);
         TraceChatDiagnostic($"response command={CommandNames.ChatVisibleFeed} status={feed.Status} success={(feed.Status == ResponseStatus.Ok)} payloadKeys=[{payloadKeys}] sourceKey={sourceKey} rawItems={feedItems.Count} rawType={rawItemsType}");
+        LogFirstChatItemShape(feedItems, CommandNames.ChatVisibleFeed);
         if (feed.Status == ResponseStatus.Ok)
         {
             var mappedCount = 0;
+            var filteredCount = 0;
             foreach (var item in feedItems)
             {
-                var m = AsMap(item);
+                var m = AsMap(item, CommandNames.ChatVisibleFeed);
                 if (m == null) continue;
-                ChatRows.Add($"{S(m, "createdUtc")} | {S(m, "type")} | {S(m, "senderDisplayName")}: {S(m, "text")}");
                 mappedCount++;
+                var row = BuildChatMessageRow(m);
+                if (row == null)
+                {
+                    filteredCount++;
+                    continue;
+                }
+
+                ChatRows.Add($"{row.Sender}: {row.Text}");
+                ChatMessageRows.Add(row);
             }
-            TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount}");
+            TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount} filteredOut={filteredCount} displayItems={ChatMessageRows.Count}");
         }
         else
         {
             TraceChatDiagnostic($"response-error command={CommandNames.ChatVisibleFeed} message={feed.Message}");
         }
-        TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} uiCollection=ChatRows uiCount={ChatRows.Count}");
+        TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} uiCollection=ChatMessageRows uiCount={ChatMessageRows.Count}");
 
         var unread = _api.ChatUnreadGet(sessionId);
         ChatUnreadText = "Unread: " + S(unread.Payload, "count");
@@ -2125,7 +2156,7 @@ public class AdminMainViewModel : ViewModelBase
         foreach (var item in ToList(restrictions.Payload.ContainsKey("restrictions") ? restrictions.Payload["restrictions"] : new ArrayList()))
             if (AsMap(item) is { } m)
                 ChatRestrictionRows.Add($"{S(m, "userId")} muted={S(m, "muted")} reason={S(m, "reason")}");
-        TraceChatDiagnostic($"ui chatRows={ChatRows.Count} restrictionsRows={ChatRestrictionRows.Count}");
+        TraceChatDiagnostic($"ui chatRows={ChatRows.Count} chatMessageRows={ChatMessageRows.Count} restrictionsRows={ChatRestrictionRows.Count}");
         RefreshConnectionSummary();
     }
 
@@ -2309,6 +2340,7 @@ public class AdminMainViewModel : ViewModelBase
     {
         SaveConnectionSettings();
         SaveWorkspaceLayout();
+        ClientLogService.Instance.Info("Logout / shutdown requested from Admin client");
         _client.Disconnect();
     }
 
@@ -2388,15 +2420,16 @@ public class AdminMainViewModel : ViewModelBase
 
     private void TraceChatDiagnostic(string message)
     {
-        var line = "[CHAT-DIAG-TEMP][Admin] " + message;
-        Debug.WriteLine(line);
+        var line = "[CHAT-DIAG][Admin] " + message;
+        ClientLogService.Instance.Info(line);
         LastStatusMessage = line;
     }
 
-    private static Dictionary<string, object>? AsMap(object? value)
+    private Dictionary<string, object>? AsMap(object? value, string context)
     {
         if (value is Dictionary<string, object> typedMap)
         {
+            TraceChatDiagnostic($"map-shape command={context} branch=Dictionary<string,object> count={typedMap.Count}");
             return typedMap;
         }
 
@@ -2414,10 +2447,255 @@ public class AdminMainViewModel : ViewModelBase
                 map[key] = entry.Value;
             }
 
-            return map;
+            TraceChatDiagnostic($"map-shape command={context} branch=IDictionary count={map.Count}");
+            return map.Count > 0 ? map : null;
         }
 
+        if (value is object[] objectArray)
+        {
+            if (TryConvertObjectArrayToMap(objectArray, out var objectArrayMap))
+            {
+                TraceChatDiagnostic($"map-shape command={context} branch=object[] count={objectArrayMap.Count}");
+                return objectArrayMap;
+            }
+
+            TraceChatDiagnostic($"map-shape command={context} branch=object[] fallback=failed length={objectArray.Length}");
+            return null;
+        }
+
+        if (value is IEnumerable enumerable && value is not string)
+        {
+            if (TryConvertEnumerableToMap(enumerable, out var enumerableMap))
+            {
+                TraceChatDiagnostic($"map-shape command={context} branch=IEnumerable count={enumerableMap.Count}");
+                return enumerableMap;
+            }
+
+            TraceChatDiagnostic($"map-shape command={context} branch=IEnumerable fallback=failed type={value.GetType().FullName}");
+            return null;
+        }
+
+        TraceChatDiagnostic($"map-shape command={context} branch=unsupported type={value?.GetType().FullName ?? "null"}");
         return null;
+    }
+
+    private Dictionary<string, object>? AsMap(object? value)
+    {
+        return AsMap(value, "generic");
+    }
+
+    private void LogFirstChatItemShape(IList items, string command)
+    {
+        if (items.Count == 0)
+        {
+            TraceChatDiagnostic($"first-item command={command} type=<none>");
+            return;
+        }
+
+        var firstItem = items[0];
+        var firstType = firstItem?.GetType().FullName ?? "null";
+        TraceChatDiagnostic($"first-item command={command} type={firstType}");
+
+        if (firstItem is IEnumerable enumerable && firstItem is not string)
+        {
+            var innerTypes = enumerable
+                .Cast<object?>()
+                .Take(6)
+                .Select(item => item?.GetType().FullName ?? "null")
+                .ToArray();
+            TraceChatDiagnostic($"first-item-inner command={command} sampleTypes=[{string.Join(",", innerTypes)}]");
+        }
+
+        if (TryConvertPairLike(firstItem, out var key, out _, out var pairShape))
+        {
+            TraceChatDiagnostic($"first-item-pair command={command} shape={pairShape} key={key}");
+        }
+    }
+
+    private static bool TryConvertObjectArrayToMap(object[] source, out Dictionary<string, object> map)
+    {
+        map = new Dictionary<string, object>(StringComparer.Ordinal);
+        if (source.Length == 0)
+        {
+            return false;
+        }
+
+        var asPairs = true;
+        foreach (var item in source)
+        {
+            if (!TryConvertPairLike(item, out var key, out var value, out _))
+            {
+                asPairs = false;
+                break;
+            }
+
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                map[key] = value;
+            }
+        }
+
+        if (asPairs && map.Count > 0)
+        {
+            return true;
+        }
+
+        if (source.Length % 2 != 0)
+        {
+            return false;
+        }
+
+        map.Clear();
+        for (var i = 0; i < source.Length; i += 2)
+        {
+            var key = Convert.ToString(source[i]);
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                continue;
+            }
+
+            map[key] = source[i + 1];
+        }
+
+        return map.Count > 0;
+    }
+
+    private static bool TryConvertEnumerableToMap(IEnumerable source, out Dictionary<string, object> map)
+    {
+        map = new Dictionary<string, object>(StringComparer.Ordinal);
+        foreach (var item in source)
+        {
+            if (!TryConvertPairLike(item, out var key, out var value, out _))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                map[key] = value;
+            }
+        }
+
+        return map.Count > 0;
+    }
+
+    private static bool TryConvertPairLike(object? value, out string key, out object? mappedValue, out string shape)
+    {
+        key = string.Empty;
+        mappedValue = null;
+        shape = "unknown";
+
+        if (value is DictionaryEntry dictionaryEntry)
+        {
+            key = Convert.ToString(dictionaryEntry.Key) ?? string.Empty;
+            mappedValue = dictionaryEntry.Value;
+            shape = "DictionaryEntry";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value is object[] objectPair && objectPair.Length == 2)
+        {
+            key = Convert.ToString(objectPair[0]) ?? string.Empty;
+            mappedValue = objectPair[1];
+            shape = "object[2]";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value is IList listPair && listPair.Count == 2)
+        {
+            key = Convert.ToString(listPair[0]) ?? string.Empty;
+            mappedValue = listPair[1];
+            shape = "IList[2]";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value != null)
+        {
+            var valueType = value.GetType();
+            var keyProperty = valueType.GetProperty("Key");
+            var valueProperty = valueType.GetProperty("Value");
+            if (keyProperty != null && valueProperty != null)
+            {
+                key = Convert.ToString(keyProperty.GetValue(value)) ?? string.Empty;
+                mappedValue = valueProperty.GetValue(value);
+                shape = valueType.FullName ?? valueType.Name;
+                return !string.IsNullOrWhiteSpace(key);
+            }
+        }
+
+        return false;
+    }
+
+    private ChatMessageRowVm? BuildChatMessageRow(Dictionary<string, object> map)
+    {
+        var sender = FirstNonEmpty(S(map, "senderDisplayName"), S(map, "senderUserId"), "Система");
+        var text = FirstNonEmpty(S(map, "text"), S(map, "message"), S(map, "body"));
+        var type = FirstNonEmpty(S(map, "type"), "Public");
+        var createdRaw = FirstNonEmpty(S(map, "createdUtc"), S(map, "createdAt"), S(map, "at"));
+        var timestamp = FormatChatTimestamp(createdRaw);
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            TraceChatDiagnostic("chat-filter reason=empty-text");
+            return null;
+        }
+
+        if (IsPlaceholderText(text))
+        {
+            TraceChatDiagnostic($"chat-filter reason=placeholder-text value={text}");
+            return null;
+        }
+
+        return new ChatMessageRowVm
+        {
+            Sender = sender,
+            Text = text,
+            Timestamp = timestamp,
+            IsSystem = string.Equals(type, "System", StringComparison.OrdinalIgnoreCase)
+        };
+    }
+
+    private static bool IsPlaceholderText(string text)
+    {
+        return string.Equals(text, "Нет сообщений", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(text, "Нет системных событий", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FormatChatTimestamp(string rawValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            return string.Empty;
+        }
+
+        if (TryParseServerTimestamp(rawValue, out var parsed))
+        {
+            var local = parsed.ToLocalTime();
+            return local.Date == DateTime.Now.Date
+                ? local.ToString("HH:mm", CultureInfo.InvariantCulture)
+                : local.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture);
+        }
+
+        return rawValue;
+    }
+
+    private static bool TryParseServerTimestamp(string rawValue, out DateTime utcValue)
+    {
+        utcValue = default;
+        var dateMatch = Regex.Match(rawValue, @"^/Date\(([-+]?\d+)");
+        if (dateMatch.Success && long.TryParse(dateMatch.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var milliseconds))
+        {
+            utcValue = DateTimeOffset.FromUnixTimeMilliseconds(milliseconds).UtcDateTime;
+            return true;
+        }
+
+        if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var parsed))
+        {
+            utcValue = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
+            return true;
+        }
+
+        return false;
     }
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
