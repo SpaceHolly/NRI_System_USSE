@@ -1893,7 +1893,7 @@ public partial class ServiceHub
         var visibilityRaw = (PayloadReader.GetString(context.Request.Payload, "visibility") ?? RequestVisibility.Public.ToString());
         if (!Enum.TryParse(visibilityRaw, true, out RequestVisibility visibility)) visibility = RequestVisibility.Public;
         var formula = DiceFormulaParser.Parse(formulaInput);
-        var result = DiceEngine.Execute(formula, visibility, actor.Id);
+        var result = DiceRollExecutor.Execute(formula, visibility, actor.Id);
         var request = new DiceRollRequest
         {
             RequestType = isTestRoll ? "DiceRollTest" : "DiceRollStandard",

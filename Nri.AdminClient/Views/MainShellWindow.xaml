@@ -360,7 +360,56 @@
                                 </Grid>
                                 <Grid Grid.Column="1">
                                     <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8"><StackPanel><DockPanel><TextBlock Text="Персонажи" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Content="Обновить" Style="{StaticResource GhostButtonStyle}" Command="{Binding LoadOwnerCharactersCommand}"/></DockPanel><TextBox Margin="0,8,0,6" Text="{Binding CharactersSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по имени, id, расе"/><DataGrid ItemsSource="{Binding FilteredCharacters}" SelectedValuePath="Id" SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" MinHeight="190"><DataGrid.Columns><DataGridTextColumn Header="CharacterId" Binding="{Binding Id}" Width="2*"/><DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="1.4*"/><DataGridTextColumn Header="Профиль" Binding="{Binding Extra}" Width="1.6*"/></DataGrid.Columns></DataGrid><TextBlock Text="Создать персонажа для выбранного игрока" Margin="0,8,0,4" Style="{StaticResource TitleTextStyle}"/><WrapPanel><TextBox Width="130" Text="{Binding CreateCharacterName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Имя"/><TextBox Width="100" Margin="6,0,0,0" Text="{Binding CreateCharacterRace, UpdateSourceTrigger=PropertyChanged}" ToolTip="Раса"/><Button Margin="6,0,0,0" Content="Создать" Command="{Binding CreateCharacterCommand}" IsEnabled="{Binding CanCreateCharacterForOwner}"/></WrapPanel><WrapPanel Margin="0,6,0,0"><TextBox Width="52" Text="{Binding CreateCharacterHealth, UpdateSourceTrigger=PropertyChanged}" ToolTip="HP"/><TextBox Width="52" Margin="6,0,0,0" Text="{Binding CreateCharacterStrength, UpdateSourceTrigger=PropertyChanged}" ToolTip="STR"/><TextBox Width="52" Margin="6,0,0,0" Text="{Binding CreateCharacterDexterity, UpdateSourceTrigger=PropertyChanged}" ToolTip="DEX"/><TextBox Width="52" Margin="6,0,0,0" Text="{Binding CreateCharacterIntellect, UpdateSourceTrigger=PropertyChanged}" ToolTip="INT"/><TextBox Width="80" Margin="6,0,0,0" Text="{Binding CreateCharacterIron, UpdateSourceTrigger=PropertyChanged}" ToolTip="Iron"/></WrapPanel><TextBlock Text="Бросок кубов по выбранному персонажу" Margin="0,8,0,4" Style="{StaticResource TitleTextStyle}"/><WrapPanel><ComboBox Width="92" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/><TextBox Width="36" Margin="6,0,0,0" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="d" VerticalAlignment="Center"/><TextBox Width="46" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}"/><TextBox Width="56" Margin="6,0,0,0" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}" ToolTip="Модификатор"/><ComboBox Width="120" Margin="6,0,0,0" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/><Button Margin="6,0,0,0" Content="Бросить" Command="{Binding RollDiceCommand}" IsEnabled="{Binding CanRollCharacterDice}"/></WrapPanel><TextBox Margin="0,6,0,0" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание броска"/></StackPanel></Border>
+                                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <TextBlock Text="Персонажи" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                <Button DockPanel.Dock="Right" Content="Обновить" Style="{StaticResource GhostButtonStyle}" Command="{Binding LoadOwnerCharactersCommand}"/>
+                                            </DockPanel>
+                                            <TextBox Margin="0,8,0,6" Text="{Binding CharactersSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по имени, id, расе"/>
+                                            <DataGrid ItemsSource="{Binding FilteredCharacters}" SelectedValuePath="Id" SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" MinHeight="190">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="CharacterId" Binding="{Binding Id}" Width="2*"/>
+                                                    <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="1.4*"/>
+                                                    <DataGridTextColumn Header="Профиль" Binding="{Binding Extra}" Width="1.6*"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                            <TextBlock Text="Создать персонажа для выбранного игрока" Margin="0,8,0,4" Style="{StaticResource TitleTextStyle}"/>
+                                            <WrapPanel>
+                                                <TextBox Width="130" Text="{Binding CreateCharacterName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Имя"/>
+                                                <TextBox Width="100" Margin="6,0,0,0" Text="{Binding CreateCharacterRace, UpdateSourceTrigger=PropertyChanged}" ToolTip="Раса"/>
+                                                <Button Margin="6,0,0,0" Content="Создать" Command="{Binding CreateCharacterCommand}" IsEnabled="{Binding CanCreateCharacterForOwner}"/>
+                                            </WrapPanel>
+                                            <WrapPanel Margin="0,6,0,0">
+                                                <TextBox Width="52" Text="{Binding CreateCharacterHealth, UpdateSourceTrigger=PropertyChanged}" ToolTip="HP"/>
+                                                <TextBox Width="52" Margin="6,0,0,0" Text="{Binding CreateCharacterStrength, UpdateSourceTrigger=PropertyChanged}" ToolTip="STR"/>
+                                                <TextBox Width="52" Margin="6,0,0,0" Text="{Binding CreateCharacterDexterity, UpdateSourceTrigger=PropertyChanged}" ToolTip="DEX"/>
+                                                <TextBox Width="52" Margin="6,0,0,0" Text="{Binding CreateCharacterIntellect, UpdateSourceTrigger=PropertyChanged}" ToolTip="INT"/>
+                                                <TextBox Width="80" Margin="6,0,0,0" Text="{Binding CreateCharacterIron, UpdateSourceTrigger=PropertyChanged}" ToolTip="Iron"/>
+                                            </WrapPanel>
+
+                                            <TextBlock Text="Бросок кубов по выбранному персонажу" Margin="0,10,0,4" Style="{StaticResource TitleTextStyle}"/>
+                                            <TextBlock Text="Режим: Обычный — попадает в общую историю; Тестовый — личный тестовый бросок." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                            <WrapPanel Margin="0,6,0,0">
+                                                <TextBlock Text="Режим" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                <ComboBox Width="110" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/>
+                                                <TextBlock Text="Формула" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                                                <TextBox Width="36" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBlock Text="d" VerticalAlignment="Center"/>
+                                                <TextBox Width="46" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBlock Text="Мод." VerticalAlignment="Center" Margin="8,0,4,0"/>
+                                                <TextBox Width="56" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </WrapPanel>
+                                            <WrapPanel Margin="0,6,0,0">
+                                                <TextBlock Text="Видимость" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                <ComboBox Width="140" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
+                                                <Button Margin="8,0,0,0" Content="Бросить" Command="{Binding RollDiceCommand}" IsEnabled="{Binding CanRollCharacterDice}"/>
+                                            </WrapPanel>
+                                            <TextBlock Text="Public — видят все, HiddenToAdmins — скрытый канал, AdminOnly — только админы." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            <TextBlock Text="{Binding DiceRollAvailabilityHint}" Foreground="#FFF5B041" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            <TextBox Margin="0,6,0,0" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание броска"/>
+                                        </StackPanel>
+                                    </Border>
                                     <Border Grid.Row="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Блокировки" Style="{StaticResource SectionTitleTextStyle}"/><TextBox Margin="0,8,0,6" Text="{Binding LocksSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по владельцу, id или причине"/><DataGrid ItemsSource="{Binding FilteredLockRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedLockId, UpdateSourceTrigger=PropertyChanged}" MinHeight="190"><DataGrid.Columns><DataGridTextColumn Header="CharacterId" Binding="{Binding Id}" Width="2*"/><DataGridTextColumn Header="Владелец" Binding="{Binding Name}" Width="1.4*"/><DataGridTextColumn Header="Описание" Binding="{Binding Extra}" Width="2*"/></DataGrid.Columns></DataGrid><Button Margin="0,8,0,0" HorizontalAlignment="Left" Content="Принудительно снять блокировку" Command="{Binding ForceUnlockCommand}" IsEnabled="{Binding CanManageSelectedLock}"/></StackPanel></Border>
                                 </Grid>
                             </Grid>

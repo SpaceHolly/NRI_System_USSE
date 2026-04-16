@@ -674,7 +674,11 @@ public class PlayerMainViewModel : ViewModelBase
             LoadCharacters();
             ClientLogService.Instance.Info($"character.create.success count={MyCharacters.Count}");
         }
-        catch (Exception ex) { SetConnectionError(ex); }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Warn($"character.create.result=fail reason={ex.Message}");
+            SetConnectionError(ex);
+        }
     }
 
     private void CancelRequest()
