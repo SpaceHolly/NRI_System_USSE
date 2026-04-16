@@ -43,6 +43,7 @@ public interface INriRepositoryFactory
     IRepository<UpdateVersionInfo> UpdateVersions { get; }
     IRepository<BackupSnapshot> Backups { get; }
     IClassDefinitionRepository ClassDefinitions { get; }
+    IRaceDefinitionRepository RaceDefinitions { get; }
     ISkillDefinitionRepository DefinitionSkills { get; }
 }
 
@@ -73,6 +74,7 @@ public class MongoContext
     public IMongoCollection<UpdateVersionInfo> UpdateVersions { get; }
     public IMongoCollection<BackupSnapshot> Backups { get; }
     public IMongoCollection<ClassDefinition> ClassDefinitions { get; }
+    public IMongoCollection<RaceDefinition> RaceDefinitions { get; }
     public IMongoCollection<SkillDefinition> DefinitionSkills { get; }
 
     public MongoContext(ServerConfig config, IServerLogger logger)
@@ -107,6 +109,7 @@ public class MongoContext
         UpdateVersions = db.GetCollection<UpdateVersionInfo>("update_versions");
         Backups = db.GetCollection<BackupSnapshot>("backups");
         ClassDefinitions = db.GetCollection<ClassDefinition>("class_definitions");
+        RaceDefinitions = db.GetCollection<RaceDefinition>("race_definitions");
         DefinitionSkills = db.GetCollection<SkillDefinition>("skill_definition_documents");
 
         EnsureIndexes();
@@ -137,6 +140,7 @@ public class MongoContext
         UpdateVersions.Indexes.CreateOne(new CreateIndexModel<UpdateVersionInfo>(Builders<UpdateVersionInfo>.IndexKeys.Ascending(x => x.ClientChannel), new CreateIndexOptions { Unique = true }));
         Backups.Indexes.CreateOne(new CreateIndexModel<BackupSnapshot>(Builders<BackupSnapshot>.IndexKeys.Descending(x => x.CreatedUtc)));
         ClassDefinitions.Indexes.CreateOne(new CreateIndexModel<ClassDefinition>(Builders<ClassDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
+        RaceDefinitions.Indexes.CreateOne(new CreateIndexModel<RaceDefinition>(Builders<RaceDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
         DefinitionSkills.Indexes.CreateOne(new CreateIndexModel<SkillDefinition>(Builders<SkillDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
     }
 }
@@ -203,6 +207,7 @@ public class MongoRepositoryFactory : INriRepositoryFactory
         UpdateVersions = new MongoRepository<UpdateVersionInfo>(context.UpdateVersions);
         Backups = new MongoRepository<BackupSnapshot>(context.Backups);
         ClassDefinitions = new ClassDefinitionRepository(context.ClassDefinitions);
+        RaceDefinitions = new RaceDefinitionRepository(context.RaceDefinitions);
         DefinitionSkills = new SkillDefinitionRepository(context.DefinitionSkills);
     }
 
@@ -231,5 +236,6 @@ public class MongoRepositoryFactory : INriRepositoryFactory
     public IRepository<UpdateVersionInfo> UpdateVersions { get; }
     public IRepository<BackupSnapshot> Backups { get; }
     public IClassDefinitionRepository ClassDefinitions { get; }
+    public IRaceDefinitionRepository RaceDefinitions { get; }
     public ISkillDefinitionRepository DefinitionSkills { get; }
 }

@@ -89,8 +89,14 @@ public sealed class ClassDefinitionService
             RootClassCode = definition.RootClassCode,
             ParentClassCode = definition.ParentClassCode,
             Level = definition.Level,
+            UnlockLevel = definition.UnlockLevel,
+            MaxLevel = definition.MaxLevel,
+            RequiredRaceCodes = definition.RequiredRaceCodes.ToList(),
             GrantedSkillCodes = definition.GrantedSkillCodes.ToList(),
             RequiredClassCodes = definition.RequiredClassCodes.ToList(),
+            RequiredSkillCodes = definition.RequiredSkillCodes.ToList(),
+            RequiredCharacterLevel = definition.RequiredCharacterLevel,
+            XpCoinCost = definition.XpCoinCost,
             IsActive = definition.IsActive,
             Status = definition.Status,
             CreatedUtc = definition.CreatedUtc,
@@ -109,8 +115,14 @@ public sealed class ClassDefinitionService
         definition.RootClassCode = dto.RootClassCode ?? string.Empty;
         definition.ParentClassCode = dto.ParentClassCode ?? string.Empty;
         definition.Level = dto.Level;
+        definition.UnlockLevel = dto.UnlockLevel;
+        definition.MaxLevel = dto.MaxLevel;
+        definition.RequiredRaceCodes = dto.RequiredRaceCodes ?? new List<string>();
         definition.GrantedSkillCodes = dto.GrantedSkillCodes ?? new List<string>();
         definition.RequiredClassCodes = dto.RequiredClassCodes ?? new List<string>();
+        definition.RequiredSkillCodes = dto.RequiredSkillCodes ?? new List<string>();
+        definition.RequiredCharacterLevel = dto.RequiredCharacterLevel;
+        definition.XpCoinCost = dto.XpCoinCost;
         definition.IsActive = dto.IsActive;
         definition.Status = dto.Status;
         return definition;
@@ -190,8 +202,11 @@ public sealed class SkillDefinitionService
             MaxLevel = definition.MaxLevel,
             SkillCategory = definition.SkillCategory,
             IsClassSkill = definition.IsClassSkill,
+            RequiredRaceCodes = definition.RequiredRaceCodes.ToList(),
             RequiredClassCodes = definition.RequiredClassCodes.ToList(),
             RequiredSkillCodes = definition.RequiredSkillCodes.ToList(),
+            RequiredCharacterLevel = definition.RequiredCharacterLevel,
+            XpCoinCost = definition.XpCoinCost,
             Levels = definition.Levels.Select(level => new SkillLevelDefinition
             {
                 Level = level.Level,
@@ -216,9 +231,96 @@ public sealed class SkillDefinitionService
         definition.MaxLevel = dto.MaxLevel;
         definition.SkillCategory = dto.SkillCategory;
         definition.IsClassSkill = dto.IsClassSkill;
+        definition.RequiredRaceCodes = dto.RequiredRaceCodes ?? new List<string>();
         definition.RequiredClassCodes = dto.RequiredClassCodes ?? new List<string>();
         definition.RequiredSkillCodes = dto.RequiredSkillCodes ?? new List<string>();
+        definition.RequiredCharacterLevel = dto.RequiredCharacterLevel;
+        definition.XpCoinCost = dto.XpCoinCost;
         definition.Levels = dto.Levels ?? new List<SkillLevelDefinition>();
+        definition.IsActive = dto.IsActive;
+        definition.Status = dto.Status;
+        return definition;
+    }
+}
+
+public sealed class RaceDefinitionService
+{
+    private readonly IRaceDefinitionRepository _repository;
+    private readonly DefinitionValidationService _validationService;
+    private readonly AuditLogService _auditLogService;
+
+    public RaceDefinitionService(IRaceDefinitionRepository repository, DefinitionValidationService validationService, AuditLogService auditLogService)
+    {
+        _repository = repository;
+        _validationService = validationService;
+        _auditLogService = auditLogService;
+    }
+
+    public IReadOnlyCollection<RaceDefinitionDto> GetAll(bool includeArchived)
+    {
+        return _repository.GetAll(includeArchived).Select(Map).ToArray();
+    }
+
+    public RaceDefinitionDto GetByCode(string code)
+    {
+        var item = _repository.GetByCode(code) ?? throw new KeyNotFoundException("Race definition not found.");
+        return Map(item);
+    }
+
+    public SaveRaceResponse Save(RaceDefinitionDto dto, string actorUserId)
+    {
+        var existing = _repository.GetByCode(dto.Code);
+        var definition = Map(dto, existing);
+        _validationService.ValidateRace(definition);
+
+        definition.UpdatedByUserId = actorUserId;
+        if (existing == null)
+        {
+            definition.CreatedByUserId = actorUserId;
+        }
+        else
+        {
+            definition.CreatedByUserId = existing.CreatedByUserId;
+            definition.CreatedUtc = existing.CreatedUtc;
+            definition.Id = existing.Id;
+        }
+
+        var created = _repository.Upsert(definition);
+        _auditLogService.Write("definitions.race", actorUserId, created ? "create" : "update", definition.Code, definition.Name);
+        return new SaveRaceResponse { Item = Map(definition), Created = created };
+    }
+
+    public bool Archive(string code, string actorUserId)
+    {
+        var archived = _repository.Archive(code, actorUserId);
+        if (archived) _auditLogService.Write("definitions.race", actorUserId, "archive", code, string.Empty);
+        return archived;
+    }
+
+    private static RaceDefinitionDto Map(RaceDefinition definition)
+    {
+        return new RaceDefinitionDto
+        {
+            Code = definition.Code,
+            Name = definition.Name,
+            Description = definition.Description,
+            Bonuses = definition.Bonuses.ToDictionary(x => x.Key, x => x.Value),
+            Restrictions = definition.Restrictions.ToList(),
+            IsActive = definition.IsActive,
+            Status = definition.Status,
+            CreatedUtc = definition.CreatedUtc,
+            UpdatedUtc = definition.UpdatedUtc
+        };
+    }
+
+    private static RaceDefinition Map(RaceDefinitionDto dto, RaceDefinition? existing)
+    {
+        var definition = existing ?? new RaceDefinition();
+        definition.Code = dto.Code ?? string.Empty;
+        definition.Name = dto.Name ?? string.Empty;
+        definition.Description = dto.Description ?? string.Empty;
+        definition.Bonuses = dto.Bonuses ?? new Dictionary<string, int>();
+        definition.Restrictions = dto.Restrictions ?? new List<string>();
         definition.IsActive = dto.IsActive;
         definition.Status = dto.Status;
         return definition;

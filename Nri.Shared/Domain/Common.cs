@@ -96,6 +96,8 @@ public class Character : EntityBase
     public string Name { get; set; } = string.Empty;
     public int? Age { get; set; }
     public string Race { get; set; } = string.Empty;
+    public string RaceCode { get; set; } = string.Empty;
+    public int XpCoins { get; set; }
     public string Height { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Backstory { get; set; } = string.Empty;
@@ -105,6 +107,8 @@ public class Character : EntityBase
     public List<SkillState> Skills { get; set; } = new List<SkillState>();
     public List<CharacterClassDirectionState> ClassDirections { get; set; } = new List<CharacterClassDirectionState>();
     public List<CharacterSkillState> CharacterSkillStates { get; set; } = new List<CharacterSkillState>();
+    public List<CharacterClassState> CharacterClasses { get; set; } = new List<CharacterClassState>();
+    public List<CharacterSkillState> CharacterSkills { get; set; } = new List<CharacterSkillState>();
     public CharacterProgressSnapshot? ClassSkillSnapshot { get; set; }
     public string ClassSkillDefinitionVersion { get; set; } = "1.0.0";
     public Wallet Wallet { get; set; } = new Wallet();
@@ -250,6 +254,13 @@ public class Wallet
 
         return true;
     }
+}
+
+public class CharacterCurrencyAmount
+{
+    public string Code { get; set; } = string.Empty;
+    public long Amount { get; set; }
+    public string Kind { get; set; } = "money";
 }
 
 public class CharacterVisibilitySettings

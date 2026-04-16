@@ -75,6 +75,28 @@ public static class CommandNames
     public const string CharacterTransfer = "character.transfer";
     public const string CharacterAssignActive = "character.assignActive";
 
+
+    public const string CharacterAdminList = "character.admin.list";
+    public const string CharacterAdminSearch = "character.admin.search";
+    public const string CharacterAdminGet = "character.admin.get";
+    public const string CharacterAdminSaveBasic = "character.admin.save.basic";
+    public const string CharacterAdminSaveStats = "character.admin.save.stats";
+    public const string CharacterAdminSaveMoney = "character.admin.save.money";
+    public const string CharacterAdminSaveProgression = "character.admin.save.progression";
+    public const string CharacterAdminSaveVisibility = "character.admin.save.visibility";
+    public const string CharacterAdminGetNotesContext = "character.admin.get.notesContext";
+
+    public const string CharacterSelfGet = "character.self.get";
+    public const string CharacterSelfSaveBasic = "character.self.save.basic";
+    public const string CharacterSelfSaveStats = "character.self.save.stats";
+    public const string CharacterSelfSaveMoney = "character.self.save.money";
+    public const string CharacterSelfGetProgression = "character.self.get.progression";
+
+    public const string CharacterLockAcquire = "character.lock.acquire";
+    public const string CharacterLockRelease = "character.lock.release";
+    public const string CharacterLockForceRelease = "character.lock.forceRelease";
+    public const string CharacterLockGet = "character.lock.get";
+
     public const string PresenceList = "presence.list";
     public const string SessionValidate = "session.validate";
 
@@ -114,6 +136,10 @@ public static class CommandNames
 
 
     public const string DefinitionsClassesGet = "definitions.classes.get";
+    public const string DefinitionsRacesGet = "definitions.races.get";
+    public const string DefinitionsRaceGet = "definitions.race.get";
+    public const string DefinitionsRaceSave = "definitions.race.save";
+    public const string DefinitionsRaceArchive = "definitions.race.archive";
     public const string DefinitionsClassGet = "definitions.class.get";
     public const string DefinitionsClassSave = "definitions.class.save";
     public const string DefinitionsClassArchive = "definitions.class.archive";
@@ -140,11 +166,23 @@ public static class CommandNames
     public const string AdminCharacterProgressRecalculate = "admin.character.progress.recalculate";
 
     public const string AdminDefinitionsClassList = "admin.definitions.class.list";
+    public const string AdminDefinitionsRaceList = "admin.definitions.race.list";
+    public const string AdminDefinitionsRaceGet = "admin.definitions.race.get";
+    public const string AdminDefinitionsRaceSave = "admin.definitions.race.save";
     public const string AdminDefinitionsClassGet = "admin.definitions.class.get";
     public const string AdminDefinitionsClassSave = "admin.definitions.class.save";
     public const string AdminDefinitionsSkillList = "admin.definitions.skill.list";
     public const string AdminDefinitionsSkillGet = "admin.definitions.skill.get";
     public const string AdminDefinitionsSkillSave = "admin.definitions.skill.save";
+
+    public const string ProgressionAvailableRaces = "progression.available.races";
+    public const string ProgressionAvailableClasses = "progression.available.classes";
+    public const string ProgressionAvailableSkills = "progression.available.skills";
+    public const string ProgressionPreview = "progression.preview";
+    public const string ProgressionSetRace = "progression.set.race";
+    public const string ProgressionLearnClass = "progression.learn.class";
+    public const string ProgressionLearnSkill = "progression.learn.skill";
+    public const string CharacterProgressionGet = "character.progression.get";
 
     public const string ChatSend = "chat.send";
     public const string ChatHistoryGet = "chat.history.get";

@@ -12,9 +12,21 @@ public sealed class ClassDefinitionValidator
     {
         if (string.IsNullOrWhiteSpace(definition.Code)) throw new ArgumentException("Class code is required.");
         if (definition.Level < 1 || definition.Level > 20) throw new ArgumentException("Class level must be in range 1..20.");
+        if (definition.MaxLevel <= 0) throw new ArgumentException("MaxLevel must be greater than zero.");
+        if (definition.UnlockLevel <= 0) throw new ArgumentException("UnlockLevel must be greater than zero.");
+        if (definition.XpCoinCost < 0) throw new ArgumentException("XpCoinCost must be non-negative.");
         if (string.IsNullOrWhiteSpace(definition.DirectionCode)) throw new ArgumentException("DirectionCode is required.");
         if (string.IsNullOrWhiteSpace(definition.BranchCode)) throw new ArgumentException("BranchCode is required.");
         if (string.IsNullOrWhiteSpace(definition.RootClassCode)) throw new ArgumentException("RootClassCode is required.");
+    }
+}
+
+public sealed class RaceDefinitionValidator
+{
+    public void Validate(RaceDefinition definition)
+    {
+        if (string.IsNullOrWhiteSpace(definition.Code)) throw new ArgumentException("Race code is required.");
+        if (string.IsNullOrWhiteSpace(definition.Name)) throw new ArgumentException("Race name is required.");
     }
 }
 
@@ -25,6 +37,7 @@ public sealed class SkillDefinitionValidator
         if (string.IsNullOrWhiteSpace(definition.Code)) throw new ArgumentException("Skill code is required.");
         if (definition.Tier <= 0) throw new ArgumentException("Tier must be greater than zero.");
         if (definition.MaxLevel < 1) throw new ArgumentException("MaxLevel must be at least 1.");
+        if (definition.XpCoinCost < 0) throw new ArgumentException("XpCoinCost must be non-negative.");
         if (definition.Levels == null || definition.Levels.Count == 0) throw new ArgumentException("Skill levels are required.");
 
         var ordered = definition.Levels.OrderBy(x => x.Level).ToList();
@@ -47,11 +60,13 @@ public sealed class SkillDefinitionValidator
 public sealed class DefinitionReferenceValidator
 {
     private readonly IClassDefinitionRepository _classRepository;
+    private readonly IRaceDefinitionRepository _raceRepository;
     private readonly ISkillDefinitionRepository _skillRepository;
 
-    public DefinitionReferenceValidator(IClassDefinitionRepository classRepository, ISkillDefinitionRepository skillRepository)
+    public DefinitionReferenceValidator(IClassDefinitionRepository classRepository, IRaceDefinitionRepository raceRepository, ISkillDefinitionRepository skillRepository)
     {
         _classRepository = classRepository;
+        _raceRepository = raceRepository;
         _skillRepository = skillRepository;
     }
 
@@ -73,6 +88,14 @@ public sealed class DefinitionReferenceValidator
         {
             if (!_skillRepository.Exists(grantedSkillCode)) throw new ArgumentException($"Granted skill '{grantedSkillCode}' was not found.");
         }
+        foreach (var raceCode in definition.RequiredRaceCodes.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (!_raceRepository.Exists(raceCode)) throw new ArgumentException($"Required race '{raceCode}' was not found.");
+        }
+        foreach (var skillCode in definition.RequiredSkillCodes.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (!_skillRepository.Exists(skillCode)) throw new ArgumentException($"Required skill '{skillCode}' was not found.");
+        }
     }
 
     public void ValidateSkillReferences(SkillDefinition definition)
@@ -80,6 +103,10 @@ public sealed class DefinitionReferenceValidator
         foreach (var classCode in definition.RequiredClassCodes.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             if (!_classRepository.Exists(classCode)) throw new ArgumentException($"Required class '{classCode}' was not found.");
+        }
+        foreach (var raceCode in definition.RequiredRaceCodes.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (!_raceRepository.Exists(raceCode)) throw new ArgumentException($"Required race '{raceCode}' was not found.");
         }
 
         foreach (var skillCode in definition.RequiredSkillCodes.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
@@ -108,14 +135,21 @@ public sealed class DefinitionReferenceValidator
 public sealed class DefinitionValidationService
 {
     private readonly ClassDefinitionValidator _classValidator;
+    private readonly RaceDefinitionValidator _raceValidator;
     private readonly SkillDefinitionValidator _skillValidator;
     private readonly DefinitionReferenceValidator _referenceValidator;
 
-    public DefinitionValidationService(ClassDefinitionValidator classValidator, SkillDefinitionValidator skillValidator, DefinitionReferenceValidator referenceValidator)
+    public DefinitionValidationService(ClassDefinitionValidator classValidator, RaceDefinitionValidator raceValidator, SkillDefinitionValidator skillValidator, DefinitionReferenceValidator referenceValidator)
     {
         _classValidator = classValidator;
+        _raceValidator = raceValidator;
         _skillValidator = skillValidator;
         _referenceValidator = referenceValidator;
+    }
+
+    public void ValidateRace(RaceDefinition definition)
+    {
+        _raceValidator.Validate(definition);
     }
 
     public void ValidateClass(ClassDefinition definition, ClassDefinition? parent)
