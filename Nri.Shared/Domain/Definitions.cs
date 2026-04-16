@@ -64,8 +64,14 @@ public class ClassDefinition : DefinitionDocumentBase
     public string RootClassCode { get; set; } = string.Empty;
     public string ParentClassCode { get; set; } = string.Empty;
     public int Level { get; set; }
+    public int UnlockLevel { get; set; } = 1;
+    public int MaxLevel { get; set; } = 1;
+    public List<string> RequiredRaceCodes { get; set; } = new List<string>();
     public List<string> GrantedSkillCodes { get; set; } = new List<string>();
     public List<string> RequiredClassCodes { get; set; } = new List<string>();
+    public List<string> RequiredSkillCodes { get; set; } = new List<string>();
+    public int RequiredCharacterLevel { get; set; }
+    public int XpCoinCost { get; set; }
 }
 
 public class SkillDefinition : DefinitionDocumentBase
@@ -74,7 +80,16 @@ public class SkillDefinition : DefinitionDocumentBase
     public int MaxLevel { get; set; }
     public SkillCategory SkillCategory { get; set; } = SkillCategory.Undefined;
     public bool IsClassSkill { get; set; }
+    public List<string> RequiredRaceCodes { get; set; } = new List<string>();
     public List<string> RequiredClassCodes { get; set; } = new List<string>();
     public List<string> RequiredSkillCodes { get; set; } = new List<string>();
+    public int RequiredCharacterLevel { get; set; }
+    public int XpCoinCost { get; set; }
     public List<SkillLevelDefinition> Levels { get; set; } = new List<SkillLevelDefinition>();
+}
+
+public class RaceDefinition : DefinitionDocumentBase
+{
+    public Dictionary<string, int> Bonuses { get; set; } = new Dictionary<string, int>();
+    public List<string> Restrictions { get; set; } = new List<string>();
 }

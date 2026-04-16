@@ -5,6 +5,7 @@ using System.Linq;
 using Nri.Server.Application;
 using Nri.Server.Application.Services;
 using Nri.Server.Infrastructure;
+using Nri.Server.Logging;
 using Nri.Server.Transport;
 using Nri.Shared.Contracts;
 using Nri.Shared.Domain;
@@ -15,14 +16,18 @@ namespace Nri.Server.Handlers.Admin;
 public sealed class AdminDefinitionHandlers
 {
     private readonly ClassDefinitionService _classService;
+    private readonly RaceDefinitionService _raceService;
     private readonly SkillDefinitionService _skillService;
     private readonly INriRepositoryFactory _repositories;
+    private readonly IServerLogger _logger;
 
-    public AdminDefinitionHandlers(INriRepositoryFactory repositories, ClassDefinitionService classService, SkillDefinitionService skillService)
+    public AdminDefinitionHandlers(INriRepositoryFactory repositories, RaceDefinitionService raceService, ClassDefinitionService classService, SkillDefinitionService skillService, IServerLogger logger)
     {
         _repositories = repositories;
+        _raceService = raceService;
         _classService = classService;
         _skillService = skillService;
+        _logger = logger;
     }
 
     public IEnumerable<IRequestHandler> CreateHandlers()
@@ -30,6 +35,10 @@ public sealed class AdminDefinitionHandlers
         return new IRequestHandler[]
         {
             new DelegateRequestHandler(CommandNames.DefinitionsClassesGet, HandleGetClassList),
+            new DelegateRequestHandler(CommandNames.DefinitionsRacesGet, HandleGetRaceList),
+            new DelegateRequestHandler(CommandNames.DefinitionsRaceGet, HandleGetRaceByCode),
+            new DelegateRequestHandler(CommandNames.DefinitionsRaceSave, HandleSaveRace),
+            new DelegateRequestHandler(CommandNames.DefinitionsRaceArchive, HandleArchiveRace),
             new DelegateRequestHandler(CommandNames.DefinitionsClassGet, HandleGetClassByCode),
             new DelegateRequestHandler(CommandNames.DefinitionsClassSave, HandleSaveClass),
             new DelegateRequestHandler(CommandNames.DefinitionsClassArchive, HandleArchiveClass),
@@ -37,6 +46,9 @@ public sealed class AdminDefinitionHandlers
             new DelegateRequestHandler(CommandNames.DefinitionsSkillGet, HandleGetSkillByCode),
             new DelegateRequestHandler(CommandNames.DefinitionsSkillSave, HandleSaveSkill),
             new DelegateRequestHandler(CommandNames.DefinitionsSkillArchive, HandleArchiveSkill),
+            new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceList, HandleGetRaceList),
+            new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceGet, HandleGetRaceByCode),
+            new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceSave, HandleSaveRace),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsClassList, HandleGetClassList),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsClassGet, HandleGetClassByCode),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsClassSave, HandleSaveClass),
@@ -51,6 +63,48 @@ public sealed class AdminDefinitionHandlers
         var request = new GetClassListRequest { IncludeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived") };
         var response = new GetClassListResponse { Items = _classService.GetAll(request.IncludeArchived) };
         return Ok("Class definitions loaded.", new Dictionary<string, object> { { "items", response.Items.Select(ToPayload).Cast<object>().ToArray() } });
+    }
+
+    private ResponseEnvelope HandleGetRaceList(CommandContext context)
+    {
+        var request = new GetRaceListRequest { IncludeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived") };
+        var response = new GetRaceListResponse { Items = _raceService.GetAll(request.IncludeArchived) };
+        _logger.Admin($"definitions.races.get includeArchived={request.IncludeArchived} count={response.Items.Count}");
+        return Ok("Race definitions loaded.", new Dictionary<string, object> { { "items", response.Items.Select(ToPayload).Cast<object>().ToArray() } });
+    }
+
+    private ResponseEnvelope HandleGetRaceByCode(CommandContext context)
+    {
+        var request = new GetRaceByCodeRequest { Code = RequireString(context.Request.Payload, "code") };
+        var response = new GetRaceByCodeResponse { Item = _raceService.GetByCode(request.Code) };
+        return Ok("Race definition loaded.", new Dictionary<string, object> { { "item", response.Item == null ? new Dictionary<string, object>() : ToPayload(response.Item) } });
+    }
+
+    private ResponseEnvelope HandleSaveRace(CommandContext context)
+    {
+        var request = new SaveRaceRequest { Definition = ReadRaceDefinition(context.Request.Payload) };
+        var actor = RequireActor(context);
+        var response = _raceService.Save(request.Definition, actor.Id);
+        _logger.Admin($"definitions.races.save actor={actor.Login} code={response.Item.Code} created={response.Created}");
+        return Ok(response.Created ? "Race definition created." : "Race definition updated.", new Dictionary<string, object>
+        {
+            { "created", response.Created },
+            { "item", ToPayload(response.Item) }
+        });
+    }
+
+    private ResponseEnvelope HandleArchiveRace(CommandContext context)
+    {
+        var request = new ArchiveRaceRequest { Code = RequireString(context.Request.Payload, "code") };
+        var actor = RequireActor(context);
+        var archived = _raceService.Archive(request.Code, actor.Id);
+        _logger.Admin($"definitions.races.archive actor={actor.Login} code={request.Code} archived={archived}");
+        var response = new ArchiveRaceResponse { Code = request.Code, Archived = archived };
+        return Ok(archived ? "Race definition archived." : "Race definition already archived.", new Dictionary<string, object>
+        {
+            { "code", response.Code },
+            { "archived", response.Archived }
+        });
     }
 
     private ResponseEnvelope HandleGetClassByCode(CommandContext context)
@@ -147,8 +201,14 @@ public sealed class AdminDefinitionHandlers
             RootClassCode = RequireString(map, "rootClassCode"),
             ParentClassCode = GetString(map, "parentClassCode"),
             Level = GetInt(map, "level"),
+            UnlockLevel = TryGetInt(map, "unlockLevel") ?? Math.Max(1, GetInt(map, "level")),
+            MaxLevel = TryGetInt(map, "maxLevel") ?? 1,
+            RequiredRaceCodes = GetStringList(map, "requiredRaceCodes"),
             GrantedSkillCodes = GetStringList(map, "grantedSkillCodes"),
             RequiredClassCodes = GetStringList(map, "requiredClassCodes"),
+            RequiredSkillCodes = GetStringList(map, "requiredSkillCodes"),
+            RequiredCharacterLevel = TryGetInt(map, "requiredCharacterLevel") ?? 0,
+            XpCoinCost = TryGetInt(map, "xpCoinCost") ?? 0,
             IsActive = GetBool(map, "isActive", true),
             Status = ParseEnum<DefinitionStatus>(GetString(map, "status"), DefinitionStatus.Draft)
         };
@@ -166,9 +226,36 @@ public sealed class AdminDefinitionHandlers
             MaxLevel = GetInt(map, "maxLevel"),
             SkillCategory = ParseEnum<SkillCategory>(GetString(map, "skillCategory"), SkillCategory.Undefined),
             IsClassSkill = GetBool(map, "isClassSkill", false),
+            RequiredRaceCodes = GetStringList(map, "requiredRaceCodes"),
             RequiredClassCodes = GetStringList(map, "requiredClassCodes"),
             RequiredSkillCodes = GetStringList(map, "requiredSkillCodes"),
+            RequiredCharacterLevel = TryGetInt(map, "requiredCharacterLevel") ?? 0,
+            XpCoinCost = TryGetInt(map, "xpCoinCost") ?? 0,
             Levels = ReadSkillLevels(map),
+            IsActive = GetBool(map, "isActive", true),
+            Status = ParseEnum<DefinitionStatus>(GetString(map, "status"), DefinitionStatus.Draft)
+        };
+    }
+
+    private static RaceDefinitionDto ReadRaceDefinition(IDictionary<string, object> payload)
+    {
+        var map = RequireMap(payload, "definition");
+        var bonuses = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        if (map.TryGetValue("bonuses", out var bonusesRaw) && bonusesRaw is IDictionary<string, object> bonusesMap)
+        {
+            foreach (var pair in bonusesMap)
+            {
+                bonuses[pair.Key] = Convert.ToInt32(pair.Value);
+            }
+        }
+
+        return new RaceDefinitionDto
+        {
+            Code = RequireString(map, "code"),
+            Name = GetString(map, "name"),
+            Description = GetString(map, "description"),
+            Bonuses = bonuses,
+            Restrictions = GetStringList(map, "restrictions"),
             IsActive = GetBool(map, "isActive", true),
             Status = ParseEnum<DefinitionStatus>(GetString(map, "status"), DefinitionStatus.Draft)
         };
@@ -238,8 +325,13 @@ public sealed class AdminDefinitionHandlers
             { "code", dto.Code }, { "name", dto.Name }, { "description", dto.Description },
             { "directionCode", dto.DirectionCode }, { "branchCode", dto.BranchCode }, { "rootClassCode", dto.RootClassCode },
             { "parentClassCode", dto.ParentClassCode }, { "level", dto.Level },
+            { "unlockLevel", dto.UnlockLevel }, { "maxLevel", dto.MaxLevel },
+            { "requiredRaceCodes", dto.RequiredRaceCodes.Cast<object>().ToArray() },
             { "grantedSkillCodes", dto.GrantedSkillCodes.Cast<object>().ToArray() },
             { "requiredClassCodes", dto.RequiredClassCodes.Cast<object>().ToArray() },
+            { "requiredSkillCodes", dto.RequiredSkillCodes.Cast<object>().ToArray() },
+            { "requiredCharacterLevel", dto.RequiredCharacterLevel },
+            { "xpCoinCost", dto.XpCoinCost },
             { "isActive", dto.IsActive }, { "status", dto.Status.ToString() },
             { "createdUtc", dto.CreatedUtc }, { "updatedUtc", dto.UpdatedUtc }
         };
@@ -252,8 +344,11 @@ public sealed class AdminDefinitionHandlers
             { "code", dto.Code }, { "name", dto.Name }, { "description", dto.Description },
             { "tier", dto.Tier }, { "maxLevel", dto.MaxLevel }, { "skillCategory", dto.SkillCategory.ToString() },
             { "isClassSkill", dto.IsClassSkill },
+            { "requiredRaceCodes", dto.RequiredRaceCodes.Cast<object>().ToArray() },
             { "requiredClassCodes", dto.RequiredClassCodes.Cast<object>().ToArray() },
             { "requiredSkillCodes", dto.RequiredSkillCodes.Cast<object>().ToArray() },
+            { "requiredCharacterLevel", dto.RequiredCharacterLevel },
+            { "xpCoinCost", dto.XpCoinCost },
             { "levels", dto.Levels.Select(level => new Dictionary<string, object>
                 {
                     { "level", level.Level },
@@ -275,6 +370,22 @@ public sealed class AdminDefinitionHandlers
                 }).Cast<object>().ToArray() },
             { "isActive", dto.IsActive }, { "status", dto.Status.ToString() },
             { "createdUtc", dto.CreatedUtc }, { "updatedUtc", dto.UpdatedUtc }
+        };
+    }
+
+    private static Dictionary<string, object> ToPayload(RaceDefinitionDto dto)
+    {
+        return new Dictionary<string, object>
+        {
+            { "code", dto.Code },
+            { "name", dto.Name },
+            { "description", dto.Description },
+            { "bonuses", dto.Bonuses.ToDictionary(x => x.Key, x => (object)x.Value) },
+            { "restrictions", dto.Restrictions.Cast<object>().ToArray() },
+            { "isActive", dto.IsActive },
+            { "status", dto.Status.ToString() },
+            { "createdUtc", dto.CreatedUtc },
+            { "updatedUtc", dto.UpdatedUtc }
         };
     }
 

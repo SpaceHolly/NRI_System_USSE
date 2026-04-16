@@ -408,6 +408,279 @@ public partial class ServiceHub
         return Ok("Character holdings updated.");
     }
 
+    public ResponseEnvelope CharacterAdminList(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var includeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived");
+        var items = _repositories.Characters.Find(FilterDefinition<Character>.Empty)
+            .Where(c => includeArchived || !c.Archived)
+            .Select(c =>
+            {
+                EnsureCharacterDefaults(c);
+                return CharacterSummaryPayload(c, GetAccount(c.OwnerUserId), actor);
+            })
+            .Cast<object>()
+            .ToArray();
+        _logger.Admin($"character.admin.list actor={actor.Login} count={items.Length} includeArchived={includeArchived}");
+        return Ok("Character admin list loaded.", new Dictionary<string, object> { { "items", items } });
+    }
+
+    public ResponseEnvelope CharacterAdminSearch(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var query = (PayloadReader.GetString(context.Request.Payload, "query") ?? string.Empty).Trim();
+        var includeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived");
+        var ownerUserId = (PayloadReader.GetString(context.Request.Payload, "ownerUserId") ?? string.Empty).Trim();
+        var raceCode = (PayloadReader.GetString(context.Request.Payload, "raceCode") ?? string.Empty).Trim();
+        var classCode = (PayloadReader.GetString(context.Request.Payload, "classCode") ?? string.Empty).Trim();
+        var lowered = query.ToLowerInvariant();
+
+        var items = _repositories.Characters.Find(FilterDefinition<Character>.Empty)
+            .Where(c =>
+            {
+                EnsureCharacterDefaults(c);
+                var queryMatch = string.IsNullOrWhiteSpace(lowered)
+                    || c.Id.ToLowerInvariant().Contains(lowered)
+                    || c.Name.ToLowerInvariant().Contains(lowered)
+                    || c.OwnerUserId.ToLowerInvariant().Contains(lowered);
+                var ownerMatch = string.IsNullOrWhiteSpace(ownerUserId) || string.Equals(c.OwnerUserId, ownerUserId, StringComparison.OrdinalIgnoreCase);
+                var raceMatch = string.IsNullOrWhiteSpace(raceCode) || string.Equals(c.RaceCode, raceCode, StringComparison.OrdinalIgnoreCase);
+                var classMatch = string.IsNullOrWhiteSpace(classCode) || c.CharacterClasses.Any(x => string.Equals(x.ClassCode, classCode, StringComparison.OrdinalIgnoreCase));
+                var archiveMatch = includeArchived || !c.Archived;
+                return queryMatch && ownerMatch && raceMatch && classMatch && archiveMatch;
+            })
+            .Select(c => CharacterSummaryPayload(c, GetAccount(c.OwnerUserId), actor))
+            .Cast<object>()
+            .ToArray();
+
+        _logger.Admin($"character.admin.search actor={actor.Login} query={query} count={items.Length}");
+        return Ok("Character admin search loaded.", new Dictionary<string, object> { { "items", items } });
+    }
+
+    public ResponseEnvelope CharacterAdminGet(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        EnsureCharacterDefaults(character);
+        _logger.Admin($"character.admin.get actor={actor.Login} characterId={character.Id} result=ok");
+        return Ok("Character admin aggregate loaded.", BuildCharacterAggregatePayload(character, actor, includeNotesContext: true));
+    }
+
+    public ResponseEnvelope CharacterAdminSaveBasic(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        EnsureCharacterEditAllowed(actor, character.Id);
+        EnsureCharacterDefaults(character);
+        character.Name = RequireLength(PayloadReader.GetString(context.Request.Payload, "name"), 2, 80, "name");
+        character.Height = RequireLength(PayloadReader.GetString(context.Request.Payload, "height"), 0, 64, "height");
+        character.Description = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 2048, "description");
+        character.Backstory = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
+        character.Age = PayloadReader.GetInt(context.Request.Payload, "age");
+        var raceCode = (PayloadReader.GetString(context.Request.Payload, "raceCode") ?? string.Empty).Trim();
+        if (!string.IsNullOrWhiteSpace(raceCode))
+        {
+            var race = _repositories.RaceDefinitions.GetByCode(raceCode) ?? throw new ArgumentException("Race definition not found.");
+            character.RaceCode = race.Code;
+            character.Race = race.Name;
+        }
+
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.admin.save.basic actor={actor.Login} characterId={character.Id} result=ok");
+        return Ok("Character basic saved.", BuildCharacterAggregatePayload(character, actor, includeNotesContext: false));
+    }
+
+    public ResponseEnvelope CharacterAdminSaveStats(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        EnsureCharacterEditAllowed(actor, character.Id);
+        EnsureCharacterDefaults(character);
+        ApplyStatsFromPayload(character, context.Request.Payload);
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.admin.save.stats actor={actor.Login} characterId={character.Id} result=ok");
+        return Ok("Character stats saved.", new Dictionary<string, object> { { "stats", StatsPayload(character.Stats) } });
+    }
+
+    public ResponseEnvelope CharacterAdminSaveMoney(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        EnsureCharacterEditAllowed(actor, character.Id);
+        EnsureCharacterDefaults(character);
+        ApplyMoneyFromPayload(character, context.Request.Payload);
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.admin.save.money actor={actor.Login} characterId={character.Id} result=ok");
+        return Ok("Character money saved.", BuildMoneyPayload(character));
+    }
+
+    public ResponseEnvelope CharacterAdminSaveProgression(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        EnsureCharacterEditAllowed(actor, character.Id);
+        EnsureCharacterDefaults(character);
+
+        var raceCode = PayloadReader.GetString(context.Request.Payload, "raceCode");
+        if (!string.IsNullOrWhiteSpace(raceCode))
+        {
+            var race = _repositories.RaceDefinitions.GetByCode(raceCode) ?? throw new ArgumentException("Race definition not found.");
+            character.RaceCode = race.Code;
+            character.Race = race.Name;
+        }
+
+        var xpCoins = PayloadReader.GetInt(context.Request.Payload, "xpCoins");
+        if (xpCoins.HasValue)
+        {
+            if (xpCoins.Value < 0) throw new ArgumentException("xpCoins must be >= 0.");
+            character.XpCoins = xpCoins.Value;
+        }
+
+        var classList = PayloadReader.GetList(context.Request.Payload, "characterClasses");
+        if (classList != null) character.CharacterClasses = ParseCharacterClasses(classList);
+        var skillList = PayloadReader.GetList(context.Request.Payload, "characterSkills");
+        if (skillList != null) character.CharacterSkills = ParseCharacterSkills(skillList);
+        ValidateProgressionState(character);
+
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.admin.save.progression actor={actor.Login} characterId={character.Id} result=ok");
+        return Ok("Character progression saved.", BuildProgressionPayload(character));
+    }
+
+    public ResponseEnvelope CharacterAdminSaveVisibility(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        EnsureCharacterDefaults(character);
+        EnsureCharacterEditAllowed(actor, character.Id);
+        character.Visibility.HideDescriptionForOthers = PayloadReader.GetBool(context.Request.Payload, "hideDescriptionForOthers");
+        character.Visibility.HideBackstoryForOthers = PayloadReader.GetBool(context.Request.Payload, "hideBackstoryForOthers");
+        character.Visibility.HideStatsForOthers = PayloadReader.GetBool(context.Request.Payload, "hideStatsForOthers");
+        character.Visibility.HideReputationForOthers = PayloadReader.GetBool(context.Request.Payload, "hideReputationForOthers");
+        character.Visibility.HideRaceForOthers = PayloadReader.GetBool(context.Request.Payload, "hideRaceForOthers");
+        character.Visibility.HideHeightForOthers = PayloadReader.GetBool(context.Request.Payload, "hideHeightForOthers");
+        character.Visibility.HideInventoryForOthers = PayloadReader.GetBool(context.Request.Payload, "hideInventoryForOthers");
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.admin.save.visibility actor={actor.Login} characterId={character.Id} result=ok");
+        return Ok("Character visibility saved.", new Dictionary<string, object> { { "visibility", VisibilityPayload(character.Visibility) } });
+    }
+
+    public ResponseEnvelope CharacterAdminGetNotesContext(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        var notes = BuildNotesContextPayload(characterId);
+        _logger.Admin($"character.admin.get.notesContext actor={actor.Login} characterId={characterId} notesCount={((object[])notes["noteLinks"]).Length}");
+        return Ok("Character notes context loaded.", notes);
+    }
+
+    public ResponseEnvelope CharacterSelfGet(CommandContext context)
+    {
+        var actor = GetCurrentAccount(context);
+        var character = ResolveOwnedCharacter(context, actor);
+        EnsureCharacterDefaults(character);
+        _logger.Admin($"character.self.get actor={actor.Login} characterId={character.Id} result=ok");
+        return Ok("Character self aggregate loaded.", BuildCharacterAggregatePayload(character, actor, includeNotesContext: false));
+    }
+
+    public ResponseEnvelope CharacterSelfSaveBasic(CommandContext context)
+    {
+        var actor = GetCurrentAccount(context);
+        var character = ResolveOwnedCharacter(context, actor);
+        EnsureCharacterDefaults(character);
+        character.Name = RequireLength(PayloadReader.GetString(context.Request.Payload, "name"), 2, 80, "name");
+        character.Height = RequireLength(PayloadReader.GetString(context.Request.Payload, "height"), 0, 64, "height");
+        character.Description = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 2048, "description");
+        character.Backstory = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
+        character.Age = PayloadReader.GetInt(context.Request.Payload, "age");
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.self.save.basic actor={actor.Login} characterId={character.Id} result=ok");
+        return Ok("Character self basic saved.", BuildCharacterAggregatePayload(character, actor, includeNotesContext: false));
+    }
+
+    public ResponseEnvelope CharacterSelfSaveStats(CommandContext context)
+    {
+        var actor = GetCurrentAccount(context);
+        var character = ResolveOwnedCharacter(context, actor);
+        EnsureCharacterDefaults(character);
+        ApplyStatsFromPayload(character, context.Request.Payload);
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.self.save.stats actor={actor.Login} characterId={character.Id} result=ok");
+        return Ok("Character self stats saved.", new Dictionary<string, object> { { "stats", StatsPayload(character.Stats) } });
+    }
+
+    public ResponseEnvelope CharacterSelfSaveMoney(CommandContext context)
+    {
+        var actor = GetCurrentAccount(context);
+        var character = ResolveOwnedCharacter(context, actor);
+        EnsureCharacterDefaults(character);
+        ApplyMoneyFromPayload(character, context.Request.Payload);
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.self.save.money actor={actor.Login} characterId={character.Id} result=ok");
+        return Ok("Character self money saved.", BuildMoneyPayload(character));
+    }
+
+    public ResponseEnvelope CharacterSelfGetProgression(CommandContext context)
+    {
+        var actor = GetCurrentAccount(context);
+        var character = ResolveOwnedCharacter(context, actor);
+        EnsureCharacterDefaults(character);
+        _logger.Admin($"character.self.get.progression actor={actor.Login} characterId={character.Id} result=ok");
+        return Ok("Character self progression loaded.", BuildProgressionPayload(character));
+    }
+
+    public ResponseEnvelope CharacterLockAcquire(CommandContext context) => CharacterLockExecute(context, CommandNames.LockAcquire);
+    public ResponseEnvelope CharacterLockRelease(CommandContext context) => CharacterLockExecute(context, CommandNames.LockRelease);
+    public ResponseEnvelope CharacterLockForceRelease(CommandContext context) => CharacterLockExecute(context, CommandNames.LockForceRelease, allowAdminForceRelease: true);
+    public ResponseEnvelope CharacterLockGet(CommandContext context) => CharacterLockExecute(context, CommandNames.LockStatus);
+
+    private ResponseEnvelope CharacterLockExecute(CommandContext context, string lockCommand, bool allowAdminForceRelease = false)
+    {
+        var payload = new Dictionary<string, object>(context.Request.Payload)
+        {
+            ["entityType"] = "character",
+            ["entityId"] = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId")
+        };
+        var cloned = new CommandContext
+        {
+            ConnectionId = context.ConnectionId,
+            Request = new RequestEnvelope
+            {
+                Command = lockCommand,
+                RequestId = context.Request.RequestId,
+                AuthToken = context.Request.AuthToken,
+                SessionId = context.Request.SessionId,
+                TimestampUtc = context.Request.TimestampUtc,
+                Version = context.Request.Version,
+                Payload = payload
+            },
+            Session = context.Session
+        };
+
+        if (allowAdminForceRelease)
+        {
+            var actor = RequireAdmin(context);
+            var lockItem = FindActiveLock("character", (string)payload["entityId"]);
+            if (lockItem == null) return Ok("Lock not found.");
+            lockItem.Deleted = true;
+            lockItem.Archived = true;
+            _repositories.Locks.Replace(lockItem);
+            _logger.Admin($"character.lock.forceRelease actor={actor.Login} characterId={payload["entityId"]} result=ok");
+            return Ok("Character lock force released.");
+        }
+
+        var response = lockCommand switch
+        {
+            var x when x == CommandNames.LockAcquire => LockAcquire(cloned),
+            var x when x == CommandNames.LockRelease => LockRelease(cloned),
+            var x when x == CommandNames.LockStatus => LockStatus(cloned),
+            _ => throw new ArgumentException("Unsupported lock command.")
+        };
+        var actorAccount = GetCurrentAccount(context);
+        _logger.Admin($"character.lock.{lockCommand.Split('.').Last()} actor={actorAccount.Login} characterId={payload["entityId"]} result={response.Status}");
+        return response;
+    }
+
     public ResponseEnvelope PresenceList(CommandContext context)
     {
         RequireAdmin(context);
@@ -432,6 +705,7 @@ public partial class ServiceHub
         lockItem.ExpiresUtc = DateTime.UtcNow.AddHours(1);
         lockItem.Deleted = false;
         if (existing == null) _repositories.Locks.Insert(lockItem); else _repositories.Locks.Replace(lockItem);
+        _logger.Admin($"lock.acquire actor={actor.Login} entityType={entityType} entityId={entityId} result={(existing == null ? "new" : "refresh")}");
         return Ok(existing == null ? "Lock acquired." : "Lock refreshed.", LockPayload(lockItem));
     }
 
@@ -442,6 +716,7 @@ public partial class ServiceHub
         if (lockItem.LockedByUserId != actor.Id && !actor.Roles.Contains(UserRole.SuperAdmin)) throw new UnauthorizedAccessException("Cannot release lock owned by another admin.");
         lockItem.Deleted = true; lockItem.Archived = true;
         _repositories.Locks.Replace(lockItem);
+        _logger.Admin($"lock.release actor={actor.Login} entityType={lockItem.EntityType} entityId={lockItem.EntityId} result=ok");
         return Ok("Lock released.");
     }
 
@@ -454,6 +729,7 @@ public partial class ServiceHub
         lockItem.Archived = true;
         _repositories.Locks.Replace(lockItem);
         WriteAudit("lock", actor.Id, "forceRelease", lockItem.Id);
+        _logger.Admin($"lock.forceRelease actor={actor.Login} entityType={lockItem.EntityType} entityId={lockItem.EntityId} result=ok");
         return Ok("Lock force released.");
     }
 
@@ -463,6 +739,7 @@ public partial class ServiceHub
         var entityType = RequireLength(PayloadReader.GetString(context.Request.Payload, "entityType"), 2, 128, "entityType");
         var entityId = RequireLength(PayloadReader.GetString(context.Request.Payload, "entityId"), 4, 128, "entityId");
         var lockItem = FindActiveLock(entityType, entityId);
+        _logger.Admin($"lock.get actor={GetCurrentAccount(context).Login} entityType={entityType} entityId={entityId} result={(lockItem == null ? "free" : "locked")}");
         if (lockItem == null) return Ok("Lock is free.", new Dictionary<string, object> { { "isLocked", false } });
         return Ok("Lock is active.", new Dictionary<string, object> { { "isLocked", true }, { "lock", LockPayload(lockItem) } });
     }
@@ -508,6 +785,7 @@ public partial class ServiceHub
 
     private Dictionary<string, object> CharacterSummaryPayload(Character c, UserAccount owner, UserAccount viewer)
     {
+        EnsureCharacterDefaults(c);
         var dto = new Dictionary<string, object>
         {
             { "characterId", c.Id },
@@ -530,18 +808,26 @@ public partial class ServiceHub
 
     private Dictionary<string, object> CharacterDetailsPayload(Character c, UserAccount owner, UserAccount viewer)
     {
+        EnsureCharacterDefaults(c);
         var isPrivileged = viewer.Id == owner.Id || viewer.Roles.Contains(UserRole.Admin) || viewer.Roles.Contains(UserRole.SuperAdmin);
         var details = CharacterSummaryPayload(c, owner, viewer);
         details["age"] = c.Age.HasValue ? (object)c.Age.Value : string.Empty;
         details["backstory"] = (!isPrivileged && c.Visibility.HideBackstoryForOthers) ? "[hidden]" : c.Backstory;
         details["stats"] = (!isPrivileged && c.Visibility.HideStatsForOthers) ? "[hidden]" : (object)StatsPayload(c.Stats);
         details["money"] = WalletPayload(c.Wallet);
+        details["currencies"] = CurrencyListPayload(c);
         details["inventory"] = c.Inventory.Select(InventoryPayload).Cast<object>().ToArray();
         details["companions"] = c.Companions.Select(CompanionPayload).Cast<object>().ToArray();
         details["holdings"] = c.Holdings.Select(x => new Dictionary<string, object> { { "name", x.Name }, { "description", x.Description } }).Cast<object>().ToArray();
         details["reputation"] = (!isPrivileged && c.Visibility.HideReputationForOthers) ? "[hidden]" : (object)c.Reputation.Select(x => new Dictionary<string, object> { { "scope", x.Scope }, { "groupKey", x.GroupKey }, { "value", x.Value } }).Cast<object>().ToArray();
         details["classProgress"] = c.ClassProgress.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "experience", x.Experience } }).Cast<object>().ToArray();
         details["skills"] = c.Skills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "name", x.Name }, { "description", x.Description }, { "type", x.Type.ToString() }, { "available", x.IsAvailable }, { "reason", x.UnavailableReason } }).Cast<object>().ToArray();
+        details["raceCode"] = c.RaceCode;
+        details["xpCoins"] = c.XpCoins;
+        details["characterClasses"] = c.CharacterClasses.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "learnedUtc", x.LearnedUtc } }).Cast<object>().ToArray();
+        details["characterSkills"] = c.CharacterSkills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "tier", x.Tier }, { "level", x.Level }, { "learnedUtc", x.LearnedUtc } }).Cast<object>().ToArray();
+        details["visibility"] = VisibilityPayload(c.Visibility);
+        details["notesContext"] = BuildNotesContextPayload(c.Id);
         return details;
     }
 
@@ -602,6 +888,207 @@ public partial class ServiceHub
             Name = RequireLength(PayloadReader.GetString(item, "name"), 1, 128, "name"),
             Description = RequireLength(PayloadReader.GetString(item, "description"), 0, 512, "description")
         }).ToList();
+    }
+
+    private Dictionary<string, object> BuildCharacterAggregatePayload(Character character, UserAccount viewer, bool includeNotesContext)
+    {
+        var owner = GetAccount(character.OwnerUserId);
+        var payload = CharacterDetailsPayload(character, owner, viewer);
+        if (!includeNotesContext) payload["notesContext"] = new Dictionary<string, object> { { "scopes", Array.Empty<object>() }, { "noteLinks", Array.Empty<object>() } };
+        return payload;
+    }
+
+    private void EnsureCharacterDefaults(Character character)
+    {
+        character.Visibility ??= new CharacterVisibilitySettings();
+        character.Stats ??= new CharacterStats();
+        character.Wallet ??= new Wallet();
+        character.Wallet.EnsureAllDenominations();
+        character.Inventory ??= new List<InventoryItem>();
+        character.Companions ??= new List<Companion>();
+        character.Holdings ??= new List<HoldingRef>();
+        character.Reputation ??= new List<ReputationRef>();
+        character.ClassProgress ??= new List<CharacterClassProgress>();
+        character.Skills ??= new List<SkillState>();
+        character.CharacterClasses ??= new List<CharacterClassState>();
+        character.CharacterSkills ??= new List<CharacterSkillState>();
+        if (string.IsNullOrWhiteSpace(character.RaceCode) && !string.IsNullOrWhiteSpace(character.Race))
+        {
+            character.RaceCode = character.Race.Trim();
+        }
+
+        if (character.XpCoins < 0) character.XpCoins = 0;
+    }
+
+    private Character ResolveOwnedCharacter(CommandContext context, UserAccount actor)
+    {
+        var characterId = PayloadReader.GetString(context.Request.Payload, "characterId");
+        if (!string.IsNullOrWhiteSpace(characterId))
+        {
+            var character = GetCharacter(RequireLength(characterId, 8, 128, "characterId"));
+            if (!string.Equals(character.OwnerUserId, actor.Id, StringComparison.OrdinalIgnoreCase))
+                throw new UnauthorizedAccessException("Character unavailable.");
+            return character;
+        }
+
+        var active = _repositories.Presence.Find(Builders<SessionUserState>.Filter.Eq(x => x.UserId, actor.Id)).FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(active?.ActiveCharacterId))
+        {
+            var selected = _repositories.Characters.GetById(active.ActiveCharacterId);
+            if (selected != null && selected.OwnerUserId == actor.Id && !selected.Deleted) return selected;
+        }
+
+        return _repositories.Characters.Find(Builders<Character>.Filter.Eq(x => x.OwnerUserId, actor.Id)).FirstOrDefault()
+            ?? throw new KeyNotFoundException("Character not found.");
+    }
+
+    private void EnsureCharacterEditAllowed(UserAccount actor, string characterId)
+    {
+        var lockItem = FindActiveLock("character", characterId);
+        if (lockItem == null)
+        {
+            _logger.Admin($"character.validation.denied command=save characterId={characterId} actor={actor.Login} reason=lock-missing");
+            throw new UnauthorizedAccessException("Character lock is required for admin save.");
+        }
+
+        if (lockItem.LockedByUserId != actor.Id && !actor.Roles.Contains(UserRole.SuperAdmin))
+        {
+            _logger.Admin($"character.validation.denied command=save characterId={characterId} actor={actor.Login} reason=lock-owner-mismatch");
+            throw new UnauthorizedAccessException("Character is locked by another admin.");
+        }
+    }
+
+    private void ApplyStatsFromPayload(Character character, Dictionary<string, object> payload)
+    {
+        character.Stats.Health = RequireRange(PayloadReader.GetInt(payload, "health"), 0, 999, "health");
+        character.Stats.PhysicalArmor = RequireRange(PayloadReader.GetInt(payload, "physicalArmor"), 0, 999, "physicalArmor");
+        character.Stats.MagicalArmor = RequireRange(PayloadReader.GetInt(payload, "magicalArmor"), 0, 999, "magicalArmor");
+        character.Stats.Morale = RequireRange(PayloadReader.GetInt(payload, "morale"), 0, 999, "morale");
+        character.Stats.Strength = RequireRange(PayloadReader.GetInt(payload, "strength"), 0, 999, "strength");
+        character.Stats.Dexterity = RequireRange(PayloadReader.GetInt(payload, "dexterity"), 0, 999, "dexterity");
+        character.Stats.Endurance = RequireRange(PayloadReader.GetInt(payload, "endurance"), 0, 999, "endurance");
+        character.Stats.Wisdom = RequireRange(PayloadReader.GetInt(payload, "wisdom"), 0, 999, "wisdom");
+        character.Stats.Intellect = RequireRange(PayloadReader.GetInt(payload, "intellect"), 0, 999, "intellect");
+        character.Stats.Charisma = RequireRange(PayloadReader.GetInt(payload, "charisma"), 0, 999, "charisma");
+    }
+
+    private void ApplyMoneyFromPayload(Character character, Dictionary<string, object> payload)
+    {
+        character.Wallet.EnsureAllDenominations();
+        var moneyRaw = PayloadReader.GetDictionary(payload, "money") ?? payload;
+        foreach (CurrencyDenomination denomination in Enum.GetValues(typeof(CurrencyDenomination)))
+        {
+            var value = PayloadReader.GetLong(moneyRaw, denomination.ToString());
+            if (!value.HasValue) continue;
+            if (value.Value < 0)
+            {
+                _logger.Admin($"character.validation.denied command=save.money characterId={character.Id} reason=currency-negative currency={denomination}");
+                throw new ArgumentException($"currency {denomination} must be >= 0.");
+            }
+
+            character.Wallet.Balance.Amounts[denomination] = value.Value;
+        }
+
+        var xpCoins = PayloadReader.GetInt(payload, "xpCoins");
+        if (xpCoins.HasValue)
+        {
+            if (xpCoins.Value < 0)
+            {
+                _logger.Admin($"character.validation.denied command=save.money characterId={character.Id} reason=xp-negative");
+                throw new ArgumentException("xpCoins must be >= 0.");
+            }
+
+            character.XpCoins = xpCoins.Value;
+        }
+    }
+
+    private void ValidateProgressionState(Character character)
+    {
+        EnsureCharacterDefaults(character);
+        if (character.XpCoins < 0) throw new ArgumentException("xpCoins must be >= 0.");
+        var classSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in character.CharacterClasses)
+        {
+            if (string.IsNullOrWhiteSpace(item.ClassCode)) throw new ArgumentException("classCode is required.");
+            if (!classSet.Add(item.ClassCode)) throw new ArgumentException($"Duplicate class '{item.ClassCode}'.");
+            if (_repositories.ClassDefinitions.GetByCode(item.ClassCode) == null) throw new ArgumentException($"Class '{item.ClassCode}' not found.");
+            if (item.Level <= 0) throw new ArgumentException($"Class '{item.ClassCode}' level must be > 0.");
+        }
+
+        var skillSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in character.CharacterSkills)
+        {
+            if (string.IsNullOrWhiteSpace(item.SkillCode)) throw new ArgumentException("skillCode is required.");
+            if (!skillSet.Add(item.SkillCode)) throw new ArgumentException($"Duplicate skill '{item.SkillCode}'.");
+            if (_repositories.DefinitionSkills.GetByCode(item.SkillCode) == null) throw new ArgumentException($"Skill '{item.SkillCode}' not found.");
+            if (item.Level <= 0) throw new ArgumentException($"Skill '{item.SkillCode}' level must be > 0.");
+        }
+    }
+
+    private List<CharacterClassState> ParseCharacterClasses(IList<object> list)
+    {
+        return list.OfType<Dictionary<string, object>>().Select(x => new CharacterClassState
+        {
+            ClassCode = RequireLength(PayloadReader.GetString(x, "classCode"), 1, 128, "classCode"),
+            Level = RequireRange(PayloadReader.GetInt(x, "level"), 1, 999, "level"),
+            LearnedUtc = DateTime.UtcNow
+        }).ToList();
+    }
+
+    private List<CharacterSkillState> ParseCharacterSkills(IList<object> list)
+    {
+        return list.OfType<Dictionary<string, object>>().Select(x => new CharacterSkillState
+        {
+            SkillCode = RequireLength(PayloadReader.GetString(x, "skillCode"), 1, 128, "skillCode"),
+            Tier = RequireRange(PayloadReader.GetInt(x, "tier"), 0, 999, "tier"),
+            Level = RequireRange(PayloadReader.GetInt(x, "level"), 1, 999, "level"),
+            Acquired = true,
+            LearnedUtc = DateTime.UtcNow
+        }).ToList();
+    }
+
+    private Dictionary<string, object> BuildNotesContextPayload(string characterId)
+    {
+        var links = _repositories.Notes.Find(
+                Builders<Note>.Filter.Eq(x => x.TargetType, "character") &
+                Builders<Note>.Filter.Eq(x => x.TargetId, characterId) &
+                Builders<Note>.Filter.Eq(x => x.Deleted, false))
+            .Select(n => new Dictionary<string, object>
+            {
+                { "noteId", n.Id },
+                { "title", n.Title },
+                { "visibility", n.Visibility.ToString() },
+                { "noteType", n.NoteType.ToString() }
+            })
+            .Cast<object>()
+            .ToArray();
+
+        return new Dictionary<string, object>
+        {
+            { "scopes", new object[] { "character.personal", "character.admin", "character.session" } },
+            { "noteLinks", links }
+        };
+    }
+
+    private Dictionary<string, object> BuildMoneyPayload(Character character) => new Dictionary<string, object>
+    {
+        { "money", WalletPayload(character.Wallet) },
+        { "currencies", CurrencyListPayload(character) }
+    };
+
+    private static object[] CurrencyListPayload(Character character)
+    {
+        character.Wallet.EnsureAllDenominations();
+        var list = Enum.GetValues(typeof(CurrencyDenomination)).Cast<CurrencyDenomination>()
+            .Select(x => (object)new Dictionary<string, object>
+            {
+                { "code", x.ToString() },
+                { "amount", character.Wallet.Balance.Amounts.ContainsKey(x) ? character.Wallet.Balance.Amounts[x] : 0L },
+                { "kind", "money" }
+            })
+            .ToList();
+        list.Add(new Dictionary<string, object> { { "code", "XpCoins" }, { "amount", character.XpCoins }, { "kind", "progression" } });
+        return list.ToArray();
     }
 
 
