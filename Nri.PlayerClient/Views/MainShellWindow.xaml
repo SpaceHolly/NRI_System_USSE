@@ -1017,7 +1017,7 @@
         <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="4*"/>
                     <ColumnDefinition Width="1*"/>
                 </Grid.ColumnDefinitions>
 
@@ -1026,7 +1026,7 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,6" Padding="6">
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,6" Padding="8" MinHeight="420">
                         <ListBox ItemsSource="{Binding ChatMessageRows}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
@@ -1078,6 +1078,19 @@
 
                     <Border Grid.Row="0" Style="{StaticResource CardStyle}">
                         <StackPanel>
+                            <TextBlock Text="Создание персонажа" FontWeight="Bold" Margin="0,0,0,6"/>
+                            <WrapPanel>
+                                <TextBox Width="150" Text="{Binding CreateCharacterName, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBox Width="120" Margin="6,0,0,0" Text="{Binding CreateCharacterRace, UpdateSourceTrigger=PropertyChanged}"/>
+                                <Button Margin="6,0,0,0" Content="Создать персонажа" Command="{Binding CreateCharacterCommand}"/>
+                            </WrapPanel>
+                            <WrapPanel Margin="0,6,0,8">
+                                <TextBox Width="56" Text="{Binding CreateCharacterHealth, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBox Width="56" Margin="6,0,0,0" Text="{Binding CreateCharacterStrength, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBox Width="56" Margin="6,0,0,0" Text="{Binding CreateCharacterDexterity, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBox Width="56" Margin="6,0,0,0" Text="{Binding CreateCharacterIntellect, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBox Width="86" Margin="6,0,0,0" Text="{Binding CreateCharacterIron, UpdateSourceTrigger=PropertyChanged}"/>
+                            </WrapPanel>
                             <TextBlock Text="Заявка на бросок" FontWeight="Bold" Margin="0,0,0,6"/>
                             <WrapPanel>
                                 <TextBlock Text="Кубов" VerticalAlignment="Center" Margin="0,0,4,0"/>
@@ -1088,6 +1101,7 @@
                                 <TextBox Width="60" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}"/>
                             </WrapPanel>
                             <WrapPanel>
+                                <ComboBox Width="120" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/>
                                 <ComboBox Width="130" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
                                 <TextBox Width="210" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}"/>
                             </WrapPanel>

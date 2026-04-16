@@ -353,7 +353,7 @@
                                                     <DataGridTextColumn Header="Created" Binding="{Binding Extra}" Width="1.5*"/>
                                                 </DataGrid.Columns>
                                             </DataGrid>
-                                            <WrapPanel Margin="0,8,0,0"><Button Content="Подтвердить" Command="{Binding ApproveCommand}" IsEnabled="{Binding CanManagePendingAccount}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Архивировать" Command="{Binding ArchiveCommand}" IsEnabled="{Binding CanManagePendingAccount}"/></WrapPanel>
+                                            <WrapPanel Margin="0,8,0,0"><Button Content="Подтвердить" Command="{Binding ApproveCommand}" IsEnabled="{Binding CanManagePendingAccount}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Отклонить" Command="{Binding RejectAccountCommand}" IsEnabled="{Binding CanManagePendingAccount}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Блок" Command="{Binding BlockAccountCommand}" IsEnabled="{Binding CanManagePendingAccount}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Разблок" Command="{Binding UnblockAccountCommand}" IsEnabled="{Binding CanManagePendingAccount}"/></WrapPanel><WrapPanel Margin="0,6,0,0"><TextBox Width="180" Text="{Binding ResetPasswordText, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Сбросить пароль" Command="{Binding ResetPasswordCommand}" IsEnabled="{Binding CanManagePendingAccount}"/></WrapPanel>
                                         </StackPanel>
                                     </Border>
                                     <Border Grid.Row="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Игроки" Style="{StaticResource SectionTitleTextStyle}"/><DataGrid ItemsSource="{Binding Players}" SelectedValuePath="Id" SelectedValue="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}" MinHeight="180"><DataGrid.Columns><DataGridTextColumn Header="UserId" Binding="{Binding Id}" Width="2*"/><DataGridTextColumn Header="Login" Binding="{Binding Name}" Width="1.5*"/><DataGridTextColumn Header="Status" Binding="{Binding State}" Width="1.2*"/><DataGridTextColumn Header="Presence" Binding="{Binding Extra}" Width="1.5*"/></DataGrid.Columns></DataGrid><WrapPanel Margin="0,8,0,0"><Button Content="Загрузить персонажей" Command="{Binding OpenPlayerCharactersCommand}" IsEnabled="{Binding CanLoadPlayerCharacters}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Открыть раздел персонажей" Command="{Binding SelectSectionCommand}" CommandParameter="Персонажи" IsEnabled="{Binding CanLoadPlayerCharacters}"/></WrapPanel></StackPanel></Border>
@@ -577,6 +577,10 @@
                             <TextBox Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}"/>
                             <TextBlock Text="Пароль" Margin="0,8,0,0"/>
                             <TextBox Text="{Binding PasswordText, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Старый пароль (смена)" Margin="0,8,0,0"/>
+                            <TextBox Text="{Binding OldPasswordText, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Новый пароль" Margin="0,8,0,0"/>
+                            <TextBox Text="{Binding NewPasswordText, UpdateSourceTrigger=PropertyChanged}"/>
                             <TextBlock Text="{Binding LoginState}" Margin="0,10,0,0"/>
                             <TextBlock Text="{Binding LastErrorMessage}" Foreground="{StaticResource DangerBrush}">
                                 <TextBlock.Style>
@@ -590,7 +594,7 @@
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
-                            <Button Content="Войти" Command="{Binding LoginCommand}" Margin="0,12,0,0" HorizontalAlignment="Left" IsEnabled="{Binding CanInitiateConnection}"/>
+                            <WrapPanel Margin="0,12,0,0"><Button Content="Войти" Command="{Binding LoginCommand}" HorizontalAlignment="Left" IsEnabled="{Binding CanInitiateConnection}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Сменить пароль" Command="{Binding ChangePasswordCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}"/></WrapPanel>
                         </StackPanel>
                     </Border>
                 </Popup>

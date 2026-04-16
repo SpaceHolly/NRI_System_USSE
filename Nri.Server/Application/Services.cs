@@ -30,6 +30,7 @@ public partial class ServiceHub
     {
         var login = RequireLength(PayloadReader.GetString(context.Request.Payload, "login"), 3, 64, "login");
         var password = RequireLength(PayloadReader.GetString(context.Request.Payload, "password"), 6, 128, "password");
+        _logger.Admin($"auth.register.requested login={login}");
 
         var existing = _repositories.Accounts.Find(Builders<UserAccount>.Filter.Eq(x => x.Login, login)).FirstOrDefault();
         if (existing != null) throw new InvalidOperationException("Login already exists.");
@@ -51,7 +52,8 @@ public partial class ServiceHub
         _repositories.Profiles.Replace(profile);
 
         WriteAudit("auth", account.Id, "register", account.Id);
-        return Ok("Registration completed.", new Dictionary<string, object> { { "accountId", account.Id }, { "status", account.Status.ToString() } });
+        _logger.Admin($"auth.register.createdPending login={login} accountId={account.Id}");
+        return Ok("Registration submitted. Account is pending admin approval.", new Dictionary<string, object> { { "accountId", account.Id }, { "status", account.Status.ToString() } });
     }
 
     public ResponseEnvelope Login(CommandContext context)
@@ -62,6 +64,8 @@ public partial class ServiceHub
         var account = _repositories.Accounts.Find(Builders<UserAccount>.Filter.Eq(x => x.Login, login)).FirstOrDefault();
         if (account == null || PasswordHasher.Hash(password, account.PasswordSalt) != account.PasswordHash)
             throw new UnauthorizedAccessException("Invalid credentials.");
+        if (account.Status == AccountStatus.PendingApproval)
+            throw new UnauthorizedAccessException("Account is pending admin approval.");
         if (account.Status == AccountStatus.Blocked || account.Status == AccountStatus.Archived)
             throw new UnauthorizedAccessException($"Account status '{account.Status}' disallows login.");
 
@@ -78,6 +82,25 @@ public partial class ServiceHub
             { "status", account.Status.ToString() },
             { "roles", account.Roles.Select(x => x.ToString()).ToArray() }
         });
+    }
+
+    public ResponseEnvelope AuthChangePassword(CommandContext context)
+    {
+        var actor = GetCurrentAccount(context);
+        var oldPassword = RequireLength(PayloadReader.GetString(context.Request.Payload, "oldPassword"), 6, 128, "oldPassword");
+        var newPassword = RequireLength(PayloadReader.GetString(context.Request.Payload, "newPassword"), 8, 128, "newPassword");
+        if (string.Equals(oldPassword, newPassword, StringComparison.Ordinal))
+            throw new ArgumentException("New password must be different from old password.");
+        if (PasswordHasher.Hash(oldPassword, actor.PasswordSalt) != actor.PasswordHash)
+            throw new UnauthorizedAccessException("Old password is invalid.");
+
+        var salt = PasswordHasher.CreateSalt();
+        actor.PasswordSalt = salt;
+        actor.PasswordHash = PasswordHasher.Hash(newPassword, salt);
+        _repositories.Accounts.Replace(actor);
+        WriteAudit("auth", actor.Id, "changePassword", actor.Id);
+        _logger.Admin($"auth.changePassword actor={actor.Login} result=ok");
+        return Ok("Password changed.");
     }
 
     public ResponseEnvelope Logout(CommandContext context)
@@ -129,6 +152,7 @@ public partial class ServiceHub
         var actor = RequireAdmin(context);
         var items = _repositories.Accounts.Find(Builders<UserAccount>.Filter.Eq(x => x.Status, AccountStatus.PendingApproval))
             .Select(AccountPayload).Cast<object>().ToArray();
+        _logger.Admin($"admin.accounts.pending actor={actor.Login} count={items.Length}");
         return Ok("Pending accounts loaded.", new Dictionary<string, object> { { "items", items } });
     }
 
@@ -138,7 +162,7 @@ public partial class ServiceHub
         var target = GetAccount(RequireLength(PayloadReader.GetString(context.Request.Payload, "accountId"), 8, 128, "accountId"));
         target.Status = AccountStatus.Active;
         _repositories.Accounts.Replace(target);
-        _logger.Admin($"Account approved {target.Login} by {actor.Login}");
+        _logger.Admin($"admin.account.approve actor={actor.Login} target={target.Login} result=ok");
         WriteAudit("admin", actor.Id, "approveAccount", target.Id);
         return Ok("Account approved.");
     }
@@ -150,8 +174,59 @@ public partial class ServiceHub
         target.Status = AccountStatus.Archived;
         target.Archived = true;
         _repositories.Accounts.Replace(target);
+        _logger.Admin($"admin.account.archive actor={actor.Login} target={target.Login} result=ok");
         WriteAudit("admin", actor.Id, "archiveAccount", target.Id);
         return Ok("Account archived.");
+    }
+
+    public ResponseEnvelope AdminRejectAccount(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var target = GetAccount(RequireLength(PayloadReader.GetString(context.Request.Payload, "accountId"), 8, 128, "accountId"));
+        target.Status = AccountStatus.Archived;
+        target.Archived = true;
+        _repositories.Accounts.Replace(target);
+        _logger.Admin($"admin.account.reject actor={actor.Login} target={target.Login} result=ok");
+        WriteAudit("admin", actor.Id, "rejectAccount", target.Id);
+        return Ok("Account rejected.");
+    }
+
+    public ResponseEnvelope AdminBlockAccount(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var target = GetAccount(RequireLength(PayloadReader.GetString(context.Request.Payload, "accountId"), 8, 128, "accountId"));
+        target.Status = AccountStatus.Blocked;
+        _repositories.Accounts.Replace(target);
+        _logger.Admin($"admin.account.block actor={actor.Login} target={target.Login} result=ok");
+        WriteAudit("admin", actor.Id, "blockAccount", target.Id);
+        return Ok("Account blocked.");
+    }
+
+    public ResponseEnvelope AdminUnblockAccount(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var target = GetAccount(RequireLength(PayloadReader.GetString(context.Request.Payload, "accountId"), 8, 128, "accountId"));
+        if (target.Status == AccountStatus.Archived) throw new InvalidOperationException("Archived account cannot be unblocked.");
+        target.Status = AccountStatus.Active;
+        _repositories.Accounts.Replace(target);
+        _logger.Admin($"admin.account.unblock actor={actor.Login} target={target.Login} result=ok");
+        WriteAudit("admin", actor.Id, "unblockAccount", target.Id);
+        return Ok("Account unblocked.");
+    }
+
+    public ResponseEnvelope AdminResetAccountPassword(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var accountId = RequireLength(PayloadReader.GetString(context.Request.Payload, "accountId"), 8, 128, "accountId");
+        var newPassword = RequireLength(PayloadReader.GetString(context.Request.Payload, "newPassword"), 8, 128, "newPassword");
+        var target = GetAccount(accountId);
+        var salt = PasswordHasher.CreateSalt();
+        target.PasswordSalt = salt;
+        target.PasswordHash = PasswordHasher.Hash(newPassword, salt);
+        _repositories.Accounts.Replace(target);
+        _logger.Admin($"admin.account.resetPassword actor={actor.Login} target={target.Login} result=ok");
+        WriteAudit("admin", actor.Id, "resetPassword", target.Id);
+        return Ok("Password reset.");
     }
 
     public ResponseEnvelope AdminAccountProfile(CommandContext context)
@@ -269,8 +344,11 @@ public partial class ServiceHub
 
     public ResponseEnvelope CharacterCreate(CommandContext context)
     {
-        var actor = RequireAdmin(context);
-        var ownerId = RequireLength(PayloadReader.GetString(context.Request.Payload, "ownerUserId"), 8, 128, "ownerUserId");
+        var actor = GetCurrentAccount(context);
+        var isAdmin = actor.Roles.Contains(UserRole.Admin) || actor.Roles.Contains(UserRole.SuperAdmin);
+        var ownerRaw = PayloadReader.GetString(context.Request.Payload, "ownerUserId");
+        var ownerId = isAdmin && !string.IsNullOrWhiteSpace(ownerRaw) ? RequireLength(ownerRaw, 8, 128, "ownerUserId") : actor.Id;
+        if (!string.IsNullOrWhiteSpace(ownerId)) _ = GetAccount(ownerId);
         var character = new Character
         {
             OwnerUserId = ownerId,
@@ -280,9 +358,43 @@ public partial class ServiceHub
             Age = PayloadReader.GetInt(context.Request.Payload, "age")
         };
         character.Wallet.EnsureAllDenominations();
+        character.Stats = new CharacterStats
+        {
+            Health = PayloadReader.GetInt(context.Request.Payload, "health") ?? 0,
+            PhysicalArmor = PayloadReader.GetInt(context.Request.Payload, "physicalArmor") ?? 0,
+            MagicalArmor = PayloadReader.GetInt(context.Request.Payload, "magicalArmor") ?? 0,
+            Morale = PayloadReader.GetInt(context.Request.Payload, "morale") ?? 0,
+            Strength = PayloadReader.GetInt(context.Request.Payload, "strength") ?? 0,
+            Dexterity = PayloadReader.GetInt(context.Request.Payload, "dexterity") ?? 0,
+            Endurance = PayloadReader.GetInt(context.Request.Payload, "endurance") ?? 0,
+            Wisdom = PayloadReader.GetInt(context.Request.Payload, "wisdom") ?? 0,
+            Intellect = PayloadReader.GetInt(context.Request.Payload, "intellect") ?? 0,
+            Charisma = PayloadReader.GetInt(context.Request.Payload, "charisma") ?? 0
+        };
+        ApplyMoneyFromPayload(character, context.Request.Payload);
         _repositories.Characters.Insert(character);
         WriteAudit("character", actor.Id, "create", character.Id);
+        _logger.Admin($"character.create actor={actor.Login} owner={ownerId} characterId={character.Id} result=ok");
         return Ok("Character created.", CharacterDetailsPayload(character, GetAccount(ownerId), actor));
+    }
+
+    public ResponseEnvelope CharacterAdminCreate(CommandContext context)
+    {
+        RequireAdmin(context);
+        return CharacterCreate(context);
+    }
+
+    public ResponseEnvelope CharacterAssignOwner(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var ownerId = RequireLength(PayloadReader.GetString(context.Request.Payload, "ownerUserId"), 8, 128, "ownerUserId");
+        _ = GetAccount(ownerId);
+        c.OwnerUserId = ownerId;
+        _repositories.Characters.Replace(c);
+        _logger.Admin($"character.assignOwner actor={actor.Login} characterId={c.Id} owner={ownerId} result=ok");
+        WriteAudit("character", actor.Id, "assignOwner", c.Id);
+        return Ok("Character owner assigned.");
     }
 
     public ResponseEnvelope CharacterArchive(CommandContext context) => SetCharacterArchiveState(context, true);
@@ -1696,7 +1808,102 @@ public partial class ServiceHub
 
         _repositories.DiceRequests.Insert(request);
         WriteAudit("request", actor.Id, "createDice", request.Id);
+        _logger.Admin($"dice.request.pending actor={actor.Login} characterId={characterId} formula={formula.Normalized} visibility={visibility}");
         return Ok("Dice request created.", DiceRequestPayload(request, actor));
+    }
+
+    public ResponseEnvelope DiceRollStandard(CommandContext context)
+    {
+        var actor = GetCurrentAccount(context);
+        var roll = CreateResolvedDiceRoll(context, actor, isTestRoll: false);
+        _repositories.DiceRequests.Insert(roll);
+        _logger.Admin($"dice.roll.standard actor={actor.Login} requestId={roll.Id} total={roll.Result?.Total ?? 0}");
+        return Ok("Standard dice roll created.", DiceRequestPayload(roll, actor));
+    }
+
+    public ResponseEnvelope DiceRollTest(CommandContext context)
+    {
+        var actor = GetCurrentAccount(context);
+        var roll = CreateResolvedDiceRoll(context, actor, isTestRoll: true);
+        var existing = _repositories.DiceRequests.Find(
+            Builders<DiceRollRequest>.Filter.Eq(x => x.IsTestRoll, true) &
+            Builders<DiceRollRequest>.Filter.Eq(x => x.TestRollOwnerUserId, actor.Id) &
+            Builders<DiceRollRequest>.Filter.Eq(x => x.Deleted, false))
+            .OrderByDescending(x => x.UpdatedUtc)
+            .FirstOrDefault();
+
+        if (existing == null)
+        {
+            _repositories.DiceRequests.Insert(roll);
+            _logger.Admin($"dice.roll.test actor={actor.Login} action=create requestId={roll.Id} total={roll.Result?.Total ?? 0}");
+            return Ok("Test dice roll created.", DiceRequestPayload(roll, actor));
+        }
+
+        existing.RawFormula = roll.RawFormula;
+        existing.Formula = roll.Formula;
+        existing.Visibility = roll.Visibility;
+        existing.Description = roll.Description;
+        existing.Result = roll.Result;
+        existing.Status = RequestStatus.Approved;
+        existing.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "TestReplaced", Comment = roll.Formula.Normalized });
+        _repositories.DiceRequests.Replace(existing);
+        _logger.Admin($"dice.test.replace actor={actor.Login} requestId={existing.Id} total={existing.Result?.Total ?? 0}");
+        return Ok("Test dice roll replaced.", DiceRequestPayload(existing, actor));
+    }
+
+    public ResponseEnvelope DiceTestGetCurrent(CommandContext context)
+    {
+        var actor = GetCurrentAccount(context);
+        var requestedUserId = PayloadReader.GetString(context.Request.Payload, "userId");
+        var userId = (!string.IsNullOrWhiteSpace(requestedUserId) && (actor.Roles.Contains(UserRole.Admin) || actor.Roles.Contains(UserRole.SuperAdmin)))
+            ? requestedUserId
+            : actor.Id;
+        var existing = _repositories.DiceRequests.Find(
+                Builders<DiceRollRequest>.Filter.Eq(x => x.IsTestRoll, true) &
+                Builders<DiceRollRequest>.Filter.Eq(x => x.TestRollOwnerUserId, userId) &
+                Builders<DiceRollRequest>.Filter.Eq(x => x.Deleted, false))
+            .OrderByDescending(x => x.UpdatedUtc)
+            .FirstOrDefault();
+        _logger.Admin($"dice.test.getCurrent actor={actor.Login} userId={userId} found={(existing != null)}");
+        if (existing == null) return Ok("No current test roll.", new Dictionary<string, object> { { "item", new Dictionary<string, object>() } });
+        return Ok("Current test roll loaded.", new Dictionary<string, object> { { "item", DiceRequestPayload(existing, actor) } });
+    }
+
+    private DiceRollRequest CreateResolvedDiceRoll(CommandContext context, UserAccount actor, bool isTestRoll)
+    {
+        var characterId = PayloadReader.GetString(context.Request.Payload, "characterId");
+        if (!string.IsNullOrWhiteSpace(characterId))
+        {
+            var character = GetCharacter(RequireLength(characterId, 8, 128, "characterId"));
+            if (character.OwnerUserId != actor.Id && !actor.Roles.Contains(UserRole.Admin) && !actor.Roles.Contains(UserRole.SuperAdmin))
+                throw new UnauthorizedAccessException("Character unavailable for dice roll.");
+        }
+
+        var description = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 1024, "description");
+        var formulaInput = RequireLength(PayloadReader.GetString(context.Request.Payload, "formula"), 3, 64, "formula");
+        var visibilityRaw = (PayloadReader.GetString(context.Request.Payload, "visibility") ?? RequestVisibility.Public.ToString());
+        if (!Enum.TryParse(visibilityRaw, true, out RequestVisibility visibility)) visibility = RequestVisibility.Public;
+        var formula = DiceFormulaParser.Parse(formulaInput);
+        var result = DiceEngine.Execute(formula, visibility, actor.Id);
+        var request = new DiceRollRequest
+        {
+            RequestType = isTestRoll ? "DiceRollTest" : "DiceRollStandard",
+            CreatorUserId = actor.Id,
+            RelatedUserId = actor.Id,
+            CharacterId = characterId,
+            Description = description,
+            RawFormula = formulaInput,
+            Formula = formula,
+            Visibility = visibility,
+            Status = RequestStatus.Approved,
+            IsTestRoll = isTestRoll,
+            TestRollOwnerUserId = isTestRoll ? actor.Id : string.Empty,
+            Result = result,
+            PayloadJson = "{}",
+            Fingerprint = BuildFingerprint(isTestRoll ? "dice-test" : "dice-standard", actor.Id, characterId, formula.Normalized + ":" + visibility)
+        };
+        request.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = isTestRoll ? "CreatedTest" : "CreatedStandard", Comment = formula.Normalized });
+        return request;
     }
 
     public ResponseEnvelope RequestCancel(CommandContext context)
@@ -1730,7 +1937,10 @@ public partial class ServiceHub
     {
         var actor = GetCurrentAccount(context);
         var actions = _repositories.ActionRequests.Find(Builders<ActionRequest>.Filter.Eq(x => x.CreatorUserId, actor.Id)).Select(RequestPayload).Cast<object>();
-        var dice = _repositories.DiceRequests.Find(Builders<DiceRollRequest>.Filter.Eq(x => x.CreatorUserId, actor.Id)).Select(x => (object)DiceRequestPayload(x, actor));
+        var dice = _repositories.DiceRequests.Find(
+                Builders<DiceRollRequest>.Filter.Eq(x => x.CreatorUserId, actor.Id) &
+                Builders<DiceRollRequest>.Filter.Eq(x => x.IsTestRoll, false))
+            .Select(x => (object)DiceRequestPayload(x, actor));
         return Ok("My requests loaded.", new Dictionary<string, object> { { "items", actions.Concat(dice).ToArray() } });
     }
 
@@ -1738,7 +1948,10 @@ public partial class ServiceHub
     {
         RequireAdmin(context);
         var actions = _repositories.ActionRequests.Find(Builders<ActionRequest>.Filter.Eq(x => x.Status, RequestStatus.Pending)).Select(RequestPayload).Cast<object>();
-        var dice = _repositories.DiceRequests.Find(Builders<DiceRollRequest>.Filter.Eq(x => x.Status, RequestStatus.Pending)).Select(x => (object)DiceRequestPayload(x, GetCurrentAccount(context))).Cast<object>();
+        var dice = _repositories.DiceRequests.Find(
+                Builders<DiceRollRequest>.Filter.Eq(x => x.Status, RequestStatus.Pending) &
+                Builders<DiceRollRequest>.Filter.Eq(x => x.IsTestRoll, false))
+            .Select(x => (object)DiceRequestPayload(x, GetCurrentAccount(context))).Cast<object>();
         return Ok("Pending requests loaded.", new Dictionary<string, object> { { "items", actions.Concat(dice).ToArray() } });
     }
 
@@ -1830,7 +2043,7 @@ public partial class ServiceHub
 
         var payload = new List<object>();
         payload.AddRange(actions.Select(x => (object)RequestPayload(x)));
-        payload.AddRange(dice.Where(x => includeAll || CanViewDice(actor, x)).Select(x => (object)DiceRequestPayload(x, actor)));
+        payload.AddRange(dice.Where(x => !x.IsTestRoll && (includeAll || CanViewDice(actor, x))).Select(x => (object)DiceRequestPayload(x, actor)));
         return Ok("Request history loaded.", new Dictionary<string, object> { { "items", payload.ToArray() } });
     }
 
@@ -1838,8 +2051,9 @@ public partial class ServiceHub
     {
         var actor = GetCurrentAccount(context);
         var items = _repositories.DiceRequests.Find(FilterDefinition<DiceRollRequest>.Empty)
-            .Where(x => CanViewDice(actor, x))
+            .Where(x => !x.IsTestRoll && CanViewDice(actor, x))
             .Select(x => (object)DiceRequestPayload(x, actor)).ToArray();
+        _logger.Admin($"dice.history.get actor={actor.Login} count={items.Length}");
         return Ok("Dice history loaded.", new Dictionary<string, object> { { "items", items } });
     }
 
@@ -1847,10 +2061,11 @@ public partial class ServiceHub
     {
         var actor = GetCurrentAccount(context);
         var items = _repositories.DiceRequests.Find(Builders<DiceRollRequest>.Filter.Eq(x => x.Status, RequestStatus.Approved))
-            .Where(x => CanViewDice(actor, x))
+            .Where(x => !x.IsTestRoll && CanViewDice(actor, x))
             .OrderByDescending(x => x.UpdatedUtc)
             .Take(100)
             .Select(x => (object)DiceRequestPayload(x, actor)).ToArray();
+        _logger.Admin($"dice.visibleFeed actor={actor.Login} count={items.Length}");
         return Ok("Dice feed loaded.", new Dictionary<string, object> { { "items", items } });
     }
 
@@ -1940,6 +2155,7 @@ public partial class ServiceHub
             { "characterId", request.CharacterId ?? string.Empty },
             { "status", request.Status.ToString() },
             { "description", request.Description },
+            { "isTestRoll", request.IsTestRoll },
             { "visibility", request.Visibility.ToString() },
             { "formula", request.Formula.Normalized },
             { "rawFormula", request.RawFormula },

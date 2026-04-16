@@ -38,6 +38,7 @@ public static class CommandNames
     public const string AuthRegister = "auth.register";
     public const string AuthLogin = "auth.login";
     public const string AuthLogout = "auth.logout";
+    public const string AuthChangePassword = "auth.changePassword";
 
     public const string ProfileGet = "profile.get";
     public const string ProfileUpdate = "profile.update";
@@ -50,6 +51,10 @@ public static class CommandNames
     public const string AdminAccountRolesSet = "admin.account.roles.set";
     public const string AdminAccountGrantAdmin = "admin.account.grantAdmin";
     public const string AdminAccountRevokeAdmin = "admin.account.revokeAdmin";
+    public const string AdminAccountReject = "admin.account.reject";
+    public const string AdminAccountBlock = "admin.account.block";
+    public const string AdminAccountUnblock = "admin.account.unblock";
+    public const string AdminAccountResetPassword = "admin.account.resetPassword";
 
     public const string CharacterListMine = "character.list.mine";
     public const string CharacterListByOwner = "character.list.byOwner";
@@ -70,6 +75,8 @@ public static class CommandNames
     public const string CharacterUpdateHoldings = "character.update.holdings";
 
     public const string CharacterCreate = "character.create";
+    public const string CharacterAdminCreate = "character.admin.create";
+    public const string CharacterAssignOwner = "character.assignOwner";
     public const string CharacterArchive = "character.archive";
     public const string CharacterRestore = "character.restore";
     public const string CharacterTransfer = "character.transfer";
@@ -111,6 +118,9 @@ public static class CommandNames
     public const string RequestHistory = "request.history";
 
     public const string DiceRequest = "dice.request";
+    public const string DiceRollStandard = "dice.roll.standard";
+    public const string DiceRollTest = "dice.roll.test";
+    public const string DiceTestGetCurrent = "dice.test.getCurrent";
     public const string DiceHistory = "dice.history";
     public const string DiceVisibleFeed = "dice.visibleFeed";
     public const string DiceGetDetails = "dice.get.details";

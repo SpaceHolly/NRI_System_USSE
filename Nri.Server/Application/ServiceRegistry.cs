@@ -53,6 +53,7 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.AuthRegister, new DelegateCommandHandler(hub.Register));
         dispatcher.Register(CommandNames.AuthLogin, new DelegateCommandHandler(hub.Login));
         dispatcher.Register(CommandNames.AuthLogout, new DelegateCommandHandler(hub.Logout));
+        dispatcher.Register(CommandNames.AuthChangePassword, new DelegateCommandHandler(hub.AuthChangePassword));
         dispatcher.Register(CommandNames.SessionValidate, new DelegateCommandHandler(hub.SessionValidate));
 
         dispatcher.Register(CommandNames.ProfileGet, new DelegateCommandHandler(hub.ProfileGet));
@@ -61,6 +62,10 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.AdminAccountsPending, new DelegateCommandHandler(hub.AdminPendingAccounts));
         dispatcher.Register(CommandNames.AdminAccountsApprove, new DelegateCommandHandler(hub.AdminApproveAccount));
         dispatcher.Register(CommandNames.AdminAccountsArchive, new DelegateCommandHandler(hub.AdminArchiveAccount));
+        dispatcher.Register(CommandNames.AdminAccountReject, new DelegateCommandHandler(hub.AdminRejectAccount));
+        dispatcher.Register(CommandNames.AdminAccountBlock, new DelegateCommandHandler(hub.AdminBlockAccount));
+        dispatcher.Register(CommandNames.AdminAccountUnblock, new DelegateCommandHandler(hub.AdminUnblockAccount));
+        dispatcher.Register(CommandNames.AdminAccountResetPassword, new DelegateCommandHandler(hub.AdminResetAccountPassword));
         dispatcher.Register(CommandNames.AdminAccountProfile, new DelegateCommandHandler(hub.AdminAccountProfile));
         dispatcher.Register(CommandNames.AdminPlayersList, new DelegateCommandHandler(hub.AdminPlayersList));
 
@@ -83,6 +88,8 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CharacterUpdateHoldings, new DelegateCommandHandler(hub.CharacterUpdateHoldings));
 
         dispatcher.Register(CommandNames.CharacterCreate, new DelegateCommandHandler(hub.CharacterCreate));
+        dispatcher.Register(CommandNames.CharacterAdminCreate, new DelegateCommandHandler(hub.CharacterAdminCreate));
+        dispatcher.Register(CommandNames.CharacterAssignOwner, new DelegateCommandHandler(hub.CharacterAssignOwner));
         dispatcher.Register(CommandNames.CharacterArchive, new DelegateCommandHandler(hub.CharacterArchive));
         dispatcher.Register(CommandNames.CharacterRestore, new DelegateCommandHandler(hub.CharacterRestore));
         dispatcher.Register(CommandNames.CharacterTransfer, new DelegateCommandHandler(hub.CharacterTransfer));
@@ -177,6 +184,9 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.RequestHistory, new DelegateCommandHandler(hub.RequestHistory));
 
         dispatcher.Register(CommandNames.DiceRequest, new DelegateCommandHandler(hub.DiceRequest));
+        dispatcher.Register(CommandNames.DiceRollStandard, new DelegateCommandHandler(hub.DiceRollStandard));
+        dispatcher.Register(CommandNames.DiceRollTest, new DelegateCommandHandler(hub.DiceRollTest));
+        dispatcher.Register(CommandNames.DiceTestGetCurrent, new DelegateCommandHandler(hub.DiceTestGetCurrent));
         dispatcher.Register(CommandNames.DiceHistory, new DelegateCommandHandler(hub.DiceHistory));
         dispatcher.Register(CommandNames.DiceVisibleFeed, new DelegateCommandHandler(hub.DiceVisibleFeed));
         dispatcher.Register(CommandNames.DiceGetDetails, new DelegateCommandHandler(hub.DiceGetDetails));

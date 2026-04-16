@@ -171,9 +171,11 @@ public class PlayerMainViewModel : ViewModelBase
         ToggleConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
         LoginCommand = new RelayCommand(Login);
         RegisterCommand = new RelayCommand(Register);
+        ChangePasswordCommand = new RelayCommand(ChangePassword);
         RefreshCommand = new RelayCommand(RefreshAll);
 
         LoadCharacterDetailsCommand = new RelayCommand(LoadSelectedCharacterDetails);
+        CreateCharacterCommand = new RelayCommand(CreateCharacter);
         CreateDiceRequestCommand = new RelayCommand(CreateDiceRequest);
         CancelRequestCommand = new RelayCommand(CancelRequest);
 
@@ -210,6 +212,8 @@ public class PlayerMainViewModel : ViewModelBase
 
     public string LoginText { get; set; } = string.Empty;
     public string PasswordText { get; set; } = string.Empty;
+    public string OldPasswordText { get; set; } = string.Empty;
+    public string NewPasswordText { get; set; } = string.Empty;
     public string PlayerDisplayName { get; set; } = "Гость";
     public string SessionSummary { get; set; } = "Сессия: default";
 
@@ -246,6 +250,13 @@ public class PlayerMainViewModel : ViewModelBase
     public string CharacterHeight { get; set; } = string.Empty;
     public string CharacterDescription { get; set; } = string.Empty;
     public string CharacterBackstory { get; set; } = string.Empty;
+    public string CreateCharacterName { get; set; } = string.Empty;
+    public string CreateCharacterRace { get; set; } = string.Empty;
+    public int CreateCharacterHealth { get; set; } = 10;
+    public int CreateCharacterStrength { get; set; } = 1;
+    public int CreateCharacterDexterity { get; set; } = 1;
+    public int CreateCharacterIntellect { get; set; } = 1;
+    public long CreateCharacterIron { get; set; } = 100;
 
     public string CharacterNameDisplay => string.IsNullOrWhiteSpace(CharacterName) ? "Без имени" : CharacterName;
     public string CharacterRaceDisplay => string.IsNullOrWhiteSpace(CharacterRace) ? "Не указано" : CharacterRace;
@@ -263,6 +274,7 @@ public class PlayerMainViewModel : ViewModelBase
     public int DiceFaces { get; set; } = 20;
     public int DiceModifier { get; set; }
     public string DiceVisibilityInput { get; set; } = "Общее";
+    public string DiceModeInput { get; set; } = "Обычный";
     public string DiceDescriptionInput { get; set; } = string.Empty;
     public string SelectedRequestId { get; set; } = string.Empty;
 
@@ -339,6 +351,7 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> AdminNoteRows { get; } = new ObservableCollection<string>();
 
     public ObservableCollection<string> DiceVisibilityOptions { get; } = new ObservableCollection<string> { "Общее", "Только мастеру", "Теневой" };
+    public ObservableCollection<string> DiceModeOptions { get; } = new ObservableCollection<string> { "Обычный", "Тестовый" };
     public ObservableCollection<string> ChatTypeOptions { get; } = new ObservableCollection<string> { "Общее", "Скрытое админам", "Только админам" };
     public ObservableCollection<string> NoteTargetTypeOptions { get; } = new ObservableCollection<string> { "character", "session", "campaign" };
     public ObservableCollection<string> NoteVisibilityOptions { get; } = new ObservableCollection<string> { "Personal", "SharedWithOwner", "SessionShared" };
@@ -365,8 +378,10 @@ public class PlayerMainViewModel : ViewModelBase
     public ICommand ToggleConnectionPopupCommand { get; }
     public ICommand LoginCommand { get; }
     public ICommand RegisterCommand { get; }
+    public ICommand ChangePasswordCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand LoadCharacterDetailsCommand { get; }
+    public ICommand CreateCharacterCommand { get; }
     public ICommand CreateDiceRequestCommand { get; }
     public ICommand CancelRequestCommand { get; }
     public ICommand ChatSendCommand { get; }
@@ -418,11 +433,29 @@ public class PlayerMainViewModel : ViewModelBase
         try
         {
             _api.Register(LoginText, PasswordText);
+            ClientLogService.Instance.Info($"register requested login={LoginText} result=pending");
         }
         catch (Exception ex)
         {
             SetConnectionError(ex);
         }
+    }
+
+    private void ChangePassword()
+    {
+        try
+        {
+            EnsureConnected();
+            ClientLogService.Instance.Info("ui.password.change.opened");
+            var result = _api.ChangePassword(OldPasswordText, NewPasswordText);
+            if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
+            ClientLogService.Instance.Info("auth.changePassword result=ok");
+            OldPasswordText = string.Empty;
+            NewPasswordText = string.Empty;
+            Notify(nameof(OldPasswordText));
+            Notify(nameof(NewPasswordText));
+        }
+        catch (Exception ex) { SetConnectionError(ex); }
     }
 
     private void RefreshAll()
@@ -602,8 +635,41 @@ public class PlayerMainViewModel : ViewModelBase
         {
             if (string.IsNullOrWhiteSpace(SelectedCharacterId) && MyCharacters.Count > 0) SelectedCharacterId = MyCharacters[0].Id;
             var formula = DiceCount + "d" + DiceFaces + (DiceModifier == 0 ? string.Empty : DiceModifier > 0 ? "+" + DiceModifier : DiceModifier.ToString());
-            _api.CreateDiceRequest(SelectedCharacterId, formula, ToServerDiceVisibility(DiceVisibilityInput), DiceDescriptionInput);
+            var visibility = ToServerDiceVisibility(DiceVisibilityInput);
+            if (string.Equals(DiceModeInput, "Тестовый", StringComparison.OrdinalIgnoreCase))
+            {
+                ClientLogService.Instance.Info($"dice.test.send characterId={SelectedCharacterId} formula={formula}");
+                _api.DiceRollTest(SelectedCharacterId, formula, visibility, DiceDescriptionInput);
+            }
+            else
+            {
+                ClientLogService.Instance.Info($"dice.standard.send characterId={SelectedCharacterId} formula={formula}");
+                _api.DiceRollStandard(SelectedCharacterId, formula, visibility, DiceDescriptionInput);
+            }
             RefreshBottomPanel();
+        }
+        catch (Exception ex) { SetConnectionError(ex); }
+    }
+
+    private void CreateCharacter()
+    {
+        try
+        {
+            EnsureConnected();
+            var payload = new Dictionary<string, object>
+            {
+                { "name", CreateCharacterName },
+                { "race", CreateCharacterRace },
+                { "health", CreateCharacterHealth },
+                { "strength", CreateCharacterStrength },
+                { "dexterity", CreateCharacterDexterity },
+                { "intellect", CreateCharacterIntellect },
+                { "Iron", CreateCharacterIron }
+            };
+            ClientLogService.Instance.Info($"character.create.send name={CreateCharacterName}");
+            var result = _api.CreateCharacter(payload);
+            if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
+            LoadCharacters();
         }
         catch (Exception ex) { SetConnectionError(ex); }
     }
@@ -698,6 +764,15 @@ public class PlayerMainViewModel : ViewModelBase
             if (item is not Dictionary<string, object> map) continue;
             RequestRows.Add($"{GetString(map, "requestId")} | {GetString(map, "status")} | {GetString(map, "formula")}");
         }
+
+        var currentTest = _api.DiceTestGetCurrent();
+        if (currentTest.Status == ResponseStatus.Ok && currentTest.Payload.TryGetValue("item", out var testItem) && testItem is Dictionary<string, object> testMap && testMap.Count > 0)
+        {
+            var total = string.Empty;
+            if (testMap.TryGetValue("result", out var rawResult) && rawResult is Dictionary<string, object> resultMap) total = GetString(resultMap, "total");
+            DiceFeedRows.Insert(0, $"[ТЕСТ] {GetString(testMap, "creatorUserId")} | {GetString(testMap, "formula")} => {total}");
+        }
+        ClientLogService.Instance.Info($"dice.view.counts feed={DiceFeedRows.Count} requests={RequestRows.Count}");
 
         EnsureCollectionPlaceholder(DiceFeedRows, "Нет видимых бросков");
         EnsureCollectionPlaceholder(RequestRows, "Нет активных заявок");

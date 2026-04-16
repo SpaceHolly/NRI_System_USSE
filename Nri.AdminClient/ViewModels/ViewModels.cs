@@ -273,6 +273,11 @@ public class AdminMainViewModel : ViewModelBase
         UseSavedConnectionSettingsCommand = new RelayCommand(UseSavedConnectionSettings);
         ApproveCommand = new RelayCommand(ApproveSelected);
         ArchiveCommand = new RelayCommand(ArchiveSelected);
+        RejectAccountCommand = new RelayCommand(RejectSelectedAccount);
+        BlockAccountCommand = new RelayCommand(BlockSelectedAccount);
+        UnblockAccountCommand = new RelayCommand(UnblockSelectedAccount);
+        ChangePasswordCommand = new RelayCommand(ChangePassword);
+        ResetPasswordCommand = new RelayCommand(ResetSelectedPassword);
         LoadOwnerCharactersCommand = new RelayCommand(LoadOwnerCharacters);
         OpenCharacterCommand = new RelayCommand(OpenCharacter);
         OpenPlayerCharactersCommand = new RelayCommand(OpenPlayerCharacters);
@@ -372,6 +377,9 @@ public class AdminMainViewModel : ViewModelBase
 
     public string LoginText { get; set; } = string.Empty;
     public string PasswordText { get; set; } = string.Empty;
+    public string OldPasswordText { get; set; } = string.Empty;
+    public string NewPasswordText { get; set; } = string.Empty;
+    public string ResetPasswordText { get; set; } = "TempPass123";
     public string ConnectionState { get => _connectionState; set { _connectionState = value; Notify(); } }
     public string ConnectionStatusDetail { get => _connectionStatusDetail; set { _connectionStatusDetail = value; Notify(); } }
     public string SessionSummary { get => _sessionSummary; set { _sessionSummary = value; Notify(); } }
@@ -865,6 +873,11 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand UseSavedConnectionSettingsCommand { get; }
     public ICommand ApproveCommand { get; }
     public ICommand ArchiveCommand { get; }
+    public ICommand RejectAccountCommand { get; }
+    public ICommand BlockAccountCommand { get; }
+    public ICommand UnblockAccountCommand { get; }
+    public ICommand ChangePasswordCommand { get; }
+    public ICommand ResetPasswordCommand { get; }
     public ICommand LoadOwnerCharactersCommand { get; }
     public ICommand OpenCharacterCommand { get; }
     public ICommand OpenPlayerCharactersCommand { get; }
@@ -1522,6 +1535,21 @@ public class AdminMainViewModel : ViewModelBase
         {
             SetConnectionError($"Ошибка входа: {ex.Message}");
         }
+    }
+
+    private void ChangePassword()
+    {
+        RunUiAction("Смена пароля администратора", () =>
+        {
+            ClientLogService.Instance.Info("ui.password.change.opened");
+            var response = _api.ChangePassword(OldPasswordText, NewPasswordText);
+            EnsureSuccess(response);
+            OldPasswordText = string.Empty;
+            NewPasswordText = string.Empty;
+            Notify(nameof(OldPasswordText));
+            Notify(nameof(NewPasswordText));
+            ClientLogService.Instance.Info("auth.changePassword result=ok");
+        });
     }
 
     private void RefreshAll()
@@ -2384,6 +2412,10 @@ public class AdminMainViewModel : ViewModelBase
     private void SaveMoney() { _api.UpdateCharacterMoney(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "money", new Dictionary<string, object> { { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold }, { "Platinum", Platinum }, { "Orichalcum", Orichalcum }, { "Adamant", Adamant }, { "Sovereign", Sovereign }, { "ExperienceCoins", ExperienceCoins } } } }); ClientLogService.Instance.Info("ui-action section=Персонажи action=SaveMoney"); }
     private void ApproveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Подтверждение аккаунта", () => { _api.ApproveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
     private void ArchiveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Архивация аккаунта", () => { _api.ArchiveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void RejectSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Отклонение аккаунта", () => { _api.RejectAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void BlockSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Блокировка аккаунта", () => { _api.BlockAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void UnblockSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Разблокировка аккаунта", () => { _api.UnblockAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void ResetSelectedPassword() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Сброс пароля аккаунта", () => { _api.ResetPassword(SelectedPendingAccountId, ResetPasswordText); RefreshPeopleSection(); }); }
 
     private void RefreshOverviewActivity()
     {
