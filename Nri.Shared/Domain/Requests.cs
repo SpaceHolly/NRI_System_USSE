@@ -79,6 +79,8 @@ public class DiceRollRequest : RequestBase
     public string RawFormula { get; set; } = "1d20";
     public DiceFormulaSpec Formula { get; set; } = new DiceFormulaSpec();
     public RequestVisibility Visibility { get; set; } = RequestVisibility.Public;
+    public bool IsTestRoll { get; set; }
+    public string TestRollOwnerUserId { get; set; } = string.Empty;
     public DiceRollResult? Result { get; set; }
 }
 

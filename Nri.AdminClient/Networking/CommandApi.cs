@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Nri.AdminClient.Diagnostics;
 using Nri.Shared.Contracts;
 
 namespace Nri.AdminClient.Networking;
@@ -14,9 +16,14 @@ public class CommandApi
 
     public ResponseEnvelope Register(string login, string password) => Send(CommandNames.AuthRegister, new Dictionary<string, object> { { "login", login }, { "password", password } });
     public ResponseEnvelope Login(string login, string password) => Send(CommandNames.AuthLogin, new Dictionary<string, object> { { "login", login }, { "password", password } });
+    public ResponseEnvelope ChangePassword(string oldPassword, string newPassword) => Send(CommandNames.AuthChangePassword, new Dictionary<string, object> { { "oldPassword", oldPassword }, { "newPassword", newPassword } });
+    public ResponseEnvelope ResetPassword(string accountId, string newPassword) => Send(CommandNames.AdminAccountResetPassword, new Dictionary<string, object> { { "accountId", accountId }, { "newPassword", newPassword } });
 
     public ResponseEnvelope GetPendingAccounts() => Send(CommandNames.AdminAccountsPending);
     public ResponseEnvelope ApproveAccount(string accountId) => Send(CommandNames.AdminAccountsApprove, new Dictionary<string, object> { { "accountId", accountId } });
+    public ResponseEnvelope RejectAccount(string accountId) => Send(CommandNames.AdminAccountReject, new Dictionary<string, object> { { "accountId", accountId } });
+    public ResponseEnvelope BlockAccount(string accountId) => Send(CommandNames.AdminAccountBlock, new Dictionary<string, object> { { "accountId", accountId } });
+    public ResponseEnvelope UnblockAccount(string accountId) => Send(CommandNames.AdminAccountUnblock, new Dictionary<string, object> { { "accountId", accountId } });
     public ResponseEnvelope ArchiveAccount(string accountId) => Send(CommandNames.AdminAccountsArchive, new Dictionary<string, object> { { "accountId", accountId } });
     public ResponseEnvelope GetPlayers() => Send(CommandNames.AdminPlayersList);
 
@@ -33,6 +40,8 @@ public class CommandApi
     public ResponseEnvelope TransferCharacter(string characterId, string targetUserId) => Send(CommandNames.CharacterTransfer, new Dictionary<string, object> { { "characterId", characterId }, { "targetUserId", targetUserId } });
     public ResponseEnvelope ArchiveCharacter(string characterId) => Send(CommandNames.CharacterArchive, new Dictionary<string, object> { { "characterId", characterId } });
     public ResponseEnvelope RestoreCharacter(string characterId) => Send(CommandNames.CharacterRestore, new Dictionary<string, object> { { "characterId", characterId } });
+    public ResponseEnvelope CreateCharacter(Dictionary<string, object> payload) => Send(CommandNames.CharacterAdminCreate, payload);
+    public ResponseEnvelope AssignOwner(string characterId, string ownerUserId) => Send(CommandNames.CharacterAssignOwner, new Dictionary<string, object> { { "characterId", characterId }, { "ownerUserId", ownerUserId } });
 
     public ResponseEnvelope AcquireCharacterLock(string characterId) => Send(CommandNames.LockAcquire, new Dictionary<string, object> { { "entityType", "character" }, { "entityId", characterId } });
     public ResponseEnvelope ReleaseCharacterLock(string characterId) => Send(CommandNames.LockRelease, new Dictionary<string, object> { { "entityType", "character" }, { "entityId", characterId } });
@@ -46,6 +55,9 @@ public class CommandApi
     public ResponseEnvelope RequestHistory() => Send(CommandNames.RequestHistory);
     public ResponseEnvelope DiceHistory() => Send(CommandNames.DiceHistory);
     public ResponseEnvelope DiceVisibleFeed() => Send(CommandNames.DiceVisibleFeed);
+    public ResponseEnvelope DiceRollStandard(string characterId, string formula, string visibility, string description) => Send(CommandNames.DiceRollStandard, new Dictionary<string, object> { { "characterId", characterId }, { "formula", formula }, { "visibility", visibility }, { "description", description } });
+    public ResponseEnvelope DiceRollTest(string characterId, string formula, string visibility, string description) => Send(CommandNames.DiceRollTest, new Dictionary<string, object> { { "characterId", characterId }, { "formula", formula }, { "visibility", visibility }, { "description", description } });
+    public ResponseEnvelope DiceTestGetCurrent(string userId = "") => Send(CommandNames.DiceTestGetCurrent, new Dictionary<string, object> { { "userId", userId } });
 
 
     public ResponseEnvelope CombatStart(string sessionId, Dictionary<string, object>[] participants) => Send(CommandNames.CombatStart, new Dictionary<string, object> { { "sessionId", sessionId }, { "participants", participants } });
@@ -144,6 +156,18 @@ public class CommandApi
 
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
-        return _client.Send(new RequestEnvelope { Command = command, Payload = payload ?? new Dictionary<string, object>() });
+        var body = payload ?? new Dictionary<string, object>();
+        ClientLogService.Instance.Info($"Command send: {command}; payloadKeys={body.Count}");
+        try
+        {
+            var response = _client.Send(new RequestEnvelope { Command = command, Payload = body });
+            ClientLogService.Instance.Info($"Command response: {command}; status={response.Status}; message={response.Message}");
+            return response;
+        }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Error($"Command failed: {command}", ex);
+            throw;
+        }
     }
 }

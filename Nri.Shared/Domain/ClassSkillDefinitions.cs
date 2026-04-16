@@ -124,9 +124,20 @@ public class CharacterUnlockState
 public class CharacterSkillState
 {
     public string SkillId { get; set; } = string.Empty;
+    public string SkillCode { get => SkillId; set => SkillId = value ?? string.Empty; }
     public bool Acquired { get; set; }
     public bool Available { get; set; }
     public string UnavailableReason { get; set; } = string.Empty;
+    public int Tier { get; set; } = 1;
+    public int Level { get; set; } = 1;
+    public DateTime LearnedUtc { get; set; } = DateTime.UtcNow;
+}
+
+public class CharacterClassState
+{
+    public string ClassCode { get; set; } = string.Empty;
+    public int Level { get; set; } = 1;
+    public DateTime LearnedUtc { get; set; } = DateTime.UtcNow;
 }
 
 public class CharacterProgressSnapshot

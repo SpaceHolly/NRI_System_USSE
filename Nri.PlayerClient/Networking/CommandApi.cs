@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Nri.PlayerClient.Diagnostics;
 using Nri.Shared.Contracts;
 
 namespace Nri.PlayerClient.Networking;
@@ -14,6 +16,7 @@ public class CommandApi
 
     public ResponseEnvelope Register(string login, string password) => Send(CommandNames.AuthRegister, new Dictionary<string, object> { { "login", login }, { "password", password } });
     public ResponseEnvelope Login(string login, string password) => Send(CommandNames.AuthLogin, new Dictionary<string, object> { { "login", login }, { "password", password } });
+    public ResponseEnvelope ChangePassword(string oldPassword, string newPassword) => Send(CommandNames.AuthChangePassword, new Dictionary<string, object> { { "oldPassword", oldPassword }, { "newPassword", newPassword } });
     public ResponseEnvelope ValidateSession() => Send(CommandNames.SessionValidate);
     public ResponseEnvelope GetProfile() => Send(CommandNames.ProfileGet);
     public ResponseEnvelope UpdateProfile(string displayName, string race, int age, string description, string backstory) => Send(CommandNames.ProfileUpdate, new Dictionary<string, object> { { "displayName", displayName }, { "race", race }, { "age", age }, { "description", description }, { "backstory", backstory } });
@@ -21,6 +24,10 @@ public class CommandApi
     public ResponseEnvelope GetActiveCharacter() => Send(CommandNames.CharacterGetActive);
     public ResponseEnvelope GetCharacterDetails(string characterId) => Send(CommandNames.CharacterGetDetails, new Dictionary<string, object> { { "characterId", characterId } });
 
+    public ResponseEnvelope CreateCharacter(Dictionary<string, object> payload) => Send(CommandNames.CharacterCreate, payload);
+    public ResponseEnvelope DiceRollStandard(string characterId, string formula, string visibility, string description) => Send(CommandNames.DiceRollStandard, new Dictionary<string, object> { { "characterId", characterId }, { "formula", formula }, { "visibility", visibility }, { "description", description } });
+    public ResponseEnvelope DiceRollTest(string characterId, string formula, string visibility, string description) => Send(CommandNames.DiceRollTest, new Dictionary<string, object> { { "characterId", characterId }, { "formula", formula }, { "visibility", visibility }, { "description", description } });
+    public ResponseEnvelope DiceTestGetCurrent() => Send(CommandNames.DiceTestGetCurrent);
     public ResponseEnvelope CreateDiceRequest(string characterId, string formula, string visibility, string description) => Send(CommandNames.DiceRequest, new Dictionary<string, object> { { "characterId", characterId }, { "formula", formula }, { "visibility", visibility }, { "description", description } });
     public ResponseEnvelope CancelRequest(string requestId) => Send(CommandNames.RequestCancel, new Dictionary<string, object> { { "requestId", requestId } });
     public ResponseEnvelope ListMyRequests() => Send(CommandNames.RequestListMine);
@@ -63,6 +70,18 @@ public class CommandApi
 
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
-        return _client.Send(new RequestEnvelope { Command = command, Payload = payload ?? new Dictionary<string, object>() });
+        var body = payload ?? new Dictionary<string, object>();
+        ClientLogService.Instance.Info($"Command send: {command}; payloadKeys={body.Count}");
+        try
+        {
+            var response = _client.Send(new RequestEnvelope { Command = command, Payload = body });
+            ClientLogService.Instance.Info($"Command response: {command}; status={response.Status}; message={response.Message}");
+            return response;
+        }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Error($"Command failed: {command}", ex);
+            throw;
+        }
     }
 }

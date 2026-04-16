@@ -10,8 +10,11 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Nri.AdminClient.Diagnostics;
 using Nri.AdminClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
@@ -65,6 +68,14 @@ public class RowVm : ViewModelBase
     public string Name { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public string Extra { get; set; } = string.Empty;
+}
+
+public sealed class ChatMessageRowVm : ViewModelBase
+{
+    public string Sender { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+    public string Timestamp { get; set; } = string.Empty;
+    public bool IsSystem { get; set; }
 }
 
 public sealed class SkillLevelEditorRowVm : ViewModelBase
@@ -231,12 +242,17 @@ public class AdminMainViewModel : ViewModelBase
     private string _selectedDiagnosticsId = string.Empty;
     private int _selectedContentTabIndex;
     private int _selectedSystemTabIndex;
+    private string _charactersSearchText = string.Empty;
+    private string _locksSearchText = string.Empty;
+    private string _classSearchText = string.Empty;
+    private string _skillSearchText = string.Empty;
 
     public AdminMainViewModel()
     {
         Directory.CreateDirectory(_appDataDirectory);
 
-        _client = new JsonTcpClient(new ClientConfig(), _session);
+        _client = new JsonTcpClient(App.ClientConfig, _session);
+        ClientLogService.Instance.Info("AdminMainViewModel initialized");
         _api = new CommandApi(_client);
 
         LoginCommand = new RelayCommand(() => RunUiAction("Авторизация", Login));
@@ -257,6 +273,11 @@ public class AdminMainViewModel : ViewModelBase
         UseSavedConnectionSettingsCommand = new RelayCommand(UseSavedConnectionSettings);
         ApproveCommand = new RelayCommand(ApproveSelected);
         ArchiveCommand = new RelayCommand(ArchiveSelected);
+        RejectAccountCommand = new RelayCommand(RejectSelectedAccount);
+        BlockAccountCommand = new RelayCommand(BlockSelectedAccount);
+        UnblockAccountCommand = new RelayCommand(UnblockSelectedAccount);
+        ChangePasswordCommand = new RelayCommand(ChangePassword);
+        ResetPasswordCommand = new RelayCommand(ResetSelectedPassword);
         LoadOwnerCharactersCommand = new RelayCommand(LoadOwnerCharacters);
         OpenCharacterCommand = new RelayCommand(OpenCharacter);
         OpenPlayerCharactersCommand = new RelayCommand(OpenPlayerCharacters);
@@ -356,6 +377,9 @@ public class AdminMainViewModel : ViewModelBase
 
     public string LoginText { get; set; } = string.Empty;
     public string PasswordText { get; set; } = string.Empty;
+    public string OldPasswordText { get; set; } = string.Empty;
+    public string NewPasswordText { get; set; } = string.Empty;
+    public string ResetPasswordText { get; set; } = "TempPass123";
     public string ConnectionState { get => _connectionState; set { _connectionState = value; Notify(); } }
     public string ConnectionStatusDetail { get => _connectionStatusDetail; set { _connectionStatusDetail = value; Notify(); } }
     public string SessionSummary { get => _sessionSummary; set { _sessionSummary = value; Notify(); } }
@@ -380,7 +404,11 @@ public class AdminMainViewModel : ViewModelBase
     public string LastServerHost { get => _lastServerHost; set { _lastServerHost = value; Notify(); } }
     public int LastServerPort { get => _lastServerPort; set { _lastServerPort = value; Notify(); } }
     public string SelectedSection { get => _selectedSection; set { _selectedSection = value; Notify(); } }
+    public string CharactersSearchText { get => _charactersSearchText; set { _charactersSearchText = value; Notify(); Notify(nameof(FilteredCharacters)); var filtered = FilteredCharacters.Count(); ClientLogService.Instance.Info($"ui-filter section=Люди block=Персонажи query={_charactersSearchText} loaded={Characters.Count} filtered={filtered} visible={filtered}"); } }
+    public string LocksSearchText { get => _locksSearchText; set { _locksSearchText = value; Notify(); Notify(nameof(FilteredLockRows)); var filtered = FilteredLockRows.Count(); ClientLogService.Instance.Info($"ui-filter section=Люди block=Блокировки query={_locksSearchText} loaded={LockRows.Count} filtered={filtered} visible={filtered}"); } }
     public string SelectedCharacterWorkspaceTab { get => _selectedCharacterWorkspaceTab; set { _selectedCharacterWorkspaceTab = value; Notify(); } }
+    public string ClassSearchText { get => _classSearchText; set { _classSearchText = value; Notify(); Notify(nameof(FilteredClassDefinitionRows)); ClientLogService.Instance.Info($"ui-filter section=Контент block=Классы query={_classSearchText} loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}"); } }
+    public string SkillSearchText { get => _skillSearchText; set { _skillSearchText = value; Notify(); Notify(nameof(FilteredSkillDefinitionRows)); ClientLogService.Instance.Info($"ui-filter section=Контент block=Навыки query={_skillSearchText} loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}"); } }
     public string CurrentEndpoint => $"{_client.ServerHost}:{_client.ServerPort}";
     public string LoginSummary => string.IsNullOrWhiteSpace(LoginText) ? "Не авторизован" : LoginText;
     public int PendingAccountsCount => PendingAccounts.Count;
@@ -406,18 +434,18 @@ public class AdminMainViewModel : ViewModelBase
     public bool CanControlCombat => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanSendChat => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(ChatMessageText);
     public bool CanControlAudio => ArePrivilegedSectionsEnabled && !IsBusy;
-    public string ContentSummary => $"Definitions classes: {ClassDefinitionRows.Count} • Definitions skills: {SkillDefinitionRows.Count}";
-    public string ContentReadinessSummary => !ArePrivilegedSectionsEnabled ? "Подключитесь и войдите, чтобы работать с definitions." : "Definitions классов и навыков готовы к обновлению и редактированию без перезапуска сервера.";
-    public string SelectedClassSummary => SelectedClassDefinition == null ? "Definitions класс не выбран." : $"{SelectedClassDefinition.Name} • {SelectedClassDefinition.State} • {SelectedClassDefinition.Extra}";
-    public string SelectedSkillSummary => SelectedSkillDefinition == null ? "Definitions навык не выбран." : $"{SelectedSkillDefinition.Name} • {SelectedSkillDefinition.State} • {SelectedSkillDefinition.Extra}";
+    public string ContentSummary => $"Классов: {ClassDefinitionRows.Count} • Навыков: {SkillDefinitionRows.Count}";
+    public string ContentReadinessSummary => !ArePrivilegedSectionsEnabled ? "Подключитесь и войдите, чтобы работать с контентом." : "Определения классов и навыков готовы к обновлению и редактированию.";
+    public string SelectedClassSummary => SelectedClassDefinition == null ? "Класс не выбран." : $"{SelectedClassDefinition.Name} • {SelectedClassDefinition.State} • {SelectedClassDefinition.Extra}";
+    public string SelectedSkillSummary => SelectedSkillDefinition == null ? "Навык не выбран." : $"{SelectedSkillDefinition.Name} • {SelectedSkillDefinition.State} • {SelectedSkillDefinition.Extra}";
     public string SelectedReferenceSummary => SelectedReference == null ? "Reference-запись не выбрана." : $"{SelectedReference.Name} • {SelectedReference.State} • {SelectedReference.Extra}";
     public string SelectedContentSummary => SelectedClassDefinition != null ? SelectedClassSummary : SelectedSkillDefinition != null ? SelectedSkillSummary : SelectedReferenceSummary;
-    public string ReferenceSummary => ReferenceItems.Count == 0 ? "Reference data: нет загруженных записей" : $"Reference data: {ReferenceItems.Count} записей типа {ReferenceType}";
-    public string BackupSummary => BackupItems.Count == 0 ? "Backups: ещё не загружены" : $"Backups: {BackupItems.Count}, последний: {BackupItems[0].Name}";
-    public string DiagnosticsStatusSummary => DiagnosticsItems.Count == 0 ? "Diagnostics ещё не загружены" : DiagnosticsItems[0].Name;
+    public string ReferenceSummary => ReferenceItems.Count == 0 ? "Справочные данные: нет загруженных записей" : $"Справочные данные: {ReferenceItems.Count} записей типа {ReferenceType}";
+    public string BackupSummary => BackupItems.Count == 0 ? "Резервные копии: ещё не загружены" : $"Резервные копии: {BackupItems.Count}, последняя: {BackupItems[0].Name}";
+    public string DiagnosticsStatusSummary => DiagnosticsItems.Count == 0 ? "Диагностика ещё не загружена" : DiagnosticsItems[0].Name;
     public string SelectedBackupSummary => SelectedBackup == null ? "Backup не выбран." : $"{SelectedBackup.Name} • {SelectedBackup.State} • {SelectedBackup.Extra}";
-    public string SelectedDiagnosticsSummary => SelectedDiagnostics == null ? "Diagnostics запись не выбрана." : $"{SelectedDiagnostics.Name} • {SelectedDiagnostics.State} • {SelectedDiagnostics.Extra}";
-    public string SystemHealthSummary => DiagnosticsItems.Count == 0 ? "Служебные данные ещё не загружены." : $"Diagnostics: {DiagnosticsItems.Count} • Backups: {BackupItems.Count} • Reference: {ReferenceItems.Count}";
+    public string SelectedDiagnosticsSummary => SelectedDiagnostics == null ? "Строка диагностики не выбрана." : $"{SelectedDiagnostics.Name} • {SelectedDiagnostics.State} • {SelectedDiagnostics.Extra}";
+    public string SystemHealthSummary => DiagnosticsItems.Count == 0 ? "Служебные данные ещё не загружены." : $"Диагностика: {DiagnosticsItems.Count} • Резервные копии: {BackupItems.Count} • Справочные данные: {ReferenceItems.Count}";
     public bool CanControlContent => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanRefreshContent => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanManageClassDefinition => ArePrivilegedSectionsEnabled && !IsBusy;
@@ -668,7 +696,8 @@ public class AdminMainViewModel : ViewModelBase
     public string SkillEditorHintText => SkillLevelEditorRows.Count == 0 ? "Добавьте хотя бы один уровень навыка перед сохранением." : $"Уровней навыка: {SkillLevelEditorRows.Count}. MaxLevel сейчас {EditSkillMaxLevel}.";
     public string ChatSessionId { get; set; } = "default";
     public string ChatMessageText { get; set; } = string.Empty;
-    public string ChatMessageType { get; set; } = "Public";
+    public string ChatMessageType { get; set; } = "Обычный";
+    public ObservableCollection<string> ChatMessageTypeOptions { get; } = new ObservableCollection<string> { "Обычный", "Скрытый", "Только для админов" };
     public string ChatModerationUserId { get; set; } = string.Empty;
     public string ChatModerationReason { get; set; } = string.Empty;
     public int ChatSlowPublicSeconds { get; set; }
@@ -770,6 +799,11 @@ public class AdminMainViewModel : ViewModelBase
     public long Bronze { get; set; }
     public long Silver { get; set; }
     public long Gold { get; set; }
+    public long Platinum { get; set; }
+    public long Orichalcum { get; set; }
+    public long Adamant { get; set; }
+    public long Sovereign { get; set; }
+    public long ExperienceCoins { get; set; }
 
     public ObservableCollection<RowVm> PendingAccounts { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> Players { get; } = new ObservableCollection<RowVm>();
@@ -790,6 +824,7 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<RowVm> ClassTreeItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> SkillRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<ChatMessageRowVm> ChatMessageRows { get; } = new ObservableCollection<ChatMessageRowVm>();
     public ObservableCollection<string> ChatRestrictionRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> AudioLibraryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> NotesRows { get; } = new ObservableCollection<string>();
@@ -797,6 +832,26 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<RowVm> BackupItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> DiagnosticsItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> LockRows { get; } = new ObservableCollection<RowVm>();
+    public IEnumerable<RowVm> FilteredCharacters => string.IsNullOrWhiteSpace(CharactersSearchText)
+        ? Characters
+        : Characters.Where(row => row.Name.IndexOf(CharactersSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                  || row.Id.IndexOf(CharactersSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                  || row.Extra.IndexOf(CharactersSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+    public IEnumerable<RowVm> FilteredLockRows => string.IsNullOrWhiteSpace(LocksSearchText)
+        ? LockRows
+        : LockRows.Where(row => row.Name.IndexOf(LocksSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                || row.Id.IndexOf(LocksSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                || row.Extra.IndexOf(LocksSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+    public IEnumerable<RowVm> FilteredClassDefinitionRows => string.IsNullOrWhiteSpace(ClassSearchText)
+        ? ClassDefinitionRows
+        : ClassDefinitionRows.Where(row => row.Name.IndexOf(ClassSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                           || row.Id.IndexOf(ClassSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                           || row.Extra.IndexOf(ClassSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+    public IEnumerable<RowVm> FilteredSkillDefinitionRows => string.IsNullOrWhiteSpace(SkillSearchText)
+        ? SkillDefinitionRows
+        : SkillDefinitionRows.Where(row => row.Name.IndexOf(SkillSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                           || row.Id.IndexOf(SkillSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                                           || row.Extra.IndexOf(SkillSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
     public ObservableCollection<string> OverviewActivityRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<WorkspacePanelDescriptor> WorkspacePanels { get; } = new ObservableCollection<WorkspacePanelDescriptor>();
 
@@ -818,6 +873,11 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand UseSavedConnectionSettingsCommand { get; }
     public ICommand ApproveCommand { get; }
     public ICommand ArchiveCommand { get; }
+    public ICommand RejectAccountCommand { get; }
+    public ICommand BlockAccountCommand { get; }
+    public ICommand UnblockAccountCommand { get; }
+    public ICommand ChangePasswordCommand { get; }
+    public ICommand ResetPasswordCommand { get; }
     public ICommand LoadOwnerCharactersCommand { get; }
     public ICommand OpenCharacterCommand { get; }
     public ICommand OpenPlayerCharactersCommand { get; }
@@ -990,6 +1050,7 @@ public class AdminMainViewModel : ViewModelBase
         {
             _client.UpdateEndpoint(host, port);
             _client.Connect();
+            ClientLogService.Instance.Info($"Server connection established: {host}:{port}");
             LastServerHost = host;
             LastServerPort = port;
             SaveConnectionSettings();
@@ -1000,6 +1061,7 @@ public class AdminMainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            ClientLogService.Instance.Error($"Server connection failed: {host}:{port}", ex);
             SetConnectionError($"Не удалось подключиться к {host}:{port}. {ex.Message}");
         }
     }
@@ -1050,7 +1112,7 @@ public class AdminMainViewModel : ViewModelBase
 
     public void RefreshConnectionSummary()
     {
-        SessionSummary = $"Endpoint: {CurrentEndpoint} • Stage: {ConnectionStage} • {LoginState} • Pending: {PendingAccountsCount} • Players: {PlayersCount} • Characters: {CharactersCount} • Requests: {PendingRequestsCount} • Locks: {LocksCount}";
+        SessionSummary = $"Стадия: {ConnectionStage} • {LoginState} • Ожидают: {PendingAccountsCount} • Игроков: {PlayersCount} • Персонажей: {CharactersCount} • Заявок: {PendingRequestsCount} • Блокировок: {LocksCount}";
         RefreshOverviewActivity();
         Notify(nameof(CurrentEndpoint));
         Notify(nameof(LoginSummary));
@@ -1189,7 +1251,7 @@ public class AdminMainViewModel : ViewModelBase
         WorkspacePanels.Add(new WorkspacePanelDescriptor("NotesManagement", "Заметки мастера", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("Requests", "Заявки", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("DiceFeed", "Лента бросков", canDetach: true));
-        WorkspacePanels.Add(new WorkspacePanelDescriptor("CombatTracker", "Combat tracker", canDetach: true));
+        WorkspacePanels.Add(new WorkspacePanelDescriptor("CombatTracker", "Трекер боя", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("SessionChat", "Чат сессии", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("SessionAudio", "Музыка сессии", canDetach: true));
     }
@@ -1242,6 +1304,7 @@ public class AdminMainViewModel : ViewModelBase
         if (!panel.CanDetach) return;
         panel.IsVisible = true;
         panel.IsDetached = true;
+        ClientLogService.Instance.Info($"ui-panel action=detach panel={panel.PanelId}");
         SaveWorkspaceLayout();
         RefreshConnectionSummary();
     }
@@ -1252,6 +1315,7 @@ public class AdminMainViewModel : ViewModelBase
         var panel = GetPanelById(panelId);
         panel.IsDetached = false;
         panel.IsVisible = true;
+        ClientLogService.Instance.Info($"ui-panel action=attach panel={panel.PanelId}");
         SaveWorkspaceLayout();
         RefreshConnectionSummary();
     }
@@ -1318,6 +1382,7 @@ public class AdminMainViewModel : ViewModelBase
                 LoadOwnerCharacters();
             }
             LoadLocksSummary();
+            ClientLogService.Instance.Info($"ui-refresh section=Люди final pending={PendingAccounts.Count} players={Players.Count} characters={Characters.Count} locks={LockRows.Count}");
         });
     }
 
@@ -1327,6 +1392,7 @@ public class AdminMainViewModel : ViewModelBase
         {
             LoadPendingRequests();
             LoadRequestHistory();
+            ClientLogService.Instance.Info($"ui-refresh section=Модерация final requests={PendingRequests.Count} history={RequestHistoryRows.Count} dice={DiceFeedRows.Count}");
         });
     }
 
@@ -1337,6 +1403,7 @@ public class AdminMainViewModel : ViewModelBase
             CombatRefresh();
             ChatRefresh();
             AudioRefresh();
+            ClientLogService.Instance.Info($"ui-refresh section=Сессия final combatRows={CombatRows.Count} chatRows={ChatRows.Count} audioRows={AudioLibraryRows.Count}");
         });
     }
 
@@ -1347,7 +1414,7 @@ public class AdminMainViewModel : ViewModelBase
             DefinitionsReload();
             RefreshDefinitionClasses();
             RefreshDefinitionSkills();
-            ReferenceRefresh();
+            ClientLogService.Instance.Info($"ui-refresh section=Контент final classes={ClassDefinitionRows.Count} skills={SkillDefinitionRows.Count}");
         });
     }
 
@@ -1355,9 +1422,9 @@ public class AdminMainViewModel : ViewModelBase
     {
         RunUiAction("Обновление системных инструментов", () =>
         {
-            ReferenceRefresh();
             BackupRefresh();
             DiagnosticsRefresh();
+            ClientLogService.Instance.Info($"ui-refresh section=Система final backups={BackupItems.Count} diagnostics={DiagnosticsItems.Count}");
         });
     }
 
@@ -1439,6 +1506,7 @@ public class AdminMainViewModel : ViewModelBase
         try
         {
             ConnectToServer();
+            ClientLogService.Instance.Info($"Login attempt: user={LoginText}");
             var r = _api.Login(LoginText, PasswordText);
             if (r.Status == ResponseStatus.Ok)
             {
@@ -1448,6 +1516,7 @@ public class AdminMainViewModel : ViewModelBase
                 RefreshAll();
                 IsAuthPopupOpen = false;
                 Notify(nameof(LoginSummary));
+                ClientLogService.Instance.Info($"Login success: user={LoginText}");
             }
             else
             {
@@ -1459,12 +1528,28 @@ public class AdminMainViewModel : ViewModelBase
                 ConnectionStatusDetail = string.IsNullOrWhiteSpace(r.Message) ? "Логин не выполнен." : r.Message;
                 LastStatusMessage = "Логин не выполнен.";
                 RefreshConnectionSummary();
+                ClientLogService.Instance.Warn($"Login failed: user={LoginText}; message={r.Message}");
             }
         }
         catch (Exception ex)
         {
             SetConnectionError($"Ошибка входа: {ex.Message}");
         }
+    }
+
+    private void ChangePassword()
+    {
+        RunUiAction("Смена пароля администратора", () =>
+        {
+            ClientLogService.Instance.Info("ui.password.change.opened");
+            var response = _api.ChangePassword(OldPasswordText, NewPasswordText);
+            EnsureSuccess(response);
+            OldPasswordText = string.Empty;
+            NewPasswordText = string.Empty;
+            Notify(nameof(OldPasswordText));
+            Notify(nameof(NewPasswordText));
+            ClientLogService.Instance.Info("auth.changePassword result=ok");
+        });
     }
 
     private void RefreshAll()
@@ -1477,18 +1562,25 @@ public class AdminMainViewModel : ViewModelBase
 
         try
         {
+            ClientLogService.Instance.Info("ui-refresh section=Люди step=LoadPending");
             LoadPending();
+            ClientLogService.Instance.Info("ui-refresh section=Люди step=LoadPlayers");
             LoadPlayers();
+            ClientLogService.Instance.Info("ui-refresh section=Модерация step=LoadPendingRequests");
             LoadPendingRequests();
             LoadRequestHistory();
+            ClientLogService.Instance.Info("ui-refresh section=Сессия step=CombatRefresh");
             CombatRefresh();
+            ClientLogService.Instance.Info("ui-refresh section=Контент step=RefreshDefinitionClasses");
             RefreshDefinitionClasses();
             RefreshDefinitionSkills();
             if (!string.IsNullOrWhiteSpace(SelectedCharacterId))
             {
+                ClientLogService.Instance.Info("ui-refresh section=Персонажи step=LoadClassTree+LoadSkills");
                 LoadClassTree();
                 LoadSkills();
             }
+            ClientLogService.Instance.Info("ui-refresh section=Сессия step=ChatRefresh");
             ChatRefresh();
             AudioRefresh();
             NotesRefresh();
@@ -1514,6 +1606,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             PendingAccounts.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = S(m, "createdUtc") });
         }
+        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Ожидающие raw={ToList(r.Payload["items"]).Count} shown={PendingAccounts.Count}");
         RestoreSelection(PendingAccounts, SelectedPendingAccountId, value => SelectedPendingAccountId = value);
         RefreshConnectionSummary();
     }
@@ -1528,6 +1621,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             Players.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = $"online={S(m, "isOnline")}; last={S(m, "lastSeenUtc")}" });
         }
+        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Игроки raw={ToList(r.Payload["items"]).Count} shown={Players.Count}");
         RestoreSelection(Players, SelectedOwnerUserId, value => SelectedOwnerUserId = value);
         RefreshConnectionSummary();
     }
@@ -1543,6 +1637,9 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             Characters.Add(new RowVm { Id = S(m, "characterId"), Name = S(m, "name"), State = S(m, "archived"), Extra = S(m, "race") });
         }
+        Notify(nameof(FilteredCharacters));
+        var visibleCharacters = FilteredCharacters.Count();
+        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Персонажи loaded={Characters.Count} filtered={visibleCharacters} visible={visibleCharacters}");
         RestoreSelection(Characters, SelectedCharacterId, value => SelectedCharacterId = value);
         RefreshConnectionSummary();
     }
@@ -1580,6 +1677,12 @@ public class AdminMainViewModel : ViewModelBase
             long.TryParse(S(money, "Bronze"), out l); Bronze = l;
             long.TryParse(S(money, "Silver"), out l); Silver = l;
             long.TryParse(S(money, "Gold"), out l); Gold = l;
+            long.TryParse(S(money, "Platinum"), out l); Platinum = l;
+            long.TryParse(S(money, "Orichalcum"), out l); Orichalcum = l;
+            long.TryParse(S(money, "Adamant"), out l); Adamant = l;
+            long.TryParse(S(money, "Sovereign"), out l); Sovereign = l;
+            long.TryParse(S(money, "ExperienceCoins"), out l); ExperienceCoins = l;
+            ClientLogService.Instance.Info($"ui-refresh section=Персонажи block=Финансы loadedCurrencies={money.Count}");
         }
 
         InventoryRows.Clear();
@@ -1615,6 +1718,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             PendingRequests.Add(new RowVm { Id = S(m, "requestId"), Name = S(m, "requestType"), State = S(m, "status"), Extra = S(m, "formula") });
         }
+        ClientLogService.Instance.Info($"ui-refresh section=Модерация block=Заявки raw={ToList(r.Payload["items"]).Count} shown={PendingRequests.Count}");
         RestoreSelection(PendingRequests, SelectedPendingRequestId, value => SelectedPendingRequestId = value);
         RefreshConnectionSummary();
     }
@@ -1740,6 +1844,7 @@ public class AdminMainViewModel : ViewModelBase
                 Extra = $"branch={S(map, "branchCode")} • direction={S(map, "directionCode")} • active={S(map, "isActive")}"
             });
         }
+        ClientLogService.Instance.Info($"ui-refresh section=Контент block=Классы loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}");
         RestoreSelection(ClassDefinitionRows, SelectedClassDefinitionCode, value => SelectedClassDefinitionCode = value);
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedClassDefinition));
@@ -1810,6 +1915,7 @@ public class AdminMainViewModel : ViewModelBase
                 Extra = $"maxLevel={S(map, "maxLevel")} • category={S(map, "skillCategory")} • active={S(map, "isActive")}"
             });
         }
+        ClientLogService.Instance.Info($"ui-refresh section=Контент block=Навыки loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}");
         RestoreSelection(SkillDefinitionRows, SelectedSkillDefinitionCode, value => SelectedSkillDefinitionCode = value);
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedSkillDefinition));
@@ -2072,12 +2178,9 @@ public class AdminMainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(ChatMessageText)) return;
         var sessionId = ResolveChatSessionId();
-        if (string.Equals(ChatMessageType, "System", StringComparison.OrdinalIgnoreCase))
-        {
-            LastStatusMessage = "[CHAT-DIAG-TEMP][Admin] blocked client-side system message send";
-            return;
-        }
-        _api.ChatSend(sessionId, ChatMessageType, ChatMessageText);
+        var serverChatType = MapChatTypeToServer(ChatMessageType);
+        ClientLogService.Instance.Info($"Chat send requested: sessionId={sessionId}; command={CommandNames.ChatSend}; uiType={ChatMessageType}; serverType={serverChatType}");
+        _api.ChatSend(sessionId, serverChatType, ChatMessageText);
         ChatMessageText = string.Empty;
         Notify(nameof(ChatMessageText));
         ChatRefresh();
@@ -2088,26 +2191,38 @@ public class AdminMainViewModel : ViewModelBase
         var sessionId = ResolveChatSessionId();
         TraceChatDiagnostic($"request command={CommandNames.ChatVisibleFeed} session={sessionId}");
         ChatRows.Clear();
+        ChatMessageRows.Clear();
         var feed = _api.ChatVisibleFeed(sessionId, 80);
         var feedItems = ExtractChatItems(feed.Payload, out var sourceKey, out var payloadKeys, out var rawItemsType);
         TraceChatDiagnostic($"response command={CommandNames.ChatVisibleFeed} status={feed.Status} success={(feed.Status == ResponseStatus.Ok)} payloadKeys=[{payloadKeys}] sourceKey={sourceKey} rawItems={feedItems.Count} rawType={rawItemsType}");
+        LogFirstChatItemShape(feedItems, CommandNames.ChatVisibleFeed);
         if (feed.Status == ResponseStatus.Ok)
         {
             var mappedCount = 0;
+            var filteredCount = 0;
             foreach (var item in feedItems)
             {
-                var m = AsMap(item);
+                var m = AsMap(item, CommandNames.ChatVisibleFeed);
                 if (m == null) continue;
-                ChatRows.Add($"{S(m, "createdUtc")} | {S(m, "type")} | {S(m, "senderDisplayName")}: {S(m, "text")}");
                 mappedCount++;
+                var row = BuildChatMessageRow(m);
+                if (row == null)
+                {
+                    filteredCount++;
+                    continue;
+                }
+
+                ChatRows.Add($"{row.Sender}: {row.Text}");
+                ChatMessageRows.Add(row);
             }
-            TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount}");
+            TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount} filteredOut={filteredCount} displayItems={ChatMessageRows.Count}");
         }
         else
         {
             TraceChatDiagnostic($"response-error command={CommandNames.ChatVisibleFeed} message={feed.Message}");
         }
-        TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} uiCollection=ChatRows uiCount={ChatRows.Count}");
+        TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} uiCollection=ChatMessageRows uiCount={ChatMessageRows.Count}");
+        ClientLogService.Instance.Info($"ui-refresh section=Сессия block=Чат loaded={ChatRows.Count} visible={ChatMessageRows.Count}");
 
         var unread = _api.ChatUnreadGet(sessionId);
         ChatUnreadText = "Unread: " + S(unread.Payload, "count");
@@ -2125,7 +2240,7 @@ public class AdminMainViewModel : ViewModelBase
         foreach (var item in ToList(restrictions.Payload.ContainsKey("restrictions") ? restrictions.Payload["restrictions"] : new ArrayList()))
             if (AsMap(item) is { } m)
                 ChatRestrictionRows.Add($"{S(m, "userId")} muted={S(m, "muted")} reason={S(m, "reason")}");
-        TraceChatDiagnostic($"ui chatRows={ChatRows.Count} restrictionsRows={ChatRestrictionRows.Count}");
+        TraceChatDiagnostic($"ui chatRows={ChatRows.Count} chatMessageRows={ChatMessageRows.Count} restrictionsRows={ChatRestrictionRows.Count}");
         RefreshConnectionSummary();
     }
 
@@ -2155,7 +2270,13 @@ public class AdminMainViewModel : ViewModelBase
     private void AudioRefresh()
     {
         var state = _api.AudioStateGet(AudioSessionId);
-        AudioStateText = $"mode={S(state.Payload, "mode")}; category={S(state.Payload, "category")}; track={S(state.Payload, "trackName")}; pos={S(state.Payload, "positionSeconds")}; override={S(state.Payload, "overrideEnabled")}; playback={S(state.Payload, "playbackState")}";
+        var mode = S(state.Payload, "mode");
+        var category = S(state.Payload, "category");
+        var track = FirstNonEmpty(S(state.Payload, "trackName"), "не выбрано");
+        var position = FirstNonEmpty(S(state.Payload, "positionSeconds"), "0");
+        var playback = FirstNonEmpty(S(state.Payload, "playbackState"), "нет данных");
+        AudioStateText = $"Режим: {mode}; Категория: {category}; Трек: {track}; Позиция: {position} сек.; Состояние: {playback}";
+        ClientLogService.Instance.Info($"ui-audio-refresh section=Сессия stateLoaded=true tracksRaw={state.Payload.Count}");
         Notify(nameof(AudioStateText));
 
         AudioLibraryRows.Clear();
@@ -2276,6 +2397,8 @@ public class AdminMainViewModel : ViewModelBase
             }.Where(value => !string.IsNullOrWhiteSpace(value)));
             LockRows.Add(new RowVm { Id = resourceId, Name = owner, State = state, Extra = extra });
         }
+        Notify(nameof(FilteredLockRows));
+        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Блокировки raw={items.Count} shown={LockRows.Count}");
         RestoreSelection(LockRows, SelectedLockId, value => SelectedLockId = value);
     }
 
@@ -2286,9 +2409,13 @@ public class AdminMainViewModel : ViewModelBase
     private void ForceUnlock() { if (string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedLock != null) { SelectedCharacterId = SelectedLock.Id; } if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return; RunUiAction("Принудительное снятие lock", () => { var r = _api.ForceReleaseCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); LoadLocksSummary(); }); }
     private void SaveBasicInfo() { _api.UpdateCharacterBasicInfo(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "name", EditName }, { "race", EditRace }, { "height", EditHeight }, { "age", EditAge }, { "description", EditDescription }, { "backstory", EditBackstory } }); }
     private void SaveStats() { _api.UpdateCharacterStats(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "health", Health }, { "physicalArmor", PhysicalArmor }, { "magicalArmor", MagicalArmor }, { "morale", Morale }, { "strength", Strength }, { "dexterity", Dexterity }, { "endurance", Endurance }, { "wisdom", Wisdom }, { "intellect", Intellect }, { "charisma", Charisma } }); }
-    private void SaveMoney() { _api.UpdateCharacterMoney(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "money", new Dictionary<string, object> { { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold } } } }); }
+    private void SaveMoney() { _api.UpdateCharacterMoney(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "money", new Dictionary<string, object> { { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold }, { "Platinum", Platinum }, { "Orichalcum", Orichalcum }, { "Adamant", Adamant }, { "Sovereign", Sovereign }, { "ExperienceCoins", ExperienceCoins } } } }); ClientLogService.Instance.Info("ui-action section=Персонажи action=SaveMoney"); }
     private void ApproveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Подтверждение аккаунта", () => { _api.ApproveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
     private void ArchiveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Архивация аккаунта", () => { _api.ArchiveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void RejectSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Отклонение аккаунта", () => { _api.RejectAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void BlockSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Блокировка аккаунта", () => { _api.BlockAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void UnblockSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Разблокировка аккаунта", () => { _api.UnblockAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void ResetSelectedPassword() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Сброс пароля аккаунта", () => { _api.ResetPassword(SelectedPendingAccountId, ResetPasswordText); RefreshPeopleSection(); }); }
 
     private void RefreshOverviewActivity()
     {
@@ -2309,6 +2436,7 @@ public class AdminMainViewModel : ViewModelBase
     {
         SaveConnectionSettings();
         SaveWorkspaceLayout();
+        ClientLogService.Instance.Info("Logout / shutdown requested from Admin client");
         _client.Disconnect();
     }
 
@@ -2316,7 +2444,7 @@ public class AdminMainViewModel : ViewModelBase
     {
         Notify(nameof(EditName)); Notify(nameof(EditRace)); Notify(nameof(EditHeight)); Notify(nameof(EditAge)); Notify(nameof(EditDescription)); Notify(nameof(EditBackstory));
         Notify(nameof(Health)); Notify(nameof(PhysicalArmor)); Notify(nameof(MagicalArmor)); Notify(nameof(Morale)); Notify(nameof(Strength)); Notify(nameof(Dexterity)); Notify(nameof(Endurance)); Notify(nameof(Wisdom)); Notify(nameof(Intellect)); Notify(nameof(Charisma));
-        Notify(nameof(Iron)); Notify(nameof(Bronze)); Notify(nameof(Silver)); Notify(nameof(Gold));
+        Notify(nameof(Iron)); Notify(nameof(Bronze)); Notify(nameof(Silver)); Notify(nameof(Gold)); Notify(nameof(Platinum)); Notify(nameof(Orichalcum)); Notify(nameof(Adamant)); Notify(nameof(Sovereign)); Notify(nameof(ExperienceCoins));
     }
 
     private static T ReadJson<T>(string path, T fallback) where T : class
@@ -2388,15 +2516,16 @@ public class AdminMainViewModel : ViewModelBase
 
     private void TraceChatDiagnostic(string message)
     {
-        var line = "[CHAT-DIAG-TEMP][Admin] " + message;
-        Debug.WriteLine(line);
+        var line = "[CHAT-DIAG][Admin] " + message;
+        ClientLogService.Instance.Info(line);
         LastStatusMessage = line;
     }
 
-    private static Dictionary<string, object>? AsMap(object? value)
+    private Dictionary<string, object>? AsMap(object? value, string context)
     {
         if (value is Dictionary<string, object> typedMap)
         {
+            TraceChatDiagnostic($"map-shape command={context} branch=Dictionary<string,object> count={typedMap.Count}");
             return typedMap;
         }
 
@@ -2414,10 +2543,265 @@ public class AdminMainViewModel : ViewModelBase
                 map[key] = entry.Value;
             }
 
-            return map;
+            TraceChatDiagnostic($"map-shape command={context} branch=IDictionary count={map.Count}");
+            return map.Count > 0 ? map : null;
         }
 
+        if (value is object[] objectArray)
+        {
+            if (TryConvertObjectArrayToMap(objectArray, out var objectArrayMap))
+            {
+                TraceChatDiagnostic($"map-shape command={context} branch=object[] count={objectArrayMap.Count}");
+                return objectArrayMap;
+            }
+
+            TraceChatDiagnostic($"map-shape command={context} branch=object[] fallback=failed length={objectArray.Length}");
+            return null;
+        }
+
+        if (value is IEnumerable enumerable && value is not string)
+        {
+            if (TryConvertEnumerableToMap(enumerable, out var enumerableMap))
+            {
+                TraceChatDiagnostic($"map-shape command={context} branch=IEnumerable count={enumerableMap.Count}");
+                return enumerableMap;
+            }
+
+            TraceChatDiagnostic($"map-shape command={context} branch=IEnumerable fallback=failed type={value.GetType().FullName}");
+            return null;
+        }
+
+        TraceChatDiagnostic($"map-shape command={context} branch=unsupported type={value?.GetType().FullName ?? "null"}");
         return null;
+    }
+
+    private Dictionary<string, object>? AsMap(object? value)
+    {
+        return AsMap(value, "generic");
+    }
+
+    private void LogFirstChatItemShape(IList items, string command)
+    {
+        if (items.Count == 0)
+        {
+            TraceChatDiagnostic($"first-item command={command} type=<none>");
+            return;
+        }
+
+        var firstItem = items[0];
+        var firstType = firstItem?.GetType().FullName ?? "null";
+        TraceChatDiagnostic($"first-item command={command} type={firstType}");
+
+        if (firstItem is IEnumerable enumerable && firstItem is not string)
+        {
+            var innerTypes = enumerable
+                .Cast<object?>()
+                .Take(6)
+                .Select(item => item?.GetType().FullName ?? "null")
+                .ToArray();
+            TraceChatDiagnostic($"first-item-inner command={command} sampleTypes=[{string.Join(",", innerTypes)}]");
+        }
+
+        if (TryConvertPairLike(firstItem, out var key, out _, out var pairShape))
+        {
+            TraceChatDiagnostic($"first-item-pair command={command} shape={pairShape} key={key}");
+        }
+    }
+
+    private static bool TryConvertObjectArrayToMap(object[] source, out Dictionary<string, object> map)
+    {
+        map = new Dictionary<string, object>(StringComparer.Ordinal);
+        if (source.Length == 0)
+        {
+            return false;
+        }
+
+        var asPairs = true;
+        foreach (var item in source)
+        {
+            if (!TryConvertPairLike(item, out var key, out var value, out _))
+            {
+                asPairs = false;
+                break;
+            }
+
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                map[key] = value;
+            }
+        }
+
+        if (asPairs && map.Count > 0)
+        {
+            return true;
+        }
+
+        if (source.Length % 2 != 0)
+        {
+            return false;
+        }
+
+        map.Clear();
+        for (var i = 0; i < source.Length; i += 2)
+        {
+            var key = Convert.ToString(source[i]);
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                continue;
+            }
+
+            map[key] = source[i + 1];
+        }
+
+        return map.Count > 0;
+    }
+
+    private static bool TryConvertEnumerableToMap(IEnumerable source, out Dictionary<string, object> map)
+    {
+        map = new Dictionary<string, object>(StringComparer.Ordinal);
+        foreach (var item in source)
+        {
+            if (!TryConvertPairLike(item, out var key, out var value, out _))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                map[key] = value;
+            }
+        }
+
+        return map.Count > 0;
+    }
+
+    private static bool TryConvertPairLike(object? value, out string key, out object? mappedValue, out string shape)
+    {
+        key = string.Empty;
+        mappedValue = null;
+        shape = "unknown";
+
+        if (value is DictionaryEntry dictionaryEntry)
+        {
+            key = Convert.ToString(dictionaryEntry.Key) ?? string.Empty;
+            mappedValue = dictionaryEntry.Value;
+            shape = "DictionaryEntry";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value is object[] objectPair && objectPair.Length == 2)
+        {
+            key = Convert.ToString(objectPair[0]) ?? string.Empty;
+            mappedValue = objectPair[1];
+            shape = "object[2]";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value is IList listPair && listPair.Count == 2)
+        {
+            key = Convert.ToString(listPair[0]) ?? string.Empty;
+            mappedValue = listPair[1];
+            shape = "IList[2]";
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        if (value != null)
+        {
+            var valueType = value.GetType();
+            var keyProperty = valueType.GetProperty("Key");
+            var valueProperty = valueType.GetProperty("Value");
+            if (keyProperty != null && valueProperty != null)
+            {
+                key = Convert.ToString(keyProperty.GetValue(value)) ?? string.Empty;
+                mappedValue = valueProperty.GetValue(value);
+                shape = valueType.FullName ?? valueType.Name;
+                return !string.IsNullOrWhiteSpace(key);
+            }
+        }
+
+        return false;
+    }
+
+    private ChatMessageRowVm? BuildChatMessageRow(Dictionary<string, object> map)
+    {
+        var sender = FirstNonEmpty(S(map, "senderDisplayName"), S(map, "senderUserId"), "Система");
+        var text = FirstNonEmpty(S(map, "text"), S(map, "message"), S(map, "body"));
+        var type = FirstNonEmpty(S(map, "type"), "Public");
+        var createdRaw = FirstNonEmpty(S(map, "createdUtc"), S(map, "createdAt"), S(map, "at"));
+        var timestamp = FormatChatTimestamp(createdRaw);
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            TraceChatDiagnostic("chat-filter reason=empty-text");
+            return null;
+        }
+
+        if (IsPlaceholderText(text))
+        {
+            TraceChatDiagnostic($"chat-filter reason=placeholder-text value={text}");
+            return null;
+        }
+
+        return new ChatMessageRowVm
+        {
+            Sender = sender,
+            Text = text,
+            Timestamp = timestamp,
+            IsSystem = string.Equals(type, "System", StringComparison.OrdinalIgnoreCase)
+        };
+    }
+
+    private static bool IsPlaceholderText(string text)
+    {
+        return string.Equals(text, "Нет сообщений", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(text, "Нет системных событий", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FormatChatTimestamp(string rawValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            return string.Empty;
+        }
+
+        if (TryParseServerTimestamp(rawValue, out var parsed))
+        {
+            var local = parsed.ToLocalTime();
+            return local.Date == DateTime.Now.Date
+                ? local.ToString("HH:mm", CultureInfo.InvariantCulture)
+                : local.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture);
+        }
+
+        return rawValue;
+    }
+
+    private static bool TryParseServerTimestamp(string rawValue, out DateTime utcValue)
+    {
+        utcValue = default;
+        var dateMatch = Regex.Match(rawValue, @"^/Date\(([-+]?\d+)");
+        if (dateMatch.Success && long.TryParse(dateMatch.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var milliseconds))
+        {
+            utcValue = DateTimeOffset.FromUnixTimeMilliseconds(milliseconds).UtcDateTime;
+            return true;
+        }
+
+        if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var parsed))
+        {
+            utcValue = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string MapChatTypeToServer(string uiType)
+    {
+        return uiType switch
+        {
+            "Скрытый" => "HiddenToAdmins",
+            "Только для админов" => "AdminOnly",
+            _ => "Public"
+        };
     }
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }

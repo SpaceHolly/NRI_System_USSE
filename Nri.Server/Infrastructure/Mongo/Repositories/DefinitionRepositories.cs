@@ -15,6 +15,15 @@ public interface IClassDefinitionRepository
     bool Archive(string code, string archivedByUserId);
 }
 
+public interface IRaceDefinitionRepository
+{
+    IReadOnlyCollection<RaceDefinition> GetAll(bool includeArchived);
+    RaceDefinition? GetByCode(string code);
+    bool Exists(string code);
+    bool Upsert(RaceDefinition definition);
+    bool Archive(string code, string archivedByUserId);
+}
+
 public interface ISkillDefinitionRepository
 {
     IReadOnlyCollection<SkillDefinition> GetAll(bool includeArchived);
@@ -74,6 +83,56 @@ public sealed class ClassDefinitionRepository : IClassDefinitionRepository
             .Set(x => x.ArchivedUtc, DateTime.UtcNow)
             .Set(x => x.UpdatedUtc, DateTime.UtcNow);
         var result = _collection.UpdateOne(Builders<ClassDefinition>.Filter.Eq(x => x.Code, code), update);
+        return result.ModifiedCount > 0;
+    }
+}
+
+public sealed class RaceDefinitionRepository : IRaceDefinitionRepository
+{
+    private readonly IMongoCollection<RaceDefinition> _collection;
+
+    public RaceDefinitionRepository(IMongoCollection<RaceDefinition> collection)
+    {
+        _collection = collection;
+    }
+
+    public IReadOnlyCollection<RaceDefinition> GetAll(bool includeArchived)
+    {
+        var filter = includeArchived
+            ? FilterDefinition<RaceDefinition>.Empty
+            : Builders<RaceDefinition>.Filter.Eq(x => x.Archived, false);
+        return _collection.Find(filter).SortBy(x => x.Code).ToList();
+    }
+
+    public RaceDefinition? GetByCode(string code)
+    {
+        return _collection.Find(Builders<RaceDefinition>.Filter.Eq(x => x.Code, code)).FirstOrDefault();
+    }
+
+    public bool Exists(string code)
+    {
+        return _collection.Find(Builders<RaceDefinition>.Filter.Eq(x => x.Code, code)).Limit(1).Any();
+    }
+
+    public bool Upsert(RaceDefinition definition)
+    {
+        definition.UpdatedUtc = DateTime.UtcNow;
+        var existed = Exists(definition.Code);
+        if (!existed) definition.CreatedUtc = definition.UpdatedUtc;
+        _collection.ReplaceOne(Builders<RaceDefinition>.Filter.Eq(x => x.Code, definition.Code), definition, new ReplaceOptions { IsUpsert = true });
+        return !existed;
+    }
+
+    public bool Archive(string code, string archivedByUserId)
+    {
+        var update = Builders<RaceDefinition>.Update
+            .Set(x => x.Archived, true)
+            .Set(x => x.IsActive, false)
+            .Set(x => x.Status, DefinitionStatus.Archived)
+            .Set(x => x.ArchivedByUserId, archivedByUserId)
+            .Set(x => x.ArchivedUtc, DateTime.UtcNow)
+            .Set(x => x.UpdatedUtc, DateTime.UtcNow);
+        var result = _collection.UpdateOne(Builders<RaceDefinition>.Filter.Eq(x => x.Code, code), update);
         return result.ModifiedCount > 0;
     }
 }

@@ -36,12 +36,14 @@ public static class ServiceRegistry
         var auditLogService = new AuditLogService(repositories, logger);
         var validationService = new DefinitionValidationService(
             new ClassDefinitionValidator(),
+            new RaceDefinitionValidator(),
             new SkillDefinitionValidator(),
-            new DefinitionReferenceValidator(repositories.ClassDefinitions, repositories.DefinitionSkills));
+            new DefinitionReferenceValidator(repositories.ClassDefinitions, repositories.RaceDefinitions, repositories.DefinitionSkills));
+        var raceDefinitionService = new RaceDefinitionService(repositories.RaceDefinitions, validationService, auditLogService);
         var classDefinitionService = new ClassDefinitionService(repositories.ClassDefinitions, validationService, auditLogService);
         var skillDefinitionService = new SkillDefinitionService(repositories.DefinitionSkills, validationService, auditLogService);
         var accountRoleService = new AccountRoleService(repositories, auditLogService);
-        var routedHandlers = new AdminDefinitionHandlers(repositories, classDefinitionService, skillDefinitionService).CreateHandlers()
+        var routedHandlers = new AdminDefinitionHandlers(repositories, raceDefinitionService, classDefinitionService, skillDefinitionService, logger).CreateHandlers()
             .Concat(new AdminAccountRoleHandlers(repositories, accountRoleService).CreateHandlers())
             .ToArray();
         var adminDefinitionRouter = new RequestRouter(routedHandlers);
@@ -51,6 +53,7 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.AuthRegister, new DelegateCommandHandler(hub.Register));
         dispatcher.Register(CommandNames.AuthLogin, new DelegateCommandHandler(hub.Login));
         dispatcher.Register(CommandNames.AuthLogout, new DelegateCommandHandler(hub.Logout));
+        dispatcher.Register(CommandNames.AuthChangePassword, new DelegateCommandHandler(hub.AuthChangePassword));
         dispatcher.Register(CommandNames.SessionValidate, new DelegateCommandHandler(hub.SessionValidate));
 
         dispatcher.Register(CommandNames.ProfileGet, new DelegateCommandHandler(hub.ProfileGet));
@@ -59,6 +62,10 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.AdminAccountsPending, new DelegateCommandHandler(hub.AdminPendingAccounts));
         dispatcher.Register(CommandNames.AdminAccountsApprove, new DelegateCommandHandler(hub.AdminApproveAccount));
         dispatcher.Register(CommandNames.AdminAccountsArchive, new DelegateCommandHandler(hub.AdminArchiveAccount));
+        dispatcher.Register(CommandNames.AdminAccountReject, new DelegateCommandHandler(hub.AdminRejectAccount));
+        dispatcher.Register(CommandNames.AdminAccountBlock, new DelegateCommandHandler(hub.AdminBlockAccount));
+        dispatcher.Register(CommandNames.AdminAccountUnblock, new DelegateCommandHandler(hub.AdminUnblockAccount));
+        dispatcher.Register(CommandNames.AdminAccountResetPassword, new DelegateCommandHandler(hub.AdminResetAccountPassword));
         dispatcher.Register(CommandNames.AdminAccountProfile, new DelegateCommandHandler(hub.AdminAccountProfile));
         dispatcher.Register(CommandNames.AdminPlayersList, new DelegateCommandHandler(hub.AdminPlayersList));
 
@@ -81,10 +88,28 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CharacterUpdateHoldings, new DelegateCommandHandler(hub.CharacterUpdateHoldings));
 
         dispatcher.Register(CommandNames.CharacterCreate, new DelegateCommandHandler(hub.CharacterCreate));
+        dispatcher.Register(CommandNames.CharacterAdminCreate, new DelegateCommandHandler(hub.CharacterAdminCreate));
+        dispatcher.Register(CommandNames.CharacterAssignOwner, new DelegateCommandHandler(hub.CharacterAssignOwner));
         dispatcher.Register(CommandNames.CharacterArchive, new DelegateCommandHandler(hub.CharacterArchive));
         dispatcher.Register(CommandNames.CharacterRestore, new DelegateCommandHandler(hub.CharacterRestore));
         dispatcher.Register(CommandNames.CharacterTransfer, new DelegateCommandHandler(hub.CharacterTransfer));
         dispatcher.Register(CommandNames.CharacterAssignActive, new DelegateCommandHandler(hub.CharacterAssignActive));
+
+        dispatcher.Register(CommandNames.CharacterAdminList, new DelegateCommandHandler(hub.CharacterAdminList));
+        dispatcher.Register(CommandNames.CharacterAdminSearch, new DelegateCommandHandler(hub.CharacterAdminSearch));
+        dispatcher.Register(CommandNames.CharacterAdminGet, new DelegateCommandHandler(hub.CharacterAdminGet));
+        dispatcher.Register(CommandNames.CharacterAdminSaveBasic, new DelegateCommandHandler(hub.CharacterAdminSaveBasic));
+        dispatcher.Register(CommandNames.CharacterAdminSaveStats, new DelegateCommandHandler(hub.CharacterAdminSaveStats));
+        dispatcher.Register(CommandNames.CharacterAdminSaveMoney, new DelegateCommandHandler(hub.CharacterAdminSaveMoney));
+        dispatcher.Register(CommandNames.CharacterAdminSaveProgression, new DelegateCommandHandler(hub.CharacterAdminSaveProgression));
+        dispatcher.Register(CommandNames.CharacterAdminSaveVisibility, new DelegateCommandHandler(hub.CharacterAdminSaveVisibility));
+        dispatcher.Register(CommandNames.CharacterAdminGetNotesContext, new DelegateCommandHandler(hub.CharacterAdminGetNotesContext));
+
+        dispatcher.Register(CommandNames.CharacterSelfGet, new DelegateCommandHandler(hub.CharacterSelfGet));
+        dispatcher.Register(CommandNames.CharacterSelfSaveBasic, new DelegateCommandHandler(hub.CharacterSelfSaveBasic));
+        dispatcher.Register(CommandNames.CharacterSelfSaveStats, new DelegateCommandHandler(hub.CharacterSelfSaveStats));
+        dispatcher.Register(CommandNames.CharacterSelfSaveMoney, new DelegateCommandHandler(hub.CharacterSelfSaveMoney));
+        dispatcher.Register(CommandNames.CharacterSelfGetProgression, new DelegateCommandHandler(hub.CharacterSelfGetProgression));
 
 
 
@@ -106,6 +131,10 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CombatParticipants, new DelegateCommandHandler(hub.CombatParticipants));
         dispatcher.Register(CommandNames.CombatTimeline, new DelegateCommandHandler(hub.CombatTimeline));
 
+        dispatcher.Register(CommandNames.DefinitionsRacesGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsRaceGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsRaceSave, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsRaceArchive, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsClassesGet, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsClassGet, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsClassSave, new RoutedCommandHandler(adminDefinitionRouter));
@@ -132,6 +161,9 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.AdminSkillsSetState, new DelegateCommandHandler(hub.AdminSkillsSetState));
         dispatcher.Register(CommandNames.AdminCharacterProgressRecalculate, new DelegateCommandHandler(hub.AdminCharacterProgressRecalculate));
 
+        dispatcher.Register(CommandNames.AdminDefinitionsRaceList, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.AdminDefinitionsRaceGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.AdminDefinitionsRaceSave, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.AdminDefinitionsClassList, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.AdminDefinitionsClassGet, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.AdminDefinitionsClassSave, new RoutedCommandHandler(adminDefinitionRouter));
@@ -152,6 +184,9 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.RequestHistory, new DelegateCommandHandler(hub.RequestHistory));
 
         dispatcher.Register(CommandNames.DiceRequest, new DelegateCommandHandler(hub.DiceRequest));
+        dispatcher.Register(CommandNames.DiceRollStandard, new DelegateCommandHandler(hub.DiceRollStandard));
+        dispatcher.Register(CommandNames.DiceRollTest, new DelegateCommandHandler(hub.DiceRollTest));
+        dispatcher.Register(CommandNames.DiceTestGetCurrent, new DelegateCommandHandler(hub.DiceTestGetCurrent));
         dispatcher.Register(CommandNames.DiceHistory, new DelegateCommandHandler(hub.DiceHistory));
         dispatcher.Register(CommandNames.DiceVisibleFeed, new DelegateCommandHandler(hub.DiceVisibleFeed));
         dispatcher.Register(CommandNames.DiceGetDetails, new DelegateCommandHandler(hub.DiceGetDetails));
@@ -220,10 +255,22 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.AdminSessionsList, new DelegateCommandHandler(hub.AdminSessionsList));
         dispatcher.Register(CommandNames.AdminDiagnosticsGet, new DelegateCommandHandler(hub.AdminDiagnosticsGet));
 
+        dispatcher.Register(CommandNames.ProgressionAvailableRaces, new DelegateCommandHandler(hub.ProgressionAvailableRaces));
+        dispatcher.Register(CommandNames.ProgressionAvailableClasses, new DelegateCommandHandler(hub.ProgressionAvailableClasses));
+        dispatcher.Register(CommandNames.ProgressionAvailableSkills, new DelegateCommandHandler(hub.ProgressionAvailableSkills));
+        dispatcher.Register(CommandNames.ProgressionPreview, new DelegateCommandHandler(hub.ProgressionPreview));
+        dispatcher.Register(CommandNames.ProgressionSetRace, new DelegateCommandHandler(hub.ProgressionSetRace));
+        dispatcher.Register(CommandNames.ProgressionLearnClass, new DelegateCommandHandler(hub.ProgressionLearnClass));
+        dispatcher.Register(CommandNames.ProgressionLearnSkill, new DelegateCommandHandler(hub.ProgressionLearnSkill));
+        dispatcher.Register(CommandNames.CharacterProgressionGet, new DelegateCommandHandler(hub.CharacterProgressionGet));
         dispatcher.Register(CommandNames.LockAcquire, new DelegateCommandHandler(hub.LockAcquire));
         dispatcher.Register(CommandNames.LockRelease, new DelegateCommandHandler(hub.LockRelease));
         dispatcher.Register(CommandNames.LockForceRelease, new DelegateCommandHandler(hub.LockForceRelease));
         dispatcher.Register(CommandNames.LockStatus, new DelegateCommandHandler(hub.LockStatus));
+        dispatcher.Register(CommandNames.CharacterLockAcquire, new DelegateCommandHandler(hub.CharacterLockAcquire));
+        dispatcher.Register(CommandNames.CharacterLockRelease, new DelegateCommandHandler(hub.CharacterLockRelease));
+        dispatcher.Register(CommandNames.CharacterLockForceRelease, new DelegateCommandHandler(hub.CharacterLockForceRelease));
+        dispatcher.Register(CommandNames.CharacterLockGet, new DelegateCommandHandler(hub.CharacterLockGet));
 
         return new ServerRuntime(dispatcher, sessions);
     }
