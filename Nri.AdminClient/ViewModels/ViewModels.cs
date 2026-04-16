@@ -246,6 +246,13 @@ public class AdminMainViewModel : ViewModelBase
     private string _locksSearchText = string.Empty;
     private string _classSearchText = string.Empty;
     private string _skillSearchText = string.Empty;
+    private int _diceCount = 1;
+    private int _diceFaces = 20;
+    private int _diceModifier;
+    private string _diceModeInput = "Обычный";
+    private string _diceVisibilityInput = "Public";
+    private string _diceDescriptionInput = "Admin quick roll";
+    private string _lastDiceAvailabilityReason = string.Empty;
 
     public AdminMainViewModel()
     {
@@ -278,6 +285,8 @@ public class AdminMainViewModel : ViewModelBase
         UnblockAccountCommand = new RelayCommand(UnblockSelectedAccount);
         ChangePasswordCommand = new RelayCommand(ChangePassword);
         ResetPasswordCommand = new RelayCommand(ResetSelectedPassword);
+        CreateCharacterCommand = new RelayCommand(CreateCharacterForOwner);
+        RollDiceCommand = new RelayCommand(RollCharacterDice);
         LoadOwnerCharactersCommand = new RelayCommand(LoadOwnerCharacters);
         OpenCharacterCommand = new RelayCommand(OpenCharacter);
         OpenPlayerCharactersCommand = new RelayCommand(OpenPlayerCharacters);
@@ -370,6 +379,7 @@ public class AdminMainViewModel : ViewModelBase
         LoadConnectionSettings();
         LoadWorkspaceLayout();
         RefreshConnectionSummary();
+        TraceDiceAvailability();
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _poller.Tick += (_, _) => RefreshAll();
@@ -380,12 +390,27 @@ public class AdminMainViewModel : ViewModelBase
     public string OldPasswordText { get; set; } = string.Empty;
     public string NewPasswordText { get; set; } = string.Empty;
     public string ResetPasswordText { get; set; } = "TempPass123";
+    public string CreateCharacterName { get; set; } = string.Empty;
+    public string CreateCharacterRace { get; set; } = string.Empty;
+    public int CreateCharacterHealth { get; set; } = 10;
+    public int CreateCharacterStrength { get; set; } = 1;
+    public int CreateCharacterDexterity { get; set; } = 1;
+    public int CreateCharacterIntellect { get; set; } = 1;
+    public long CreateCharacterIron { get; set; } = 100;
+    public int DiceCount { get => _diceCount; set { if (_diceCount != value) { _diceCount = value; Notify(); Notify(nameof(CanRollCharacterDice)); Notify(nameof(DiceRollAvailabilityHint)); TraceDiceAvailability(); } } }
+    public int DiceFaces { get => _diceFaces; set { if (_diceFaces != value) { _diceFaces = value; Notify(); Notify(nameof(CanRollCharacterDice)); Notify(nameof(DiceRollAvailabilityHint)); TraceDiceAvailability(); } } }
+    public int DiceModifier { get => _diceModifier; set { if (_diceModifier != value) { _diceModifier = value; Notify(); } } }
+    public string DiceModeInput { get => _diceModeInput; set { if (_diceModeInput != value) { _diceModeInput = value; Notify(); Notify(nameof(DiceRollAvailabilityHint)); TraceDiceAvailability(); } } }
+    public string DiceVisibilityInput { get => _diceVisibilityInput; set { if (_diceVisibilityInput != value) { _diceVisibilityInput = value; Notify(); } } }
+    public string DiceDescriptionInput { get => _diceDescriptionInput; set { if (_diceDescriptionInput != value) { _diceDescriptionInput = value; Notify(); } } }
+    public ObservableCollection<string> DiceModeOptions { get; } = new ObservableCollection<string> { "Обычный", "Тестовый" };
+    public ObservableCollection<string> DiceVisibilityOptions { get; } = new ObservableCollection<string> { "Public", "HiddenToAdmins", "AdminOnly" };
     public string ConnectionState { get => _connectionState; set { _connectionState = value; Notify(); } }
     public string ConnectionStatusDetail { get => _connectionStatusDetail; set { _connectionStatusDetail = value; Notify(); } }
     public string SessionSummary { get => _sessionSummary; set { _sessionSummary = value; Notify(); } }
     public bool IsOnline { get => _isOnline; set { _isOnline = value; Notify(); } }
-    public bool IsConnectedToServer { get => _isConnectedToServer; set { _isConnectedToServer = value; Notify(); Notify(nameof(ConnectionStage)); Notify(nameof(LoginState)); Notify(nameof(ArePrivilegedSectionsEnabled)); Notify(nameof(SectionAccessHint)); } }
-    public bool IsAuthenticated { get => _isAuthenticated; set { _isAuthenticated = value; Notify(); Notify(nameof(ConnectionStage)); Notify(nameof(LoginState)); Notify(nameof(ArePrivilegedSectionsEnabled)); Notify(nameof(SectionAccessHint)); } }
+    public bool IsConnectedToServer { get => _isConnectedToServer; set { _isConnectedToServer = value; Notify(); Notify(nameof(ConnectionStage)); Notify(nameof(LoginState)); Notify(nameof(ArePrivilegedSectionsEnabled)); Notify(nameof(SectionAccessHint)); Notify(nameof(CanRollCharacterDice)); Notify(nameof(DiceRollAvailabilityHint)); TraceDiceAvailability(); } }
+    public bool IsAuthenticated { get => _isAuthenticated; set { _isAuthenticated = value; Notify(); Notify(nameof(ConnectionStage)); Notify(nameof(LoginState)); Notify(nameof(ArePrivilegedSectionsEnabled)); Notify(nameof(SectionAccessHint)); Notify(nameof(CanRollCharacterDice)); Notify(nameof(DiceRollAvailabilityHint)); TraceDiceAvailability(); } }
     public string LastErrorMessage { get => _lastErrorMessage; set { _lastErrorMessage = value; Notify(); Notify(nameof(HasConnectionError)); Notify(nameof(ConnectionStage)); } }
     public string LastStatusMessage { get => _lastStatusMessage; set { _lastStatusMessage = value; Notify(); } }
     public int LocksCount { get => _locksCount; set { _locksCount = value; Notify(); } }
@@ -396,7 +421,7 @@ public class AdminMainViewModel : ViewModelBase
     public string SectionAccessHint => ArePrivilegedSectionsEnabled ? "Рабочие разделы активны" : IsConnectedToServer ? "Для рабочих разделов выполните вход" : "Подключитесь к серверу, чтобы активировать рабочие разделы";
     public bool IsConnectionPopupOpen { get => _isConnectionPopupOpen; set { _isConnectionPopupOpen = value; Notify(); } }
     public bool IsAuthPopupOpen { get => _isAuthPopupOpen; set { _isAuthPopupOpen = value; Notify(); } }
-    public bool IsBusy { get => _isBusy; set { _isBusy = value; Notify(); Notify(nameof(IsIdle)); } }
+    public bool IsBusy { get => _isBusy; set { _isBusy = value; Notify(); Notify(nameof(IsIdle)); Notify(nameof(CanRollCharacterDice)); Notify(nameof(DiceRollAvailabilityHint)); TraceDiceAvailability(); } }
     public bool IsIdle => !IsBusy;
     public string BusyMessage { get => _busyMessage; set { _busyMessage = value; Notify(); } }
     public string ServerHostInput { get => _serverHostInput; set { _serverHostInput = value; Notify(); } }
@@ -480,11 +505,15 @@ public class AdminMainViewModel : ViewModelBase
     public string SystemActionSummary => !ArePrivilegedSectionsEnabled ? "Системные инструменты требуют подключения и авторизации." : IsBusy ? $"Выполняется: {BusyMessage}" : "Системные действия готовы к запуску.";
     public string HeaderStatusSummary => HasConnectionError ? LastErrorMessage : $"{ConnectionStage} • {LoginState}";
     public bool CanManagePendingAccount => ArePrivilegedSectionsEnabled && SelectedPendingAccount != null && !IsBusy;
+    public bool CanResetSelectedAccountPassword => ArePrivilegedSectionsEnabled && !IsBusy && (!string.IsNullOrWhiteSpace(SelectedPendingAccountId) || !string.IsNullOrWhiteSpace(SelectedOwnerUserId));
     public bool CanLoadPlayerCharacters => ArePrivilegedSectionsEnabled && SelectedPlayer != null && !IsBusy;
     public bool CanOpenSelectedCharacter => ArePrivilegedSectionsEnabled && SelectedCharacter != null && !IsBusy;
     public bool CanModerateSelectedRequest => ArePrivilegedSectionsEnabled && SelectedRequest != null && !IsBusy;
     public bool CanManageSelectedLock => ArePrivilegedSectionsEnabled && SelectedLock != null && !IsBusy;
     public bool CanManageSelectedCharacter => ArePrivilegedSectionsEnabled && SelectedCharacter != null && !IsBusy;
+    public bool CanCreateCharacterForOwner => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedOwnerUserId);
+    public bool CanRollCharacterDice => string.IsNullOrWhiteSpace(DiceRollAvailabilityHint);
+    public string DiceRollAvailabilityHint => GetDiceRollAvailabilityReason();
     public bool CanManageCharacterVisibility => ArePrivilegedSectionsEnabled && SelectedCharacter != null && !IsBusy;
     public bool CanRefreshNotes => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanCreateNote => ArePrivilegedSectionsEnabled && !IsBusy;
@@ -510,6 +539,7 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(SelectedPendingAccount));
                 Notify(nameof(SelectedPendingAccountSummary));
                 Notify(nameof(CanManagePendingAccount));
+                Notify(nameof(CanResetSelectedAccountPassword));
             }
         }
     }
@@ -526,6 +556,8 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(SelectedPlayer));
                 Notify(nameof(SelectedPlayerSummary));
                 Notify(nameof(CanLoadPlayerCharacters));
+                Notify(nameof(CanCreateCharacterForOwner));
+                Notify(nameof(CanResetSelectedAccountPassword));
             }
         }
     }
@@ -547,6 +579,9 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(SelectedCharacter));
                 Notify(nameof(SelectedCharacterSummary));
                 Notify(nameof(CanOpenSelectedCharacter));
+                Notify(nameof(CanRollCharacterDice));
+                Notify(nameof(DiceRollAvailabilityHint));
+                TraceDiceAvailability();
             }
         }
     }
@@ -878,6 +913,8 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand UnblockAccountCommand { get; }
     public ICommand ChangePasswordCommand { get; }
     public ICommand ResetPasswordCommand { get; }
+    public ICommand CreateCharacterCommand { get; }
+    public ICommand RollDiceCommand { get; }
     public ICommand LoadOwnerCharactersCommand { get; }
     public ICommand OpenCharacterCommand { get; }
     public ICommand OpenPlayerCharactersCommand { get; }
@@ -1603,7 +1640,8 @@ public class AdminMainViewModel : ViewModelBase
         if (r.Status != ResponseStatus.Ok || !r.Payload.ContainsKey("items")) return;
         foreach (var obj in ToList(r.Payload["items"]))
         {
-            if (obj is not Dictionary<string, object> m) continue;
+            var m = AsMap(obj);
+            if (m == null) continue;
             PendingAccounts.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = S(m, "createdUtc") });
         }
         ClientLogService.Instance.Info($"ui-refresh section=Люди block=Ожидающие raw={ToList(r.Payload["items"]).Count} shown={PendingAccounts.Count}");
@@ -1618,7 +1656,8 @@ public class AdminMainViewModel : ViewModelBase
         if (r.Status != ResponseStatus.Ok || !r.Payload.ContainsKey("items")) return;
         foreach (var obj in ToList(r.Payload["items"]))
         {
-            if (obj is not Dictionary<string, object> m) continue;
+            var m = AsMap(obj);
+            if (m == null) continue;
             Players.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = $"online={S(m, "isOnline")}; last={S(m, "lastSeenUtc")}" });
         }
         ClientLogService.Instance.Info($"ui-refresh section=Люди block=Игроки raw={ToList(r.Payload["items"]).Count} shown={Players.Count}");
@@ -1634,7 +1673,8 @@ public class AdminMainViewModel : ViewModelBase
         if (r.Status != ResponseStatus.Ok || !r.Payload.ContainsKey("items")) return;
         foreach (var obj in ToList(r.Payload["items"]))
         {
-            if (obj is not Dictionary<string, object> m) continue;
+            var m = AsMap(obj);
+            if (m == null) continue;
             Characters.Add(new RowVm { Id = S(m, "characterId"), Name = S(m, "name"), State = S(m, "archived"), Extra = S(m, "race") });
         }
         Notify(nameof(FilteredCharacters));
@@ -2410,12 +2450,102 @@ public class AdminMainViewModel : ViewModelBase
     private void SaveBasicInfo() { _api.UpdateCharacterBasicInfo(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "name", EditName }, { "race", EditRace }, { "height", EditHeight }, { "age", EditAge }, { "description", EditDescription }, { "backstory", EditBackstory } }); }
     private void SaveStats() { _api.UpdateCharacterStats(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "health", Health }, { "physicalArmor", PhysicalArmor }, { "magicalArmor", MagicalArmor }, { "morale", Morale }, { "strength", Strength }, { "dexterity", Dexterity }, { "endurance", Endurance }, { "wisdom", Wisdom }, { "intellect", Intellect }, { "charisma", Charisma } }); }
     private void SaveMoney() { _api.UpdateCharacterMoney(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "money", new Dictionary<string, object> { { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold }, { "Platinum", Platinum }, { "Orichalcum", Orichalcum }, { "Adamant", Adamant }, { "Sovereign", Sovereign }, { "ExperienceCoins", ExperienceCoins } } } }); ClientLogService.Instance.Info("ui-action section=Персонажи action=SaveMoney"); }
-    private void ApproveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Подтверждение аккаунта", () => { _api.ApproveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void ApproveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Подтверждение аккаунта", () => { ClientLogService.Instance.Info($"admin.account.approve.requested accountId={SelectedPendingAccountId}"); _api.ApproveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
     private void ArchiveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Архивация аккаунта", () => { _api.ArchiveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
-    private void RejectSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Отклонение аккаунта", () => { _api.RejectAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
-    private void BlockSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Блокировка аккаунта", () => { _api.BlockAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
-    private void UnblockSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Разблокировка аккаунта", () => { _api.UnblockAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
-    private void ResetSelectedPassword() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Сброс пароля аккаунта", () => { _api.ResetPassword(SelectedPendingAccountId, ResetPasswordText); RefreshPeopleSection(); }); }
+    private void RejectSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Отклонение аккаунта", () => { ClientLogService.Instance.Info($"admin.account.reject.requested accountId={SelectedPendingAccountId}"); _api.RejectAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void BlockSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Блокировка аккаунта", () => { ClientLogService.Instance.Info($"admin.account.block.requested accountId={SelectedPendingAccountId}"); _api.BlockAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void UnblockSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Разблокировка аккаунта", () => { ClientLogService.Instance.Info($"admin.account.unblock.requested accountId={SelectedPendingAccountId}"); _api.UnblockAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
+    private void ResetSelectedPassword()
+    {
+        var accountId = !string.IsNullOrWhiteSpace(SelectedPendingAccountId) ? SelectedPendingAccountId : SelectedOwnerUserId;
+        if (string.IsNullOrWhiteSpace(accountId)) return;
+        RunUiAction("Сброс пароля аккаунта", () =>
+        {
+            ClientLogService.Instance.Info($"admin.account.resetPassword.requested accountId={accountId}");
+            _api.ResetPassword(accountId, ResetPasswordText);
+            RefreshPeopleSection();
+        });
+    }
+
+    private void CreateCharacterForOwner()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedOwnerUserId)) return;
+        RunUiAction("Создание персонажа (админ)", () =>
+        {
+            var payload = new Dictionary<string, object>
+            {
+                { "ownerUserId", SelectedOwnerUserId },
+                { "name", CreateCharacterName },
+                { "race", CreateCharacterRace },
+                { "health", CreateCharacterHealth },
+                { "strength", CreateCharacterStrength },
+                { "dexterity", CreateCharacterDexterity },
+                { "intellect", CreateCharacterIntellect },
+                { "Iron", CreateCharacterIron }
+            };
+            ClientLogService.Instance.Info($"character.admin.create.send ownerUserId={SelectedOwnerUserId} name={CreateCharacterName}");
+            var response = _api.CreateCharacter(payload);
+            EnsureSuccess(response);
+            LoadOwnerCharacters();
+            ClientLogService.Instance.Info($"character.admin.create.success ownerUserId={SelectedOwnerUserId} listCount={Characters.Count}");
+        });
+    }
+
+    private void RollCharacterDice()
+    {
+        var availabilityReason = GetDiceRollAvailabilityReason();
+        if (!string.IsNullOrWhiteSpace(availabilityReason))
+        {
+            ClientLogService.Instance.Warn($"ui.admin.dice.click.blocked reason={availabilityReason}");
+            return;
+        }
+        RunUiAction("Бросок кубов (админ)", () =>
+        {
+            var formula = DiceCount + "d" + DiceFaces + (DiceModifier == 0 ? string.Empty : DiceModifier > 0 ? "+" + DiceModifier : DiceModifier.ToString());
+            if (string.Equals(DiceModeInput, "Тестовый", StringComparison.OrdinalIgnoreCase))
+            {
+                ClientLogService.Instance.Info($"dice.roll.test.send characterId={SelectedCharacterId} formula={formula}");
+                var response = _api.DiceRollTest(SelectedCharacterId, formula, DiceVisibilityInput, DiceDescriptionInput);
+                ClientLogService.Instance.Info($"dice.roll.test.response status={response.Status} message={response.Message}");
+                EnsureSuccess(response);
+            }
+            else
+            {
+                ClientLogService.Instance.Info($"dice.roll.standard.send characterId={SelectedCharacterId} formula={formula}");
+                var response = _api.DiceRollStandard(SelectedCharacterId, formula, DiceVisibilityInput, DiceDescriptionInput);
+                ClientLogService.Instance.Info($"dice.roll.standard.response status={response.Status} message={response.Message}");
+                EnsureSuccess(response);
+            }
+
+            var testState = _api.DiceTestGetCurrent();
+            ClientLogService.Instance.Info($"dice.test.getCurrent.status={testState.Status}");
+            LoadPendingRequests();
+            LoadRequestHistory();
+        });
+    }
+
+    private string GetDiceRollAvailabilityReason()
+    {
+        if (!ArePrivilegedSectionsEnabled) return "Требуется подключение и вход администратора.";
+        if (IsBusy) return "Дождитесь завершения текущей операции.";
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return "Выберите персонажа из списка, затем бросайте кубик.";
+        if (DiceCount < 1) return "Количество кубиков должно быть не меньше 1.";
+        if (DiceFaces < 2) return "Количество граней должно быть не меньше 2.";
+        return string.Empty;
+    }
+
+    private void TraceDiceAvailability()
+    {
+        var reason = GetDiceRollAvailabilityReason();
+        if (string.Equals(reason, _lastDiceAvailabilityReason, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastDiceAvailabilityReason = reason;
+        var state = string.IsNullOrWhiteSpace(reason) ? "enabled" : "disabled";
+        ClientLogService.Instance.Info($"ui.admin.dice.button state={state} reason={FirstNonEmpty(reason, "ready")}");
+    }
 
     private void RefreshOverviewActivity()
     {

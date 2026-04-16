@@ -63,11 +63,20 @@ public partial class ServiceHub
 
         var account = _repositories.Accounts.Find(Builders<UserAccount>.Filter.Eq(x => x.Login, login)).FirstOrDefault();
         if (account == null || PasswordHasher.Hash(password, account.PasswordSalt) != account.PasswordHash)
+        {
+            _logger.Admin($"auth.login.denied login={login} reason=invalid_credentials");
             throw new UnauthorizedAccessException("Invalid credentials.");
+        }
         if (account.Status == AccountStatus.PendingApproval)
+        {
+            _logger.Admin($"auth.login.denied login={login} reason=pending_approval");
             throw new UnauthorizedAccessException("Account is pending admin approval.");
+        }
         if (account.Status == AccountStatus.Blocked || account.Status == AccountStatus.Archived)
+        {
+            _logger.Admin($"auth.login.denied login={login} reason=status_{account.Status}");
             throw new UnauthorizedAccessException($"Account status '{account.Status}' disallows login.");
+        }
 
         account.LastLoginUtc = DateTime.UtcNow;
         _repositories.Accounts.Replace(account);
@@ -1847,7 +1856,7 @@ public partial class ServiceHub
         existing.Status = RequestStatus.Approved;
         existing.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "TestReplaced", Comment = roll.Formula.Normalized });
         _repositories.DiceRequests.Replace(existing);
-        _logger.Admin($"dice.test.replace actor={actor.Login} requestId={existing.Id} total={existing.Result?.Total ?? 0}");
+        _logger.Admin($"dice.roll.test actor={actor.Login} action=replace requestId={existing.Id} total={existing.Result?.Total ?? 0} replacedPrevious=true");
         return Ok("Test dice roll replaced.", DiceRequestPayload(existing, actor));
     }
 
@@ -1884,7 +1893,7 @@ public partial class ServiceHub
         var visibilityRaw = (PayloadReader.GetString(context.Request.Payload, "visibility") ?? RequestVisibility.Public.ToString());
         if (!Enum.TryParse(visibilityRaw, true, out RequestVisibility visibility)) visibility = RequestVisibility.Public;
         var formula = DiceFormulaParser.Parse(formulaInput);
-        var result = DiceEngine.Execute(formula, visibility, actor.Id);
+        var result = DiceRollExecutor.Execute(formula, visibility, actor.Id);
         var request = new DiceRollRequest
         {
             RequestType = isTestRoll ? "DiceRollTest" : "DiceRollStandard",

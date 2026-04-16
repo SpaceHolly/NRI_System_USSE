@@ -446,7 +446,7 @@ public class PlayerMainViewModel : ViewModelBase
         try
         {
             EnsureConnected();
-            ClientLogService.Instance.Info("ui.password.change.opened");
+            ClientLogService.Instance.Info("auth.changePassword.requested");
             var result = _api.ChangePassword(OldPasswordText, NewPasswordText);
             if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
             ClientLogService.Instance.Info("auth.changePassword result=ok");
@@ -638,12 +638,14 @@ public class PlayerMainViewModel : ViewModelBase
             var visibility = ToServerDiceVisibility(DiceVisibilityInput);
             if (string.Equals(DiceModeInput, "Тестовый", StringComparison.OrdinalIgnoreCase))
             {
-                ClientLogService.Instance.Info($"dice.test.send characterId={SelectedCharacterId} formula={formula}");
+                ClientLogService.Instance.Info($"dice.roll.test.send characterId={SelectedCharacterId} formula={formula}");
                 _api.DiceRollTest(SelectedCharacterId, formula, visibility, DiceDescriptionInput);
+                var currentTest = _api.DiceTestGetCurrent();
+                ClientLogService.Instance.Info($"dice.test.getCurrent.status={currentTest.Status}");
             }
             else
             {
-                ClientLogService.Instance.Info($"dice.standard.send characterId={SelectedCharacterId} formula={formula}");
+                ClientLogService.Instance.Info($"dice.roll.standard.send characterId={SelectedCharacterId} formula={formula}");
                 _api.DiceRollStandard(SelectedCharacterId, formula, visibility, DiceDescriptionInput);
             }
             RefreshBottomPanel();
@@ -670,8 +672,13 @@ public class PlayerMainViewModel : ViewModelBase
             var result = _api.CreateCharacter(payload);
             if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
             LoadCharacters();
+            ClientLogService.Instance.Info($"character.create.success count={MyCharacters.Count}");
         }
-        catch (Exception ex) { SetConnectionError(ex); }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Warn($"character.create.result=fail reason={ex.Message}");
+            SetConnectionError(ex);
+        }
     }
 
     private void CancelRequest()
