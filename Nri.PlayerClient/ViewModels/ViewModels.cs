@@ -766,6 +766,12 @@ public class PlayerMainViewModel : ViewModelBase
             ClientLogService.Instance.Info($"character.create.response status={result.Status} message={result.Message}");
             if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
             LoadCharacters();
+            if (MyCharacters.Count > 0 && string.IsNullOrWhiteSpace(ActiveCharacterId))
+            {
+                SelectedMyCharacter = MyCharacters.OrderByDescending(x => x.Id).FirstOrDefault() ?? MyCharacters[0];
+                SetSelectedCharacterActive();
+            }
+            LoadActiveCharacter();
             ClientLogService.Instance.Info($"character.create.success count={MyCharacters.Count}");
         }
         catch (Exception ex)
@@ -853,31 +859,53 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void RefreshDiceAndRequests()
     {
+        ClientLogService.Instance.Info("dice.feed.refresh requested");
         DiceFeedRows.Clear();
         var feed = _api.DiceVisibleFeed();
-        foreach (var item in ToObjectList(feed.Payload.ContainsKey("items") ? feed.Payload["items"] : new ArrayList()))
+        var feedItems = ToObjectList(feed.Payload.ContainsKey("items") ? feed.Payload["items"] : new ArrayList());
+        ClientLogService.Instance.Info($"dice.feed.refresh itemsRaw={feedItems.Count}");
+        var mappedDice = 0;
+        foreach (var item in feedItems)
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item, CommandNames.DiceVisibleFeed);
+            if (map == null) continue;
+            mappedDice++;
             var total = string.Empty;
             if (map.ContainsKey("result") && map["result"] is Dictionary<string, object> result) total = GetString(result, "total");
             DiceFeedRows.Add($"{GetString(map, "creatorUserId")} | {GetString(map, "formula")} => {total}");
         }
+        ClientLogService.Instance.Info($"dice.feed.refresh itemsMapped={mappedDice}");
 
         RequestRows.Clear();
         var req = _api.ListMyRequests();
         foreach (var item in ToObjectList(req.Payload.ContainsKey("items") ? req.Payload["items"] : new ArrayList()))
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item, CommandNames.RequestListMine);
+            if (map == null) continue;
             RequestRows.Add($"{GetString(map, "requestId")} | {GetString(map, "status")} | {GetString(map, "formula")}");
         }
 
         var currentTest = _api.DiceTestGetCurrent();
-        if (currentTest.Status == ResponseStatus.Ok && currentTest.Payload.TryGetValue("item", out var testItem) && testItem is Dictionary<string, object> testMap && testMap.Count > 0)
+        if (currentTest.Status == ResponseStatus.Ok && currentTest.Payload.TryGetValue("item", out var testItem))
         {
+            var testMap = AsMap(testItem, CommandNames.DiceTestGetCurrent);
+            if (testMap == null || testMap.Count == 0)
+            {
+                ClientLogService.Instance.Info($"dice.feed.render visibleRows={DiceFeedRows.Count}");
+                ClientLogService.Instance.Info($"dice.view.counts feed={DiceFeedRows.Count} requests={RequestRows.Count}");
+                EnsureCollectionPlaceholder(DiceFeedRows, "Нет видимых бросков");
+                EnsureCollectionPlaceholder(RequestRows, "Нет активных заявок");
+                return;
+            }
             var total = string.Empty;
-            if (testMap.TryGetValue("result", out var rawResult) && rawResult is Dictionary<string, object> resultMap) total = GetString(resultMap, "total");
+            if (testMap.TryGetValue("result", out var rawResult))
+            {
+                var resultMap = AsMap(rawResult, CommandNames.DiceTestGetCurrent);
+                if (resultMap != null) total = GetString(resultMap, "total");
+            }
             DiceFeedRows.Insert(0, $"[ТЕСТ] {GetString(testMap, "creatorUserId")} | {GetString(testMap, "formula")} => {total}");
         }
+        ClientLogService.Instance.Info($"dice.feed.render visibleRows={DiceFeedRows.Count}");
         ClientLogService.Instance.Info($"dice.view.counts feed={DiceFeedRows.Count} requests={RequestRows.Count}");
 
         EnsureCollectionPlaceholder(DiceFeedRows, "Нет видимых бросков");

@@ -307,6 +307,7 @@ public class AdminMainViewModel : ViewModelBase
         SaveBasicInfoCommand = new RelayCommand(SaveBasicInfo);
         SaveStatsCommand = new RelayCommand(SaveStats);
         SaveMoneyCommand = new RelayCommand(SaveMoney);
+        SaveXpCoinsCommand = new RelayCommand(SaveXpCoins);
         ApproveRequestCommand = new RelayCommand(ApproveRequest);
         RejectRequestCommand = new RelayCommand(RejectRequest);
         CombatStartCommand = new RelayCommand(() => RunUiAction("Запуск боя", CombatStart));
@@ -940,6 +941,7 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand SaveBasicInfoCommand { get; }
     public ICommand SaveStatsCommand { get; }
     public ICommand SaveMoneyCommand { get; }
+    public ICommand SaveXpCoinsCommand { get; }
     public ICommand ApproveRequestCommand { get; }
     public ICommand RejectRequestCommand { get; }
     public ICommand CombatStartCommand { get; }
@@ -1783,17 +1785,25 @@ public class AdminMainViewModel : ViewModelBase
         }
 
         DiceFeedRows.Clear();
+        ClientLogService.Instance.Info("dice.feed.refresh requested");
         var feed = _api.DiceVisibleFeed();
         if (feed.Status == ResponseStatus.Ok && feed.Payload.ContainsKey("items"))
         {
-            foreach (var obj in ToList(feed.Payload["items"]))
+            var rawItems = ToList(feed.Payload["items"]);
+            ClientLogService.Instance.Info($"dice.feed.refresh itemsRaw={rawItems.Count}");
+            var mappedItems = 0;
+            foreach (var obj in rawItems)
             {
-                if (obj is not Dictionary<string, object> m) continue;
+                var m = AsMap(obj);
+                if (m == null) continue;
+                mappedItems++;
                 var total = string.Empty;
                 if (m.ContainsKey("result") && m["result"] is Dictionary<string, object> result) total = S(result, "total");
                 DiceFeedRows.Add($"{S(m, "creatorUserId")} | {S(m, "formula")} | {total} | {S(m, "visibility")}");
             }
+            ClientLogService.Instance.Info($"dice.feed.refresh itemsMapped={mappedItems}");
         }
+        ClientLogService.Instance.Info($"dice.feed.render visibleRows={DiceFeedRows.Count}");
         RefreshConnectionSummary();
     }
 
@@ -2457,9 +2467,99 @@ public class AdminMainViewModel : ViewModelBase
     private void AcquireLock() { if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return; RunUiAction("Получение lock", () => { var r = _api.AcquireCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); LoadLocksSummary(); }); }
     private void ReleaseLock() { if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return; RunUiAction("Снятие lock", () => { var r = _api.ReleaseCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); LoadLocksSummary(); }); }
     private void ForceUnlock() { if (string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedLock != null) { SelectedCharacterId = SelectedLock.Id; } if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return; RunUiAction("Принудительное снятие lock", () => { var r = _api.ForceReleaseCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); LoadLocksSummary(); }); }
-    private void SaveBasicInfo() { _api.UpdateCharacterBasicInfo(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "name", EditName }, { "race", EditRace }, { "height", EditHeight }, { "age", EditAge }, { "description", EditDescription }, { "backstory", EditBackstory } }); }
-    private void SaveStats() { _api.UpdateCharacterStats(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "health", Health }, { "physicalArmor", PhysicalArmor }, { "magicalArmor", MagicalArmor }, { "morale", Morale }, { "strength", Strength }, { "dexterity", Dexterity }, { "endurance", Endurance }, { "wisdom", Wisdom }, { "intellect", Intellect }, { "charisma", Charisma } }); }
-    private void SaveMoney() { _api.UpdateCharacterMoney(new Dictionary<string, object> { { "characterId", SelectedCharacterId }, { "money", new Dictionary<string, object> { { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold }, { "Platinum", Platinum }, { "Orichalcum", Orichalcum }, { "Adamant", Adamant }, { "Sovereign", Sovereign }, { "ExperienceCoins", ExperienceCoins } } } }); ClientLogService.Instance.Info("ui-action section=Персонажи action=SaveMoney"); }
+    private void SaveBasicInfo()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        RunUiAction("Сохранение основных данных персонажа", () =>
+        {
+            ClientLogService.Instance.Info("ui-action section=Персонажи action=SaveBasic");
+            var response = _api.UpdateCharacterBasicInfo(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "name", EditName },
+                { "race", EditRace },
+                { "height", EditHeight },
+                { "age", EditAge },
+                { "description", EditDescription },
+                { "backstory", EditBackstory }
+            });
+            ClientLogService.Instance.Info($"character.update.basic response={response.Status}:{response.Message}");
+            EnsureSuccess(response);
+            OpenCharacter();
+        });
+    }
+
+    private void SaveStats()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        RunUiAction("Сохранение характеристик персонажа", () =>
+        {
+            ClientLogService.Instance.Info("ui-action section=Персонажи action=SaveStats");
+            var response = _api.UpdateCharacterStats(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "health", Health },
+                { "physicalArmor", PhysicalArmor },
+                { "magicalArmor", MagicalArmor },
+                { "morale", Morale },
+                { "strength", Strength },
+                { "dexterity", Dexterity },
+                { "endurance", Endurance },
+                { "wisdom", Wisdom },
+                { "intellect", Intellect },
+                { "charisma", Charisma }
+            });
+            ClientLogService.Instance.Info($"character.update.stats response={response.Status}:{response.Message}");
+            EnsureSuccess(response);
+            OpenCharacter();
+        });
+    }
+
+    private void SaveMoney()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        RunUiAction("Сохранение денег персонажа", () =>
+        {
+            ClientLogService.Instance.Info("ui-action section=Персонажи action=SaveMoney");
+            var response = _api.UpdateCharacterMoney(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "money", new Dictionary<string, object>
+                    {
+                        { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold },
+                        { "Platinum", Platinum }, { "Orichalcum", Orichalcum }, { "Adamant", Adamant },
+                        { "Sovereign", Sovereign }, { "ExperienceCoins", ExperienceCoins }
+                    }
+                }
+            });
+            ClientLogService.Instance.Info($"character.update.money response={response.Status}:{response.Message}");
+            EnsureSuccess(response);
+            OpenCharacter();
+        });
+    }
+
+    private void SaveXpCoins()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        RunUiAction("Сохранение монет опыта", () =>
+        {
+            ClientLogService.Instance.Info("ui-action section=Персонажи action=SaveXpCoins");
+            var response = _api.UpdateCharacterMoney(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "money", new Dictionary<string, object>
+                    {
+                        { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold },
+                        { "Platinum", Platinum }, { "Orichalcum", Orichalcum }, { "Adamant", Adamant },
+                        { "Sovereign", Sovereign }, { "ExperienceCoins", ExperienceCoins }
+                    }
+                }
+            });
+            ClientLogService.Instance.Info($"character.update.xp response={response.Status}:{response.Message}");
+            EnsureSuccess(response);
+            OpenCharacter();
+        });
+    }
     private void ApproveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Подтверждение аккаунта", () => { ClientLogService.Instance.Info($"admin.account.approve.requested accountId={SelectedPendingAccountId}"); _api.ApproveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
     private void ArchiveSelected() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Архивация аккаунта", () => { _api.ArchiveAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
     private void RejectSelectedAccount() { if (!string.IsNullOrWhiteSpace(SelectedPendingAccountId)) RunUiAction("Отклонение аккаунта", () => { ClientLogService.Instance.Info($"admin.account.reject.requested accountId={SelectedPendingAccountId}"); _api.RejectAccount(SelectedPendingAccountId); RefreshPeopleSection(); }); }
