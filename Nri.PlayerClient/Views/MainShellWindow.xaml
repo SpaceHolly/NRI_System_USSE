@@ -69,7 +69,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <Grid>
-                                    <ListBox x:Name="MyCharactersList" ItemsSource="{Binding MyCharacters}">
+                                    <ListBox x:Name="MyCharactersList" ItemsSource="{Binding MyCharacters}" SelectedItem="{Binding SelectedMyCharacter, UpdateSourceTrigger=PropertyChanged}">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Style="{StaticResource CardStyle}">
@@ -98,13 +98,22 @@
                                         </ListBox.ItemTemplate>
                                     </ListBox>
 
-                                    <Border Style="{StaticResource CardStyle}"
-                                        Background="{StaticResource PanelAltBrush}"
+                                    <Border Background="{StaticResource PanelAltBrush}"
                                         Padding="18"
                                         Width="380"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         IsHitTestVisible="False">
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasMyCharacters}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
                                         <StackPanel>
                                             <TextBlock Text="Персонажи" FontWeight="Bold" FontSize="18" Margin="0,0,0,8" HorizontalAlignment="Center"/>
                                             <TextBlock Text="Список персонажей не загружен" FontWeight="SemiBold" HorizontalAlignment="Center"/>
@@ -139,6 +148,7 @@
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1" Orientation="Vertical" Margin="8,20,0,0">
                                                     <Button Content="Загрузить детали" Command="{Binding LoadCharacterDetailsCommand}"/>
+                                                    <Button Content="Сделать активным" Command="{Binding SetActiveCharacterCommand}" IsEnabled="{Binding CanSetActiveCharacter}" Margin="0,6,0,0"/>
                                                     <Button Content="Загрузить visibility" Command="{Binding VisibilityLoadCommand}"/>
                                                 </StackPanel>
                                             </Grid>
@@ -263,8 +273,12 @@
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
-                                            <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+                                            <Border Grid.Row="0" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="0,0,0,8">
+                                                <TextBlock Text="{Binding ActiveCharacterStatusText}" FontWeight="SemiBold"/>
+                                            </Border>
+                                            <Border Grid.Row="1" Style="{StaticResource CardStyle}">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="2*"/>
@@ -285,7 +299,7 @@
                                                 </Grid>
                                             </Border>
 
-                                            <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+                                            <Border Grid.Row="2" Style="{StaticResource CardStyle}">
                                                 <StackPanel>
                                                     <TextBlock Text="Характеристики" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
                                                     <Grid>
@@ -327,7 +341,7 @@
                                                 </StackPanel>
                                             </Border>
 
-                                            <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+                                            <Border Grid.Row="3" Style="{StaticResource CardStyle}">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="3*"/>
@@ -364,7 +378,7 @@
                                                 </Grid>
                                             </Border>
 
-                                            <Border Grid.Row="3" Style="{StaticResource CardStyle}">
+                                            <Border Grid.Row="4" Style="{StaticResource CardStyle}">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*"/>
@@ -381,6 +395,7 @@
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="2">
                                                         <TextBlock Text="Компаньоны (preview)" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding CharacterVisibilityDisplay}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,6"/>
                                                         <ItemsControl ItemsSource="{Binding Companions}">
                                                             <ItemsControl.ItemTemplate>
                                                                 <DataTemplate>
@@ -1055,7 +1070,7 @@
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel>
                                 <TextBlock Text="Бросок кубиков" FontWeight="Bold" FontSize="16"/>
-                                <TextBlock Text="Отдельная зона бросков. Режим: Обычный — в общую историю, Тестовый — личный тест." Margin="0,4,0,6" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                <TextBlock Text="Броски кубиков. Режим: Обычный — в общую историю, Тестовый — личный тест." Margin="0,4,0,6" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
                                 <WrapPanel>
                                     <TextBlock Text="Режим" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                     <ComboBox Width="100" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/>

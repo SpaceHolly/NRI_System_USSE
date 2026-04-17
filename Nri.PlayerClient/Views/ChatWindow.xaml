@@ -22,7 +22,7 @@
         </Border>
 
         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,8" Padding="8">
-            <ListBox ItemsSource="{Binding ChatMessageRows}">
+            <ListBox x:Name="ChatMessagesList" ItemsSource="{Binding ChatMessageRows}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,6">

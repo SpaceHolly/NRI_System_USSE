@@ -55,6 +55,7 @@ public partial class MainShellWindow : Window
         else
         {
             _chatWindow.Activate();
+            if (DataContext is PlayerMainViewModel vm) vm.NotifyChatWindowOpened();
         }
     }
 

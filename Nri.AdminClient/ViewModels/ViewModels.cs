@@ -380,6 +380,8 @@ public class AdminMainViewModel : ViewModelBase
         LoadWorkspaceLayout();
         RefreshConnectionSummary();
         ClientLogService.Instance.Info("ui.admin.dice.panel.loaded");
+        ClientLogService.Instance.Info("people.grid.template fixed=true");
+        ClientLogService.Instance.Info("dice.actor.mode=account");
         TraceDiceAvailability();
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
@@ -1648,6 +1650,7 @@ public class AdminMainViewModel : ViewModelBase
             PendingAccounts.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = S(m, "createdUtc") });
         }
         ClientLogService.Instance.Info($"ui-refresh section=Люди block=Ожидающие raw={ToList(r.Payload["items"]).Count} shown={PendingAccounts.Count}");
+        ClientLogService.Instance.Info($"people.grid.rows count={PendingAccounts.Count}");
         RestoreSelection(PendingAccounts, SelectedPendingAccountId, value => SelectedPendingAccountId = value);
         RefreshConnectionSummary();
     }
@@ -1664,6 +1667,7 @@ public class AdminMainViewModel : ViewModelBase
             Players.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = $"online={S(m, "isOnline")}; last={S(m, "lastSeenUtc")}" });
         }
         ClientLogService.Instance.Info($"ui-refresh section=Люди block=Игроки raw={ToList(r.Payload["items"]).Count} shown={Players.Count}");
+        ClientLogService.Instance.Info($"people.grid.rows count={Players.Count}");
         RestoreSelection(Players, SelectedOwnerUserId, value => SelectedOwnerUserId = value);
         RefreshConnectionSummary();
     }
@@ -1683,6 +1687,7 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(FilteredCharacters));
         var visibleCharacters = FilteredCharacters.Count();
         ClientLogService.Instance.Info($"ui-refresh section=Люди block=Персонажи loaded={Characters.Count} filtered={visibleCharacters} visible={visibleCharacters}");
+        ClientLogService.Instance.Info($"people.grid.rows count={visibleCharacters}");
         RestoreSelection(Characters, SelectedCharacterId, value => SelectedCharacterId = value);
         RefreshConnectionSummary();
     }
@@ -2442,6 +2447,8 @@ public class AdminMainViewModel : ViewModelBase
         }
         Notify(nameof(FilteredLockRows));
         ClientLogService.Instance.Info($"ui-refresh section=Люди block=Блокировки raw={items.Count} shown={LockRows.Count}");
+        ClientLogService.Instance.Info($"people.grid.rows count={LockRows.Count}");
+        ClientLogService.Instance.Info("people.grid.render ok");
         RestoreSelection(LockRows, SelectedLockId, value => SelectedLockId = value);
     }
 
@@ -2502,17 +2509,19 @@ public class AdminMainViewModel : ViewModelBase
         RunUiAction("Бросок кубов (админ)", () =>
         {
             var formula = DiceCount + "d" + DiceFaces + (DiceModifier == 0 ? string.Empty : DiceModifier > 0 ? "+" + DiceModifier : DiceModifier.ToString());
+            var actorLogin = FirstNonEmpty(LoginText, "unknown");
+            ClientLogService.Instance.Info($"dice.roll.actor login={actorLogin} userId=unknown");
             if (string.Equals(DiceModeInput, "Тестовый", StringComparison.OrdinalIgnoreCase))
             {
-                ClientLogService.Instance.Info($"dice.roll.test.send characterId={SelectedCharacterId} formula={formula}");
-                var response = _api.DiceRollTest(SelectedCharacterId, formula, DiceVisibilityInput, DiceDescriptionInput);
+                ClientLogService.Instance.Info($"dice.roll.test.send actor={actorLogin} formula={formula}");
+                var response = _api.DiceRollTest(formula, DiceVisibilityInput, DiceDescriptionInput);
                 ClientLogService.Instance.Info($"dice.roll.test.response status={response.Status} message={response.Message}");
                 EnsureSuccess(response);
             }
             else
             {
-                ClientLogService.Instance.Info($"dice.roll.standard.send characterId={SelectedCharacterId} formula={formula}");
-                var response = _api.DiceRollStandard(SelectedCharacterId, formula, DiceVisibilityInput, DiceDescriptionInput);
+                ClientLogService.Instance.Info($"dice.roll.standard.send actor={actorLogin} formula={formula}");
+                var response = _api.DiceRollStandard(formula, DiceVisibilityInput, DiceDescriptionInput);
                 ClientLogService.Instance.Info($"dice.roll.standard.response status={response.Status} message={response.Message}");
                 EnsureSuccess(response);
             }
@@ -2528,7 +2537,6 @@ public class AdminMainViewModel : ViewModelBase
     {
         if (!ArePrivilegedSectionsEnabled) return "Требуется подключение и вход администратора.";
         if (IsBusy) return "Дождитесь завершения текущей операции.";
-        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return "Выберите персонажа из списка, затем бросайте кубик.";
         if (DiceCount < 1) return "Количество кубиков должно быть не меньше 1.";
         if (DiceFaces < 2) return "Количество граней должно быть не меньше 2.";
         return string.Empty;
@@ -2544,6 +2552,7 @@ public class AdminMainViewModel : ViewModelBase
 
         _lastDiceAvailabilityReason = reason;
         var state = string.IsNullOrWhiteSpace(reason) ? "enabled" : "disabled";
+        ClientLogService.Instance.Info("dice.actor.mode=account");
         ClientLogService.Instance.Info($"ui.admin.dice.button state={state} reason={FirstNonEmpty(reason, "ready")}");
     }
 

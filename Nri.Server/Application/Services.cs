@@ -441,6 +441,22 @@ public partial class ServiceHub
         return Ok("Active character assigned.");
     }
 
+    public ResponseEnvelope CharacterSetActive(CommandContext context)
+    {
+        var actor = GetCurrentAccount(context);
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        var c = GetCharacter(characterId);
+        if (c.OwnerUserId != actor.Id || c.Deleted) throw new InvalidOperationException("Character does not belong to current user or archived.");
+
+        var p = _repositories.Presence.Find(Builders<SessionUserState>.Filter.Eq(x => x.UserId, actor.Id)).FirstOrDefault() ?? new SessionUserState { UserId = actor.Id };
+        if (string.IsNullOrWhiteSpace(p.Id)) _repositories.Presence.Insert(p);
+        p.ActiveCharacterId = characterId;
+        _repositories.Presence.Replace(p);
+        _logger.Admin($"character.set.active actor={actor.Login} userId={actor.Id} characterId={characterId} result=ok");
+        WriteAudit("character", actor.Id, "setActive", c.Id);
+        return Ok("Active character set.", CharacterDetailsPayload(c, actor, actor));
+    }
+
     public ResponseEnvelope CharacterUpdateBasicInfo(CommandContext context)
     {
         var actor = RequireAdmin(context);
