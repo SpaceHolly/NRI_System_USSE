@@ -89,6 +89,7 @@ public static class ServiceRegistry
 
         dispatcher.Register(CommandNames.CharacterCreate, new DelegateCommandHandler(hub.CharacterCreate));
         dispatcher.Register(CommandNames.CharacterAdminCreate, new DelegateCommandHandler(hub.CharacterAdminCreate));
+        dispatcher.Register(CommandNames.CharacterSetActive, new DelegateCommandHandler(hub.CharacterSetActive));
         dispatcher.Register(CommandNames.CharacterAssignOwner, new DelegateCommandHandler(hub.CharacterAssignOwner));
         dispatcher.Register(CommandNames.CharacterArchive, new DelegateCommandHandler(hub.CharacterArchive));
         dispatcher.Register(CommandNames.CharacterRestore, new DelegateCommandHandler(hub.CharacterRestore));

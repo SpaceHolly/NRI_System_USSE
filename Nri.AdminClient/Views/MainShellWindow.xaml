@@ -330,7 +330,8 @@
                     </TabItem>
 
                     <TabItem Header="Люди" Tag="Люди">
-                        <Grid Margin="8" IsEnabled="{Binding ArePrivilegedSectionsEnabled}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                        <Grid Margin="8" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" MinWidth="1180">
                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -343,28 +344,88 @@
                                 <Grid Grid.Column="0" Margin="0,0,8,0">
                                     <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                                     <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                                         <StackPanel>
                                             <DockPanel><TextBlock Text="Ожидающие аккаунты" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding RefreshPeopleSectionCommand}" IsEnabled="{Binding IsIdle}"/></DockPanel>
-                                            <DataGrid ItemsSource="{Binding PendingAccounts}" SelectedValuePath="Id" SelectedValue="{Binding SelectedPendingAccountId, UpdateSourceTrigger=PropertyChanged}" MinHeight="180">
+                                            <DataGrid ItemsSource="{Binding PendingAccounts}" SelectedValuePath="Id" SelectedValue="{Binding SelectedPendingAccountId, UpdateSourceTrigger=PropertyChanged}" MinHeight="180" MinWidth="560" HorizontalScrollBarVisibility="Auto" ColumnWidth="SizeToHeader" MinColumnWidth="120" CanUserResizeColumns="True">
+                                                <DataGrid.CellStyle>
+                                                    <Style TargetType="DataGridCell">
+                                                        <Setter Property="TextBlock.TextWrapping" Value="NoWrap"/>
+                                                    </Style>
+                                                </DataGrid.CellStyle>
                                                 <DataGrid.Columns>
-                                                    <DataGridTextColumn Header="AccountId" Binding="{Binding Id}" Width="2.1*"/>
-                                                    <DataGridTextColumn Header="Login" Binding="{Binding Name}" Width="1.4*"/>
-                                                    <DataGridTextColumn Header="Status" Binding="{Binding State}" Width="1.2*"/>
-                                                    <DataGridTextColumn Header="Created" Binding="{Binding Extra}" Width="1.5*"/>
+                                                    <DataGridTextColumn Header="AccountId" Binding="{Binding Id}" Width="220"/>
+                                                    <DataGridTextColumn Header="Login" Binding="{Binding Name}" Width="140"/>
+                                                    <DataGridTextColumn Header="Status" Binding="{Binding State}" Width="130"/>
+                                                    <DataGridTextColumn Header="Created" Binding="{Binding Extra}" Width="150"/>
                                                 </DataGrid.Columns>
                                             </DataGrid>
-                                            <WrapPanel Margin="0,8,0,0"><Button Content="Подтвердить" Command="{Binding ApproveCommand}" IsEnabled="{Binding CanManagePendingAccount}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Отклонить" Command="{Binding RejectAccountCommand}" IsEnabled="{Binding CanManagePendingAccount}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Блок" Command="{Binding BlockAccountCommand}" IsEnabled="{Binding CanManagePendingAccount}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Разблок" Command="{Binding UnblockAccountCommand}" IsEnabled="{Binding CanManagePendingAccount}"/></WrapPanel><WrapPanel Margin="0,6,0,0"><TextBox Width="180" Text="{Binding ResetPasswordText, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Сбросить пароль" Command="{Binding ResetPasswordCommand}" IsEnabled="{Binding CanManagePendingAccount}"/></WrapPanel>
+                                            <WrapPanel Margin="0,8,0,0"><Button Content="Подтвердить" Command="{Binding ApproveCommand}" IsEnabled="{Binding CanManagePendingAccount}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Отклонить" Command="{Binding RejectAccountCommand}" IsEnabled="{Binding CanManagePendingAccount}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Блок" Command="{Binding BlockAccountCommand}" IsEnabled="{Binding CanManagePendingAccount}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Разблок" Command="{Binding UnblockAccountCommand}" IsEnabled="{Binding CanManagePendingAccount}"/></WrapPanel><WrapPanel Margin="0,6,0,0"><TextBox Width="180" Text="{Binding ResetPasswordText, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Сбросить пароль" Command="{Binding ResetPasswordCommand}" IsEnabled="{Binding CanResetSelectedAccountPassword}"/></WrapPanel>
                                         </StackPanel>
+                                        </ScrollViewer>
                                     </Border>
-                                    <Border Grid.Row="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Игроки" Style="{StaticResource SectionTitleTextStyle}"/><DataGrid ItemsSource="{Binding Players}" SelectedValuePath="Id" SelectedValue="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}" MinHeight="180"><DataGrid.Columns><DataGridTextColumn Header="UserId" Binding="{Binding Id}" Width="2*"/><DataGridTextColumn Header="Login" Binding="{Binding Name}" Width="1.5*"/><DataGridTextColumn Header="Status" Binding="{Binding State}" Width="1.2*"/><DataGridTextColumn Header="Presence" Binding="{Binding Extra}" Width="1.5*"/></DataGrid.Columns></DataGrid><WrapPanel Margin="0,8,0,0"><Button Content="Загрузить персонажей" Command="{Binding OpenPlayerCharactersCommand}" IsEnabled="{Binding CanLoadPlayerCharacters}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Открыть раздел персонажей" Command="{Binding SelectSectionCommand}" CommandParameter="Персонажи" IsEnabled="{Binding CanLoadPlayerCharacters}"/></WrapPanel></StackPanel></Border>
+                                    <Border Grid.Row="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Игроки" Style="{StaticResource SectionTitleTextStyle}"/><DataGrid ItemsSource="{Binding Players}" SelectedValuePath="Id" SelectedValue="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}" MinHeight="180" HorizontalScrollBarVisibility="Auto" ColumnWidth="SizeToHeader" MinColumnWidth="130"><DataGrid.CellStyle><Style TargetType="DataGridCell"><Setter Property="TextBlock.TextWrapping" Value="NoWrap"/><Setter Property="HorizontalContentAlignment" Value="Left"/></Style></DataGrid.CellStyle><DataGrid.Columns><DataGridTextColumn Header="UserId" Binding="{Binding Id}" Width="220"/><DataGridTextColumn Header="Login" Binding="{Binding Name}" Width="160"/><DataGridTextColumn Header="Status" Binding="{Binding State}" Width="130"/><DataGridTextColumn Header="Presence" Binding="{Binding Extra}" Width="320"/></DataGrid.Columns></DataGrid><WrapPanel Margin="0,8,0,0"><Button Content="Загрузить персонажей" Command="{Binding OpenPlayerCharactersCommand}" IsEnabled="{Binding CanLoadPlayerCharacters}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Открыть раздел персонажей" Command="{Binding SelectSectionCommand}" CommandParameter="Персонажи" IsEnabled="{Binding CanLoadPlayerCharacters}"/></WrapPanel></StackPanel></Border>
                                 </Grid>
                                 <Grid Grid.Column="1">
-                                    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8"><StackPanel><DockPanel><TextBlock Text="Персонажи" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Content="Обновить" Style="{StaticResource GhostButtonStyle}" Command="{Binding LoadOwnerCharactersCommand}"/></DockPanel><TextBox Margin="0,8,0,6" Text="{Binding CharactersSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по имени, id, расе"/><DataGrid ItemsSource="{Binding FilteredCharacters}" SelectedValuePath="Id" SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" MinHeight="190"><DataGrid.Columns><DataGridTextColumn Header="CharacterId" Binding="{Binding Id}" Width="2*"/><DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="1.4*"/><DataGridTextColumn Header="Профиль" Binding="{Binding Extra}" Width="1.6*"/></DataGrid.Columns></DataGrid></StackPanel></Border>
-                                    <Border Grid.Row="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Блокировки" Style="{StaticResource SectionTitleTextStyle}"/><TextBox Margin="0,8,0,6" Text="{Binding LocksSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по владельцу, id или причине"/><DataGrid ItemsSource="{Binding FilteredLockRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedLockId, UpdateSourceTrigger=PropertyChanged}" MinHeight="190"><DataGrid.Columns><DataGridTextColumn Header="CharacterId" Binding="{Binding Id}" Width="2*"/><DataGridTextColumn Header="Владелец" Binding="{Binding Name}" Width="1.4*"/><DataGridTextColumn Header="Описание" Binding="{Binding Extra}" Width="2*"/></DataGrid.Columns></DataGrid><Button Margin="0,8,0,0" HorizontalAlignment="Left" Content="Принудительно снять блокировку" Command="{Binding ForceUnlockCommand}" IsEnabled="{Binding CanManageSelectedLock}"/></StackPanel></Border>
+                                    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <TextBlock Text="Персонажи" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                <Button DockPanel.Dock="Right" Content="Обновить" Style="{StaticResource GhostButtonStyle}" Command="{Binding LoadOwnerCharactersCommand}"/>
+                                            </DockPanel>
+                                            <TextBox Margin="0,8,0,6" Text="{Binding CharactersSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по имени, id, расе"/>
+                                            <DataGrid ItemsSource="{Binding FilteredCharacters}" SelectedValuePath="Id" SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}" MinHeight="190" HorizontalScrollBarVisibility="Auto" ColumnWidth="SizeToHeader" MinColumnWidth="130">
+                                                <DataGrid.CellStyle><Style TargetType="DataGridCell"><Setter Property="TextBlock.TextWrapping" Value="NoWrap"/><Setter Property="HorizontalContentAlignment" Value="Left"/></Style></DataGrid.CellStyle>
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="CharacterId" Binding="{Binding Id}" Width="220"/>
+                                                    <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="170"/>
+                                                    <DataGridTextColumn Header="Профиль" Binding="{Binding Extra}" Width="280"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                            <Border Style="{StaticResource SubtleCardStyle}" Margin="0,8,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="Создать персонажа для выбранного игрока" Style="{StaticResource TitleTextStyle}"/>
+                                                    <WrapPanel Margin="0,4,0,0">
+                                                        <TextBox Width="130" Text="{Binding CreateCharacterName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Имя"/>
+                                                        <TextBox Width="100" Margin="6,0,0,0" Text="{Binding CreateCharacterRace, UpdateSourceTrigger=PropertyChanged}" ToolTip="Раса"/>
+                                                        <Button Margin="6,0,0,0" Content="Создать" Command="{Binding CreateCharacterCommand}" IsEnabled="{Binding CanCreateCharacterForOwner}"/>
+                                                    </WrapPanel>
+                                                    <TextBox Margin="0,6,0,0" Height="52" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding CreateCharacterBackstory, UpdateSourceTrigger=PropertyChanged}" ToolTip="Предыстория"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="Броски кубиков" Style="{StaticResource SectionTitleTextStyle}"/>
+                                            <TextBlock Text="Режим: Обычный — попадает в общую историю; Тестовый — личный тестовый бросок." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                            <WrapPanel Margin="0,6,0,0">
+                                                <TextBlock Text="Режим" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                <ComboBox Width="110" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/>
+                                                <TextBlock Text="Формула" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                                                <TextBox Width="36" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBlock Text="d" VerticalAlignment="Center"/>
+                                                <TextBox Width="46" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBlock Text="Мод." VerticalAlignment="Center" Margin="8,0,4,0"/>
+                                                <TextBox Width="56" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </WrapPanel>
+                                            <WrapPanel Margin="0,6,0,0">
+                                                <TextBlock Text="Видимость" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                <ComboBox Width="140" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
+                                                <Button Margin="8,0,0,0" Content="Бросить" Command="{Binding RollDiceCommand}" IsEnabled="{Binding CanRollCharacterDice}"/>
+                                            </WrapPanel>
+                                            <TextBlock Text="Public — видят все, HiddenToAdmins — скрытый канал, AdminOnly — только админы." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            <TextBlock Text="{Binding DiceRollAvailabilityHint}" Foreground="#FFF5B041" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            <TextBox Margin="0,6,0,0" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание броска"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Row="2" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Блокировки" Style="{StaticResource SectionTitleTextStyle}"/><TextBox Margin="0,8,0,6" Text="{Binding LocksSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по владельцу, id или причине"/><DataGrid ItemsSource="{Binding FilteredLockRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedLockId, UpdateSourceTrigger=PropertyChanged}" MinHeight="190" HorizontalScrollBarVisibility="Auto" ColumnWidth="SizeToHeader" MinColumnWidth="130"><DataGrid.CellStyle><Style TargetType="DataGridCell"><Setter Property="TextBlock.TextWrapping" Value="NoWrap"/><Setter Property="HorizontalContentAlignment" Value="Left"/></Style></DataGrid.CellStyle><DataGrid.Columns><DataGridTextColumn Header="CharacterId" Binding="{Binding Id}" Width="220"/><DataGridTextColumn Header="Владелец" Binding="{Binding Name}" Width="170"/><DataGridTextColumn Header="Описание" Binding="{Binding Extra}" Width="340"/></DataGrid.Columns></DataGrid><Button Margin="0,8,0,0" HorizontalAlignment="Left" Content="Принудительно снять блокировку" Command="{Binding ForceUnlockCommand}" IsEnabled="{Binding CanManageSelectedLock}"/></StackPanel></Border>
                                 </Grid>
                             </Grid>
                         </Grid>
+                        </ScrollViewer>
                     </TabItem>
 
                     <TabItem Header="Персонажи" Tag="Персонажи">
