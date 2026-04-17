@@ -252,11 +252,7 @@ public class PlayerMainViewModel : ViewModelBase
     public string CharacterBackstory { get; set; } = string.Empty;
     public string CreateCharacterName { get; set; } = string.Empty;
     public string CreateCharacterRace { get; set; } = string.Empty;
-    public int CreateCharacterHealth { get; set; } = 10;
-    public int CreateCharacterStrength { get; set; } = 1;
-    public int CreateCharacterDexterity { get; set; } = 1;
-    public int CreateCharacterIntellect { get; set; } = 1;
-    public long CreateCharacterIron { get; set; } = 100;
+    public string CreateCharacterBackstory { get; set; } = string.Empty;
 
     public string CharacterNameDisplay => string.IsNullOrWhiteSpace(CharacterName) ? "Без имени" : CharacterName;
     public string CharacterRaceDisplay => string.IsNullOrWhiteSpace(CharacterRace) ? "Не указано" : CharacterRace;
@@ -446,7 +442,7 @@ public class PlayerMainViewModel : ViewModelBase
         try
         {
             EnsureConnected();
-            ClientLogService.Instance.Info("ui.password.change.opened");
+            ClientLogService.Instance.Info("auth.changePassword.requested");
             var result = _api.ChangePassword(OldPasswordText, NewPasswordText);
             if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
             ClientLogService.Instance.Info("auth.changePassword result=ok");
@@ -638,12 +634,14 @@ public class PlayerMainViewModel : ViewModelBase
             var visibility = ToServerDiceVisibility(DiceVisibilityInput);
             if (string.Equals(DiceModeInput, "Тестовый", StringComparison.OrdinalIgnoreCase))
             {
-                ClientLogService.Instance.Info($"dice.test.send characterId={SelectedCharacterId} formula={formula}");
+                ClientLogService.Instance.Info($"dice.roll.test.send characterId={SelectedCharacterId} formula={formula}");
                 _api.DiceRollTest(SelectedCharacterId, formula, visibility, DiceDescriptionInput);
+                var currentTest = _api.DiceTestGetCurrent();
+                ClientLogService.Instance.Info($"dice.test.getCurrent.status={currentTest.Status}");
             }
             else
             {
-                ClientLogService.Instance.Info($"dice.standard.send characterId={SelectedCharacterId} formula={formula}");
+                ClientLogService.Instance.Info($"dice.roll.standard.send characterId={SelectedCharacterId} formula={formula}");
                 _api.DiceRollStandard(SelectedCharacterId, formula, visibility, DiceDescriptionInput);
             }
             RefreshBottomPanel();
@@ -660,18 +658,23 @@ public class PlayerMainViewModel : ViewModelBase
             {
                 { "name", CreateCharacterName },
                 { "race", CreateCharacterRace },
-                { "health", CreateCharacterHealth },
-                { "strength", CreateCharacterStrength },
-                { "dexterity", CreateCharacterDexterity },
-                { "intellect", CreateCharacterIntellect },
-                { "Iron", CreateCharacterIron }
+                { "backstory", CreateCharacterBackstory }
             };
             ClientLogService.Instance.Info($"character.create.send name={CreateCharacterName}");
             var result = _api.CreateCharacter(payload);
+            ClientLogService.Instance.Info($"character.create.response status={result.Status} message={result.Message}");
             if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
             LoadCharacters();
+            ClientLogService.Instance.Info($"character.create.success count={MyCharacters.Count}");
         }
-        catch (Exception ex) { SetConnectionError(ex); }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Warn($"character.create.result=fail reason={ex.Message}");
+            LastErrorMessage = ex.Message;
+            LastStatusMessage = $"Создание персонажа не выполнено: {ex.Message}";
+            ClientLogService.Instance.Info("character.create.handled-error session-preserved=true");
+            RefreshConnectionSummary();
+        }
     }
 
     private void CancelRequest()
