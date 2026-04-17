@@ -85,6 +85,7 @@ public partial class MainShellWindow : Window
 
                     _panelWindows[panel.PanelId] = window;
                     ClientLogService.Instance.Info($"ui-panel action=open panel={panel.PanelId}");
+                    ClientLogService.Instance.Info($"ui-panel scroll-support panel={panel.PanelId} enabled=true");
                     window.Show();
                 }
             }
