@@ -167,7 +167,14 @@ public class PlayerMainViewModel : ViewModelBase
         _api = new CommandApi(_client);
         ClientLogService.Instance.Info("PlayerMainViewModel initialized");
 
-        ToggleAuthPopupCommand = new RelayCommand(() => IsAuthPopupOpen = !IsAuthPopupOpen);
+        ToggleAuthPopupCommand = new RelayCommand(() =>
+        {
+            IsAuthPopupOpen = !IsAuthPopupOpen;
+            if (IsAuthPopupOpen)
+            {
+                ClientLogService.Instance.Info("ui.password.change.opened");
+            }
+        });
         ToggleConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
         LoginCommand = new RelayCommand(Login);
         RegisterCommand = new RelayCommand(Register);
@@ -451,7 +458,13 @@ public class PlayerMainViewModel : ViewModelBase
             Notify(nameof(OldPasswordText));
             Notify(nameof(NewPasswordText));
         }
-        catch (Exception ex) { SetConnectionError(ex); }
+        catch (Exception ex)
+        {
+            ConnectionStatusDetail = $"Смена пароля не выполнена: {ex.Message}";
+            Notify(nameof(ConnectionStatusDetail));
+            ClientLogService.Instance.Warn($"auth.changePassword result=fail reason={ex.Message}");
+            ClientLogService.Instance.Info("auth.changePassword.handled-error session-preserved=true");
+        }
     }
 
     private void RefreshAll()
@@ -670,8 +683,8 @@ public class PlayerMainViewModel : ViewModelBase
         catch (Exception ex)
         {
             ClientLogService.Instance.Warn($"character.create.result=fail reason={ex.Message}");
-            LastErrorMessage = ex.Message;
-            LastStatusMessage = $"Создание персонажа не выполнено: {ex.Message}";
+            ConnectionStatusDetail = $"Создание персонажа не выполнено: {ex.Message}";
+            Notify(nameof(ConnectionStatusDetail));
             ClientLogService.Instance.Info("character.create.handled-error session-preserved=true");
             RefreshConnectionSummary();
         }

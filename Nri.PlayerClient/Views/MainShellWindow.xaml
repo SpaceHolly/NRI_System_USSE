@@ -1023,37 +1023,57 @@
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Column="0" Style="{StaticResource CardStyle}">
-                    <StackPanel>
-                        <TextBlock Text="Чат игрока" FontWeight="Bold" FontSize="16"/>
-                        <TextBlock Text="Чат открыт как отдельное рабочее окно с большой историей сообщений и удобным вводом." Margin="0,6,0,8" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"/>
-                        <Button Content="Открыть окно чата" Click="OpenChatWindow" Height="34"/>
-                        <TextBlock Margin="0,8,0,0" Text="{Binding ChatSummary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
-                    </StackPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="Чат игрока" FontWeight="Bold" FontSize="16"/>
+                            <TextBlock Text="Чат открыт как отдельное рабочее окно с большой историей сообщений и удобным вводом." Margin="0,6,0,8" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"/>
+                            <Button Content="Открыть окно чата" Click="OpenChatWindow" Height="34"/>
+                            <TextBlock Margin="0,8,0,0" Text="{Binding ChatSummary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Border>
 
-                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,8,0">
-                    <StackPanel>
-                        <TextBlock Text="Создание персонажа" FontWeight="Bold" FontSize="16"/>
-                        <TextBlock Text="Форма создания персонажа вынесена в отдельное окно: имя, раса и предыстория." Margin="0,6,0,8" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"/>
-                        <Button Content="Открыть форму создания" Click="OpenCharacterCreateWindow" Height="34"/>
-                        <TextBlock Margin="0,8,0,0" Text="{Binding LastStatusMessage}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
-                        <Separator Margin="0,10,0,8"/>
-                        <TextBlock Text="Бросок кубиков" FontWeight="Bold" FontSize="16"/>
-                        <TextBlock Text="Режим: Обычный — в общую историю, Тестовый — личный тест." Margin="0,4,0,6" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
-                        <WrapPanel>
-                            <ComboBox Width="100" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/>
-                            <TextBox Width="36" Margin="6,0,0,0" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBlock Text="d" VerticalAlignment="Center"/>
-                            <TextBox Width="46" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBox Width="56" Margin="6,0,0,0" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}" ToolTip="Модификатор"/>
-                        </WrapPanel>
-                        <WrapPanel Margin="0,6,0,0">
-                            <ComboBox Width="130" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
-                            <Button Margin="6,0,0,0" Content="Бросить" Command="{Binding CreateDiceRequestCommand}"/>
-                        </WrapPanel>
-                        <TextBox Margin="0,6,0,0" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание броска"/>
-                    </StackPanel>
-                </Border>
+                <Grid Grid.Column="1" Margin="8,0,8,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Style="{StaticResource CardStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Создание персонажа" FontWeight="Bold" FontSize="16"/>
+                                <TextBlock Text="Форма создания персонажа вынесена в отдельное окно: имя, раса и предыстория." Margin="0,6,0,8" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"/>
+                                <Button Content="Открыть форму создания" Click="OpenCharacterCreateWindow" Height="34"/>
+                                <TextBlock Margin="0,8,0,0" Text="{Binding ConnectionStatusDetail}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Бросок кубиков" FontWeight="Bold" FontSize="16"/>
+                                <TextBlock Text="Отдельная зона бросков. Режим: Обычный — в общую историю, Тестовый — личный тест." Margin="0,4,0,6" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                <WrapPanel>
+                                    <TextBlock Text="Режим" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                    <ComboBox Width="100" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/>
+                                    <TextBlock Text="Формула" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                                    <TextBox Width="36" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="d" VerticalAlignment="Center"/>
+                                    <TextBox Width="46" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBox Width="56" Margin="6,0,0,0" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}" ToolTip="Модификатор"/>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <TextBlock Text="Видимость" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                    <ComboBox Width="130" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
+                                    <Button Margin="6,0,0,0" Content="Бросить" Command="{Binding CreateDiceRequestCommand}"/>
+                                </WrapPanel>
+                                <TextBox Margin="0,6,0,0" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание броска"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
 
                 <Grid Grid.Column="2">
                     <Grid.RowDefinitions>
@@ -1083,27 +1103,29 @@
                     </Border>
 
                     <Border Grid.Row="2" Style="{StaticResource CardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Заметки" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Личные заметки и советы админов" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
-                            <WrapPanel>
-                                <ComboBox Width="120" ItemsSource="{Binding NoteTargetTypeOptions}" SelectedItem="{Binding NoteTargetType}"/>
-                                <TextBox Width="120" Text="{Binding NoteTargetId, UpdateSourceTrigger=PropertyChanged}"/>
-                                <ComboBox Width="130" ItemsSource="{Binding NoteVisibilityOptions}" SelectedItem="{Binding NoteVisibility}"/>
-                            </WrapPanel>
-                            <TextBox Text="{Binding NoteTitle, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBox Text="{Binding NoteText, UpdateSourceTrigger=PropertyChanged}" Height="58" AcceptsReturn="True"/>
-                            <WrapPanel>
-                                <Button Content="Обновить" Command="{Binding NotesRefreshCommand}"/>
-                                <Button Content="Создать" Command="{Binding NotesCreateCommand}"/>
-                                <TextBox Width="120" Text="{Binding SelectedNoteId, UpdateSourceTrigger=PropertyChanged}"/>
-                                <Button Content="Архивировать" Command="{Binding NotesArchiveCommand}"/>
-                            </WrapPanel>
-                            <TextBlock Text="Мои заметки" FontWeight="SemiBold" Margin="0,6,0,2"/>
-                            <ListBox ItemsSource="{Binding NoteRows}" Height="52"/>
-                            <TextBlock Text="Советы от админов" FontWeight="SemiBold" Margin="0,6,0,2"/>
-                            <ListBox ItemsSource="{Binding AdminNoteRows}" Height="52"/>
-                        </StackPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Заметки" FontWeight="Bold" Margin="0,0,0,4"/>
+                                <TextBlock Text="Личные заметки и советы админов" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
+                                <WrapPanel>
+                                    <ComboBox Width="120" ItemsSource="{Binding NoteTargetTypeOptions}" SelectedItem="{Binding NoteTargetType}"/>
+                                    <TextBox Width="120" Text="{Binding NoteTargetId, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <ComboBox Width="130" ItemsSource="{Binding NoteVisibilityOptions}" SelectedItem="{Binding NoteVisibility}"/>
+                                </WrapPanel>
+                                <TextBox Text="{Binding NoteTitle, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBox Text="{Binding NoteText, UpdateSourceTrigger=PropertyChanged}" Height="58" AcceptsReturn="True"/>
+                                <WrapPanel>
+                                    <Button Content="Обновить" Command="{Binding NotesRefreshCommand}"/>
+                                    <Button Content="Создать" Command="{Binding NotesCreateCommand}"/>
+                                    <TextBox Width="120" Text="{Binding SelectedNoteId, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <Button Content="Архивировать" Command="{Binding NotesArchiveCommand}"/>
+                                </WrapPanel>
+                                <TextBlock Text="Мои заметки" FontWeight="SemiBold" Margin="0,6,0,2"/>
+                                <ListBox ItemsSource="{Binding NoteRows}" Height="52"/>
+                                <TextBlock Text="Советы от админов" FontWeight="SemiBold" Margin="0,6,0,2"/>
+                                <ListBox ItemsSource="{Binding AdminNoteRows}" Height="52"/>
+                            </StackPanel>
+                        </ScrollViewer>
                     </Border>
                 </Grid>
             </Grid>
@@ -1139,6 +1161,7 @@
 
         <Popup IsOpen="{Binding IsAuthPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=AuthButton}" StaysOpen="False">
             <Border Style="{StaticResource CardStyle}" Width="320" Background="{StaticResource PanelAltBrush}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel>
                     <TextBlock Text="Авторизация" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
                     <TextBlock Text="Логин"/>
@@ -1149,7 +1172,15 @@
                         <Button Content="Регистрация" Command="{Binding RegisterCommand}"/>
                         <Button Content="Вход" Command="{Binding LoginCommand}"/>
                     </StackPanel>
+                    <Separator Margin="0,10,0,10"/>
+                    <TextBlock Text="Смена пароля" FontWeight="Bold"/>
+                    <TextBlock Text="Старый пароль" Margin="0,6,0,0"/>
+                    <TextBox Text="{Binding OldPasswordText, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Новый пароль" Margin="0,6,0,0"/>
+                    <TextBox Text="{Binding NewPasswordText, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button Content="Сменить пароль" Command="{Binding ChangePasswordCommand}" Margin="0,10,0,0"/>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
         </Popup>
     </Grid>

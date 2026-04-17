@@ -16,6 +16,11 @@ public partial class MainShellWindow : Window
         InitializeComponent();
         DataContext = new PlayerMainViewModel();
         Closing += OnClosing;
+        Loaded += (_, _) =>
+        {
+            ClientLogService.Instance.Info("ui.player.main.loaded scroll=true");
+            ClientLogService.Instance.Info("ui.dice.panel.opened");
+        };
     }
 
     private void OnAuthPasswordChanged(object sender, RoutedEventArgs e)

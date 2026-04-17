@@ -6,6 +6,7 @@
         Height="560"
         MinWidth="620"
         MinHeight="500">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -43,7 +44,7 @@
                 <TextBox Grid.Row="2" Grid.Column="1" Margin="0,12,0,0" Height="150" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding CreateCharacterBackstory, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <Border Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource CardStyle}" Margin="0,12,0,0" Background="{StaticResource PanelAltBrush}">
-                    <TextBlock Text="{Binding LastStatusMessage}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding ConnectionStatusDetail}" TextWrapping="Wrap"/>
                 </Border>
             </Grid>
         </Border>
@@ -55,4 +56,5 @@
             </DockPanel>
         </Border>
     </Grid>
+    </ScrollViewer>
 </Window>

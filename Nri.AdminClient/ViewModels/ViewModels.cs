@@ -379,6 +379,7 @@ public class AdminMainViewModel : ViewModelBase
         LoadConnectionSettings();
         LoadWorkspaceLayout();
         RefreshConnectionSummary();
+        ClientLogService.Instance.Info("ui.admin.dice.panel.loaded");
         TraceDiceAvailability();
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
