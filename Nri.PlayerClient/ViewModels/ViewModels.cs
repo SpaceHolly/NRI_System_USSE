@@ -155,10 +155,14 @@ public class PlayerMainViewModel : ViewModelBase
     private bool _isAuthPopupOpen;
     private bool _isConnectionPopupOpen;
     private string _selectedMainTab = "MyCharacters";
+    private string _activeCharacterId = string.Empty;
+    private string _activeCharacterStatusText = "Активный персонаж не выбран";
+    private CharacterListItemVm? _selectedMyCharacter;
     private CompanionVm? _selectedCompanion;
     private string _selectedClassDirectionKey = "defender";
     private ClassBranchVm? _selectedClassBranch;
     private ClassEntryVm? _selectedClassEntry;
+    private int _chatScrollRequestVersion;
 
     public PlayerMainViewModel()
     {
@@ -167,7 +171,14 @@ public class PlayerMainViewModel : ViewModelBase
         _api = new CommandApi(_client);
         ClientLogService.Instance.Info("PlayerMainViewModel initialized");
 
-        ToggleAuthPopupCommand = new RelayCommand(() => IsAuthPopupOpen = !IsAuthPopupOpen);
+        ToggleAuthPopupCommand = new RelayCommand(() =>
+        {
+            IsAuthPopupOpen = !IsAuthPopupOpen;
+            if (IsAuthPopupOpen)
+            {
+                ClientLogService.Instance.Info("ui.password.change.opened");
+            }
+        });
         ToggleConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
         LoginCommand = new RelayCommand(Login);
         RegisterCommand = new RelayCommand(Register);
@@ -175,6 +186,7 @@ public class PlayerMainViewModel : ViewModelBase
         RefreshCommand = new RelayCommand(RefreshAll);
 
         LoadCharacterDetailsCommand = new RelayCommand(LoadSelectedCharacterDetails);
+        SetActiveCharacterCommand = new RelayCommand(SetSelectedCharacterActive);
         CreateCharacterCommand = new RelayCommand(CreateCharacter);
         CreateDiceRequestCommand = new RelayCommand(CreateDiceRequest);
         CancelRequestCommand = new RelayCommand(CancelRequest);
@@ -225,6 +237,27 @@ public class PlayerMainViewModel : ViewModelBase
 
     public string SelectedMainTab { get => _selectedMainTab; set { _selectedMainTab = value; Notify(); } }
     public string SelectedCharacterId { get; set; } = string.Empty;
+    public string ActiveCharacterId { get => _activeCharacterId; set { _activeCharacterId = value; Notify(); Notify(nameof(HasActiveCharacter)); } }
+    public bool HasActiveCharacter => !string.IsNullOrWhiteSpace(ActiveCharacterId);
+    public string ActiveCharacterStatusText { get => _activeCharacterStatusText; set { _activeCharacterStatusText = value; Notify(); } }
+    public CharacterListItemVm? SelectedMyCharacter
+    {
+        get => _selectedMyCharacter;
+        set
+        {
+            _selectedMyCharacter = value;
+            if (value != null)
+            {
+                SelectedCharacterId = value.Id;
+                Notify(nameof(SelectedCharacterId));
+            }
+            Notify();
+            Notify(nameof(CanSetActiveCharacter));
+        }
+    }
+    public bool HasMyCharacters => MyCharacters.Count > 0;
+    public bool CanSetActiveCharacter => IsAuthenticated && SelectedMyCharacter != null;
+    public int ChatScrollRequestVersion { get => _chatScrollRequestVersion; private set { _chatScrollRequestVersion = value; Notify(); } }
     public string PublicViewCharacterId { get; set; } = string.Empty;
     public string ServerHostInput { get; set; } = "127.0.0.1";
     public string ServerPortInput { get; set; } = "4600";
@@ -252,11 +285,7 @@ public class PlayerMainViewModel : ViewModelBase
     public string CharacterBackstory { get; set; } = string.Empty;
     public string CreateCharacterName { get; set; } = string.Empty;
     public string CreateCharacterRace { get; set; } = string.Empty;
-    public int CreateCharacterHealth { get; set; } = 10;
-    public int CreateCharacterStrength { get; set; } = 1;
-    public int CreateCharacterDexterity { get; set; } = 1;
-    public int CreateCharacterIntellect { get; set; } = 1;
-    public long CreateCharacterIron { get; set; } = 100;
+    public string CreateCharacterBackstory { get; set; } = string.Empty;
 
     public string CharacterNameDisplay => string.IsNullOrWhiteSpace(CharacterName) ? "Без имени" : CharacterName;
     public string CharacterRaceDisplay => string.IsNullOrWhiteSpace(CharacterRace) ? "Не указано" : CharacterRace;
@@ -264,6 +293,7 @@ public class PlayerMainViewModel : ViewModelBase
     public string CharacterHeightDisplay => string.IsNullOrWhiteSpace(CharacterHeight) ? "0" : CharacterHeight;
     public string CharacterDescriptionDisplay => string.IsNullOrWhiteSpace(CharacterDescription) ? "Описание не загружено" : CharacterDescription;
     public string CharacterBackstoryDisplay => string.IsNullOrWhiteSpace(CharacterBackstory) ? "Предыстория не загружена" : CharacterBackstory;
+    public string CharacterVisibilityDisplay => $"Видимость: description={VisHideDescription}; backstory={VisHideBackstory}; stats={VisHideStats}; reputation={VisHideReputation}";
 
     public bool VisHideDescription { get; set; }
     public bool VisHideBackstory { get; set; }
@@ -381,6 +411,7 @@ public class PlayerMainViewModel : ViewModelBase
     public ICommand ChangePasswordCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand LoadCharacterDetailsCommand { get; }
+    public ICommand SetActiveCharacterCommand { get; }
     public ICommand CreateCharacterCommand { get; }
     public ICommand CreateDiceRequestCommand { get; }
     public ICommand CancelRequestCommand { get; }
@@ -446,7 +477,7 @@ public class PlayerMainViewModel : ViewModelBase
         try
         {
             EnsureConnected();
-            ClientLogService.Instance.Info("ui.password.change.opened");
+            ClientLogService.Instance.Info("auth.changePassword.requested");
             var result = _api.ChangePassword(OldPasswordText, NewPasswordText);
             if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
             ClientLogService.Instance.Info("auth.changePassword result=ok");
@@ -455,7 +486,13 @@ public class PlayerMainViewModel : ViewModelBase
             Notify(nameof(OldPasswordText));
             Notify(nameof(NewPasswordText));
         }
-        catch (Exception ex) { SetConnectionError(ex); }
+        catch (Exception ex)
+        {
+            ConnectionStatusDetail = $"Смена пароля не выполнена: {ex.Message}";
+            Notify(nameof(ConnectionStatusDetail));
+            ClientLogService.Instance.Warn($"auth.changePassword result=fail reason={ex.Message}");
+            ClientLogService.Instance.Info("auth.changePassword.handled-error session-preserved=true");
+        }
     }
 
     private void RefreshAll()
@@ -505,9 +542,13 @@ public class PlayerMainViewModel : ViewModelBase
                 Archived = GetString(map, "archived") == "True"
             });
         }
+        ClientLogService.Instance.Info($"character.list.mine count={MyCharacters.Count}");
+        Notify(nameof(HasMyCharacters));
 
         if (string.IsNullOrWhiteSpace(SelectedCharacterId) && MyCharacters.Count > 0)
             SelectedCharacterId = MyCharacters[0].Id;
+        SelectedMyCharacter = MyCharacters.FirstOrDefault(item => item.Id == SelectedCharacterId) ?? MyCharacters.FirstOrDefault();
+        UpdateCharacterActiveFlags();
     }
 
     private void LoadSelectedCharacterDetails()
@@ -518,11 +559,66 @@ public class PlayerMainViewModel : ViewModelBase
             ApplyCharacterPayload(details.Payload);
     }
 
+    public void NotifyChatWindowOpened()
+    {
+        RequestChatScrollToLatest(isInitial: true);
+    }
+
+    private void SetSelectedCharacterActive()
+    {
+        if (SelectedMyCharacter == null) return;
+        try
+        {
+            ClientLogService.Instance.Info($"character.set.active requested characterId={SelectedMyCharacter.Id}");
+            var result = _api.SetActiveCharacter(SelectedMyCharacter.Id);
+            if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
+            ApplyCharacterPayload(result.Payload);
+            ActiveCharacterId = SelectedMyCharacter.Id;
+            ActiveCharacterStatusText = $"Активный персонаж: {SelectedMyCharacter.Name}";
+            ClientLogService.Instance.Info($"character.set.active success characterId={SelectedMyCharacter.Id}");
+            LoadCharacters();
+            LoadActiveCharacter();
+        }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Warn($"character.set.active failed reason={ex.Message}");
+            ConnectionStatusDetail = $"Не удалось активировать персонажа: {ex.Message}";
+            Notify(nameof(ConnectionStatusDetail));
+        }
+    }
+
+    private void UpdateCharacterActiveFlags()
+    {
+        foreach (var character in MyCharacters)
+        {
+            character.IsActive = !string.IsNullOrWhiteSpace(ActiveCharacterId) && string.Equals(character.Id, ActiveCharacterId, StringComparison.Ordinal);
+        }
+        Notify(nameof(MyCharacters));
+    }
+
+    private void RequestChatScrollToLatest(bool isInitial)
+    {
+        ClientLogService.Instance.Info($"chat.autoScroll initial={isInitial.ToString().ToLowerInvariant()}");
+        ClientLogService.Instance.Info("chat.scroll target=latest");
+        ChatScrollRequestVersion++;
+    }
+
     private void LoadActiveCharacter()
     {
         var active = _api.GetActiveCharacter();
         if (active.Status == ResponseStatus.Ok && active.Payload.Count > 0)
+        {
             ApplyCharacterPayload(active.Payload);
+            ActiveCharacterId = GetString(active.Payload, "characterId");
+            ActiveCharacterStatusText = string.IsNullOrWhiteSpace(ActiveCharacterId) ? "Активный персонаж не выбран" : $"Активный персонаж: {CharacterNameDisplay}";
+            ClientLogService.Instance.Info($"character.active currentId={ActiveCharacterId}");
+            UpdateCharacterActiveFlags();
+            return;
+        }
+
+        ActiveCharacterId = string.Empty;
+        ActiveCharacterStatusText = "Активный персонаж не выбран";
+        ClientLogService.Instance.Info("character.active currentId=null");
     }
 
     private void ApplyCharacterPayload(Dictionary<string, object> payload)
@@ -633,18 +729,21 @@ public class PlayerMainViewModel : ViewModelBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(SelectedCharacterId) && MyCharacters.Count > 0) SelectedCharacterId = MyCharacters[0].Id;
             var formula = DiceCount + "d" + DiceFaces + (DiceModifier == 0 ? string.Empty : DiceModifier > 0 ? "+" + DiceModifier : DiceModifier.ToString());
             var visibility = ToServerDiceVisibility(DiceVisibilityInput);
+            ClientLogService.Instance.Info("dice.actor.mode=account");
+            ClientLogService.Instance.Info($"dice.roll.actor login={PlayerDisplayName} userId=unknown");
             if (string.Equals(DiceModeInput, "Тестовый", StringComparison.OrdinalIgnoreCase))
             {
-                ClientLogService.Instance.Info($"dice.test.send characterId={SelectedCharacterId} formula={formula}");
-                _api.DiceRollTest(SelectedCharacterId, formula, visibility, DiceDescriptionInput);
+                ClientLogService.Instance.Info($"dice.roll.test.send actor={PlayerDisplayName} formula={formula}");
+                _api.DiceRollTest(formula, visibility, DiceDescriptionInput);
+                var currentTest = _api.DiceTestGetCurrent();
+                ClientLogService.Instance.Info($"dice.test.getCurrent.status={currentTest.Status}");
             }
             else
             {
-                ClientLogService.Instance.Info($"dice.standard.send characterId={SelectedCharacterId} formula={formula}");
-                _api.DiceRollStandard(SelectedCharacterId, formula, visibility, DiceDescriptionInput);
+                ClientLogService.Instance.Info($"dice.roll.standard.send actor={PlayerDisplayName} formula={formula}");
+                _api.DiceRollStandard(formula, visibility, DiceDescriptionInput);
             }
             RefreshBottomPanel();
         }
@@ -660,18 +759,29 @@ public class PlayerMainViewModel : ViewModelBase
             {
                 { "name", CreateCharacterName },
                 { "race", CreateCharacterRace },
-                { "health", CreateCharacterHealth },
-                { "strength", CreateCharacterStrength },
-                { "dexterity", CreateCharacterDexterity },
-                { "intellect", CreateCharacterIntellect },
-                { "Iron", CreateCharacterIron }
+                { "backstory", CreateCharacterBackstory }
             };
             ClientLogService.Instance.Info($"character.create.send name={CreateCharacterName}");
             var result = _api.CreateCharacter(payload);
+            ClientLogService.Instance.Info($"character.create.response status={result.Status} message={result.Message}");
             if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
             LoadCharacters();
+            if (MyCharacters.Count > 0 && string.IsNullOrWhiteSpace(ActiveCharacterId))
+            {
+                SelectedMyCharacter = MyCharacters.OrderByDescending(x => x.Id).FirstOrDefault() ?? MyCharacters[0];
+                SetSelectedCharacterActive();
+            }
+            LoadActiveCharacter();
+            ClientLogService.Instance.Info($"character.create.success count={MyCharacters.Count}");
         }
-        catch (Exception ex) { SetConnectionError(ex); }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Warn($"character.create.result=fail reason={ex.Message}");
+            ConnectionStatusDetail = $"Создание персонажа не выполнено: {ex.Message}";
+            Notify(nameof(ConnectionStatusDetail));
+            ClientLogService.Instance.Info("character.create.handled-error session-preserved=true");
+            RefreshConnectionSummary();
+        }
     }
 
     private void CancelRequest()
@@ -710,6 +820,7 @@ public class PlayerMainViewModel : ViewModelBase
         Notify(nameof(ChatTextInput));
         RefreshChat();
         BuildGameFeed();
+        RequestChatScrollToLatest(isInitial: false);
     }
 
     private void RefreshChat()
@@ -743,35 +854,58 @@ public class PlayerMainViewModel : ViewModelBase
 
         BuildGameFeed();
         TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} chatMessageRows={ChatMessageRows.Count} uiCollection=GameFeedRows uiCount={GameFeedRows.Count}");
+        RequestChatScrollToLatest(isInitial: false);
     }
 
     private void RefreshDiceAndRequests()
     {
+        ClientLogService.Instance.Info("dice.feed.refresh requested");
         DiceFeedRows.Clear();
         var feed = _api.DiceVisibleFeed();
-        foreach (var item in ToObjectList(feed.Payload.ContainsKey("items") ? feed.Payload["items"] : new ArrayList()))
+        var feedItems = ToObjectList(feed.Payload.ContainsKey("items") ? feed.Payload["items"] : new ArrayList());
+        ClientLogService.Instance.Info($"dice.feed.refresh itemsRaw={feedItems.Count}");
+        var mappedDice = 0;
+        foreach (var item in feedItems)
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item, CommandNames.DiceVisibleFeed);
+            if (map == null) continue;
+            mappedDice++;
             var total = string.Empty;
             if (map.ContainsKey("result") && map["result"] is Dictionary<string, object> result) total = GetString(result, "total");
             DiceFeedRows.Add($"{GetString(map, "creatorUserId")} | {GetString(map, "formula")} => {total}");
         }
+        ClientLogService.Instance.Info($"dice.feed.refresh itemsMapped={mappedDice}");
 
         RequestRows.Clear();
         var req = _api.ListMyRequests();
         foreach (var item in ToObjectList(req.Payload.ContainsKey("items") ? req.Payload["items"] : new ArrayList()))
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item, CommandNames.RequestListMine);
+            if (map == null) continue;
             RequestRows.Add($"{GetString(map, "requestId")} | {GetString(map, "status")} | {GetString(map, "formula")}");
         }
 
         var currentTest = _api.DiceTestGetCurrent();
-        if (currentTest.Status == ResponseStatus.Ok && currentTest.Payload.TryGetValue("item", out var testItem) && testItem is Dictionary<string, object> testMap && testMap.Count > 0)
+        if (currentTest.Status == ResponseStatus.Ok && currentTest.Payload.TryGetValue("item", out var testItem))
         {
+            var testMap = AsMap(testItem, CommandNames.DiceTestGetCurrent);
+            if (testMap == null || testMap.Count == 0)
+            {
+                ClientLogService.Instance.Info($"dice.feed.render visibleRows={DiceFeedRows.Count}");
+                ClientLogService.Instance.Info($"dice.view.counts feed={DiceFeedRows.Count} requests={RequestRows.Count}");
+                EnsureCollectionPlaceholder(DiceFeedRows, "Нет видимых бросков");
+                EnsureCollectionPlaceholder(RequestRows, "Нет активных заявок");
+                return;
+            }
             var total = string.Empty;
-            if (testMap.TryGetValue("result", out var rawResult) && rawResult is Dictionary<string, object> resultMap) total = GetString(resultMap, "total");
+            if (testMap.TryGetValue("result", out var rawResult))
+            {
+                var resultMap = AsMap(rawResult, CommandNames.DiceTestGetCurrent);
+                if (resultMap != null) total = GetString(resultMap, "total");
+            }
             DiceFeedRows.Insert(0, $"[ТЕСТ] {GetString(testMap, "creatorUserId")} | {GetString(testMap, "formula")} => {total}");
         }
+        ClientLogService.Instance.Info($"dice.feed.render visibleRows={DiceFeedRows.Count}");
         ClientLogService.Instance.Info($"dice.view.counts feed={DiceFeedRows.Count} requests={RequestRows.Count}");
 
         EnsureCollectionPlaceholder(DiceFeedRows, "Нет видимых бросков");
@@ -960,6 +1094,7 @@ public class PlayerMainViewModel : ViewModelBase
     {
         ConnectionState = "Онлайн";
         ConnectionStatusDetail = $"Подключено к {ServerHostInput}:{ServerPortInput}";
+        ClientLogService.Instance.Info("ui.player.dice.button state=enabled reason=ready");
         RefreshConnectionSummary();
         Notify(nameof(ConnectionStatusDetail));
     }
@@ -969,6 +1104,7 @@ public class PlayerMainViewModel : ViewModelBase
         _client.Disconnect();
         ConnectionState = "Оффлайн";
         ConnectionStatusDetail = message;
+        ClientLogService.Instance.Info("ui.player.dice.button state=disabled reason=Требуется вход");
         RefreshConnectionSummary();
         Notify(nameof(ConnectionStatusDetail));
     }
@@ -1631,6 +1767,9 @@ public class PlayerMainViewModel : ViewModelBase
         Notify(nameof(CharacterHeightDisplay));
         Notify(nameof(CharacterDescriptionDisplay));
         Notify(nameof(CharacterBackstoryDisplay));
+        Notify(nameof(CharacterVisibilityDisplay));
+        Notify(nameof(ActiveCharacterStatusText));
+        Notify(nameof(HasActiveCharacter));
     }
 
     private ChatMessageRowVm? BuildChatMessageRow(Dictionary<string, object> map)

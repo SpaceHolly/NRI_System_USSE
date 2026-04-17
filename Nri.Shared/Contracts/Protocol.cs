@@ -76,6 +76,7 @@ public static class CommandNames
 
     public const string CharacterCreate = "character.create";
     public const string CharacterAdminCreate = "character.admin.create";
+    public const string CharacterSetActive = "character.set.active";
     public const string CharacterAssignOwner = "character.assignOwner";
     public const string CharacterArchive = "character.archive";
     public const string CharacterRestore = "character.restore";
