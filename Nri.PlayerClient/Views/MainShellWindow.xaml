@@ -1034,9 +1034,24 @@
                 <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,8,0">
                     <StackPanel>
                         <TextBlock Text="Создание персонажа" FontWeight="Bold" FontSize="16"/>
-                        <TextBlock Text="Форма создания персонажа вынесена в отдельное окно: имя, раса, стартовые характеристики и ресурсы." Margin="0,6,0,8" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBlock Text="Форма создания персонажа вынесена в отдельное окно: имя, раса и предыстория." Margin="0,6,0,8" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"/>
                         <Button Content="Открыть форму создания" Click="OpenCharacterCreateWindow" Height="34"/>
                         <TextBlock Margin="0,8,0,0" Text="{Binding LastStatusMessage}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                        <Separator Margin="0,10,0,8"/>
+                        <TextBlock Text="Бросок кубиков" FontWeight="Bold" FontSize="16"/>
+                        <TextBlock Text="Режим: Обычный — в общую историю, Тестовый — личный тест." Margin="0,4,0,6" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                        <WrapPanel>
+                            <ComboBox Width="100" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/>
+                            <TextBox Width="36" Margin="6,0,0,0" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="d" VerticalAlignment="Center"/>
+                            <TextBox Width="46" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Width="56" Margin="6,0,0,0" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}" ToolTip="Модификатор"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <ComboBox Width="130" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
+                            <Button Margin="6,0,0,0" Content="Бросить" Command="{Binding CreateDiceRequestCommand}"/>
+                        </WrapPanel>
+                        <TextBox Margin="0,6,0,0" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание броска"/>
                     </StackPanel>
                 </Border>
 

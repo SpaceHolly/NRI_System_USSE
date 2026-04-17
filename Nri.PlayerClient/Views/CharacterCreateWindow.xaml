@@ -26,7 +26,6 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
@@ -40,21 +39,10 @@
                 <TextBlock Grid.Row="1" Text="Раса" VerticalAlignment="Center" Margin="0,8,0,0"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Text="{Binding CreateCharacterRace, UpdateSourceTrigger=PropertyChanged}"/>
 
-                <TextBlock Grid.Row="2" Text="Стартовые характеристики" VerticalAlignment="Center" Margin="0,12,0,0"/>
-                <UniformGrid Grid.Row="2" Grid.Column="1" Margin="0,12,0,0" Columns="4">
-                    <StackPanel Margin="0,0,8,0"><TextBlock Text="HP" Foreground="{StaticResource MutedBrush}"/><TextBox Text="{Binding CreateCharacterHealth, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
-                    <StackPanel Margin="0,0,8,0"><TextBlock Text="STR" Foreground="{StaticResource MutedBrush}"/><TextBox Text="{Binding CreateCharacterStrength, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
-                    <StackPanel Margin="0,0,8,0"><TextBlock Text="DEX" Foreground="{StaticResource MutedBrush}"/><TextBox Text="{Binding CreateCharacterDexterity, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
-                    <StackPanel><TextBlock Text="INT" Foreground="{StaticResource MutedBrush}"/><TextBox Text="{Binding CreateCharacterIntellect, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
-                </UniformGrid>
+                <TextBlock Grid.Row="2" Text="Предыстория" VerticalAlignment="Top" Margin="0,12,0,0"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Margin="0,12,0,0" Height="150" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding CreateCharacterBackstory, UpdateSourceTrigger=PropertyChanged}"/>
 
-                <TextBlock Grid.Row="3" Text="Стартовые ресурсы" VerticalAlignment="Center" Margin="0,12,0,0"/>
-                <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,12,0,0">
-                    <TextBlock Text="Железные монеты" Foreground="{StaticResource MutedBrush}"/>
-                    <TextBox Width="180" Text="{Binding CreateCharacterIron, UpdateSourceTrigger=PropertyChanged}"/>
-                </StackPanel>
-
-                <Border Grid.Row="4" Grid.ColumnSpan="2" Style="{StaticResource CardStyle}" Margin="0,12,0,0" Background="{StaticResource PanelAltBrush}">
+                <Border Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource CardStyle}" Margin="0,12,0,0" Background="{StaticResource PanelAltBrush}">
                     <TextBlock Text="{Binding LastStatusMessage}" TextWrapping="Wrap"/>
                 </Border>
             </Grid>

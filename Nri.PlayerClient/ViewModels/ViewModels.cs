@@ -252,11 +252,7 @@ public class PlayerMainViewModel : ViewModelBase
     public string CharacterBackstory { get; set; } = string.Empty;
     public string CreateCharacterName { get; set; } = string.Empty;
     public string CreateCharacterRace { get; set; } = string.Empty;
-    public int CreateCharacterHealth { get; set; } = 10;
-    public int CreateCharacterStrength { get; set; } = 1;
-    public int CreateCharacterDexterity { get; set; } = 1;
-    public int CreateCharacterIntellect { get; set; } = 1;
-    public long CreateCharacterIron { get; set; } = 100;
+    public string CreateCharacterBackstory { get; set; } = string.Empty;
 
     public string CharacterNameDisplay => string.IsNullOrWhiteSpace(CharacterName) ? "Без имени" : CharacterName;
     public string CharacterRaceDisplay => string.IsNullOrWhiteSpace(CharacterRace) ? "Не указано" : CharacterRace;
@@ -662,14 +658,11 @@ public class PlayerMainViewModel : ViewModelBase
             {
                 { "name", CreateCharacterName },
                 { "race", CreateCharacterRace },
-                { "health", CreateCharacterHealth },
-                { "strength", CreateCharacterStrength },
-                { "dexterity", CreateCharacterDexterity },
-                { "intellect", CreateCharacterIntellect },
-                { "Iron", CreateCharacterIron }
+                { "backstory", CreateCharacterBackstory }
             };
             ClientLogService.Instance.Info($"character.create.send name={CreateCharacterName}");
             var result = _api.CreateCharacter(payload);
+            ClientLogService.Instance.Info($"character.create.response status={result.Status} message={result.Message}");
             if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
             LoadCharacters();
             ClientLogService.Instance.Info($"character.create.success count={MyCharacters.Count}");
@@ -677,7 +670,10 @@ public class PlayerMainViewModel : ViewModelBase
         catch (Exception ex)
         {
             ClientLogService.Instance.Warn($"character.create.result=fail reason={ex.Message}");
-            SetConnectionError(ex);
+            LastErrorMessage = ex.Message;
+            LastStatusMessage = $"Создание персонажа не выполнено: {ex.Message}";
+            ClientLogService.Instance.Info("character.create.handled-error session-preserved=true");
+            RefreshConnectionSummary();
         }
     }
 

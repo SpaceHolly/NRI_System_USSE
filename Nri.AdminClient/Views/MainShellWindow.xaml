@@ -380,13 +380,7 @@
                                                 <TextBox Width="100" Margin="6,0,0,0" Text="{Binding CreateCharacterRace, UpdateSourceTrigger=PropertyChanged}" ToolTip="Раса"/>
                                                 <Button Margin="6,0,0,0" Content="Создать" Command="{Binding CreateCharacterCommand}" IsEnabled="{Binding CanCreateCharacterForOwner}"/>
                                             </WrapPanel>
-                                            <WrapPanel Margin="0,6,0,0">
-                                                <TextBox Width="52" Text="{Binding CreateCharacterHealth, UpdateSourceTrigger=PropertyChanged}" ToolTip="HP"/>
-                                                <TextBox Width="52" Margin="6,0,0,0" Text="{Binding CreateCharacterStrength, UpdateSourceTrigger=PropertyChanged}" ToolTip="STR"/>
-                                                <TextBox Width="52" Margin="6,0,0,0" Text="{Binding CreateCharacterDexterity, UpdateSourceTrigger=PropertyChanged}" ToolTip="DEX"/>
-                                                <TextBox Width="52" Margin="6,0,0,0" Text="{Binding CreateCharacterIntellect, UpdateSourceTrigger=PropertyChanged}" ToolTip="INT"/>
-                                                <TextBox Width="80" Margin="6,0,0,0" Text="{Binding CreateCharacterIron, UpdateSourceTrigger=PropertyChanged}" ToolTip="Iron"/>
-                                            </WrapPanel>
+                                            <TextBox Margin="0,6,0,0" Height="52" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding CreateCharacterBackstory, UpdateSourceTrigger=PropertyChanged}" ToolTip="Предыстория"/>
 
                                             <TextBlock Text="Бросок кубов по выбранному персонажу" Margin="0,10,0,4" Style="{StaticResource TitleTextStyle}"/>
                                             <TextBlock Text="Режим: Обычный — попадает в общую историю; Тестовый — личный тестовый бросок." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>

@@ -392,11 +392,7 @@ public class AdminMainViewModel : ViewModelBase
     public string ResetPasswordText { get; set; } = "TempPass123";
     public string CreateCharacterName { get; set; } = string.Empty;
     public string CreateCharacterRace { get; set; } = string.Empty;
-    public int CreateCharacterHealth { get; set; } = 10;
-    public int CreateCharacterStrength { get; set; } = 1;
-    public int CreateCharacterDexterity { get; set; } = 1;
-    public int CreateCharacterIntellect { get; set; } = 1;
-    public long CreateCharacterIron { get; set; } = 100;
+    public string CreateCharacterBackstory { get; set; } = string.Empty;
     public int DiceCount { get => _diceCount; set { if (_diceCount != value) { _diceCount = value; Notify(); Notify(nameof(CanRollCharacterDice)); Notify(nameof(DiceRollAvailabilityHint)); TraceDiceAvailability(); } } }
     public int DiceFaces { get => _diceFaces; set { if (_diceFaces != value) { _diceFaces = value; Notify(); Notify(nameof(CanRollCharacterDice)); Notify(nameof(DiceRollAvailabilityHint)); TraceDiceAvailability(); } } }
     public int DiceModifier { get => _diceModifier; set { if (_diceModifier != value) { _diceModifier = value; Notify(); } } }
@@ -558,6 +554,11 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(CanLoadPlayerCharacters));
                 Notify(nameof(CanCreateCharacterForOwner));
                 Notify(nameof(CanResetSelectedAccountPassword));
+                ClientLogService.Instance.Info($"ui.people.owner.selected ownerUserId={_selectedOwnerUserId}");
+                if (!string.IsNullOrWhiteSpace(_selectedOwnerUserId) && ArePrivilegedSectionsEnabled)
+                {
+                    LoadOwnerCharacters();
+                }
             }
         }
     }
@@ -582,6 +583,7 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(CanRollCharacterDice));
                 Notify(nameof(DiceRollAvailabilityHint));
                 TraceDiceAvailability();
+                ClientLogService.Instance.Info($"ui.people.character.selected characterId={_selectedCharacterId}");
             }
         }
     }
@@ -2477,14 +2479,11 @@ public class AdminMainViewModel : ViewModelBase
                 { "ownerUserId", SelectedOwnerUserId },
                 { "name", CreateCharacterName },
                 { "race", CreateCharacterRace },
-                { "health", CreateCharacterHealth },
-                { "strength", CreateCharacterStrength },
-                { "dexterity", CreateCharacterDexterity },
-                { "intellect", CreateCharacterIntellect },
-                { "Iron", CreateCharacterIron }
+                { "backstory", CreateCharacterBackstory }
             };
             ClientLogService.Instance.Info($"character.admin.create.send ownerUserId={SelectedOwnerUserId} name={CreateCharacterName}");
             var response = _api.CreateCharacter(payload);
+            ClientLogService.Instance.Info($"character.admin.create.response status={response.Status} message={response.Message}");
             EnsureSuccess(response);
             LoadOwnerCharacters();
             ClientLogService.Instance.Info($"character.admin.create.success ownerUserId={SelectedOwnerUserId} listCount={Characters.Count}");
