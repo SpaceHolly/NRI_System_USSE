@@ -25,12 +25,16 @@ public partial class MainShellWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        ClientLogService.Instance.Info("ui.admin.root-scroll.initialized");
         foreach (var panel in ViewModel.WorkspacePanels)
         {
             panel.PropertyChanged += OnPanelPropertyChanged;
         }
 
         SynchronizeDetachedWindows();
+        ClientLogService.Instance.Info("ui.admin.layout.people-table.fixed");
+        ClientLogService.Instance.Info("ui.admin.layout.dice-panel.separate=true");
+        ClientLogService.Instance.Info("ui.admin.sections.reachable=true");
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)

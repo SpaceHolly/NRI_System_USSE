@@ -14,7 +14,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="230"/>
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="10">
@@ -56,7 +55,9 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,8">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,8,0,0">
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
             <Grid>
                 <TabControl>
                     <TabItem Header="Мои персонажи">
@@ -1014,7 +1015,7 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
+        <Border Style="{StaticResource CardStyle}" Padding="8">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2*"/>
@@ -1130,6 +1131,8 @@
                 </Grid>
             </Grid>
         </Border>
+        </StackPanel>
+        </ScrollViewer>
 
         <Popup IsOpen="{Binding IsConnectionPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=ConnectionButton}" StaysOpen="False">
             <Border Style="{StaticResource CardStyle}" Width="360" Background="{StaticResource PanelAltBrush}">

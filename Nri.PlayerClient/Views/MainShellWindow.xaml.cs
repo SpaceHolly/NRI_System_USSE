@@ -18,7 +18,10 @@ public partial class MainShellWindow : Window
         Closing += OnClosing;
         Loaded += (_, _) =>
         {
+            ClientLogService.Instance.Info("ui.player.root-scroll.initialized");
             ClientLogService.Instance.Info("ui.player.main.loaded scroll=true");
+            ClientLogService.Instance.Info("ui.player.sections.visible chat/create/dice/notes/session");
+            ClientLogService.Instance.Info("ui.player.main-content.reachable=true");
             ClientLogService.Instance.Info("ui.dice.panel.opened");
         };
     }
