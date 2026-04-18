@@ -2165,9 +2165,11 @@ public partial class ServiceHub
 
     private bool CanViewDice(UserAccount actor, DiceRollRequest request)
     {
-        if (actor.Roles.Contains(UserRole.Admin) || actor.Roles.Contains(UserRole.SuperAdmin)) return true;
+        var isAdmin = actor.Roles.Contains(UserRole.Admin) || actor.Roles.Contains(UserRole.SuperAdmin);
+        if (request.CreatorUserId == actor.Id) return true;
         if (request.Visibility == RequestVisibility.Public) return true;
-        if (request.Visibility == RequestVisibility.PlayerShadow) return request.CreatorUserId == actor.Id;
+        if (request.Visibility == RequestVisibility.HiddenToAdmins || request.Visibility == RequestVisibility.PlayerShadow) return !isAdmin;
+        if (request.Visibility == RequestVisibility.AdminOnly || request.Visibility == RequestVisibility.AdminOnlyShadow) return isAdmin;
         return false;
     }
 
@@ -2196,11 +2198,13 @@ public partial class ServiceHub
 
     private Dictionary<string, object> DiceRequestPayload(DiceRollRequest request, UserAccount viewer)
     {
+        var creatorLogin = GetAccountLogin(request.CreatorUserId);
         var basePayload = new Dictionary<string, object>
         {
             { "requestId", request.Id },
             { "requestType", request.RequestType },
             { "creatorUserId", request.CreatorUserId },
+            { "creatorLogin", creatorLogin },
             { "characterId", request.CharacterId ?? string.Empty },
             { "status", request.Status.ToString() },
             { "description", request.Description },
@@ -2229,6 +2233,12 @@ public partial class ServiceHub
         }
 
         return basePayload;
+    }
+
+    private string GetAccountLogin(string accountId)
+    {
+        var account = _repositories.Accounts.GetById(accountId);
+        return string.IsNullOrWhiteSpace(account?.Login) ? accountId : account.Login!;
     }
 
     private UserAccount RequireAdmin(CommandContext context)

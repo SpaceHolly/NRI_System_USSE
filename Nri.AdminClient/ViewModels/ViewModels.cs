@@ -1554,6 +1554,27 @@ public class AdminMainViewModel : ViewModelBase
             var r = _api.Login(LoginText, PasswordText);
             if (r.Status == ResponseStatus.Ok)
             {
+                var roleItems = ToList(r.Payload.ContainsKey("roles") ? r.Payload["roles"] : Array.Empty<object>());
+                var isAdmin = roleItems
+                    .Select(item => Convert.ToString(item) ?? string.Empty)
+                    .Any(role => string.Equals(role, UserRole.Admin.ToString(), StringComparison.OrdinalIgnoreCase)
+                                 || string.Equals(role, UserRole.SuperAdmin.ToString(), StringComparison.OrdinalIgnoreCase));
+                if (!isAdmin)
+                {
+                    _poller.Stop();
+                    IsAuthenticated = false;
+                    IsConnectedToServer = false;
+                    IsOnline = false;
+                    ConnectionState = "Оффлайн";
+                    ConnectionStatusDetail = "Этот аккаунт не имеет прав администратора";
+                    LastStatusMessage = ConnectionStatusDetail;
+                    LastErrorMessage = string.Empty;
+                    _client.Disconnect();
+                    RefreshConnectionSummary();
+                    ClientLogService.Instance.Warn("auth.login.denied client-gate reason=insufficient-admin-role");
+                    return;
+                }
+
                 IsAuthenticated = true;
                 SetConnectedState($"Авторизация успешна: {CurrentEndpoint}");
                 _poller.Start();
@@ -1606,25 +1627,25 @@ public class AdminMainViewModel : ViewModelBase
 
         try
         {
-            ClientLogService.Instance.Info("ui-refresh section=Люди step=LoadPending");
+            ClientLogService.Instance.Debug("ui-refresh section=Люди step=LoadPending");
             LoadPending();
-            ClientLogService.Instance.Info("ui-refresh section=Люди step=LoadPlayers");
+            ClientLogService.Instance.Debug("ui-refresh section=Люди step=LoadPlayers");
             LoadPlayers();
-            ClientLogService.Instance.Info("ui-refresh section=Модерация step=LoadPendingRequests");
+            ClientLogService.Instance.Debug("ui-refresh section=Модерация step=LoadPendingRequests");
             LoadPendingRequests();
             LoadRequestHistory();
-            ClientLogService.Instance.Info("ui-refresh section=Сессия step=CombatRefresh");
+            ClientLogService.Instance.Debug("ui-refresh section=Сессия step=CombatRefresh");
             CombatRefresh();
-            ClientLogService.Instance.Info("ui-refresh section=Контент step=RefreshDefinitionClasses");
+            ClientLogService.Instance.Debug("ui-refresh section=Контент step=RefreshDefinitionClasses");
             RefreshDefinitionClasses();
             RefreshDefinitionSkills();
             if (!string.IsNullOrWhiteSpace(SelectedCharacterId))
             {
-                ClientLogService.Instance.Info("ui-refresh section=Персонажи step=LoadClassTree+LoadSkills");
+                ClientLogService.Instance.Debug("ui-refresh section=Персонажи step=LoadClassTree+LoadSkills");
                 LoadClassTree();
                 LoadSkills();
             }
-            ClientLogService.Instance.Info("ui-refresh section=Сессия step=ChatRefresh");
+            ClientLogService.Instance.Debug("ui-refresh section=Сессия step=ChatRefresh");
             ChatRefresh();
             AudioRefresh();
             NotesRefresh();
@@ -1651,7 +1672,7 @@ public class AdminMainViewModel : ViewModelBase
             if (m == null) continue;
             PendingAccounts.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = S(m, "createdUtc") });
         }
-        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Ожидающие raw={ToList(r.Payload["items"]).Count} shown={PendingAccounts.Count}");
+        ClientLogService.Instance.Debug($"ui-refresh section=Люди block=Ожидающие raw={ToList(r.Payload["items"]).Count} shown={PendingAccounts.Count}");
         ClientLogService.Instance.Info($"people.grid.rows count={PendingAccounts.Count}");
         RestoreSelection(PendingAccounts, SelectedPendingAccountId, value => SelectedPendingAccountId = value);
         RefreshConnectionSummary();
@@ -1668,7 +1689,7 @@ public class AdminMainViewModel : ViewModelBase
             if (m == null) continue;
             Players.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = $"online={S(m, "isOnline")}; last={S(m, "lastSeenUtc")}" });
         }
-        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Игроки raw={ToList(r.Payload["items"]).Count} shown={Players.Count}");
+        ClientLogService.Instance.Debug($"ui-refresh section=Люди block=Игроки raw={ToList(r.Payload["items"]).Count} shown={Players.Count}");
         ClientLogService.Instance.Info($"people.grid.rows count={Players.Count}");
         RestoreSelection(Players, SelectedOwnerUserId, value => SelectedOwnerUserId = value);
         RefreshConnectionSummary();
@@ -1688,7 +1709,7 @@ public class AdminMainViewModel : ViewModelBase
         }
         Notify(nameof(FilteredCharacters));
         var visibleCharacters = FilteredCharacters.Count();
-        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Персонажи loaded={Characters.Count} filtered={visibleCharacters} visible={visibleCharacters}");
+        ClientLogService.Instance.Debug($"ui-refresh section=Люди block=Персонажи loaded={Characters.Count} filtered={visibleCharacters} visible={visibleCharacters}");
         ClientLogService.Instance.Info($"people.grid.rows count={visibleCharacters}");
         RestoreSelection(Characters, SelectedCharacterId, value => SelectedCharacterId = value);
         RefreshConnectionSummary();
@@ -1732,7 +1753,7 @@ public class AdminMainViewModel : ViewModelBase
             long.TryParse(S(money, "Adamant"), out l); Adamant = l;
             long.TryParse(S(money, "Sovereign"), out l); Sovereign = l;
             long.TryParse(S(money, "ExperienceCoins"), out l); ExperienceCoins = l;
-            ClientLogService.Instance.Info($"ui-refresh section=Персонажи block=Финансы loadedCurrencies={money.Count}");
+            ClientLogService.Instance.Debug($"ui-refresh section=Персонажи block=Финансы loadedCurrencies={money.Count}");
         }
 
         InventoryRows.Clear();
@@ -1768,7 +1789,7 @@ public class AdminMainViewModel : ViewModelBase
             if (obj is not Dictionary<string, object> m) continue;
             PendingRequests.Add(new RowVm { Id = S(m, "requestId"), Name = S(m, "requestType"), State = S(m, "status"), Extra = S(m, "formula") });
         }
-        ClientLogService.Instance.Info($"ui-refresh section=Модерация block=Заявки raw={ToList(r.Payload["items"]).Count} shown={PendingRequests.Count}");
+        ClientLogService.Instance.Debug($"ui-refresh section=Модерация block=Заявки raw={ToList(r.Payload["items"]).Count} shown={PendingRequests.Count}");
         RestoreSelection(PendingRequests, SelectedPendingRequestId, value => SelectedPendingRequestId = value);
         RefreshConnectionSummary();
     }
@@ -1797,9 +1818,14 @@ public class AdminMainViewModel : ViewModelBase
                 var m = AsMap(obj);
                 if (m == null) continue;
                 mappedItems++;
-                var total = string.Empty;
-                if (m.ContainsKey("result") && m["result"] is Dictionary<string, object> result) total = S(result, "total");
-                DiceFeedRows.Add($"{S(m, "creatorUserId")} | {S(m, "formula")} | {total} | {S(m, "visibility")}");
+                var total = "?";
+                if (m.ContainsKey("result"))
+                {
+                    var result = AsMap(m["result"]);
+                    if (result != null) total = FirstNonEmpty(S(result, "total"), "?");
+                }
+                var creator = FirstNonEmpty(S(m, "creatorLogin"), S(m, "creatorUserId"));
+                DiceFeedRows.Add($"{creator} | {S(m, "formula")} = {total} | {S(m, "visibility")}");
             }
             ClientLogService.Instance.Info($"dice.feed.refresh itemsMapped={mappedItems}");
         }
@@ -1902,7 +1928,7 @@ public class AdminMainViewModel : ViewModelBase
                 Extra = $"branch={S(map, "branchCode")} • direction={S(map, "directionCode")} • active={S(map, "isActive")}"
             });
         }
-        ClientLogService.Instance.Info($"ui-refresh section=Контент block=Классы loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}");
+        ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Классы loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}");
         RestoreSelection(ClassDefinitionRows, SelectedClassDefinitionCode, value => SelectedClassDefinitionCode = value);
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedClassDefinition));
@@ -1973,7 +1999,7 @@ public class AdminMainViewModel : ViewModelBase
                 Extra = $"maxLevel={S(map, "maxLevel")} • category={S(map, "skillCategory")} • active={S(map, "isActive")}"
             });
         }
-        ClientLogService.Instance.Info($"ui-refresh section=Контент block=Навыки loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}");
+        ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Навыки loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}");
         RestoreSelection(SkillDefinitionRows, SelectedSkillDefinitionCode, value => SelectedSkillDefinitionCode = value);
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedSkillDefinition));
@@ -2280,7 +2306,7 @@ public class AdminMainViewModel : ViewModelBase
             TraceChatDiagnostic($"response-error command={CommandNames.ChatVisibleFeed} message={feed.Message}");
         }
         TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} uiCollection=ChatMessageRows uiCount={ChatMessageRows.Count}");
-        ClientLogService.Instance.Info($"ui-refresh section=Сессия block=Чат loaded={ChatRows.Count} visible={ChatMessageRows.Count}");
+        ClientLogService.Instance.Debug($"ui-refresh section=Сессия block=Чат loaded={ChatRows.Count} visible={ChatMessageRows.Count}");
 
         var unread = _api.ChatUnreadGet(sessionId);
         ChatUnreadText = "Unread: " + S(unread.Payload, "count");
@@ -2456,9 +2482,9 @@ public class AdminMainViewModel : ViewModelBase
             LockRows.Add(new RowVm { Id = resourceId, Name = owner, State = state, Extra = extra });
         }
         Notify(nameof(FilteredLockRows));
-        ClientLogService.Instance.Info($"ui-refresh section=Люди block=Блокировки raw={items.Count} shown={LockRows.Count}");
+        ClientLogService.Instance.Debug($"ui-refresh section=Люди block=Блокировки raw={items.Count} shown={LockRows.Count}");
         ClientLogService.Instance.Info($"people.grid.rows count={LockRows.Count}");
-        ClientLogService.Instance.Info("people.grid.render ok");
+        ClientLogService.Instance.Debug("people.grid.render ok");
         RestoreSelection(LockRows, SelectedLockId, value => SelectedLockId = value);
     }
 
@@ -2756,8 +2782,7 @@ public class AdminMainViewModel : ViewModelBase
     private void TraceChatDiagnostic(string message)
     {
         var line = "[CHAT-DIAG][Admin] " + message;
-        ClientLogService.Instance.Info(line);
-        LastStatusMessage = line;
+        ClientLogService.Instance.Debug(line);
     }
 
     private Dictionary<string, object>? AsMap(object? value, string context)

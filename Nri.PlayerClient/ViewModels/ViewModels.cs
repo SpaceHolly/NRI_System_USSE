@@ -870,9 +870,9 @@ public class PlayerMainViewModel : ViewModelBase
             var map = AsMap(item, CommandNames.DiceVisibleFeed);
             if (map == null) continue;
             mappedDice++;
-            var total = string.Empty;
-            if (map.ContainsKey("result") && map["result"] is Dictionary<string, object> result) total = GetString(result, "total");
-            DiceFeedRows.Add($"{GetString(map, "creatorUserId")} | {GetString(map, "formula")} => {total}");
+            var total = ExtractDiceTotal(map);
+            var creator = FirstNonEmpty(GetString(map, "creatorLogin"), GetString(map, "creatorUserId"));
+            DiceFeedRows.Add($"{creator} | {GetString(map, "formula")} = {total} | {GetString(map, "visibility")}");
         }
         ClientLogService.Instance.Info($"dice.feed.refresh itemsMapped={mappedDice}");
 
@@ -886,25 +886,7 @@ public class PlayerMainViewModel : ViewModelBase
         }
 
         var currentTest = _api.DiceTestGetCurrent();
-        if (currentTest.Status == ResponseStatus.Ok && currentTest.Payload.TryGetValue("item", out var testItem))
-        {
-            var testMap = AsMap(testItem, CommandNames.DiceTestGetCurrent);
-            if (testMap == null || testMap.Count == 0)
-            {
-                ClientLogService.Instance.Info($"dice.feed.render visibleRows={DiceFeedRows.Count}");
-                ClientLogService.Instance.Info($"dice.view.counts feed={DiceFeedRows.Count} requests={RequestRows.Count}");
-                EnsureCollectionPlaceholder(DiceFeedRows, "Нет видимых бросков");
-                EnsureCollectionPlaceholder(RequestRows, "Нет активных заявок");
-                return;
-            }
-            var total = string.Empty;
-            if (testMap.TryGetValue("result", out var rawResult))
-            {
-                var resultMap = AsMap(rawResult, CommandNames.DiceTestGetCurrent);
-                if (resultMap != null) total = GetString(resultMap, "total");
-            }
-            DiceFeedRows.Insert(0, $"[ТЕСТ] {GetString(testMap, "creatorUserId")} | {GetString(testMap, "formula")} => {total}");
-        }
+        ClientLogService.Instance.Info($"dice.test.getCurrent.status={currentTest.Status}");
         ClientLogService.Instance.Info($"dice.feed.render visibleRows={DiceFeedRows.Count}");
         ClientLogService.Instance.Info($"dice.view.counts feed={DiceFeedRows.Count} requests={RequestRows.Count}");
 
@@ -1681,10 +1663,18 @@ public class PlayerMainViewModel : ViewModelBase
         return uiValue switch
         {
             "Общее" => "Public",
-            "Только мастеру" => "MasterOnly",
-            "Теневой" => "Shadow",
+            "Только мастеру" => "AdminOnly",
+            "Теневой" => "HiddenToAdmins",
             _ => "Public"
         };
+    }
+
+    private string ExtractDiceTotal(Dictionary<string, object> map)
+    {
+        if (!map.TryGetValue("result", out var rawResult)) return "?";
+        var resultMap = AsMap(rawResult, CommandNames.DiceVisibleFeed);
+        if (resultMap == null) return "?";
+        return FirstNonEmpty(GetString(resultMap, "total"), "?");
     }
 
     private void BuildGameFeed()
@@ -2116,9 +2106,7 @@ public class PlayerMainViewModel : ViewModelBase
     private void TraceChatDiagnostic(string message)
     {
         var line = "[CHAT-DIAG][Player] " + message;
-        ClientLogService.Instance.Info(line);
-        ConnectionStatusDetail = line;
-        Notify(nameof(ConnectionStatusDetail));
+        ClientLogService.Instance.Debug(line);
     }
 
     private static IList ToObjectList(object payload) => payload as IList ?? new ArrayList();
