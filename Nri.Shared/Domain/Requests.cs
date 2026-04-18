@@ -15,9 +15,11 @@ public enum RequestStatus
 
 public enum RequestVisibility
 {
-    Public,
-    PlayerShadow,
-    AdminOnlyShadow
+    Public = 0,
+    HiddenToAdmins = 1,
+    AdminOnly = 2,
+    PlayerShadow = 1,
+    AdminOnlyShadow = 2
 }
 
 public class RequestDecision
@@ -72,6 +74,8 @@ public class DiceRollResult
     public RequestVisibility Visibility { get; set; } = RequestVisibility.Public;
     public string ApprovedByUserId { get; set; } = string.Empty;
     public DateTime ApprovedAtUtc { get; set; } = DateTime.UtcNow;
+    public string SoundKey { get; set; } = "dice_1";
+    public bool SoundEasterTriggered { get; set; }
 }
 
 public class DiceRollRequest : RequestBase

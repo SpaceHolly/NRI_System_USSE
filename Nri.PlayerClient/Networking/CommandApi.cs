@@ -23,10 +23,22 @@ public class CommandApi
     public ResponseEnvelope GetMyCharacters() => Send(CommandNames.CharacterListMine);
     public ResponseEnvelope GetActiveCharacter() => Send(CommandNames.CharacterGetActive);
     public ResponseEnvelope GetCharacterDetails(string characterId) => Send(CommandNames.CharacterGetDetails, new Dictionary<string, object> { { "characterId", characterId } });
+    public ResponseEnvelope SetActiveCharacter(string characterId) => Send(CommandNames.CharacterSetActive, new Dictionary<string, object> { { "characterId", characterId } });
 
     public ResponseEnvelope CreateCharacter(Dictionary<string, object> payload) => Send(CommandNames.CharacterCreate, payload);
-    public ResponseEnvelope DiceRollStandard(string characterId, string formula, string visibility, string description) => Send(CommandNames.DiceRollStandard, new Dictionary<string, object> { { "characterId", characterId }, { "formula", formula }, { "visibility", visibility }, { "description", description } });
-    public ResponseEnvelope DiceRollTest(string characterId, string formula, string visibility, string description) => Send(CommandNames.DiceRollTest, new Dictionary<string, object> { { "characterId", characterId }, { "formula", formula }, { "visibility", visibility }, { "description", description } });
+    public ResponseEnvelope DiceRollStandard(string formula, string visibility, string description, string? characterId = null)
+    {
+        var payload = new Dictionary<string, object> { { "formula", formula }, { "visibility", visibility }, { "description", description } };
+        if (!string.IsNullOrWhiteSpace(characterId)) payload["characterId"] = characterId;
+        return Send(CommandNames.DiceRollStandard, payload);
+    }
+
+    public ResponseEnvelope DiceRollTest(string formula, string visibility, string description, string? characterId = null)
+    {
+        var payload = new Dictionary<string, object> { { "formula", formula }, { "visibility", visibility }, { "description", description } };
+        if (!string.IsNullOrWhiteSpace(characterId)) payload["characterId"] = characterId;
+        return Send(CommandNames.DiceRollTest, payload);
+    }
     public ResponseEnvelope DiceTestGetCurrent() => Send(CommandNames.DiceTestGetCurrent);
     public ResponseEnvelope CreateDiceRequest(string characterId, string formula, string visibility, string description) => Send(CommandNames.DiceRequest, new Dictionary<string, object> { { "characterId", characterId }, { "formula", formula }, { "visibility", visibility }, { "description", description } });
     public ResponseEnvelope CancelRequest(string requestId) => Send(CommandNames.RequestCancel, new Dictionary<string, object> { { "requestId", requestId } });

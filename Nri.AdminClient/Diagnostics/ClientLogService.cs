@@ -20,6 +20,9 @@ public sealed class ClientLogService
     private bool _gracefulShutdown;
     private bool _abnormalTermination;
     private bool _completed;
+    private string _lastLogLine = string.Empty;
+    private string _lastLogLevel = string.Empty;
+    private int _lastLogRepeatCount;
 
     private ClientLogService(string appName, bool preserveLogs)
     {
@@ -69,6 +72,7 @@ public sealed class ClientLogService
     public string LogFilePath => _logFilePath;
 
     public void Info(string message) => Write("INFO", message);
+    public void Debug(string message) => Write("DEBUG", message);
     public void Warn(string message) => Write("WARN", message);
 
     public void Error(string message, Exception? ex = null)
@@ -105,6 +109,7 @@ public sealed class ClientLogService
 
             _completed = true;
             var keepLog = _preserveLogs || !_gracefulShutdown || _abnormalTermination;
+            FlushRepeatedLogs();
             WriteCore("INFO", $"Application closing. graceful={_gracefulShutdown}, abnormal={_abnormalTermination}, preserveLogs={_preserveLogs}, keepLog={keepLog}");
 
             _writer.Dispose();
@@ -132,8 +137,28 @@ public sealed class ClientLogService
                 return;
             }
 
+            if (string.Equals(_lastLogLevel, level, StringComparison.Ordinal) && string.Equals(_lastLogLine, message, StringComparison.Ordinal))
+            {
+                _lastLogRepeatCount++;
+                return;
+            }
+
+            FlushRepeatedLogs();
+            _lastLogLevel = level;
+            _lastLogLine = message;
             WriteCore(level, message);
         }
+    }
+
+    private void FlushRepeatedLogs()
+    {
+        if (_lastLogRepeatCount <= 0)
+        {
+            return;
+        }
+
+        WriteCore("DEBUG", $"suppressed repeated log line count={_lastLogRepeatCount} message={_lastLogLine}");
+        _lastLogRepeatCount = 0;
     }
 
     private void WriteCore(string level, string message)
