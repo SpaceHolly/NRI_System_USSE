@@ -1851,6 +1851,7 @@ public partial class ServiceHub
         {
             var roll = CreateResolvedDiceRoll(context, actor, isTestRoll: false);
             _repositories.DiceRequests.Insert(roll);
+            _logger.Admin($"dice.roll.standard created actor={actor.Login} requestId={roll.Id}");
             _logger.Admin($"dice.roll.standard actor={actor.Login} requestId={roll.Id} total={roll.Result?.Total ?? 0}");
             return Ok("Standard dice roll created.", DiceRequestPayload(roll, actor));
         }
@@ -1878,6 +1879,7 @@ public partial class ServiceHub
             if (existing == null)
             {
                 _repositories.DiceRequests.Insert(roll);
+                _logger.Admin($"dice.roll.test replacedPrevious=false actor={actor.Login} requestId={roll.Id}");
                 _logger.Admin($"dice.roll.test actor={actor.Login} action=create requestId={roll.Id} total={roll.Result?.Total ?? 0}");
                 return Ok("Test dice roll created.", DiceRequestPayload(roll, actor));
             }
@@ -1890,6 +1892,7 @@ public partial class ServiceHub
             existing.Status = RequestStatus.Approved;
             existing.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "TestReplaced", Comment = roll.Formula.Normalized });
             _repositories.DiceRequests.Replace(existing);
+            _logger.Admin($"dice.roll.test replacedPrevious=true actor={actor.Login} requestId={existing.Id}");
             _logger.Admin($"dice.roll.test actor={actor.Login} action=replace requestId={existing.Id} total={existing.Result?.Total ?? 0} replacedPrevious=true");
             return Ok("Test dice roll replaced.", DiceRequestPayload(existing, actor));
         }
@@ -1934,6 +1937,11 @@ public partial class ServiceHub
         if (!Enum.TryParse(visibilityRaw, true, out RequestVisibility visibility)) visibility = RequestVisibility.Public;
         var formula = DiceFormulaParser.Parse(formulaInput);
         var result = DiceRollExecutor.Execute(formula, visibility, actor.Id);
+        var audio = DiceSoundResolver.Resolve(formula, result.Rolls);
+        result.SoundKey = audio.SoundKey;
+        result.SoundEasterTriggered = audio.EasterTriggered;
+        _logger.Admin($"dice.audio.soundKey resolved={result.SoundKey}");
+        _logger.Admin($"dice.audio.easter triggered={result.SoundEasterTriggered}");
         var request = new DiceRollRequest
         {
             RequestType = isTestRoll ? "DiceRollTest" : "DiceRollStandard",
@@ -2092,7 +2100,7 @@ public partial class ServiceHub
 
         var payload = new List<object>();
         payload.AddRange(actions.Select(x => (object)RequestPayload(x)));
-        payload.AddRange(dice.Where(x => !x.IsTestRoll && (includeAll || CanViewDice(actor, x))).Select(x => (object)DiceRequestPayload(x, actor)));
+        payload.AddRange(dice.Where(x => includeAll || CanViewDice(actor, x)).Select(x => (object)DiceRequestPayload(x, actor)));
         return Ok("Request history loaded.", new Dictionary<string, object> { { "items", payload.ToArray() } });
     }
 
@@ -2100,7 +2108,7 @@ public partial class ServiceHub
     {
         var actor = GetCurrentAccount(context);
         var items = _repositories.DiceRequests.Find(FilterDefinition<DiceRollRequest>.Empty)
-            .Where(x => !x.IsTestRoll && CanViewDice(actor, x))
+            .Where(x => CanViewDice(actor, x))
             .Select(x => (object)DiceRequestPayload(x, actor)).ToArray();
         _logger.Admin($"dice.history.get actor={actor.Login} count={items.Length}");
         return Ok("Dice history loaded.", new Dictionary<string, object> { { "items", items } });
@@ -2109,11 +2117,15 @@ public partial class ServiceHub
     public ResponseEnvelope DiceVisibleFeed(CommandContext context)
     {
         var actor = GetCurrentAccount(context);
-        var items = _repositories.DiceRequests.Find(Builders<DiceRollRequest>.Filter.Eq(x => x.Status, RequestStatus.Approved))
-            .Where(x => !x.IsTestRoll && CanViewDice(actor, x))
+        var approvedItems = _repositories.DiceRequests.Find(Builders<DiceRollRequest>.Filter.Eq(x => x.Status, RequestStatus.Approved))
+            .ToArray();
+        _logger.Admin($"dice.feed.common itemsRaw={approvedItems.Length}");
+        var items = approvedItems
+            .Where(x => CanViewDice(actor, x))
             .OrderByDescending(x => x.UpdatedUtc)
             .Take(100)
             .Select(x => (object)DiceRequestPayload(x, actor)).ToArray();
+        _logger.Admin($"dice.feed.common itemsMapped={items.Length}");
         _logger.Admin($"dice.visibleFeed actor={actor.Login} count={items.Length}");
         return Ok("Dice feed loaded.", new Dictionary<string, object> { { "items", items } });
     }
@@ -2228,7 +2240,9 @@ public partial class ServiceHub
                 { "total", request.Result.Total },
                 { "visibility", request.Result.Visibility.ToString() },
                 { "approvedBy", request.Result.ApprovedByUserId },
-                { "approvedAt", request.Result.ApprovedAtUtc }
+                { "approvedAt", request.Result.ApprovedAtUtc },
+                { "soundKey", request.Result.SoundKey },
+                { "soundEasterTriggered", request.Result.SoundEasterTriggered }
             };
         }
 

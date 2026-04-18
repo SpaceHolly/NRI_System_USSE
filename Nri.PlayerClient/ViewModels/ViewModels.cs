@@ -871,8 +871,12 @@ public class PlayerMainViewModel : ViewModelBase
             if (map == null) continue;
             mappedDice++;
             var total = ExtractDiceTotal(map);
+            var rolledValues = ExtractDiceRollValues(map);
             var creator = FirstNonEmpty(GetString(map, "creatorLogin"), GetString(map, "creatorUserId"));
-            DiceFeedRows.Add($"{creator} | {GetString(map, "formula")} = {total} | {GetString(map, "visibility")}");
+            var isTest = string.Equals(GetString(map, "isTestRoll"), "True", StringComparison.OrdinalIgnoreCase);
+            var label = isTest ? "[ТЕСТ] " : string.Empty;
+            var details = string.IsNullOrWhiteSpace(rolledValues) ? string.Empty : $" ({rolledValues})";
+            DiceFeedRows.Add($"{creator} | {label}{GetString(map, "formula")} = {total}{details} | {GetString(map, "visibility")}");
         }
         ClientLogService.Instance.Info($"dice.feed.refresh itemsMapped={mappedDice}");
 
@@ -1677,6 +1681,18 @@ public class PlayerMainViewModel : ViewModelBase
         return FirstNonEmpty(GetString(resultMap, "total"), "?");
     }
 
+    private string ExtractDiceRollValues(Dictionary<string, object> map)
+    {
+        if (!map.TryGetValue("result", out var rawResult)) return string.Empty;
+        var resultMap = AsMap(rawResult, CommandNames.DiceVisibleFeed);
+        if (resultMap == null || !resultMap.TryGetValue("rolls", out var rawRolls)) return string.Empty;
+        var values = ToObjectList(rawRolls)
+            .Select(item => Convert.ToString(item, CultureInfo.InvariantCulture) ?? string.Empty)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToArray();
+        return values.Length == 0 ? string.Empty : string.Join(",", values);
+    }
+
     private void BuildGameFeed()
     {
         GameFeedRows.Clear();
@@ -1728,6 +1744,8 @@ public class PlayerMainViewModel : ViewModelBase
         if (GameFeedRows.Count == 0)
             GameFeedRows.Add(new GameFeedItemVm { Kind = "Hint", Text = "Лента пуста", IsMuted = true });
 
+        ClientLogService.Instance.Info($"dice.feed.gameFeed itemsRaw={DiceFeedRows.Count}");
+        ClientLogService.Instance.Info($"dice.feed.gameFeed itemsMapped={GameFeedRows.Count(row => row.Kind == \"Dice\")}");
         TraceChatDiagnostic($"game-feed build chat={ChatMessageRows.Count} event={EventRows.Count} dice={DiceFeedRows.Count} request={RequestRows.Count} filteredPlaceholders={filteredPlaceholders} final={GameFeedRows.Count}");
     }
     private void AddCurrency(string name, string abbr, string color, Dictionary<string, object> money, string key)

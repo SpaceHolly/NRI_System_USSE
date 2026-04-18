@@ -74,6 +74,8 @@ public class DiceRollResult
     public RequestVisibility Visibility { get; set; } = RequestVisibility.Public;
     public string ApprovedByUserId { get; set; } = string.Empty;
     public DateTime ApprovedAtUtc { get; set; } = DateTime.UtcNow;
+    public string SoundKey { get; set; } = "dice_1";
+    public bool SoundEasterTriggered { get; set; }
 }
 
 public class DiceRollRequest : RequestBase

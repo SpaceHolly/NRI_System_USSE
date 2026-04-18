@@ -1554,11 +1554,26 @@ public class AdminMainViewModel : ViewModelBase
             var r = _api.Login(LoginText, PasswordText);
             if (r.Status == ResponseStatus.Ok)
             {
-                var roleItems = ToList(r.Payload.ContainsKey("roles") ? r.Payload["roles"] : Array.Empty<object>());
-                var isAdmin = roleItems
-                    .Select(item => Convert.ToString(item) ?? string.Empty)
-                    .Any(role => string.Equals(role, UserRole.Admin.ToString(), StringComparison.OrdinalIgnoreCase)
-                                 || string.Equals(role, UserRole.SuperAdmin.ToString(), StringComparison.OrdinalIgnoreCase));
+                var roleItems = ToList(r.Payload.ContainsKey("roles") ? r.Payload["roles"] : new ArrayList());
+                var resolvedRoles = new List<string>();
+                var isAdmin = false;
+                foreach (var roleItem in roleItems)
+                {
+                    var roleValue = Convert.ToString(roleItem) ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(roleValue))
+                    {
+                        continue;
+                    }
+
+                    resolvedRoles.Add(roleValue);
+                    if (string.Equals(roleValue, UserRole.Admin.ToString(), StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(roleValue, UserRole.SuperAdmin.ToString(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        isAdmin = true;
+                    }
+                }
+                ClientLogService.Instance.Info($"admin.roleGate rolesResolved={string.Join(',', resolvedRoles)}");
+                ClientLogService.Instance.Info($"admin.roleGate isAdmin={isAdmin}");
                 if (!isAdmin)
                 {
                     _poller.Stop();
@@ -1825,7 +1840,23 @@ public class AdminMainViewModel : ViewModelBase
                     if (result != null) total = FirstNonEmpty(S(result, "total"), "?");
                 }
                 var creator = FirstNonEmpty(S(m, "creatorLogin"), S(m, "creatorUserId"));
-                DiceFeedRows.Add($"{creator} | {S(m, "formula")} = {total} | {S(m, "visibility")}");
+                var isTest = string.Equals(S(m, "isTestRoll"), "True", StringComparison.OrdinalIgnoreCase);
+                var label = isTest ? "[ТЕСТ] " : string.Empty;
+                var rolls = string.Empty;
+                if (m.ContainsKey("result"))
+                {
+                    var result = AsMap(m["result"]);
+                    if (result != null && result.TryGetValue("rolls", out var rawRolls))
+                    {
+                        var values = ToList(rawRolls)
+                            .Cast<object>()
+                            .Select(value => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty)
+                            .Where(value => !string.IsNullOrWhiteSpace(value))
+                            .ToArray();
+                        rolls = values.Length == 0 ? string.Empty : $" ({string.Join(",", values)})";
+                    }
+                }
+                DiceFeedRows.Add($"{creator} | {label}{S(m, "formula")} = {total}{rolls} | {S(m, "visibility")}");
             }
             ClientLogService.Instance.Info($"dice.feed.refresh itemsMapped={mappedItems}");
         }
