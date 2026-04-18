@@ -180,7 +180,7 @@ public enum CurrencyDenomination
 
 public class MoneyBreakdown
 {
-    public Dictionary<CurrencyDenomination, long> Amounts { get; set; } = new Dictionary<CurrencyDenomination, long>();
+    public Dictionary<string, long> Amounts { get; set; } = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
 }
 
 public class Wallet
@@ -198,14 +198,16 @@ public class Wallet
     };
 
     public MoneyBreakdown Balance { get; set; } = new MoneyBreakdown();
+    private static string CurrencyKey(CurrencyDenomination denomination) => denomination.ToString();
 
     public void EnsureAllDenominations()
     {
         foreach (var denomination in Order)
         {
-            if (!Balance.Amounts.ContainsKey(denomination))
+            var key = CurrencyKey(denomination);
+            if (!Balance.Amounts.ContainsKey(key))
             {
-                Balance.Amounts[denomination] = 0;
+                Balance.Amounts[key] = 0;
             }
         }
     }
@@ -217,15 +219,17 @@ public class Wallet
         {
             var current = Order[index];
             var next = Order[index + 1];
-            var amount = Balance.Amounts[current];
+            var currentKey = CurrencyKey(current);
+            var nextKey = CurrencyKey(next);
+            var amount = Balance.Amounts[currentKey];
             if (amount < factor)
             {
                 continue;
             }
 
             var carry = amount / factor;
-            Balance.Amounts[current] = amount % factor;
-            Balance.Amounts[next] += carry;
+            Balance.Amounts[currentKey] = amount % factor;
+            Balance.Amounts[nextKey] += carry;
         }
     }
 
@@ -236,7 +240,7 @@ public class Wallet
         var multiplier = 1L;
         foreach (var denomination in Order)
         {
-            total += Balance.Amounts[denomination] * multiplier;
+            total += Balance.Amounts[CurrencyKey(denomination)] * multiplier;
             multiplier *= factor;
         }
 
@@ -248,7 +252,7 @@ public class Wallet
         total -= amountInLowest;
         foreach (var denomination in Order)
         {
-            Balance.Amounts[denomination] = total % factor;
+            Balance.Amounts[CurrencyKey(denomination)] = total % factor;
             total /= factor;
         }
 

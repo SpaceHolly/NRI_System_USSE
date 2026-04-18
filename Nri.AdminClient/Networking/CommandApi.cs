@@ -55,8 +55,19 @@ public class CommandApi
     public ResponseEnvelope RequestHistory() => Send(CommandNames.RequestHistory);
     public ResponseEnvelope DiceHistory() => Send(CommandNames.DiceHistory);
     public ResponseEnvelope DiceVisibleFeed() => Send(CommandNames.DiceVisibleFeed);
-    public ResponseEnvelope DiceRollStandard(string characterId, string formula, string visibility, string description) => Send(CommandNames.DiceRollStandard, new Dictionary<string, object> { { "characterId", characterId }, { "formula", formula }, { "visibility", visibility }, { "description", description } });
-    public ResponseEnvelope DiceRollTest(string characterId, string formula, string visibility, string description) => Send(CommandNames.DiceRollTest, new Dictionary<string, object> { { "characterId", characterId }, { "formula", formula }, { "visibility", visibility }, { "description", description } });
+    public ResponseEnvelope DiceRollStandard(string formula, string visibility, string description, string? characterId = null)
+    {
+        var payload = new Dictionary<string, object> { { "formula", formula }, { "visibility", visibility }, { "description", description } };
+        if (!string.IsNullOrWhiteSpace(characterId)) payload["characterId"] = characterId;
+        return Send(CommandNames.DiceRollStandard, payload);
+    }
+
+    public ResponseEnvelope DiceRollTest(string formula, string visibility, string description, string? characterId = null)
+    {
+        var payload = new Dictionary<string, object> { { "formula", formula }, { "visibility", visibility }, { "description", description } };
+        if (!string.IsNullOrWhiteSpace(characterId)) payload["characterId"] = characterId;
+        return Send(CommandNames.DiceRollTest, payload);
+    }
     public ResponseEnvelope DiceTestGetCurrent(string userId = "") => Send(CommandNames.DiceTestGetCurrent, new Dictionary<string, object> { { "userId", userId } });
 
 

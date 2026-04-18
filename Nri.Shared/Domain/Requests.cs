@@ -15,9 +15,11 @@ public enum RequestStatus
 
 public enum RequestVisibility
 {
-    Public,
-    PlayerShadow,
-    AdminOnlyShadow
+    Public = 0,
+    HiddenToAdmins = 1,
+    AdminOnly = 2,
+    PlayerShadow = 1,
+    AdminOnlyShadow = 2
 }
 
 public class RequestDecision
