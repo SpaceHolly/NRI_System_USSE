@@ -70,6 +70,7 @@ public static class CommandNames
     public const string CharacterUpdateStats = "character.update.stats";
     public const string CharacterUpdateVisibility = "character.update.visibility";
     public const string CharacterUpdateMoney = "character.update.money";
+    public const string CharacterUpdateXpCoins = "character.update.xpCoins";
     public const string CharacterUpdateInventory = "character.update.inventory";
     public const string CharacterUpdateReputation = "character.update.reputation";
     public const string CharacterUpdateHoldings = "character.update.holdings";

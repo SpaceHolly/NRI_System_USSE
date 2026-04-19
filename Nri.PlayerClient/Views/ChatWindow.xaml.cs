@@ -19,6 +19,8 @@ public partial class ChatWindow : Window
         Loaded += (_, _) =>
         {
             ClientLogService.Instance.Info("ui.chat.window.loaded scroll=true");
+            ClientLogService.Instance.Info("chat.window size=400x700");
+            ClientLogService.Instance.Info("chat.input.wrap enabled=true");
             _chatScrollViewer = FindDescendantScrollViewer(ChatMessagesList);
             if (_chatScrollViewer != null) _chatScrollViewer.ScrollChanged += OnChatScrollChanged;
             if (DataContext is PlayerMainViewModel vm)
