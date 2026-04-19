@@ -3098,6 +3098,31 @@ public class AdminMainViewModel : ViewModelBase
         }
     }
 
+    private void RefreshDiceFeedForChat()
+    {
+        DiceFeedRows.Clear();
+        var feed = _api.DiceVisibleFeed();
+        if (feed.Status != ResponseStatus.Ok || !feed.Payload.ContainsKey("items")) return;
+
+        foreach (var obj in ToList(feed.Payload["items"]))
+        {
+            var map = AsMap(obj);
+            if (map == null) continue;
+            var total = "?";
+            if (map.ContainsKey("result"))
+            {
+                var result = AsMap(map["result"]);
+                if (result != null) total = FirstNonEmpty(S(result, "total"), "?");
+            }
+
+            var creator = FirstNonEmpty(S(map, "creatorLogin"), S(map, "creatorUserId"));
+            var isTest = string.Equals(S(map, "isTestRoll"), "True", StringComparison.OrdinalIgnoreCase);
+            var label = isTest ? "[ТЕСТ] " : string.Empty;
+            var rolls = BuildDiceRollDetails(map, CommandNames.DiceVisibleFeed);
+            DiceFeedRows.Add($"{creator} | {label}{S(map, "formula")} = {total}{rolls} | {S(map, "visibility")}");
+        }
+    }
+
     private string BuildDiceRollDetails(Dictionary<string, object> map, string context)
     {
         if (!map.TryGetValue("result", out var rawResult)) return string.Empty;
