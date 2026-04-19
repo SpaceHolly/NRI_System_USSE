@@ -82,7 +82,6 @@
                                                             <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="16"/>
                                                             <TextBlock Text="{Binding Race, StringFormat=Раса: {0}}" Foreground="{StaticResource MutedBrush}"/>
                                                             <TextBlock Text="{Binding Age, StringFormat=Возраст: {0}}" Foreground="{StaticResource MutedBrush}"/>
-                                                            <TextBlock Text="{Binding Description}" Margin="0,6,0,0"/>
                                                         </StackPanel>
                                                         <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top">
                                                             <Border Style="{StaticResource CardStyle}" Padding="6,2">
@@ -291,8 +290,6 @@
                                                         <TextBlock Text="{Binding CharacterHeightDisplay, StringFormat=Рост: {0}}" Foreground="{StaticResource MutedBrush}"/>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="Описание" FontWeight="Bold"/>
-                                                        <TextBlock Text="{Binding CharacterDescriptionDisplay}" Margin="0,0,0,8"/>
                                                         <TextBlock Text="Предыстория" FontWeight="Bold"/>
                                                         <TextBlock Text="{Binding CharacterBackstoryDisplay}"/>
                                                     </StackPanel>
@@ -371,8 +368,7 @@
                                                     <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
                                                         <StackPanel VerticalAlignment="Center">
                                                             <TextBlock Text="Монеты опыта" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
-                                                            <TextBlock Text="0" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                                            <TextBlock Text="Система ещё не подключена" Foreground="{StaticResource MutedBrush}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                                            <TextBlock Text="{Binding ExperienceCoinsDisplay}" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center"/>
                                                         </StackPanel>
                                                     </Border>
                                                 </Grid>

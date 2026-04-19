@@ -83,6 +83,7 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CharacterUpdateStats, new DelegateCommandHandler(hub.CharacterUpdateStats));
         dispatcher.Register(CommandNames.CharacterUpdateVisibility, new DelegateCommandHandler(hub.CharacterUpdateVisibility));
         dispatcher.Register(CommandNames.CharacterUpdateMoney, new DelegateCommandHandler(hub.CharacterUpdateMoney));
+        dispatcher.Register(CommandNames.CharacterUpdateXpCoins, new DelegateCommandHandler(hub.CharacterUpdateXpCoins));
         dispatcher.Register(CommandNames.CharacterUpdateInventory, new DelegateCommandHandler(hub.CharacterUpdateInventory));
         dispatcher.Register(CommandNames.CharacterUpdateReputation, new DelegateCommandHandler(hub.CharacterUpdateReputation));
         dispatcher.Register(CommandNames.CharacterUpdateHoldings, new DelegateCommandHandler(hub.CharacterUpdateHoldings));
