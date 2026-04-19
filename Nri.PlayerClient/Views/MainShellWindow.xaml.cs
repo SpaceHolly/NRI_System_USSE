@@ -24,7 +24,6 @@ public partial class MainShellWindow : Window
             ClientLogService.Instance.Info("ui.player.main-content.reachable=true");
             ClientLogService.Instance.Info("ui.dice.panel.opened");
             ClientLogService.Instance.Info("player.layout.bottomSections rearranged=true");
-            ClientLogService.Instance.Info("dice.layout.movedUnderChat=true");
         };
     }
 
