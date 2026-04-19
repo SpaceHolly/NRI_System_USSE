@@ -25,7 +25,7 @@ public partial class ChatWindow : Window
             if (DataContext is PlayerMainViewModel vm)
             {
                 vm.PropertyChanged += OnVmPropertyChanged;
-                vm.ChatMessageRows.CollectionChanged += OnChatRowsChanged;
+                vm.MergedChatRows.CollectionChanged += OnChatRowsChanged;
                 vm.NotifyChatWindowOpened();
             }
             ScrollToLatest(force: true);
@@ -35,7 +35,7 @@ public partial class ChatWindow : Window
             if (DataContext is PlayerMainViewModel vm)
             {
                 vm.PropertyChanged -= OnVmPropertyChanged;
-                vm.ChatMessageRows.CollectionChanged -= OnChatRowsChanged;
+                vm.MergedChatRows.CollectionChanged -= OnChatRowsChanged;
             }
             if (_chatScrollViewer != null) _chatScrollViewer.ScrollChanged -= OnChatScrollChanged;
         };
