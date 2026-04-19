@@ -44,7 +44,21 @@ public static class PayloadReader
     public static Dictionary<string, object>? GetDictionary(IDictionary<string, object> payload, string key)
     {
         if (!payload.ContainsKey(key) || payload[key] == null) return null;
-        return payload[key] as Dictionary<string, object>;
+        if (payload[key] is Dictionary<string, object> typed) return typed;
+        if (payload[key] is IDictionary dictionary)
+        {
+            var result = new Dictionary<string, object>(StringComparer.Ordinal);
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                var mapKey = Convert.ToString(entry.Key);
+                if (string.IsNullOrWhiteSpace(mapKey)) continue;
+                result[mapKey] = entry.Value!;
+            }
+
+            return result;
+        }
+
+        return null;
     }
 
     public static IList<object>? GetList(IDictionary<string, object> payload, string key)
