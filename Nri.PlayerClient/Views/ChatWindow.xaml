@@ -17,12 +17,12 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Style="{StaticResource CardStyle}" Padding="8">
-            <DockPanel>
-                <TextBlock Text="Чат сессии" FontWeight="Bold" FontSize="17"/>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding SessionSummary}" Foreground="{StaticResource MutedBrush}"/>
-            </DockPanel>
-        </Border>
+            <Border Style="{StaticResource CardStyle}" Padding="8">
+                <DockPanel>
+                    <TextBlock Text="Чат сессии" FontWeight="Bold" FontSize="17"/>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding SessionSummary}" Foreground="{StaticResource MutedBrush}"/>
+                </DockPanel>
+            </Border>
 
         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,8" Padding="8">
             <ListBox x:Name="ChatMessagesList" ItemsSource="{Binding MergedChatRows}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -44,14 +44,14 @@
                                     <Run Text="{Binding Sender}" FontWeight="SemiBold"/>
                                     <Run Text=": "/>
                                     <Run Text="{Binding Text}"/>
-                                </TextBlock>
-                                <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </Border>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
 
         <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
             <Grid>
@@ -68,3 +68,4 @@
     </Grid>
     </ScrollViewer>
 </Window>
+
