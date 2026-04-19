@@ -10,61 +10,62 @@
         MaxHeight="700"
         ResizeMode="NoResize">
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <Border Style="{StaticResource CardStyle}" Padding="8">
-            <DockPanel>
-                <TextBlock Text="Чат сессии" FontWeight="Bold" FontSize="17"/>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding SessionSummary}" Foreground="{StaticResource MutedBrush}"/>
-            </DockPanel>
-        </Border>
+            <Border Style="{StaticResource CardStyle}" Padding="8">
+                <DockPanel>
+                    <TextBlock Text="Чат сессии" FontWeight="Bold" FontSize="17"/>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding SessionSummary}" Foreground="{StaticResource MutedBrush}"/>
+                </DockPanel>
+            </Border>
 
-        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,8" Padding="8">
-            <ListBox x:Name="ChatMessagesList" ItemsSource="{Binding ChatMessageRows}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,6">
-                            <StackPanel>
-                                <TextBlock TextWrapping="Wrap">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsSystem}" Value="True">
-                                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
+            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,8" Padding="8">
+                <ListBox x:Name="ChatMessagesList" ItemsSource="{Binding ChatMessageRows}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,6">
+                                <StackPanel>
+                                    <TextBlock TextWrapping="Wrap">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSystem}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
                                     <Run Text="{Binding Sender}" FontWeight="SemiBold"/>
                                     <Run Text=": "/>
                                     <Run Text="{Binding Text}"/>
-                                </TextBlock>
-                                <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </Border>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
 
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="130"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="92"/>
-                </Grid.ColumnDefinitions>
-                <ComboBox Grid.Column="0" Margin="0,0,8,0" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}"/>
-                <TextBox Grid.Column="1" Margin="0,0,8,0" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}" MinHeight="70" MaxHeight="110" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
-                <Button Grid.Column="2" Content="Отправить" Command="{Binding ChatSendCommand}" Height="32" VerticalAlignment="Top"/>
-            </Grid>
-        </Border>
-    </Grid>
+            <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="130"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="92"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox Grid.Column="0" Margin="0,0,16,0" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}" Height="35" VerticalAlignment="Center"/>
+                    <TextBox Margin="114,0,0,0" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}" MinHeight="35" MaxHeight="110" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Grid.ColumnSpan="2"/>
+                    <Button Grid.Column="2" Content="Отправить" Command="{Binding ChatSendCommand}" Height="32" VerticalAlignment="Top" Margin="0,2,2,0"/>
+                </Grid>
+            </Border>
+        </Grid>
     </ScrollViewer>
 </Window>
+
