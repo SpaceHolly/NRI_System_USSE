@@ -221,6 +221,8 @@ public class PlayerMainViewModel : ViewModelBase
         InitializeDefaultCharacterScaffolding();
         LoadLocalAudioSettings();
         RefreshConnectionSummary();
+        ClientLogService.Instance.Info("chat.input.wrap enabled=true");
+        ClientLogService.Instance.Info("dice.layout.movedUnderChat=true");
     }
 
     public string LoginText { get; set; } = string.Empty;
@@ -542,12 +544,10 @@ public class PlayerMainViewModel : ViewModelBase
                 Id = GetString(map, "characterId"),
                 Name = GetString(map, "name"),
                 Race = GetString(map, "race"),
-                Description = GetString(map, "description"),
-                Age = GetString(map, "age"),
                 Archived = GetString(map, "archived") == "True"
             });
         }
-        ClientLogService.Instance.Info($"character.list.mine count={MyCharacters.Count}");
+        ClientLogService.Instance.Info($"myCharacters.render count={MyCharacters.Count}");
         Notify(nameof(HasMyCharacters));
 
         if (string.IsNullOrWhiteSpace(SelectedCharacterId) && MyCharacters.Count > 0)
@@ -616,7 +616,7 @@ public class PlayerMainViewModel : ViewModelBase
             ApplyCharacterPayload(active.Payload);
             ActiveCharacterId = GetString(active.Payload, "characterId");
             ActiveCharacterStatusText = string.IsNullOrWhiteSpace(ActiveCharacterId) ? "Активный персонаж не выбран" : $"Активный персонаж: {CharacterNameDisplay}";
-            ClientLogService.Instance.Info($"character.active currentId={ActiveCharacterId}");
+            ClientLogService.Instance.Info($"activeCharacter.load id={ActiveCharacterId}");
             UpdateCharacterActiveFlags();
             return;
         }
@@ -631,7 +631,7 @@ public class PlayerMainViewModel : ViewModelBase
         RebuildStatGroups();
         MoneyRows.Clear();
         NotifyCharacter();
-        ClientLogService.Instance.Info("character.active currentId=null");
+        ClientLogService.Instance.Info("activeCharacter.load id=null");
         UpdateCharacterActiveFlags();
     }
 
@@ -646,9 +646,10 @@ public class PlayerMainViewModel : ViewModelBase
         SelectedCharacterId = GetString(payload, "characterId");
 
         StatsRows.Clear();
-        var stats = payload.ContainsKey("stats") && payload["stats"] is Dictionary<string, object> loadedStats
-            ? loadedStats
-            : new Dictionary<string, object>();
+        var stats = payload.TryGetValue("stats", out var statsRaw)
+            ? AsMap(statsRaw, CommandNames.CharacterGetActive)
+            : null;
+        stats ??= new Dictionary<string, object>();
         AddStat("Здоровье", stats, "health");
         AddStat("Броня физ.", stats, "physicalArmor");
         AddStat("Броня маг.", stats, "magicalArmor");
@@ -662,9 +663,10 @@ public class PlayerMainViewModel : ViewModelBase
         RebuildStatGroups();
 
         MoneyRows.Clear();
-        var money = payload.ContainsKey("money") && payload["money"] is Dictionary<string, object> loadedMoney
-            ? loadedMoney
-            : new Dictionary<string, object>();
+        var money = payload.TryGetValue("money", out var moneyRaw)
+            ? AsMap(moneyRaw, CommandNames.CharacterGetActive)
+            : null;
+        money ??= new Dictionary<string, object>();
         AddCurrency("Железная", "Fe", "#B0BEC5", money, "Iron");
         AddCurrency("Бронзовая", "Br", "#B87333", money, "Bronze");
         AddCurrency("Серебряная", "Ag", "#C0C0C0", money, "Silver");
@@ -834,7 +836,6 @@ public class PlayerMainViewModel : ViewModelBase
         Notify(nameof(ChatTextInput));
         RefreshChat();
         BuildGameFeed();
-        RequestChatScrollToLatest(isInitial: false);
     }
 
     private void RefreshChat()
@@ -868,7 +869,6 @@ public class PlayerMainViewModel : ViewModelBase
 
         BuildGameFeed();
         TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} chatMessageRows={ChatMessageRows.Count} uiCollection=GameFeedRows uiCount={GameFeedRows.Count}");
-        RequestChatScrollToLatest(isInitial: false);
     }
 
     private void RefreshDiceAndRequests()
@@ -1222,15 +1222,26 @@ public class PlayerMainViewModel : ViewModelBase
         PublicProfileSubtitle = string.IsNullOrWhiteSpace(GetString(r.Payload, "race")) ? "Публичный профиль загружен" : $"Раса: {GetString(r.Payload, "race")}";
         PublicProfileStatusText = "Данные профиля получены";
         PublicProfileHintText = string.IsNullOrWhiteSpace(PublicViewCharacterId) ? "Подключитесь к серверу, чтобы увидеть содержимое" : $"Идентификатор просмотра: {PublicViewCharacterId}";
-        PublicProfileDescription = string.IsNullOrWhiteSpace(GetString(r.Payload, "description")) ? "Описание скрыто или ещё не загружено." : GetString(r.Payload, "description");
+        PublicProfileDescription = GetStringOrFallback(r.Payload, "backstory", "Предыстория скрыта или недоступна.");
 
         AddPublicProfileField(PublicProfileIdentityRows, "Имя", PublicProfileName);
         AddPublicProfileField(PublicProfileIdentityRows, "Раса", GetStringOrFallback(r.Payload, "race", "Не указано"));
         AddPublicProfileField(PublicProfileIdentityRows, "Возраст", GetStringOrFallback(r.Payload, "age", "Не указано"));
         AddPublicProfileField(PublicProfileIdentityRows, "Рост", GetStringOrFallback(r.Payload, "height", "Не указано"));
-        AddPublicProfileField(PublicProfileSummaryRows, "Описание", GetStringOrFallback(r.Payload, "description", "Скрыто или недоступно"));
-        AddPublicProfileField(PublicProfileSummaryRows, "Предыстория", GetStringOrFallback(r.Payload, "backstory", "Скрыто или недоступно"));
-        AddPublicProfileField(PublicProfileSummaryRows, "Характеристики", GetStringOrFallback(r.Payload, "statsSummary", "Краткая сводка пока не предоставлена сервером"));
+        AddPublicProfileField(PublicProfileSummaryRows, "Предыстория", PublicProfileDescription);
+        AddPublicProfileField(PublicProfileSummaryRows, "Монеты опыта", GetStringOrFallback(r.Payload, "xpCoins", "0"));
+        var publicStats = r.Payload.TryGetValue("stats", out var statsRaw)
+            ? AsMap(statsRaw, CommandNames.CharacterPublicViewGet)
+            : null;
+        if (publicStats != null)
+        {
+            var statsText = $"HP {GetMapValueOrDefault(publicStats, "health")}, Сила {GetMapValueOrDefault(publicStats, "strength")}, Ловкость {GetMapValueOrDefault(publicStats, "dexterity")}";
+            AddPublicProfileField(PublicProfileSummaryRows, "Характеристики", statsText);
+        }
+        else
+        {
+            AddPublicProfileField(PublicProfileSummaryRows, "Характеристики", GetStringOrFallback(r.Payload, "statsSummary", "Скрыто или недоступно"));
+        }
 
         foreach (var hiddenKey in new[] { "hiddenFields", "hidden", "blockedFields" })
         {
@@ -1243,6 +1254,8 @@ public class PlayerMainViewModel : ViewModelBase
             PublicProfileHiddenRows.Add("Скрытые поля сервером не перечислены");
 
         NotifyPublicProfile();
+        var fieldsLoaded = PublicProfileIdentityRows.Count + PublicProfileSummaryRows.Count;
+        ClientLogService.Instance.Info($"publicProfile.render fieldsLoaded={fieldsLoaded}");
     }
 
     private void RefreshNotes()
@@ -1452,7 +1465,7 @@ public class PlayerMainViewModel : ViewModelBase
         PublicProfileSubtitle = "Нет данных";
         PublicProfileStatusText = "Данные ещё не загружены";
         PublicProfileHintText = "Подключитесь к серверу, чтобы увидеть содержимое";
-        PublicProfileDescription = "После загрузки здесь появятся имя, раса, описание и доступная сводка характеристик другого персонажа.";
+        PublicProfileDescription = "После загрузки здесь появится предыстория и открытые данные персонажа.";
         NotifyPublicProfile();
     }
 
@@ -1707,11 +1720,14 @@ public class PlayerMainViewModel : ViewModelBase
         if (!map.TryGetValue("result", out var rawResult)) return string.Empty;
         var resultMap = AsMap(rawResult, context);
         if (resultMap == null || !resultMap.TryGetValue("rolls", out var rawRolls)) return string.Empty;
-        var values = ToObjectList(rawRolls)
-            .Select(item => Convert.ToString(item, CultureInfo.InvariantCulture) ?? string.Empty)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .ToArray();
-        if (values.Length == 0) return string.Empty;
+        var values = new List<string>();
+        foreach (var item in ToObjectList(rawRolls))
+        {
+            var value = Convert.ToString(item, CultureInfo.InvariantCulture) ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(value))
+                values.Add(value);
+        }
+        if (values.Count == 0) return string.Empty;
         var rolled = string.Join(",", values);
         var modifier = 0;
         if (resultMap.TryGetValue("modifier", out var rawModifier))
