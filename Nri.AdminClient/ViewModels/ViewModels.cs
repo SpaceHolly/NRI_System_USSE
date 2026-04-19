@@ -1572,7 +1572,7 @@ public class AdminMainViewModel : ViewModelBase
                         isAdmin = true;
                     }
                 }
-                ClientLogService.Instance.Info($"admin.roleGate rolesResolved={string.Join(',', resolvedRoles)}");
+                ClientLogService.Instance.Info($"admin.roleGate rolesResolved={string.Join(", ", resolvedRoles)}");
                 ClientLogService.Instance.Info($"admin.roleGate isAdmin={isAdmin}");
                 if (!isAdmin)
                 {

@@ -23,6 +23,7 @@ public partial class MainShellWindow : Window
             ClientLogService.Instance.Info("ui.player.sections.visible chat/create/dice/notes/session");
             ClientLogService.Instance.Info("ui.player.main-content.reachable=true");
             ClientLogService.Instance.Info("ui.dice.panel.opened");
+            ClientLogService.Instance.Info("player.layout.bottomSections rearranged=true");
         };
     }
 

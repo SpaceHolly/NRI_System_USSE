@@ -535,7 +535,8 @@ public class PlayerMainViewModel : ViewModelBase
         var mine = _api.GetMyCharacters();
         foreach (var item in ToObjectList(mine.Payload.ContainsKey("items") ? mine.Payload["items"] : new ArrayList()))
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item, CommandNames.CharacterListMine);
+            if (map == null) continue;
             MyCharacters.Add(new CharacterListItemVm
             {
                 Id = GetString(map, "characterId"),
@@ -1770,7 +1771,13 @@ public class PlayerMainViewModel : ViewModelBase
         if (GameFeedRows.Count == 0)
             GameFeedRows.Add(new GameFeedItemVm { Kind = "Hint", Text = "Лента пуста", IsMuted = true });
 
-        ClientLogService.Instance.Info($"gameFeed diceMerged={GameFeedRows.Count(row => row.Kind == \"Dice\")}");
+        var mergedDiceCount = 0;
+        foreach (var row in GameFeedRows)
+        {
+            if (string.Equals(row.Kind, "Dice", StringComparison.Ordinal))
+                mergedDiceCount++;
+        }
+        ClientLogService.Instance.Info($"gameFeed diceMerged={mergedDiceCount}");
         TraceChatDiagnostic($"game-feed build chat={ChatMessageRows.Count} event={EventRows.Count} dice={DiceFeedRows.Count} request={RequestRows.Count} filteredPlaceholders={filteredPlaceholders} final={GameFeedRows.Count}");
     }
     private void AddCurrency(string name, string abbr, string color, Dictionary<string, object> money, string key)
