@@ -886,6 +886,8 @@ public class PlayerMainViewModel : ViewModelBase
         var feedItems = ToObjectList(feed.Payload.ContainsKey("items") ? feed.Payload["items"] : new ArrayList());
         ClientLogService.Instance.Debug($"dice.feed.refresh itemsRaw={feedItems.Count}");
         var mappedDice = 0;
+        var firstDiceTimestampRaw = string.Empty;
+        var firstDiceTimestampMapped = string.Empty;
         foreach (var item in feedItems)
         {
             var map = AsMap(item, CommandNames.DiceVisibleFeed);
@@ -897,17 +899,33 @@ public class PlayerMainViewModel : ViewModelBase
             var label = isTest ? "[ТЕСТ] " : string.Empty;
             var details = BuildDiceRollDetails(map, CommandNames.DiceVisibleFeed);
             var diceText = $"{label}{GetString(map, "formula")} = {total}{details} | {GetString(map, "visibility")}";
-            var createdRaw = FirstNonEmpty(GetString(map, "createdUtc"), GetString(map, "createdAt"), GetString(map, "at"));
+            var createdRaw = FirstNonEmpty(
+                GetString(map, "createdUtc"),
+                GetString(map, "createdAtUtc"),
+                GetString(map, "requestedUtc"),
+                GetString(map, "resolvedUtc"),
+                GetString(map, "at"));
+            var timestampMapped = FormatChatTimestamp(createdRaw);
             var sortTicks = ParseTimelineTicks(createdRaw);
             DiceFeedRows.Add($"{creator}: {diceText}");
             DiceMessageRows.Add(new ChatMessageRowVm
             {
                 Sender = creator,
                 Text = diceText,
-                Timestamp = FormatChatTimestamp(createdRaw),
+                Timestamp = timestampMapped,
                 IsSystem = true,
                 SortTicks = sortTicks
             });
+            if (string.IsNullOrWhiteSpace(firstDiceTimestampRaw))
+            {
+                firstDiceTimestampRaw = createdRaw;
+                firstDiceTimestampMapped = timestampMapped;
+            }
+        }
+        if (mappedDice > 0)
+        {
+            ClientLogService.Instance.Debug($"dice.timeline timestampRaw={firstDiceTimestampRaw}");
+            ClientLogService.Instance.Debug($"dice.timeline timestampMapped={firstDiceTimestampMapped}");
         }
         ClientLogService.Instance.Debug($"dice.feed.refresh itemsMapped={mappedDice}");
 
@@ -1867,7 +1885,12 @@ public class PlayerMainViewModel : ViewModelBase
             MergedChatRows.Add(row);
 
         ClientLogService.Instance.Info($"chat.window.timeline mergedCount={MergedChatRows.Count}");
+        var first = MergedChatRows.Count > 0 ? $"{MergedChatRows[0].Sender}:{MergedChatRows[0].Timestamp}" : "<empty>";
+        var last = MergedChatRows.Count > 0 ? $"{MergedChatRows[^1].Sender}:{MergedChatRows[^1].Timestamp}" : "<empty>";
+        ClientLogService.Instance.Debug($"merged.timeline first={first}");
+        ClientLogService.Instance.Debug($"merged.timeline last={last}");
         ClientLogService.Instance.Info("chat.window.timeline sorted=true");
+        ClientLogService.Instance.Debug("merged.timeline sorted=true");
     }
     private void AddCurrency(string name, string abbr, string color, Dictionary<string, object> money, string key)
     {

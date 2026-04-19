@@ -2235,6 +2235,9 @@ public partial class ServiceHub
             { "creatorLogin", creatorLogin },
             { "characterId", request.CharacterId ?? string.Empty },
             { "status", request.Status.ToString() },
+            { "createdUtc", request.CreatedUtc },
+            { "updatedUtc", request.UpdatedUtc },
+            { "requestedUtc", request.CreatedUtc },
             { "description", request.Description },
             { "isTestRoll", request.IsTestRoll },
             { "visibility", request.Visibility.ToString() },
@@ -2248,6 +2251,7 @@ public partial class ServiceHub
 
         if (request.Result != null && CanViewDice(viewer, request))
         {
+            basePayload["resolvedUtc"] = request.Result.ApprovedAtUtc;
             basePayload["result"] = new Dictionary<string, object>
             {
                 { "normalizedFormula", request.Result.NormalizedFormula },

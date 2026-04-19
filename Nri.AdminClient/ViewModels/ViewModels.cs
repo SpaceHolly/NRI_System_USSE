@@ -3059,7 +3059,12 @@ public class AdminMainViewModel : ViewModelBase
         var merged = DiceMessageRows.Count(row => !IsPlaceholderText(row.Text));
         ClientLogService.Instance.Info($"gameFeed diceMerged={merged}");
         ClientLogService.Instance.Info($"chat.window.timeline mergedCount={MergedSessionFeedRows.Count}");
+        var first = MergedSessionFeedRows.Count > 0 ? $"{MergedSessionFeedRows[0].Sender}:{MergedSessionFeedRows[0].Timestamp}" : "<empty>";
+        var last = MergedSessionFeedRows.Count > 0 ? $"{MergedSessionFeedRows[^1].Sender}:{MergedSessionFeedRows[^1].Timestamp}" : "<empty>";
+        ClientLogService.Instance.Debug($"merged.timeline first={first}");
+        ClientLogService.Instance.Debug($"merged.timeline last={last}");
         ClientLogService.Instance.Info("chat.window.timeline sorted=true");
+        ClientLogService.Instance.Debug("merged.timeline sorted=true");
     }
 
     private void RefreshDiceFeedForChat()
@@ -3069,6 +3074,8 @@ public class AdminMainViewModel : ViewModelBase
         var feed = _api.DiceVisibleFeed();
         if (feed.Status != ResponseStatus.Ok || !feed.Payload.ContainsKey("items")) return;
 
+        var firstDiceTimestampRaw = string.Empty;
+        var firstDiceTimestampMapped = string.Empty;
         foreach (var obj in ToList(feed.Payload["items"]))
         {
             var map = AsMap(obj);
@@ -3085,41 +3092,32 @@ public class AdminMainViewModel : ViewModelBase
             var label = isTest ? "[ТЕСТ] " : string.Empty;
             var rolls = BuildDiceRollDetails(map, CommandNames.DiceVisibleFeed);
             var diceText = $"{label}{S(map, "formula")} = {total}{rolls} | {S(map, "visibility")}";
-            var createdRaw = FirstNonEmpty(S(map, "createdUtc"), S(map, "createdAt"), S(map, "at"));
+            var createdRaw = FirstNonEmpty(
+                S(map, "createdUtc"),
+                S(map, "createdAtUtc"),
+                S(map, "requestedUtc"),
+                S(map, "resolvedUtc"),
+                S(map, "at"));
+            var timestampMapped = FormatChatTimestamp(createdRaw);
             DiceFeedRows.Add($"{creator}: {diceText}");
             DiceMessageRows.Add(new ChatMessageRowVm
             {
                 Sender = creator,
                 Text = diceText,
-                Timestamp = FormatChatTimestamp(createdRaw),
+                Timestamp = timestampMapped,
                 IsSystem = true,
                 SortTicks = ParseTimelineTicks(createdRaw)
             });
-        }
-    }
-
-    private void RefreshDiceFeedForChat()
-    {
-        DiceFeedRows.Clear();
-        var feed = _api.DiceVisibleFeed();
-        if (feed.Status != ResponseStatus.Ok || !feed.Payload.ContainsKey("items")) return;
-
-        foreach (var obj in ToList(feed.Payload["items"]))
-        {
-            var map = AsMap(obj);
-            if (map == null) continue;
-            var total = "?";
-            if (map.ContainsKey("result"))
+            if (string.IsNullOrWhiteSpace(firstDiceTimestampRaw))
             {
-                var result = AsMap(map["result"]);
-                if (result != null) total = FirstNonEmpty(S(result, "total"), "?");
+                firstDiceTimestampRaw = createdRaw;
+                firstDiceTimestampMapped = timestampMapped;
             }
-
-            var creator = FirstNonEmpty(S(map, "creatorLogin"), S(map, "creatorUserId"));
-            var isTest = string.Equals(S(map, "isTestRoll"), "True", StringComparison.OrdinalIgnoreCase);
-            var label = isTest ? "[ТЕСТ] " : string.Empty;
-            var rolls = BuildDiceRollDetails(map, CommandNames.DiceVisibleFeed);
-            DiceFeedRows.Add($"{creator} | {label}{S(map, "formula")} = {total}{rolls} | {S(map, "visibility")}");
+        }
+        if (DiceMessageRows.Count > 0)
+        {
+            ClientLogService.Instance.Debug($"dice.timeline timestampRaw={firstDiceTimestampRaw}");
+            ClientLogService.Instance.Debug($"dice.timeline timestampMapped={firstDiceTimestampMapped}");
         }
     }
 
