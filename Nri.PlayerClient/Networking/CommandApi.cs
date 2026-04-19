@@ -83,11 +83,11 @@ public class CommandApi
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
         var body = payload ?? new Dictionary<string, object>();
-        ClientLogService.Instance.Info($"Command send: {command}; payloadKeys={body.Count}");
+        ClientLogService.Instance.Debug($"Command send: {command}; payloadKeys={body.Count}");
         try
         {
             var response = _client.Send(new RequestEnvelope { Command = command, Payload = body });
-            ClientLogService.Instance.Info($"Command response: {command}; status={response.Status}; message={response.Message}");
+            ClientLogService.Instance.Debug($"Command response: {command}; status={response.Status}; message={response.Message}");
             return response;
         }
         catch (Exception ex)
