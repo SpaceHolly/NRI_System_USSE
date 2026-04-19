@@ -132,6 +132,7 @@ public class ChatMessageRowVm
     public string Text { get; set; } = string.Empty;
     public string Timestamp { get; set; } = string.Empty;
     public bool IsSystem { get; set; }
+    public long SortTicks { get; set; }
 }
 
 public class ClassNodeVisualVm
@@ -372,6 +373,7 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<ChatMessageRowVm> ChatMessageRows { get; } = new ObservableCollection<ChatMessageRowVm>();
     public ObservableCollection<ChatMessageRowVm> MergedChatRows { get; } = new ObservableCollection<ChatMessageRowVm>();
+    public ObservableCollection<ChatMessageRowVm> DiceMessageRows { get; } = new ObservableCollection<ChatMessageRowVm>();
     public ObservableCollection<string> EventRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> DiceFeedRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> RequestRows { get; } = new ObservableCollection<string>();
@@ -879,6 +881,7 @@ public class PlayerMainViewModel : ViewModelBase
     {
         ClientLogService.Instance.Debug("dice.feed.refresh requested");
         DiceFeedRows.Clear();
+        DiceMessageRows.Clear();
         var feed = _api.DiceVisibleFeed();
         var feedItems = ToObjectList(feed.Payload.ContainsKey("items") ? feed.Payload["items"] : new ArrayList());
         ClientLogService.Instance.Debug($"dice.feed.refresh itemsRaw={feedItems.Count}");
@@ -893,7 +896,18 @@ public class PlayerMainViewModel : ViewModelBase
             var isTest = string.Equals(GetString(map, "isTestRoll"), "True", StringComparison.OrdinalIgnoreCase);
             var label = isTest ? "[ТЕСТ] " : string.Empty;
             var details = BuildDiceRollDetails(map, CommandNames.DiceVisibleFeed);
-            DiceFeedRows.Add($"{creator} | {label}{GetString(map, "formula")} = {total}{details} | {GetString(map, "visibility")}");
+            var diceText = $"{label}{GetString(map, "formula")} = {total}{details} | {GetString(map, "visibility")}";
+            var createdRaw = FirstNonEmpty(GetString(map, "createdUtc"), GetString(map, "createdAt"), GetString(map, "at"));
+            var sortTicks = ParseTimelineTicks(createdRaw);
+            DiceFeedRows.Add($"{creator}: {diceText}");
+            DiceMessageRows.Add(new ChatMessageRowVm
+            {
+                Sender = creator,
+                Text = diceText,
+                Timestamp = FormatChatTimestamp(createdRaw),
+                IsSystem = true,
+                SortTicks = sortTicks
+            });
         }
         ClientLogService.Instance.Debug($"dice.feed.refresh itemsMapped={mappedDice}");
 
@@ -1829,25 +1843,14 @@ public class PlayerMainViewModel : ViewModelBase
     private void BuildMergedChatRows()
     {
         MergedChatRows.Clear();
-        foreach (var item in ChatMessageRows)
-            MergedChatRows.Add(item);
-
-        foreach (var item in DiceFeedRows)
-        {
-            if (IsPlaceholderText(item)) continue;
-            MergedChatRows.Add(new ChatMessageRowVm
-            {
-                Sender = "Dice",
-                Text = item,
-                Timestamp = string.Empty,
-                IsSystem = true
-            });
-        }
+        var timeline = new List<ChatMessageRowVm>();
+        timeline.AddRange(ChatMessageRows);
+        timeline.AddRange(DiceMessageRows.Where(item => !IsPlaceholderText(item.Text)));
 
         foreach (var item in EventRows)
         {
             if (IsPlaceholderText(item)) continue;
-            MergedChatRows.Add(new ChatMessageRowVm
+            timeline.Add(new ChatMessageRowVm
             {
                 Sender = "System",
                 Text = item,
@@ -1855,6 +1858,16 @@ public class PlayerMainViewModel : ViewModelBase
                 IsSystem = true
             });
         }
+
+        var sorted = timeline
+            .OrderBy(item => item.SortTicks == 0 ? long.MaxValue : item.SortTicks)
+            .ThenBy(item => item.Timestamp, StringComparer.Ordinal)
+            .ToList();
+        foreach (var row in sorted)
+            MergedChatRows.Add(row);
+
+        ClientLogService.Instance.Info($"chat.window.timeline mergedCount={MergedChatRows.Count}");
+        ClientLogService.Instance.Info("chat.window.timeline sorted=true");
     }
     private void AddCurrency(string name, string abbr, string color, Dictionary<string, object> money, string key)
     {
@@ -1912,7 +1925,8 @@ public class PlayerMainViewModel : ViewModelBase
             Sender = sender,
             Text = text,
             Timestamp = timestamp,
-            IsSystem = string.Equals(type, "System", StringComparison.OrdinalIgnoreCase)
+            IsSystem = string.Equals(type, "System", StringComparison.OrdinalIgnoreCase),
+            SortTicks = ParseTimelineTicks(createdRaw)
         };
     }
 
@@ -1940,6 +1954,13 @@ public class PlayerMainViewModel : ViewModelBase
         }
 
         return rawValue;
+    }
+
+    private static long ParseTimelineTicks(string rawValue)
+    {
+        if (TryParseServerTimestamp(rawValue, out var parsed))
+            return parsed.Ticks;
+        return 0;
     }
 
     private static bool TryParseServerTimestamp(string rawValue, out DateTime utcValue)
