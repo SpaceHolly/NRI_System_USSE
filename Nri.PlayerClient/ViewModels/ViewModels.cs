@@ -548,6 +548,7 @@ public class PlayerMainViewModel : ViewModelBase
             });
         }
         ClientLogService.Instance.Info($"character.list.mine count={MyCharacters.Count}");
+        ClientLogService.Instance.Info($"myCharacters.render count={MyCharacters.Count}");
         Notify(nameof(HasMyCharacters));
 
         if (string.IsNullOrWhiteSpace(SelectedCharacterId) && MyCharacters.Count > 0)
@@ -617,6 +618,7 @@ public class PlayerMainViewModel : ViewModelBase
             ActiveCharacterId = GetString(active.Payload, "characterId");
             ActiveCharacterStatusText = string.IsNullOrWhiteSpace(ActiveCharacterId) ? "Активный персонаж не выбран" : $"Активный персонаж: {CharacterNameDisplay}";
             ClientLogService.Instance.Info($"character.active currentId={ActiveCharacterId}");
+            ClientLogService.Instance.Info($"activeCharacter.load id={ActiveCharacterId}");
             UpdateCharacterActiveFlags();
             return;
         }
@@ -632,6 +634,7 @@ public class PlayerMainViewModel : ViewModelBase
         MoneyRows.Clear();
         NotifyCharacter();
         ClientLogService.Instance.Info("character.active currentId=null");
+        ClientLogService.Instance.Info("activeCharacter.load id=null");
         UpdateCharacterActiveFlags();
     }
 
@@ -646,8 +649,8 @@ public class PlayerMainViewModel : ViewModelBase
         SelectedCharacterId = GetString(payload, "characterId");
 
         StatsRows.Clear();
-        var stats = payload.ContainsKey("stats") && payload["stats"] is Dictionary<string, object> loadedStats
-            ? loadedStats
+        var stats = payload.ContainsKey("stats")
+            ? AsMap(payload["stats"], CommandNames.CharacterGetActive) ?? new Dictionary<string, object>()
             : new Dictionary<string, object>();
         AddStat("Здоровье", stats, "health");
         AddStat("Броня физ.", stats, "physicalArmor");
@@ -662,8 +665,8 @@ public class PlayerMainViewModel : ViewModelBase
         RebuildStatGroups();
 
         MoneyRows.Clear();
-        var money = payload.ContainsKey("money") && payload["money"] is Dictionary<string, object> loadedMoney
-            ? loadedMoney
+        var money = payload.ContainsKey("money")
+            ? AsMap(payload["money"], CommandNames.CharacterGetActive) ?? new Dictionary<string, object>()
             : new Dictionary<string, object>();
         AddCurrency("Железная", "Fe", "#B0BEC5", money, "Iron");
         AddCurrency("Бронзовая", "Br", "#B87333", money, "Bronze");
@@ -677,19 +680,21 @@ public class PlayerMainViewModel : ViewModelBase
         InventoryRows.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("inventory") ? payload["inventory"] : new ArrayList()))
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item, CommandNames.CharacterGetActive);
+            if (map == null) continue;
             InventoryRows.Add($"{GetString(map, "label")} x{GetString(map, "quantity")} | dur={GetString(map, "durability")} | equip={GetString(map, "equipped")} | use={GetString(map, "consumptionPerUse")}");
         }
 
         HoldingsRows.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("holdings") ? payload["holdings"] : new ArrayList()))
-            if (item is Dictionary<string, object> map)
+            if (AsMap(item, CommandNames.CharacterGetActive) is Dictionary<string, object> map)
                 HoldingsRows.Add($"{GetString(map, "name")} — {GetString(map, "description")}");
 
         ReputationRows.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("reputation") ? payload["reputation"] : new ArrayList()))
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item, CommandNames.CharacterGetActive);
+            if (map == null) continue;
             int.TryParse(GetString(map, "value"), out var value);
             ReputationRows.Add(new ReputationRowVm { Label = GetString(map, "groupKey"), Value = value });
         }
@@ -697,7 +702,8 @@ public class PlayerMainViewModel : ViewModelBase
         Companions.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("companions") ? payload["companions"] : new ArrayList()))
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item, CommandNames.CharacterGetActive);
+            if (map == null) continue;
             var vm = new CompanionVm
             {
                 Id = GetString(map, "id"),
@@ -706,19 +712,19 @@ public class PlayerMainViewModel : ViewModelBase
                 Notes = GetString(map, "notes")
             };
             AddCompanionStatScaffold(vm);
-            if (map.ContainsKey("stats") && map["stats"] is Dictionary<string, object> companionStats)
+            if (map.ContainsKey("stats") && AsMap(map["stats"], CommandNames.CharacterGetActive) is Dictionary<string, object> companionStats)
                 ApplyCompanionStats(vm, companionStats);
 
             foreach (var inv in ToObjectList(map.ContainsKey("inventory") ? map["inventory"] : new ArrayList()))
-                if (inv is Dictionary<string, object> im)
+                if (AsMap(inv, CommandNames.CharacterGetActive) is Dictionary<string, object> im)
                     vm.InventoryRows.Add($"{GetString(im, "label")} x{GetString(im, "quantity")}");
 
             foreach (var hold in ToObjectList(map.ContainsKey("holdings") ? map["holdings"] : new ArrayList()))
-                if (hold is Dictionary<string, object> hm)
+                if (AsMap(hold, CommandNames.CharacterGetActive) is Dictionary<string, object> hm)
                     vm.HoldingsRows.Add($"{GetString(hm, "name")} — {GetString(hm, "description")}");
 
             foreach (var sk in ToObjectList(map.ContainsKey("skills") ? map["skills"] : new ArrayList()))
-                if (sk is Dictionary<string, object> sm)
+                if (AsMap(sk, CommandNames.CharacterGetActive) is Dictionary<string, object> sm)
                     vm.SkillsRows.Add($"{GetString(sm, "name")} [{GetString(sm, "type")}] ");
 
             EnsureCollectionPlaceholder(vm.InventoryRows, "Нет данных по инвентарю");
@@ -1222,15 +1228,28 @@ public class PlayerMainViewModel : ViewModelBase
         PublicProfileSubtitle = string.IsNullOrWhiteSpace(GetString(r.Payload, "race")) ? "Публичный профиль загружен" : $"Раса: {GetString(r.Payload, "race")}";
         PublicProfileStatusText = "Данные профиля получены";
         PublicProfileHintText = string.IsNullOrWhiteSpace(PublicViewCharacterId) ? "Подключитесь к серверу, чтобы увидеть содержимое" : $"Идентификатор просмотра: {PublicViewCharacterId}";
-        PublicProfileDescription = string.IsNullOrWhiteSpace(GetString(r.Payload, "description")) ? "Описание скрыто или ещё не загружено." : GetString(r.Payload, "description");
+        PublicProfileDescription = GetStringOrFallback(r.Payload, "backstory", "Предыстория скрыта или недоступна.");
 
         AddPublicProfileField(PublicProfileIdentityRows, "Имя", PublicProfileName);
         AddPublicProfileField(PublicProfileIdentityRows, "Раса", GetStringOrFallback(r.Payload, "race", "Не указано"));
-        AddPublicProfileField(PublicProfileIdentityRows, "Возраст", GetStringOrFallback(r.Payload, "age", "Не указано"));
         AddPublicProfileField(PublicProfileIdentityRows, "Рост", GetStringOrFallback(r.Payload, "height", "Не указано"));
-        AddPublicProfileField(PublicProfileSummaryRows, "Описание", GetStringOrFallback(r.Payload, "description", "Скрыто или недоступно"));
         AddPublicProfileField(PublicProfileSummaryRows, "Предыстория", GetStringOrFallback(r.Payload, "backstory", "Скрыто или недоступно"));
-        AddPublicProfileField(PublicProfileSummaryRows, "Характеристики", GetStringOrFallback(r.Payload, "statsSummary", "Краткая сводка пока не предоставлена сервером"));
+        if (r.Payload.ContainsKey("stats") && AsMap(r.Payload["stats"], CommandNames.CharacterPublicViewGet) is Dictionary<string, object> publicStats)
+        {
+            var statsParts = new[]
+            {
+                $"HP {GetString(publicStats, "health")}",
+                $"СИЛ {GetString(publicStats, "strength")}",
+                $"ЛОВ {GetString(publicStats, "dexterity")}",
+                $"ИНТ {GetString(publicStats, "intellect")}"
+            }.Where(part => !part.EndsWith(" ", StringComparison.Ordinal) && !part.EndsWith("[hidden]", StringComparison.OrdinalIgnoreCase)).ToArray();
+            var statsSummary = string.Join(", ", statsParts);
+            AddPublicProfileField(PublicProfileSummaryRows, "Характеристики", string.IsNullOrWhiteSpace(statsSummary) ? "Скрыто или недоступно" : statsSummary);
+        }
+        else
+        {
+            AddPublicProfileField(PublicProfileSummaryRows, "Характеристики", "Скрыто или недоступно");
+        }
 
         foreach (var hiddenKey in new[] { "hiddenFields", "hidden", "blockedFields" })
         {
@@ -1242,6 +1261,7 @@ public class PlayerMainViewModel : ViewModelBase
         if (PublicProfileHiddenRows.Count == 0)
             PublicProfileHiddenRows.Add("Скрытые поля сервером не перечислены");
 
+        ClientLogService.Instance.Info($"publicProfile.render fieldsLoaded={PublicProfileIdentityRows.Count + PublicProfileSummaryRows.Count}");
         NotifyPublicProfile();
     }
 
@@ -1452,7 +1472,7 @@ public class PlayerMainViewModel : ViewModelBase
         PublicProfileSubtitle = "Нет данных";
         PublicProfileStatusText = "Данные ещё не загружены";
         PublicProfileHintText = "Подключитесь к серверу, чтобы увидеть содержимое";
-        PublicProfileDescription = "После загрузки здесь появятся имя, раса, описание и доступная сводка характеристик другого персонажа.";
+        PublicProfileDescription = "После загрузки здесь появится предыстория и доступная сводка характеристик другого персонажа.";
         NotifyPublicProfile();
     }
 
@@ -1708,6 +1728,7 @@ public class PlayerMainViewModel : ViewModelBase
         var resultMap = AsMap(rawResult, context);
         if (resultMap == null || !resultMap.TryGetValue("rolls", out var rawRolls)) return string.Empty;
         var values = ToObjectList(rawRolls)
+            .Cast<object>()
             .Select(item => Convert.ToString(item, CultureInfo.InvariantCulture) ?? string.Empty)
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .ToArray();

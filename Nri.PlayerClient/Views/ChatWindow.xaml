@@ -9,7 +9,7 @@
         MaxWidth="400"
         MaxHeight="700"
         ResizeMode="NoResize">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -25,12 +25,12 @@
         </Border>
 
         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,8" Padding="8">
-            <ListBox x:Name="ChatMessagesList" ItemsSource="{Binding ChatMessageRows}">
+            <ListBox x:Name="ChatMessagesList" ItemsSource="{Binding ChatMessageRows}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,6">
                             <StackPanel>
-                                <TextBlock TextWrapping="Wrap">
+                                <TextBlock TextWrapping="Wrap" TextTrimming="None">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
@@ -56,13 +56,13 @@
         <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="180"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <ComboBox Grid.Column="0" Margin="0,0,8,0" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}"/>
-                <TextBox Grid.Column="1" Margin="0,0,8,0" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}" MinHeight="36" AcceptsReturn="True" TextWrapping="Wrap"/>
-                <Button Grid.Column="2" Content="Отправить" Command="{Binding ChatSendCommand}" MinHeight="36"/>
+                <ComboBox Grid.Column="0" Width="120" Margin="0,0,8,0" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}"/>
+                <TextBox Grid.Column="1" Margin="0,0,8,0" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}" MinHeight="36" AcceptsReturn="True" TextWrapping="Wrap" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"/>
+                <Button Grid.Column="2" Width="90" Content="Отправить" Command="{Binding ChatSendCommand}" MinHeight="36"/>
             </Grid>
         </Border>
     </Grid>

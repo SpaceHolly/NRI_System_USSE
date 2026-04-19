@@ -1742,8 +1742,11 @@ public class AdminMainViewModel : ViewModelBase
         EditDescription = S(r.Payload, "description");
         EditBackstory = S(r.Payload, "backstory");
         int.TryParse(S(r.Payload, "age"), out var age); EditAge = age;
+        Health = PhysicalArmor = MagicalArmor = Morale = Strength = Dexterity = Endurance = Wisdom = Intellect = Charisma = 0;
+        Iron = Bronze = Silver = Gold = Platinum = Orichalcum = Adamant = Sovereign = 0;
+        ExperienceCoins = 0;
 
-        if (r.Payload.ContainsKey("stats") && r.Payload["stats"] is Dictionary<string, object> stats)
+        if (r.Payload.ContainsKey("stats") && AsMap(r.Payload["stats"], CommandNames.CharacterGetDetails) is Dictionary<string, object> stats)
         {
             int.TryParse(S(stats, "health"), out var v); Health = v;
             int.TryParse(S(stats, "physicalArmor"), out v); PhysicalArmor = v;
@@ -1757,7 +1760,7 @@ public class AdminMainViewModel : ViewModelBase
             int.TryParse(S(stats, "charisma"), out v); Charisma = v;
         }
 
-        if (r.Payload.ContainsKey("money") && r.Payload["money"] is Dictionary<string, object> money)
+        if (r.Payload.ContainsKey("money") && AsMap(r.Payload["money"], CommandNames.CharacterGetDetails) is Dictionary<string, object> money)
         {
             long.TryParse(S(money, "Iron"), out var l); Iron = l;
             long.TryParse(S(money, "Bronze"), out l); Bronze = l;
@@ -1767,9 +1770,10 @@ public class AdminMainViewModel : ViewModelBase
             long.TryParse(S(money, "Orichalcum"), out l); Orichalcum = l;
             long.TryParse(S(money, "Adamant"), out l); Adamant = l;
             long.TryParse(S(money, "Sovereign"), out l); Sovereign = l;
-            long.TryParse(S(money, "ExperienceCoins"), out l); ExperienceCoins = l;
             ClientLogService.Instance.Debug($"ui-refresh section=Персонажи block=Финансы loadedCurrencies={money.Count}");
         }
+        long.TryParse(S(r.Payload, "xpCoins"), out var xpCoins);
+        ExperienceCoins = xpCoins;
 
         InventoryRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("inventory") ? r.Payload["inventory"] : new ArrayList()))
@@ -1792,6 +1796,7 @@ public class AdminMainViewModel : ViewModelBase
                 CompanionRows.Add($"{S(m, "name")} ({S(m, "species")})");
 
         NotifyAllEditor();
+        ClientLogService.Instance.Info($"character.reload stats={Health}/{Strength}/{Dexterity} money={Iron}/{Silver}/{Gold} xp={ExperienceCoins}");
     }
 
     private void LoadPendingRequests()
@@ -2554,7 +2559,7 @@ public class AdminMainViewModel : ViewModelBase
                 { "intellect", Intellect },
                 { "charisma", Charisma }
             });
-            ClientLogService.Instance.Info($"character.update.stats response={response.Status}:{response.Message}");
+            ClientLogService.Instance.Info($"character.save.stats response={response.Status}:{response.Message}");
             EnsureSuccess(response);
             OpenCharacter();
         });
@@ -2577,7 +2582,7 @@ public class AdminMainViewModel : ViewModelBase
                     }
                 }
             });
-            ClientLogService.Instance.Info($"character.update.money response={response.Status}:{response.Message}");
+            ClientLogService.Instance.Info($"character.save.money response={response.Status}:{response.Message}");
             EnsureSuccess(response);
             OpenCharacter();
         });
@@ -2594,7 +2599,7 @@ public class AdminMainViewModel : ViewModelBase
                 { "characterId", SelectedCharacterId },
                 { "xpCoins", ExperienceCoins }
             });
-            ClientLogService.Instance.Info($"character.update.xp response={response.Status}:{response.Message}");
+            ClientLogService.Instance.Info($"character.save.xp response={response.Status}:{response.Message}");
             EnsureSuccess(response);
             OpenCharacter();
         });
