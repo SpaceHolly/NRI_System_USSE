@@ -371,6 +371,7 @@ public class PlayerMainViewModel : ViewModelBase
 
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<ChatMessageRowVm> ChatMessageRows { get; } = new ObservableCollection<ChatMessageRowVm>();
+    public ObservableCollection<ChatMessageRowVm> MergedChatRows { get; } = new ObservableCollection<ChatMessageRowVm>();
     public ObservableCollection<string> EventRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> DiceFeedRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> RequestRows { get; } = new ObservableCollection<string>();
@@ -817,6 +818,7 @@ public class PlayerMainViewModel : ViewModelBase
         RefreshDiceAndRequests();
         RefreshCombatEvents();
         RefreshAudioState();
+        BuildMergedChatRows();
         BuildGameFeed();
     }
 
@@ -835,6 +837,7 @@ public class PlayerMainViewModel : ViewModelBase
         ChatTextInput = string.Empty;
         Notify(nameof(ChatTextInput));
         RefreshChat();
+        BuildMergedChatRows();
         BuildGameFeed();
     }
 
@@ -868,6 +871,7 @@ public class PlayerMainViewModel : ViewModelBase
         TraceChatDiagnostic($"mapped command={CommandNames.ChatVisibleFeed} mappedItems={mappedCount} filteredOut={filteredCount} displayItems={ChatMessageRows.Count}");
 
         BuildGameFeed();
+        BuildMergedChatRows();
         TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} chatMessageRows={ChatMessageRows.Count} uiCollection=GameFeedRows uiCount={GameFeedRows.Count}");
     }
 
@@ -1213,8 +1217,14 @@ public class PlayerMainViewModel : ViewModelBase
     {
         PublicCharacterRows.Clear();
         InitializeDefaultPublicProfile();
-        if (string.IsNullOrWhiteSpace(PublicViewCharacterId)) return;
-        var r = _api.CharacterPublicViewGet(PublicViewCharacterId);
+        var characterId = ResolvePublicProfileCharacterId();
+        if (string.IsNullOrWhiteSpace(characterId)) return;
+        PublicViewCharacterId = characterId;
+        Notify(nameof(PublicViewCharacterId));
+        ClientLogService.Instance.Info($"publicProfile.request characterId={characterId}");
+        var r = _api.CharacterPublicViewGet(characterId);
+        ClientLogService.Instance.Info($"publicProfile.result status={r.Status} message={r.Message}");
+        if (r.Status != ResponseStatus.Ok) return;
         foreach (var kv in r.Payload)
             PublicCharacterRows.Add(kv.Key + " = " + Convert.ToString(kv.Value));
 
@@ -1256,6 +1266,25 @@ public class PlayerMainViewModel : ViewModelBase
         NotifyPublicProfile();
         var fieldsLoaded = PublicProfileIdentityRows.Count + PublicProfileSummaryRows.Count;
         ClientLogService.Instance.Info($"publicProfile.render fieldsLoaded={fieldsLoaded}");
+    }
+
+    private string ResolvePublicProfileCharacterId()
+    {
+        var input = (PublicViewCharacterId ?? string.Empty).Trim();
+        if (!string.IsNullOrWhiteSpace(input))
+        {
+            var byId = MyCharacters.FirstOrDefault(character => string.Equals(character.Id, input, StringComparison.Ordinal));
+            if (byId != null) return byId.Id;
+            if (input.Length >= 8 && input.Length <= 128) return input;
+            var byName = MyCharacters.FirstOrDefault(character => string.Equals(character.Name, input, StringComparison.OrdinalIgnoreCase));
+            if (byName != null) return byName.Id;
+        }
+
+        if (SelectedMyCharacter != null && !string.IsNullOrWhiteSpace(SelectedMyCharacter.Id))
+            return SelectedMyCharacter.Id;
+        if (!string.IsNullOrWhiteSpace(SelectedCharacterId))
+            return SelectedCharacterId;
+        return string.Empty;
     }
 
     private void RefreshNotes()
@@ -1796,6 +1825,37 @@ public class PlayerMainViewModel : ViewModelBase
         ClientLogService.Instance.Info($"gameFeed diceMerged={mergedDiceCount}");
         TraceChatDiagnostic($"game-feed build chat={ChatMessageRows.Count} event={EventRows.Count} dice={DiceFeedRows.Count} request={RequestRows.Count} filteredPlaceholders={filteredPlaceholders} final={GameFeedRows.Count}");
     }
+
+    private void BuildMergedChatRows()
+    {
+        MergedChatRows.Clear();
+        foreach (var item in ChatMessageRows)
+            MergedChatRows.Add(item);
+
+        foreach (var item in DiceFeedRows)
+        {
+            if (IsPlaceholderText(item)) continue;
+            MergedChatRows.Add(new ChatMessageRowVm
+            {
+                Sender = "Dice",
+                Text = item,
+                Timestamp = string.Empty,
+                IsSystem = true
+            });
+        }
+
+        foreach (var item in EventRows)
+        {
+            if (IsPlaceholderText(item)) continue;
+            MergedChatRows.Add(new ChatMessageRowVm
+            {
+                Sender = "System",
+                Text = item,
+                Timestamp = string.Empty,
+                IsSystem = true
+            });
+        }
+    }
     private void AddCurrency(string name, string abbr, string color, Dictionary<string, object> money, string key)
     {
         long.TryParse(GetString(money, key), out var amount);
@@ -2170,6 +2230,8 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void TraceChatDiagnostic(string message)
     {
+        const bool enableChatDiagnostics = false;
+        if (!enableChatDiagnostics) return;
         var line = "[CHAT-DIAG][Player] " + message;
         ClientLogService.Instance.Debug(line);
     }
