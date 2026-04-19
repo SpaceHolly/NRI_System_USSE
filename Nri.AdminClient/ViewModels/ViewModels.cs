@@ -76,6 +76,7 @@ public sealed class ChatMessageRowVm : ViewModelBase
     public string Text { get; set; } = string.Empty;
     public string Timestamp { get; set; } = string.Empty;
     public bool IsSystem { get; set; }
+    public long SortTicks { get; set; }
 }
 
 public sealed class SkillLevelEditorRowVm : ViewModelBase
@@ -260,6 +261,7 @@ public class AdminMainViewModel : ViewModelBase
 
         _client = new JsonTcpClient(App.ClientConfig, _session);
         ClientLogService.Instance.Info("AdminMainViewModel initialized");
+        ClientLogService.Instance.Info("chat.window.layout fixedHeaderFooter=true");
         _api = new CommandApi(_client);
 
         LoginCommand = new RelayCommand(() => RunUiAction("Авторизация", Login));
@@ -866,6 +868,8 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<RowVm> SkillRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<ChatMessageRowVm> ChatMessageRows { get; } = new ObservableCollection<ChatMessageRowVm>();
+    public ObservableCollection<ChatMessageRowVm> MergedSessionFeedRows { get; } = new ObservableCollection<ChatMessageRowVm>();
+    public ObservableCollection<ChatMessageRowVm> DiceMessageRows { get; } = new ObservableCollection<ChatMessageRowVm>();
     public ObservableCollection<string> ChatRestrictionRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> AudioLibraryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> NotesRows { get; } = new ObservableCollection<string>();
@@ -1743,7 +1747,8 @@ public class AdminMainViewModel : ViewModelBase
         EditBackstory = S(r.Payload, "backstory");
         int.TryParse(S(r.Payload, "age"), out var age); EditAge = age;
 
-        if (r.Payload.ContainsKey("stats") && r.Payload["stats"] is Dictionary<string, object> stats)
+        var stats = r.Payload.TryGetValue("stats", out var statsRaw) ? AsMap(statsRaw) : null;
+        if (stats != null)
         {
             int.TryParse(S(stats, "health"), out var v); Health = v;
             int.TryParse(S(stats, "physicalArmor"), out v); PhysicalArmor = v;
@@ -1757,7 +1762,8 @@ public class AdminMainViewModel : ViewModelBase
             int.TryParse(S(stats, "charisma"), out v); Charisma = v;
         }
 
-        if (r.Payload.ContainsKey("money") && r.Payload["money"] is Dictionary<string, object> money)
+        var money = r.Payload.TryGetValue("money", out var moneyRaw) ? AsMap(moneyRaw) : null;
+        if (money != null)
         {
             long.TryParse(S(money, "Iron"), out var l); Iron = l;
             long.TryParse(S(money, "Bronze"), out l); Bronze = l;
@@ -1767,9 +1773,11 @@ public class AdminMainViewModel : ViewModelBase
             long.TryParse(S(money, "Orichalcum"), out l); Orichalcum = l;
             long.TryParse(S(money, "Adamant"), out l); Adamant = l;
             long.TryParse(S(money, "Sovereign"), out l); Sovereign = l;
-            long.TryParse(S(money, "ExperienceCoins"), out l); ExperienceCoins = l;
             ClientLogService.Instance.Debug($"ui-refresh section=Персонажи block=Финансы loadedCurrencies={money.Count}");
         }
+        long.TryParse(S(r.Payload, "xpCoins"), out var xpValue);
+        ExperienceCoins = xpValue;
+        ClientLogService.Instance.Info($"character.reload stats={Health}/{Strength}/{Dexterity} money={Gold}/{Silver}/{Iron} xp={ExperienceCoins}");
 
         InventoryRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("inventory") ? r.Payload["inventory"] : new ArrayList()))
@@ -2326,6 +2334,7 @@ public class AdminMainViewModel : ViewModelBase
         }
         TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} uiCollection=ChatMessageRows uiCount={ChatMessageRows.Count}");
         ClientLogService.Instance.Debug($"ui-refresh section=Сессия block=Чат loaded={ChatRows.Count} visible={ChatMessageRows.Count}");
+        RefreshDiceFeedForChat();
         MergeDiceIntoChatFeed();
 
         var unread = _api.ChatUnreadGet(sessionId);
@@ -2555,6 +2564,7 @@ public class AdminMainViewModel : ViewModelBase
                 { "charisma", Charisma }
             });
             ClientLogService.Instance.Info($"character.update.stats response={response.Status}:{response.Message}");
+            ClientLogService.Instance.Info($"character.save.stats response={response.Status}:{response.Message}");
             EnsureSuccess(response);
             OpenCharacter();
         });
@@ -2578,6 +2588,7 @@ public class AdminMainViewModel : ViewModelBase
                 }
             });
             ClientLogService.Instance.Info($"character.update.money response={response.Status}:{response.Message}");
+            ClientLogService.Instance.Info($"character.save.money response={response.Status}:{response.Message}");
             EnsureSuccess(response);
             OpenCharacter();
         });
@@ -2595,6 +2606,7 @@ public class AdminMainViewModel : ViewModelBase
                 { "xpCoins", ExperienceCoins }
             });
             ClientLogService.Instance.Info($"character.update.xp response={response.Status}:{response.Message}");
+            ClientLogService.Instance.Info($"character.save.xp response={response.Status}:{response.Message}");
             EnsureSuccess(response);
             OpenCharacter();
         });
@@ -2794,6 +2806,8 @@ public class AdminMainViewModel : ViewModelBase
 
     private void TraceChatDiagnostic(string message)
     {
+        const bool enableChatDiagnostics = false;
+        if (!enableChatDiagnostics) return;
         var line = "[CHAT-DIAG][Admin] " + message;
         ClientLogService.Instance.Debug(line);
     }
@@ -3024,32 +3038,87 @@ public class AdminMainViewModel : ViewModelBase
             Sender = sender,
             Text = text,
             Timestamp = timestamp,
-            IsSystem = string.Equals(type, "System", StringComparison.OrdinalIgnoreCase)
+            IsSystem = string.Equals(type, "System", StringComparison.OrdinalIgnoreCase),
+            SortTicks = ParseTimelineTicks(createdRaw)
         };
     }
 
     private void MergeDiceIntoChatFeed()
     {
-        var merged = 0;
-        foreach (var row in DiceFeedRows)
+        MergedSessionFeedRows.Clear();
+        var timeline = new List<ChatMessageRowVm>();
+        timeline.AddRange(ChatMessageRows);
+        timeline.AddRange(DiceMessageRows.Where(row => !IsPlaceholderText(row.Text)));
+        var sorted = timeline
+            .OrderBy(row => row.SortTicks == 0 ? long.MaxValue : row.SortTicks)
+            .ThenBy(row => row.Timestamp, StringComparer.Ordinal)
+            .ToList();
+        foreach (var row in sorted)
+            MergedSessionFeedRows.Add(row);
+
+        var merged = DiceMessageRows.Count(row => !IsPlaceholderText(row.Text));
+        ClientLogService.Instance.Info($"gameFeed diceMerged={merged}");
+        ClientLogService.Instance.Info($"chat.window.timeline mergedCount={MergedSessionFeedRows.Count}");
+        var first = MergedSessionFeedRows.Count > 0 ? $"{MergedSessionFeedRows[0].Sender}:{MergedSessionFeedRows[0].Timestamp}" : "<empty>";
+        var last = MergedSessionFeedRows.Count > 0 ? $"{MergedSessionFeedRows[^1].Sender}:{MergedSessionFeedRows[^1].Timestamp}" : "<empty>";
+        ClientLogService.Instance.Debug($"merged.timeline first={first}");
+        ClientLogService.Instance.Debug($"merged.timeline last={last}");
+        ClientLogService.Instance.Info("chat.window.timeline sorted=true");
+        ClientLogService.Instance.Debug("merged.timeline sorted=true");
+    }
+
+    private void RefreshDiceFeedForChat()
+    {
+        DiceFeedRows.Clear();
+        DiceMessageRows.Clear();
+        var feed = _api.DiceVisibleFeed();
+        if (feed.Status != ResponseStatus.Ok || !feed.Payload.ContainsKey("items")) return;
+
+        var firstDiceTimestampRaw = string.Empty;
+        var firstDiceTimestampMapped = string.Empty;
+        foreach (var obj in ToList(feed.Payload["items"]))
         {
-            if (IsPlaceholderText(row) || ChatRows.Contains(row))
+            var map = AsMap(obj);
+            if (map == null) continue;
+            var total = "?";
+            if (map.ContainsKey("result"))
             {
-                continue;
+                var result = AsMap(map["result"]);
+                if (result != null) total = FirstNonEmpty(S(result, "total"), "?");
             }
 
-            ChatRows.Add(row);
-            ChatMessageRows.Add(new ChatMessageRowVm
+            var creator = FirstNonEmpty(S(map, "creatorLogin"), S(map, "creatorUserId"));
+            var isTest = string.Equals(S(map, "isTestRoll"), "True", StringComparison.OrdinalIgnoreCase);
+            var label = isTest ? "[ТЕСТ] " : string.Empty;
+            var rolls = BuildDiceRollDetails(map, CommandNames.DiceVisibleFeed);
+            var diceText = $"{label}{S(map, "formula")} = {total}{rolls} | {S(map, "visibility")}";
+            var createdRaw = FirstNonEmpty(
+                S(map, "createdUtc"),
+                S(map, "createdAtUtc"),
+                S(map, "requestedUtc"),
+                S(map, "resolvedUtc"),
+                S(map, "at"));
+            var timestampMapped = FormatChatTimestamp(createdRaw);
+            DiceFeedRows.Add($"{creator}: {diceText}");
+            DiceMessageRows.Add(new ChatMessageRowVm
             {
-                Sender = "Dice",
-                Text = row,
-                Timestamp = string.Empty,
-                IsSystem = true
+                Sender = creator,
+                Text = diceText,
+                Timestamp = timestampMapped,
+                IsSystem = true,
+                SortTicks = ParseTimelineTicks(createdRaw)
             });
-            merged++;
+            if (string.IsNullOrWhiteSpace(firstDiceTimestampRaw))
+            {
+                firstDiceTimestampRaw = createdRaw;
+                firstDiceTimestampMapped = timestampMapped;
+            }
         }
-
-        ClientLogService.Instance.Info($"gameFeed diceMerged={merged}");
+        if (DiceMessageRows.Count > 0)
+        {
+            ClientLogService.Instance.Debug($"dice.timeline timestampRaw={firstDiceTimestampRaw}");
+            ClientLogService.Instance.Debug($"dice.timeline timestampMapped={firstDiceTimestampMapped}");
+        }
     }
 
     private string BuildDiceRollDetails(Dictionary<string, object> map, string context)
@@ -3095,6 +3164,13 @@ public class AdminMainViewModel : ViewModelBase
         }
 
         return rawValue;
+    }
+
+    private static long ParseTimelineTicks(string rawValue)
+    {
+        if (TryParseServerTimestamp(rawValue, out var parsed))
+            return parsed.Ticks;
+        return 0;
     }
 
     private static bool TryParseServerTimestamp(string rawValue, out DateTime utcValue)
