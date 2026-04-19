@@ -521,6 +521,22 @@ public partial class ServiceHub
         return Ok("Character money updated.", new Dictionary<string, object> { { "money", WalletPayload(c.Wallet) } });
     }
 
+    public ResponseEnvelope CharacterUpdateXpCoins(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var xpCoins = PayloadReader.GetInt(context.Request.Payload, "xpCoins");
+        if (!xpCoins.HasValue)
+            throw new ArgumentException("xpCoins is required.");
+        if (xpCoins.Value < 0)
+            throw new ArgumentException("xpCoins must be >= 0.");
+
+        c.XpCoins = xpCoins.Value;
+        _repositories.Characters.Replace(c);
+        WriteAudit("character", actor.Id, "updateXpCoins", c.Id);
+        return Ok("Character xp coins updated.", new Dictionary<string, object> { { "xpCoins", c.XpCoins } });
+    }
+
     public ResponseEnvelope CharacterUpdateInventory(CommandContext context)
     {
         var actor = RequireAdmin(context);

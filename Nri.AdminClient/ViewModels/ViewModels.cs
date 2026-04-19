@@ -1426,7 +1426,7 @@ public class AdminMainViewModel : ViewModelBase
                 LoadOwnerCharacters();
             }
             LoadLocksSummary();
-            ClientLogService.Instance.Info($"ui-refresh section=Люди final pending={PendingAccounts.Count} players={Players.Count} characters={Characters.Count} locks={LockRows.Count}");
+            ClientLogService.Instance.Debug($"ui-refresh section=Люди final pending={PendingAccounts.Count} players={Players.Count} characters={Characters.Count} locks={LockRows.Count}");
         });
     }
 
@@ -1436,7 +1436,7 @@ public class AdminMainViewModel : ViewModelBase
         {
             LoadPendingRequests();
             LoadRequestHistory();
-            ClientLogService.Instance.Info($"ui-refresh section=Модерация final requests={PendingRequests.Count} history={RequestHistoryRows.Count} dice={DiceFeedRows.Count}");
+            ClientLogService.Instance.Debug($"ui-refresh section=Модерация final requests={PendingRequests.Count} history={RequestHistoryRows.Count} dice={DiceFeedRows.Count}");
         });
     }
 
@@ -1447,7 +1447,7 @@ public class AdminMainViewModel : ViewModelBase
             CombatRefresh();
             ChatRefresh();
             AudioRefresh();
-            ClientLogService.Instance.Info($"ui-refresh section=Сессия final combatRows={CombatRows.Count} chatRows={ChatRows.Count} audioRows={AudioLibraryRows.Count}");
+            ClientLogService.Instance.Debug($"ui-refresh section=Сессия final combatRows={CombatRows.Count} chatRows={ChatRows.Count} audioRows={AudioLibraryRows.Count}");
         });
     }
 
@@ -1458,7 +1458,7 @@ public class AdminMainViewModel : ViewModelBase
             DefinitionsReload();
             RefreshDefinitionClasses();
             RefreshDefinitionSkills();
-            ClientLogService.Instance.Info($"ui-refresh section=Контент final classes={ClassDefinitionRows.Count} skills={SkillDefinitionRows.Count}");
+            ClientLogService.Instance.Debug($"ui-refresh section=Контент final classes={ClassDefinitionRows.Count} skills={SkillDefinitionRows.Count}");
         });
     }
 
@@ -1468,7 +1468,7 @@ public class AdminMainViewModel : ViewModelBase
         {
             BackupRefresh();
             DiagnosticsRefresh();
-            ClientLogService.Instance.Info($"ui-refresh section=Система final backups={BackupItems.Count} diagnostics={DiagnosticsItems.Count}");
+            ClientLogService.Instance.Debug($"ui-refresh section=Система final backups={BackupItems.Count} diagnostics={DiagnosticsItems.Count}");
         });
     }
 
@@ -1572,7 +1572,7 @@ public class AdminMainViewModel : ViewModelBase
                         isAdmin = true;
                     }
                 }
-                ClientLogService.Instance.Info($"admin.roleGate rolesResolved={string.Join(',', resolvedRoles)}");
+                ClientLogService.Instance.Info($"admin.roleGate rolesResolved={string.Join(", ", resolvedRoles)}");
                 ClientLogService.Instance.Info($"admin.roleGate isAdmin={isAdmin}");
                 if (!isAdmin)
                 {
@@ -1821,12 +1821,12 @@ public class AdminMainViewModel : ViewModelBase
         }
 
         DiceFeedRows.Clear();
-        ClientLogService.Instance.Info("dice.feed.refresh requested");
+        ClientLogService.Instance.Debug("dice.feed.refresh requested");
         var feed = _api.DiceVisibleFeed();
         if (feed.Status == ResponseStatus.Ok && feed.Payload.ContainsKey("items"))
         {
             var rawItems = ToList(feed.Payload["items"]);
-            ClientLogService.Instance.Info($"dice.feed.refresh itemsRaw={rawItems.Count}");
+            ClientLogService.Instance.Debug($"dice.feed.refresh itemsRaw={rawItems.Count}");
             var mappedItems = 0;
             foreach (var obj in rawItems)
             {
@@ -1842,25 +1842,13 @@ public class AdminMainViewModel : ViewModelBase
                 var creator = FirstNonEmpty(S(m, "creatorLogin"), S(m, "creatorUserId"));
                 var isTest = string.Equals(S(m, "isTestRoll"), "True", StringComparison.OrdinalIgnoreCase);
                 var label = isTest ? "[ТЕСТ] " : string.Empty;
-                var rolls = string.Empty;
-                if (m.ContainsKey("result"))
-                {
-                    var result = AsMap(m["result"]);
-                    if (result != null && result.TryGetValue("rolls", out var rawRolls))
-                    {
-                        var values = ToList(rawRolls)
-                            .Cast<object>()
-                            .Select(value => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty)
-                            .Where(value => !string.IsNullOrWhiteSpace(value))
-                            .ToArray();
-                        rolls = values.Length == 0 ? string.Empty : $" ({string.Join(",", values)})";
-                    }
-                }
+                var rolls = BuildDiceRollDetails(m, CommandNames.DiceVisibleFeed);
                 DiceFeedRows.Add($"{creator} | {label}{S(m, "formula")} = {total}{rolls} | {S(m, "visibility")}");
             }
-            ClientLogService.Instance.Info($"dice.feed.refresh itemsMapped={mappedItems}");
+            ClientLogService.Instance.Debug($"dice.feed.refresh itemsMapped={mappedItems}");
         }
-        ClientLogService.Instance.Info($"dice.feed.render visibleRows={DiceFeedRows.Count}");
+        ClientLogService.Instance.Debug($"dice.feed.render visibleRows={DiceFeedRows.Count}");
+        MergeDiceIntoChatFeed();
         RefreshConnectionSummary();
     }
 
@@ -2338,6 +2326,7 @@ public class AdminMainViewModel : ViewModelBase
         }
         TraceChatDiagnostic($"collection command={CommandNames.ChatVisibleFeed} chatRows={ChatRows.Count} uiCollection=ChatMessageRows uiCount={ChatMessageRows.Count}");
         ClientLogService.Instance.Debug($"ui-refresh section=Сессия block=Чат loaded={ChatRows.Count} visible={ChatMessageRows.Count}");
+        MergeDiceIntoChatFeed();
 
         var unread = _api.ChatUnreadGet(sessionId);
         ChatUnreadText = "Unread: " + S(unread.Payload, "count");
@@ -2537,7 +2526,6 @@ public class AdminMainViewModel : ViewModelBase
                 { "race", EditRace },
                 { "height", EditHeight },
                 { "age", EditAge },
-                { "description", EditDescription },
                 { "backstory", EditBackstory }
             });
             ClientLogService.Instance.Info($"character.update.basic response={response.Status}:{response.Message}");
@@ -2585,7 +2573,7 @@ public class AdminMainViewModel : ViewModelBase
                     {
                         { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold },
                         { "Platinum", Platinum }, { "Orichalcum", Orichalcum }, { "Adamant", Adamant },
-                        { "Sovereign", Sovereign }, { "ExperienceCoins", ExperienceCoins }
+                        { "Sovereign", Sovereign }
                     }
                 }
             });
@@ -2601,16 +2589,10 @@ public class AdminMainViewModel : ViewModelBase
         RunUiAction("Сохранение монет опыта", () =>
         {
             ClientLogService.Instance.Info("ui-action section=Персонажи action=SaveXpCoins");
-            var response = _api.UpdateCharacterMoney(new Dictionary<string, object>
+            var response = _api.UpdateCharacterXpCoins(new Dictionary<string, object>
             {
                 { "characterId", SelectedCharacterId },
-                { "money", new Dictionary<string, object>
-                    {
-                        { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold },
-                        { "Platinum", Platinum }, { "Orichalcum", Orichalcum }, { "Adamant", Adamant },
-                        { "Sovereign", Sovereign }, { "ExperienceCoins", ExperienceCoins }
-                    }
-                }
+                { "xpCoins", ExperienceCoins }
             });
             ClientLogService.Instance.Info($"character.update.xp response={response.Status}:{response.Message}");
             EnsureSuccess(response);
@@ -3046,10 +3028,55 @@ public class AdminMainViewModel : ViewModelBase
         };
     }
 
+    private void MergeDiceIntoChatFeed()
+    {
+        var merged = 0;
+        foreach (var row in DiceFeedRows)
+        {
+            if (IsPlaceholderText(row) || ChatRows.Contains(row))
+            {
+                continue;
+            }
+
+            ChatRows.Add(row);
+            ChatMessageRows.Add(new ChatMessageRowVm
+            {
+                Sender = "Dice",
+                Text = row,
+                Timestamp = string.Empty,
+                IsSystem = true
+            });
+            merged++;
+        }
+
+        ClientLogService.Instance.Info($"gameFeed diceMerged={merged}");
+    }
+
+    private string BuildDiceRollDetails(Dictionary<string, object> map, string context)
+    {
+        if (!map.TryGetValue("result", out var rawResult)) return string.Empty;
+        var result = AsMap(rawResult, context);
+        if (result == null || !result.TryGetValue("rolls", out var rawRolls)) return string.Empty;
+        var values = ToList(rawRolls)
+            .Cast<object>()
+            .Select(value => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToArray();
+        if (values.Length == 0) return string.Empty;
+
+        var rolled = string.Join(",", values);
+        var modifier = 0;
+        if (result.TryGetValue("modifier", out var rawModifier))
+            int.TryParse(Convert.ToString(rawModifier, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out modifier);
+        if (modifier == 0) return $" ({rolled})";
+        return modifier > 0 ? $" ({rolled}+{modifier})" : $" ({rolled}{modifier})";
+    }
+
     private static bool IsPlaceholderText(string text)
     {
         return string.Equals(text, "Нет сообщений", StringComparison.OrdinalIgnoreCase)
-               || string.Equals(text, "Нет системных событий", StringComparison.OrdinalIgnoreCase);
+               || string.Equals(text, "Нет системных событий", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(text, "Нет видимых бросков", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string FormatChatTimestamp(string rawValue)
