@@ -1073,21 +1073,32 @@
 
                     <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,8,0,0">
                         <StackPanel>
-                            <TextBlock Text="Состояние сессии" FontWeight="Bold"/>
-                            <ItemsControl ItemsSource="{Binding SessionStateRows}"/>
+                            <TextBlock Text="Создание персонажа" FontWeight="Bold" FontSize="16"/>
+                            <TextBlock Text="Форма создания персонажа вынесена в отдельное окно: имя, раса и предыстория." Margin="0,6,0,8" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"/>
+                            <Button Content="Открыть форму создания" Click="OpenCharacterCreateWindow" Height="34"/>
+                            <TextBlock Margin="0,8,0,0" Text="{Binding ConnectionStatusDetail}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
 
                     <Border Grid.Row="3" Style="{StaticResource CardStyle}" Margin="0,8,0,0">
                         <StackPanel>
-                            <TextBlock Text="Музыка" FontWeight="Bold"/>
-                            <TextBlock Text="{Binding AudioStateText}" Margin="0,4,0,6"/>
+                            <TextBlock Text="Бросок кубиков" FontWeight="Bold" FontSize="16"/>
+                            <TextBlock Text="Броски кубиков. Режим: Обычный — в общую историю, Тестовый — личный тест." Margin="0,4,0,6" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
                             <WrapPanel>
-                                <TextBlock Text="Громкость" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <Slider Width="120" Minimum="0" Maximum="1" Value="{Binding LocalVolume, UpdateSourceTrigger=PropertyChanged}"/>
-                                <CheckBox Content="Mute" IsChecked="{Binding LocalMuted}" Margin="8,0,0,0"/>
+                                <TextBlock Text="Режим" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <ComboBox Width="100" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/>
+                                <TextBlock Text="Формула" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                                <TextBox Width="36" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="d" VerticalAlignment="Center"/>
+                                <TextBox Width="46" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBox Width="56" Margin="6,0,0,0" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}" ToolTip="Модификатор"/>
                             </WrapPanel>
-                            <Button Content="Применить" Command="{Binding AudioApplyLocalSettingsCommand}" HorizontalAlignment="Left"/>
+                            <WrapPanel Margin="0,6,0,0">
+                                <TextBlock Text="Видимость" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <ComboBox Width="130" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
+                                <Button Margin="6,0,0,0" Content="Бросить" Command="{Binding CreateDiceRequestCommand}"/>
+                            </WrapPanel>
+                            <TextBox Margin="0,6,0,0" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание броска"/>
                         </StackPanel>
                     </Border>
                 </Grid>
