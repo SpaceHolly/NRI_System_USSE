@@ -508,15 +508,44 @@ public partial class ServiceHub
     {
         var actor = RequireAdmin(context);
         var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var moneyRawRuntimeType = context.Request.Payload.ContainsKey("money") && context.Request.Payload["money"] != null
+            ? context.Request.Payload["money"]!.GetType().FullName ?? context.Request.Payload["money"]!.GetType().Name
+            : "null";
+        _logger.Admin($"character.update.money payloadKeys={string.Join(\",\", context.Request.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
+        _logger.Admin($"character.money.save runtimeType={moneyRawRuntimeType}");
         var moneyRaw = PayloadReader.GetDictionary(context.Request.Payload, "money") ?? new Dictionary<string, object>();
+        _logger.Admin($"character.money.save request currencies={string.Join(\",\", moneyRaw.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
         c.Wallet.EnsureAllDenominations();
+        var updatedCurrencies = 0;
+        var acceptedCurrencies = new List<string>();
+        var rejectedCurrencies = new List<string>();
         foreach (CurrencyDenomination d in Enum.GetValues(typeof(CurrencyDenomination)))
         {
             var value = PayloadReader.GetLong(moneyRaw, d.ToString());
-            if (value.HasValue && value.Value >= 0) c.Wallet.Balance.Amounts[d.ToString()] = value.Value;
+            if (!value.HasValue)
+            {
+                if (moneyRaw.ContainsKey(d.ToString())) rejectedCurrencies.Add(d + "=<unparsed>");
+                continue;
+            }
+            if (value.Value < 0)
+            {
+                rejectedCurrencies.Add(d + "=" + value.Value);
+                continue;
+            }
+            c.Wallet.Balance.Amounts[d.ToString()] = value.Value;
+            updatedCurrencies++;
+            acceptedCurrencies.Add(d + "=" + value.Value);
+        }
+        _logger.Admin($"character.money.save accepted keys={string.Join(\",\", acceptedCurrencies)}");
+        _logger.Admin($"character.money.save rejected keys={string.Join(\",\", rejectedCurrencies)}");
+        if (updatedCurrencies == 0)
+        {
+            _logger.Admin("character.money.save validator rejected keys=none-valid");
+            throw new ArgumentException("money payload does not contain any valid currencies.");
         }
         c.Wallet.NormalizeUpward();
         _repositories.Characters.Replace(c);
+        _logger.Admin($"character.money.save response=ok currenciesSaved={updatedCurrencies}");
         WriteAudit("character", actor.Id, "updateMoney", c.Id);
         return Ok("Character money updated.", new Dictionary<string, object> { { "money", WalletPayload(c.Wallet) } });
     }
@@ -1906,8 +1935,15 @@ public partial class ServiceHub
             existing.Description = roll.Description;
             existing.Result = roll.Result;
             existing.Status = RequestStatus.Approved;
+            var oldTimestamp = existing.CreatedUtc;
+            var newTimestamp = DateTime.UtcNow;
+            existing.CreatedUtc = newTimestamp;
+            existing.UpdatedUtc = newTimestamp;
             existing.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "TestReplaced", Comment = roll.Formula.Normalized });
             _repositories.DiceRequests.Replace(existing);
+            _logger.Admin($"dice.roll.test replacement oldTimestamp={oldTimestamp:o}");
+            _logger.Admin($"dice.roll.test replacement newTimestamp={newTimestamp:o}");
+            _logger.Admin("dice.roll.test replacement updated=true");
             _logger.Admin($"dice.roll.test replacedPrevious=true actor={actor.Login} requestId={existing.Id}");
             _logger.Admin($"dice.roll.test actor={actor.Login} action=replace requestId={existing.Id} total={existing.Result?.Total ?? 0} replacedPrevious=true");
             return Ok("Test dice roll replaced.", DiceRequestPayload(existing, actor));
@@ -2235,6 +2271,9 @@ public partial class ServiceHub
             { "creatorLogin", creatorLogin },
             { "characterId", request.CharacterId ?? string.Empty },
             { "status", request.Status.ToString() },
+            { "createdUtc", request.CreatedUtc },
+            { "updatedUtc", request.UpdatedUtc },
+            { "requestedUtc", request.CreatedUtc },
             { "description", request.Description },
             { "isTestRoll", request.IsTestRoll },
             { "visibility", request.Visibility.ToString() },
@@ -2248,6 +2287,7 @@ public partial class ServiceHub
 
         if (request.Result != null && CanViewDice(viewer, request))
         {
+            basePayload["resolvedUtc"] = request.Result.ApprovedAtUtc;
             basePayload["result"] = new Dictionary<string, object>
             {
                 { "normalizedFormula", request.Result.NormalizedFormula },

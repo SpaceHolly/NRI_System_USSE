@@ -20,12 +20,15 @@ public partial class ChatWindow : Window
         {
             ClientLogService.Instance.Info("ui.chat.window.loaded scroll=true");
             ClientLogService.Instance.Info("chat.window size=400x700");
+            ClientLogService.Instance.Info("chat.window.layout fixedHeaderFooter=true");
+            ClientLogService.Instance.Info("chat.window.messageWrap enabled=true");
+            ClientLogService.Instance.Info("chat.window.input.layout wideInput=true");
             _chatScrollViewer = FindDescendantScrollViewer(ChatMessagesList);
             if (_chatScrollViewer != null) _chatScrollViewer.ScrollChanged += OnChatScrollChanged;
             if (DataContext is PlayerMainViewModel vm)
             {
                 vm.PropertyChanged += OnVmPropertyChanged;
-                vm.ChatMessageRows.CollectionChanged += OnChatRowsChanged;
+                vm.MergedChatRows.CollectionChanged += OnChatRowsChanged;
                 vm.NotifyChatWindowOpened();
             }
             ScrollToLatest(force: true);
@@ -35,7 +38,7 @@ public partial class ChatWindow : Window
             if (DataContext is PlayerMainViewModel vm)
             {
                 vm.PropertyChanged -= OnVmPropertyChanged;
-                vm.ChatMessageRows.CollectionChanged -= OnChatRowsChanged;
+                vm.MergedChatRows.CollectionChanged -= OnChatRowsChanged;
             }
             if (_chatScrollViewer != null) _chatScrollViewer.ScrollChanged -= OnChatScrollChanged;
         };
