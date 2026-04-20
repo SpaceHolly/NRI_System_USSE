@@ -47,14 +47,14 @@
                                     <Run Text="{Binding Sender}" FontWeight="SemiBold"/>
                                     <Run Text=": "/>
                                     <Run Text="{Binding Text}"/>
-                                </TextBlock>
-                                <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </Border>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
 
         <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
             <Grid>
@@ -77,3 +77,4 @@
         </Border>
     </Grid>
 </Window>
+

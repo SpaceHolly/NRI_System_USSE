@@ -543,6 +543,8 @@ public partial class ServiceHub
             _logger.Admin("character.money.save validator rejected keys=none-valid");
             throw new ArgumentException("money payload does not contain any valid currencies.");
         }
+        if (updatedCurrencies == 0)
+            throw new ArgumentException("money payload does not contain any valid currencies.");
         c.Wallet.NormalizeUpward();
         _repositories.Characters.Replace(c);
         _logger.Admin($"character.money.save response=ok currenciesSaved={updatedCurrencies}");
