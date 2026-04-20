@@ -1778,6 +1778,7 @@ public class AdminMainViewModel : ViewModelBase
         long.TryParse(S(r.Payload, "xpCoins"), out var xpValue);
         ExperienceCoins = xpValue;
         ClientLogService.Instance.Info($"character.reload stats={Health}/{Strength}/{Dexterity} money={Gold}/{Silver}/{Iron} xp={ExperienceCoins}");
+        ClientLogService.Instance.Info($"character.money.reload values=Iron:{Iron},Bronze:{Bronze},Silver:{Silver},Gold:{Gold},Platinum:{Platinum},Orichalcum:{Orichalcum},Adamant:{Adamant},Sovereign:{Sovereign}");
 
         InventoryRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("inventory") ? r.Payload["inventory"] : new ArrayList()))
@@ -2576,18 +2577,22 @@ public class AdminMainViewModel : ViewModelBase
         RunUiAction("Сохранение денег персонажа", () =>
         {
             ClientLogService.Instance.Info("ui-action section=Персонажи action=SaveMoney");
-            var response = _api.UpdateCharacterMoney(new Dictionary<string, object>
+            var moneyPayload = new Dictionary<string, object>
+            {
+                { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold },
+                { "Platinum", Platinum }, { "Orichalcum", Orichalcum }, { "Adamant", Adamant },
+                { "Sovereign", Sovereign }
+            };
+            var payload = new Dictionary<string, object>
             {
                 { "characterId", SelectedCharacterId },
-                { "money", new Dictionary<string, object>
-                    {
-                        { "Iron", Iron }, { "Bronze", Bronze }, { "Silver", Silver }, { "Gold", Gold },
-                        { "Platinum", Platinum }, { "Orichalcum", Orichalcum }, { "Adamant", Adamant },
-                        { "Sovereign", Sovereign }
-                    }
-                }
-            });
+                { "money", moneyPayload }
+            };
+            ClientLogService.Instance.Info($"character.update.money payloadKeys={string.Join(\",\", payload.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
+            ClientLogService.Instance.Info($"character.money.save request currencies=Iron:{Iron},Bronze:{Bronze},Silver:{Silver},Gold:{Gold},Platinum:{Platinum},Orichalcum:{Orichalcum},Adamant:{Adamant},Sovereign:{Sovereign}");
+            var response = _api.UpdateCharacterMoney(payload);
             ClientLogService.Instance.Info($"character.update.money response={response.Status}:{response.Message}");
+            ClientLogService.Instance.Info($"character.money.save response={response.Status}:{response.Message}");
             ClientLogService.Instance.Info($"character.save.money response={response.Status}:{response.Message}");
             EnsureSuccess(response);
             OpenCharacter();
@@ -3060,7 +3065,7 @@ public class AdminMainViewModel : ViewModelBase
         ClientLogService.Instance.Info($"gameFeed diceMerged={merged}");
         ClientLogService.Instance.Info($"chat.window.timeline mergedCount={MergedSessionFeedRows.Count}");
         var first = MergedSessionFeedRows.Count > 0 ? $"{MergedSessionFeedRows[0].Sender}:{MergedSessionFeedRows[0].Timestamp}" : "<empty>";
-        var last = MergedSessionFeedRows.Count > 0 ? $"{MergedSessionFeedRows[^1].Sender}:{MergedSessionFeedRows[^1].Timestamp}" : "<empty>";
+        var last = MergedSessionFeedRows.Count > 0 ? $"{MergedSessionFeedRows[MergedSessionFeedRows.Count - 1].Sender}:{MergedSessionFeedRows[MergedSessionFeedRows.Count - 1].Timestamp}" : "<empty>";
         ClientLogService.Instance.Debug($"merged.timeline first={first}");
         ClientLogService.Instance.Debug($"merged.timeline last={last}");
         ClientLogService.Instance.Info("chat.window.timeline sorted=true");

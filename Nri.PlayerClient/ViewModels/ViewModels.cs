@@ -1886,7 +1886,7 @@ public class PlayerMainViewModel : ViewModelBase
 
         ClientLogService.Instance.Info($"chat.window.timeline mergedCount={MergedChatRows.Count}");
         var first = MergedChatRows.Count > 0 ? $"{MergedChatRows[0].Sender}:{MergedChatRows[0].Timestamp}" : "<empty>";
-        var last = MergedChatRows.Count > 0 ? $"{MergedChatRows[^1].Sender}:{MergedChatRows[^1].Timestamp}" : "<empty>";
+        var last = MergedChatRows.Count > 0 ? $"{MergedChatRows[MergedChatRows.Count - 1].Sender}:{MergedChatRows[MergedChatRows.Count - 1].Timestamp}" : "<empty>";
         ClientLogService.Instance.Debug($"merged.timeline first={first}");
         ClientLogService.Instance.Debug($"merged.timeline last={last}");
         ClientLogService.Instance.Info("chat.window.timeline sorted=true");

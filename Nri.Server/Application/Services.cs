@@ -509,14 +509,21 @@ public partial class ServiceHub
         var actor = RequireAdmin(context);
         var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var moneyRaw = PayloadReader.GetDictionary(context.Request.Payload, "money") ?? new Dictionary<string, object>();
+        _logger.Admin($"character.money.save request currencies={string.Join(\",\", moneyRaw.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
         c.Wallet.EnsureAllDenominations();
+        var updatedCurrencies = 0;
         foreach (CurrencyDenomination d in Enum.GetValues(typeof(CurrencyDenomination)))
         {
             var value = PayloadReader.GetLong(moneyRaw, d.ToString());
-            if (value.HasValue && value.Value >= 0) c.Wallet.Balance.Amounts[d.ToString()] = value.Value;
+            if (!value.HasValue || value.Value < 0) continue;
+            c.Wallet.Balance.Amounts[d.ToString()] = value.Value;
+            updatedCurrencies++;
         }
+        if (updatedCurrencies == 0)
+            throw new ArgumentException("money payload does not contain any valid currencies.");
         c.Wallet.NormalizeUpward();
         _repositories.Characters.Replace(c);
+        _logger.Admin($"character.money.save response=ok currenciesSaved={updatedCurrencies}");
         WriteAudit("character", actor.Id, "updateMoney", c.Id);
         return Ok("Character money updated.", new Dictionary<string, object> { { "money", WalletPayload(c.Wallet) } });
     }
@@ -1906,8 +1913,15 @@ public partial class ServiceHub
             existing.Description = roll.Description;
             existing.Result = roll.Result;
             existing.Status = RequestStatus.Approved;
+            var oldTimestamp = existing.CreatedUtc;
+            var newTimestamp = DateTime.UtcNow;
+            existing.CreatedUtc = newTimestamp;
+            existing.UpdatedUtc = newTimestamp;
             existing.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "TestReplaced", Comment = roll.Formula.Normalized });
             _repositories.DiceRequests.Replace(existing);
+            _logger.Admin($"dice.roll.test replacement oldTimestamp={oldTimestamp:o}");
+            _logger.Admin($"dice.roll.test replacement newTimestamp={newTimestamp:o}");
+            _logger.Admin("dice.roll.test replacement updated=true");
             _logger.Admin($"dice.roll.test replacedPrevious=true actor={actor.Login} requestId={existing.Id}");
             _logger.Admin($"dice.roll.test actor={actor.Login} action=replace requestId={existing.Id} total={existing.Result?.Total ?? 0} replacedPrevious=true");
             return Ok("Test dice roll replaced.", DiceRequestPayload(existing, actor));
