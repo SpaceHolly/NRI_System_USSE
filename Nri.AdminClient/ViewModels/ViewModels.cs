@@ -2590,6 +2590,7 @@ public class AdminMainViewModel : ViewModelBase
             };
             ClientLogService.Instance.Info($"character.update.money payloadKeys={string.Join(\",\", payload.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
             ClientLogService.Instance.Info($"character.money.save request currencies=Iron:{Iron},Bronze:{Bronze},Silver:{Silver},Gold:{Gold},Platinum:{Platinum},Orichalcum:{Orichalcum},Adamant:{Adamant},Sovereign:{Sovereign}");
+            ClientLogService.Instance.Info($"character.money.save payload={{{string.Join(\", \", moneyPayload.OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => kv.Key + \":\" + kv.Value))}}}");
             var response = _api.UpdateCharacterMoney(payload);
             ClientLogService.Instance.Info($"character.update.money response={response.Status}:{response.Message}");
             ClientLogService.Instance.Info($"character.money.save response={response.Status}:{response.Message}");

@@ -508,16 +508,40 @@ public partial class ServiceHub
     {
         var actor = RequireAdmin(context);
         var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var moneyRawRuntimeType = context.Request.Payload.ContainsKey("money") && context.Request.Payload["money"] != null
+            ? context.Request.Payload["money"]!.GetType().FullName ?? context.Request.Payload["money"]!.GetType().Name
+            : "null";
+        _logger.Admin($"character.update.money payloadKeys={string.Join(\",\", context.Request.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
+        _logger.Admin($"character.money.save runtimeType={moneyRawRuntimeType}");
         var moneyRaw = PayloadReader.GetDictionary(context.Request.Payload, "money") ?? new Dictionary<string, object>();
         _logger.Admin($"character.money.save request currencies={string.Join(\",\", moneyRaw.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
         c.Wallet.EnsureAllDenominations();
         var updatedCurrencies = 0;
+        var acceptedCurrencies = new List<string>();
+        var rejectedCurrencies = new List<string>();
         foreach (CurrencyDenomination d in Enum.GetValues(typeof(CurrencyDenomination)))
         {
             var value = PayloadReader.GetLong(moneyRaw, d.ToString());
-            if (!value.HasValue || value.Value < 0) continue;
+            if (!value.HasValue)
+            {
+                if (moneyRaw.ContainsKey(d.ToString())) rejectedCurrencies.Add(d + "=<unparsed>");
+                continue;
+            }
+            if (value.Value < 0)
+            {
+                rejectedCurrencies.Add(d + "=" + value.Value);
+                continue;
+            }
             c.Wallet.Balance.Amounts[d.ToString()] = value.Value;
             updatedCurrencies++;
+            acceptedCurrencies.Add(d + "=" + value.Value);
+        }
+        _logger.Admin($"character.money.save accepted keys={string.Join(\",\", acceptedCurrencies)}");
+        _logger.Admin($"character.money.save rejected keys={string.Join(\",\", rejectedCurrencies)}");
+        if (updatedCurrencies == 0)
+        {
+            _logger.Admin("character.money.save validator rejected keys=none-valid");
+            throw new ArgumentException("money payload does not contain any valid currencies.");
         }
         if (updatedCurrencies == 0)
             throw new ArgumentException("money payload does not contain any valid currencies.");
