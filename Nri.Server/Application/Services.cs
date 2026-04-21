@@ -517,7 +517,8 @@ public partial class ServiceHub
         _logger.Admin($"character.update.money payloadKeys={string.Join(",", context.Request.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
         _logger.Admin($"character.money.save runtimeType={moneyRawRuntimeType}");
         var moneyRaw = PayloadReader.GetDictionary(context.Request.Payload, "money") ?? new Dictionary<string, object>();
-        _logger.Admin($"character.money.save request currencies={string.Join(\",\", moneyRaw.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
+        var requestCurrencies = string.Join(",", moneyRaw.Keys.OrderBy(key => key, StringComparer.Ordinal));
+        _logger.Admin("character.money.save request currencies=" + requestCurrencies);
         c.Wallet.EnsureAllDenominations();
         var updatedCurrencies = 0;
         var acceptedCurrencies = new List<string>();

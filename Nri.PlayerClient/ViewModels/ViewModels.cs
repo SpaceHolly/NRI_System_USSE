@@ -178,6 +178,7 @@ public class PlayerMainViewModel : ViewModelBase
     private int _chatScrollRequestVersion;
     private int _lastInventoryRenderCount = -1;
     private bool? _lastInventoryPlaceholderHidden;
+    private string _lastInventoryPayloadSignature = string.Empty;
     private InventoryDisplayItemVm? _selectedInventoryItem;
 
     public PlayerMainViewModel()
@@ -771,7 +772,19 @@ public class PlayerMainViewModel : ViewModelBase
         {
             var response = _api.CharacterInventoryGet(ActiveCharacterId);
             if (response.Status != ResponseStatus.Ok) return;
-            BindInventoryRows(response.Payload.ContainsKey("inventory") ? response.Payload["inventory"] : new ArrayList());
+            var payloadKeys = string.Join(",", response.Payload.Keys.OrderBy(x => x, StringComparer.Ordinal));
+            var rawInventory = response.Payload.ContainsKey("inventory") ? response.Payload["inventory"] : null;
+            var rawType = rawInventory?.GetType().FullName ?? "null";
+            var rawItems = NormalizeInventoryRaw(rawInventory);
+            var signature = payloadKeys + "|" + rawType + "|" + rawItems.Count;
+            if (!string.Equals(_lastInventoryPayloadSignature, signature, StringComparison.Ordinal))
+            {
+                ClientLogService.Instance.Info($"inventory.player.payload.keys={payloadKeys}");
+                ClientLogService.Instance.Info($"inventory.player.raw.type={rawType}");
+                ClientLogService.Instance.Info($"inventory.player.raw.count={rawItems.Count}");
+                _lastInventoryPayloadSignature = signature;
+            }
+            BindInventoryRows(rawItems, CommandNames.CharacterInventoryGet);
             ClientLogService.Instance.Info($"activeCharacter.inventory loaded={InventoryItems.Count}");
         }
         catch (Exception ex)
@@ -782,11 +795,17 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void BindInventoryRows(object rawInventory)
     {
+        BindInventoryRows(NormalizeInventoryRaw(rawInventory), CommandNames.CharacterGetActive);
+    }
+
+    private void BindInventoryRows(IList rawItems, string context)
+    {
         InventoryItems.Clear();
         InventoryRows.Clear();
-        foreach (var item in ToObjectList(rawInventory))
+        foreach (var item in rawItems.Cast<object>())
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item, context);
+            if (map == null) continue;
             int.TryParse(FirstNonEmpty(GetString(map, "quantity"), "0"), out var quantity);
             var durability = FirstNonEmpty(GetString(map, "durabilityOrHealth"), GetString(map, "durability"), "-");
             var equippedText = FirstNonEmpty(GetString(map, "isEquipped"), GetString(map, "equipped"), "False");
@@ -803,7 +822,6 @@ public class PlayerMainViewModel : ViewModelBase
             InventoryItems.Add(vm);
             InventoryRows.Add($"{vm.Name} x{vm.Quantity} | экип: {vm.IsEquipped} | прочность: {vm.Durability} | cat={vm.Category}");
         }
-
         var placeholderHidden = InventoryItems.Count > 0;
         if (!placeholderHidden) EnsureCollectionPlaceholder(InventoryRows, "Нет данных по инвентарю");
         if (SelectedInventoryItem == null || !InventoryItems.Contains(SelectedInventoryItem))
@@ -812,7 +830,10 @@ public class PlayerMainViewModel : ViewModelBase
         if (_lastInventoryRenderCount != InventoryItems.Count)
         {
             ClientLogService.Instance.Info($"activeCharacter.inventory.bind count={InventoryItems.Count}");
+            ClientLogService.Instance.Info($"inventory.player.mapped.count={InventoryItems.Count}");
+            ClientLogService.Instance.Info($"inventory.player.bound.count={InventoryItems.Count}");
             ClientLogService.Instance.Info($"activeCharacter.inventory.render count={InventoryItems.Count}");
+            ClientLogService.Instance.Info($"inventory.player.render.count={InventoryItems.Count}");
             _lastInventoryRenderCount = InventoryItems.Count;
         }
         if (_lastInventoryPlaceholderHidden != placeholderHidden)
@@ -823,6 +844,15 @@ public class PlayerMainViewModel : ViewModelBase
 
         Notify(nameof(InventoryItems));
         Notify(nameof(SelectedInventoryItem));
+    }
+
+    private static IList NormalizeInventoryRaw(object? rawInventory)
+    {
+        if (rawInventory == null) return new ArrayList();
+        if (rawInventory is IList list) return list;
+        if (rawInventory is IDictionary) return new object[] { rawInventory };
+        if (rawInventory is IEnumerable enumerable && rawInventory is not string) return enumerable.Cast<object>().ToArray();
+        return new ArrayList();
     }
 
     private void CreateDiceRequest()
