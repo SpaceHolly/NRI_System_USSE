@@ -1783,22 +1783,26 @@ public class AdminMainViewModel : ViewModelBase
         InventoryRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("inventory") ? r.Payload["inventory"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                InventoryRows.Add($"{S(m, "label")} x{S(m, "quantity")}");
+                InventoryRows.Add($"{FirstNonEmpty(S(m, "name"), S(m, "label"))} x{S(m, "quantity")} | экип: {FirstNonEmpty(S(m, "isEquipped"), S(m, "equipped"))}");
+        ClientLogService.Instance.Info($"selectedCharacter.inventory loaded={InventoryRows.Count}");
 
         HoldingsRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("holdings") ? r.Payload["holdings"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                HoldingsRows.Add($"{S(m, "name")} - {S(m, "description")}");
+                HoldingsRows.Add($"{S(m, "name")} ({S(m, "type")}) - {S(m, "description")}");
+        ClientLogService.Instance.Info($"selectedCharacter.holdings loaded={HoldingsRows.Count}");
 
         ReputationRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("reputation") ? r.Payload["reputation"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                ReputationRows.Add($"{S(m, "scope")}:{S(m, "groupKey")}={S(m, "value")}");
+                ReputationRows.Add($"{FirstNonEmpty(S(m, "targetName"), S(m, "groupKey"))} [{S(m, "targetType")}]: {S(m, "value")}");
+        ClientLogService.Instance.Info($"selectedCharacter.reputation loaded={ReputationRows.Count}");
 
         CompanionRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("companions") ? r.Payload["companions"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
                 CompanionRows.Add($"{S(m, "name")} ({S(m, "species")})");
+        ClientLogService.Instance.Info($"selectedCharacter.companions loaded={CompanionRows.Count}");
 
         NotifyAllEditor();
     }

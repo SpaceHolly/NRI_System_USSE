@@ -384,15 +384,15 @@
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
                                                     <StackPanel>
-                                                        <TextBlock Text="Инвентарь (preview)" FontWeight="Bold"/>
+                                                        <TextBlock Text="Инвентарь" FontWeight="Bold"/>
                                                         <ItemsControl ItemsSource="{Binding InventoryRows}"/>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="Владения (preview)" FontWeight="Bold"/>
+                                                        <TextBlock Text="Владения" FontWeight="Bold"/>
                                                         <ItemsControl ItemsSource="{Binding HoldingsRows}"/>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="2">
-                                                        <TextBlock Text="Компаньоны (preview)" FontWeight="Bold"/>
+                                                        <TextBlock Text="Компаньоны" FontWeight="Bold"/>
                                                         <TextBlock Text="{Binding CharacterVisibilityDisplay}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,6"/>
                                                         <ItemsControl ItemsSource="{Binding Companions}">
                                                             <ItemsControl.ItemTemplate>
@@ -438,7 +438,7 @@
                                                     <TextBlock Text="Здесь появятся описание, владельцы, прочность, статус экипировки, заряд и вложенное содержимое." TextWrapping="Wrap"/>
                                                     <TextBlock Text="Свойства" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
                                                     <Border Style="{StaticResource CardStyle}" Background="#FF223452">
-                                                        <TextBlock Text="Поля свойств пока отображаются как UI-заглушка под реальный payload." TextWrapping="Wrap"/>
+                                                        <TextBlock Text="Дополнительные свойства и заметки предмета отображаются в строке списка и будут расширены на следующем этапе." TextWrapping="Wrap"/>
                                                     </Border>
                                                 </StackPanel>
                                             </ScrollViewer>
@@ -481,104 +481,24 @@
                                 </TabItem>
 
                                 <TabItem Header="Репутация">
-                                    <TabControl>
-                                        <TabItem Header="Фракции">
-                                            <Grid Margin="4">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="1.2*"/>
-                                                    <ColumnDefinition Width="1.4*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
-                                                    <Grid>
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="Auto"/>
-                                                            <RowDefinition Height="*"/>
-                                                            <RowDefinition Height="Auto"/>
-                                                            <RowDefinition Height="*"/>
-                                                        </Grid.RowDefinitions>
-                                                        <TextBlock Text="Крупные фракции" FontWeight="Bold" FontSize="16"/>
-                                                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                                            <ListBox x:Name="MajorFactionList" ItemsSource="{Binding ReputationRows}">
-                                                                <ListBox.ItemTemplate>
-                                                                    <DataTemplate>
-                                                                        <Border Style="{StaticResource CardStyle}" Background="#FF223452">
-                                                                            <DockPanel>
-                                                                                <TextBlock Text="{Binding Label}" Width="170"/>
-                                                                                <TextBlock Text="{Binding Value}" FontWeight="SemiBold"/>
-                                                                            </DockPanel>
-                                                                        </Border>
-                                                                    </DataTemplate>
-                                                                </ListBox.ItemTemplate>
-                                                            </ListBox>
-                                                        </ScrollViewer>
-                                                        <TextBlock Grid.Row="2" Text="Мелкие фракции" FontWeight="Bold" FontSize="16" Margin="0,8,0,8"/>
-                                                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
-                                                            <ListBox x:Name="MinorFactionList">
-                                                                <ListBoxItem>Гильдия портовых мастеров</ListBoxItem>
-                                                                <ListBoxItem>Союз караванщиков</ListBoxItem>
-                                                                <ListBoxItem>Круг архивариусов</ListBoxItem>
-                                                                <ListBoxItem>Сторожевые посты границы</ListBoxItem>
-                                                                <ListBoxItem>Местные общины</ListBoxItem>
-                                                            </ListBox>
-                                                        </ScrollViewer>
-                                                    </Grid>
-                                                </Border>
-                                                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
-                                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                                        <StackPanel>
-                                                            <TextBlock Text="Карточка репутации фракции" FontWeight="Bold" FontSize="16"/>
-                                                            <TextBlock Text="{Binding ElementName=MajorFactionList, Path=SelectedItem.Label, TargetNullValue=Фракция не выбрана}" FontWeight="SemiBold" Margin="0,8,0,0"/>
-                                                            <Grid Height="20" Margin="0,10,0,0">
-                                                                <Border Background="{StaticResource ReputationGradient}" CornerRadius="10"/>
-                                                                <ProgressBar Minimum="-100" Maximum="100" Value="{Binding ElementName=MajorFactionList, Path=SelectedItem.Value}" Background="Transparent"/>
-                                                            </Grid>
-                                                            <TextBlock Text="Описание и причины" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
-                                                            <TextBlock Text="Здесь будут краткое описание фракции, текущая репутация и список причин, почему отношение именно такое." TextWrapping="Wrap"/>
-                                                        </StackPanel>
-                                                    </ScrollViewer>
-                                                </Border>
-                                            </Grid>
-                                        </TabItem>
-                                        <TabItem Header="Важные NPC">
-                                            <Grid Margin="4">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="1.1*"/>
-                                                    <ColumnDefinition Width="1.4*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
-                                                    <Grid>
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="Auto"/>
-                                                            <RowDefinition Height="*"/>
-                                                        </Grid.RowDefinitions>
-                                                        <TextBlock Text="Список важных NPC" FontWeight="Bold" FontSize="16"/>
-                                                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                                            <ListBox x:Name="NpcRepList">
-                                                                <ListBoxItem>Капитан Рейн</ListBoxItem>
-                                                                <ListBoxItem>Архимаг Идрас</ListBoxItem>
-                                                                <ListBoxItem>Леди Марен</ListBoxItem>
-                                                                <ListBoxItem>Инженер Торвик</ListBoxItem>
-                                                            </ListBox>
-                                                        </ScrollViewer>
-                                                    </Grid>
-                                                </Border>
-                                                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
-                                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                                        <StackPanel>
-                                                            <TextBlock Text="Карточка отношений с NPC" FontWeight="Bold" FontSize="16"/>
-                                                            <TextBlock Text="{Binding ElementName=NpcRepList, Path=SelectedItem.Content, TargetNullValue=NPC не выбран}" FontWeight="SemiBold" Margin="0,8,0,0"/>
-                                                            <Grid Height="20" Margin="0,10,0,0">
-                                                                <Border Background="{StaticResource ReputationGradient}" CornerRadius="10"/>
-                                                                <ProgressBar Minimum="-100" Maximum="100" Value="25" Background="Transparent"/>
-                                                            </Grid>
-                                                            <TextBlock Text="Причины отношения" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
-                                                            <TextBlock Text="В этой карточке появятся описание NPC, текущая шкала репутации и история ключевых причин изменения отношения." TextWrapping="Wrap"/>
-                                                        </StackPanel>
-                                                    </ScrollViewer>
-                                                </Border>
-                                            </Grid>
-                                        </TabItem>
-                                    </TabControl>
+                                    <Grid Margin="4">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                            <StackPanel>
+                                                <TextBlock Text="Записи репутации" FontWeight="Bold" FontSize="16"/>
+                                                <ListBox x:Name="ReputationList" ItemsSource="{Binding ReputationRows}">
+                                                    <ListBox.ItemTemplate><DataTemplate><DockPanel Margin="0,4,0,4"><TextBlock Text="{Binding Label}" Width="230"/><TextBlock Text="{Binding Value}" FontWeight="SemiBold"/></DockPanel></DataTemplate></ListBox.ItemTemplate>
+                                                </ListBox>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="Карточка записи" FontWeight="Bold" FontSize="16"/>
+                                                <TextBlock Text="{Binding ElementName=ReputationList, Path=SelectedItem.Label, TargetNullValue=Запись не выбрана}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                <Grid Height="20" Margin="0,10,0,0"><Border Background="{StaticResource ReputationGradient}" CornerRadius="10"/><ProgressBar Minimum="-100" Maximum="100" Value="{Binding ElementName=ReputationList, Path=SelectedItem.Value}" Background="Transparent"/></Grid>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
                                 </TabItem>
 
                                 <TabItem Header="Компаньоны">

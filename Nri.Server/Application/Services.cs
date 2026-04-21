@@ -328,6 +328,7 @@ public partial class ServiceHub
         var owner = GetAccount(c.OwnerUserId);
         if (!CanViewCharacter(actor, owner, c)) throw new UnauthorizedAccessException("Character inventory unavailable.");
         var payload = CharacterDetailsPayload(c, owner, actor);
+        _logger.Admin($"character.inventory.get count={c.Inventory.Count}");
         return Ok("Inventory loaded.", new Dictionary<string, object> { { "inventory", payload["inventory"] } });
     }
 
@@ -338,6 +339,7 @@ public partial class ServiceHub
         var owner = GetAccount(c.OwnerUserId);
         if (!CanViewCharacter(actor, owner, c)) throw new UnauthorizedAccessException("Character reputation unavailable.");
         var payload = CharacterDetailsPayload(c, owner, actor);
+        _logger.Admin($"character.reputation.get count={c.Reputation.Count}");
         return Ok("Reputation loaded.", new Dictionary<string, object> { { "reputation", payload["reputation"] } });
     }
 
@@ -348,6 +350,7 @@ public partial class ServiceHub
         var owner = GetAccount(c.OwnerUserId);
         if (!CanViewCharacter(actor, owner, c)) throw new UnauthorizedAccessException("Character holdings unavailable.");
         var payload = CharacterDetailsPayload(c, owner, actor);
+        _logger.Admin($"character.holdings.get count={c.Holdings.Count}");
         return Ok("Holdings loaded.", new Dictionary<string, object> { { "holdings", payload["holdings"] } });
     }
 
@@ -596,6 +599,173 @@ public partial class ServiceHub
         _repositories.Characters.Replace(c);
         WriteAudit("character", actor.Id, "updateHoldings", c.Id);
         return Ok("Character holdings updated.");
+    }
+
+    public ResponseEnvelope CharacterInventoryGet(CommandContext context) => CharacterGetInventory(context);
+    public ResponseEnvelope CharacterCompanionsGet(CommandContext context) => CharacterGetCompanions(context);
+    public ResponseEnvelope CharacterHoldingsGet(CommandContext context) => CharacterGetHoldings(context);
+    public ResponseEnvelope CharacterReputationGet(CommandContext context) => CharacterGetReputation(context);
+
+    public ResponseEnvelope CharacterInventoryItemAdd(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var item = ParseInventoryItem(PayloadReader.GetDictionary(context.Request.Payload, "item") ?? context.Request.Payload);
+        character.Inventory.Add(item);
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.inventory.item.add response=ok characterId={character.Id} itemId={item.Id}");
+        return Ok("Character inventory item added.", new Dictionary<string, object> { { "item", InventoryPayload(item) } });
+    }
+
+    public ResponseEnvelope CharacterInventoryItemUpdate(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var itemId = RequireLength(PayloadReader.GetString(context.Request.Payload, "itemId"), 1, 128, "itemId");
+        var incoming = ParseInventoryItem(PayloadReader.GetDictionary(context.Request.Payload, "item") ?? context.Request.Payload);
+        var existing = character.Inventory.FirstOrDefault(x => string.Equals(x.Id, itemId, StringComparison.OrdinalIgnoreCase));
+        if (existing == null) throw new KeyNotFoundException("Inventory item not found.");
+        incoming.Id = existing.Id;
+        character.Inventory[character.Inventory.IndexOf(existing)] = incoming;
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.inventory.item.update response=ok characterId={character.Id} itemId={incoming.Id}");
+        return Ok("Character inventory item updated.", new Dictionary<string, object> { { "item", InventoryPayload(incoming) } });
+    }
+
+    public ResponseEnvelope CharacterInventoryItemRemove(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var itemId = RequireLength(PayloadReader.GetString(context.Request.Payload, "itemId"), 1, 128, "itemId");
+        character.Inventory.RemoveAll(x => string.Equals(x.Id, itemId, StringComparison.OrdinalIgnoreCase));
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.inventory.item.remove response=ok characterId={character.Id} itemId={itemId}");
+        return Ok("Character inventory item removed.");
+    }
+
+    public ResponseEnvelope CharacterInventoryItemToggleEquip(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var itemId = RequireLength(PayloadReader.GetString(context.Request.Payload, "itemId"), 1, 128, "itemId");
+        var existing = character.Inventory.FirstOrDefault(x => string.Equals(x.Id, itemId, StringComparison.OrdinalIgnoreCase))
+            ?? throw new KeyNotFoundException("Inventory item not found.");
+        existing.IsEquipped = !existing.IsEquipped;
+        existing.Equipped = existing.IsEquipped;
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.inventory.item.toggleEquip response=ok characterId={character.Id} itemId={itemId} equipped={existing.IsEquipped}");
+        return Ok("Character inventory item equip status updated.", new Dictionary<string, object> { { "item", InventoryPayload(existing) } });
+    }
+
+    public ResponseEnvelope CharacterCompanionAdd(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var companion = ParseCompanion(PayloadReader.GetDictionary(context.Request.Payload, "companion") ?? context.Request.Payload);
+        character.Companions.Add(companion);
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.companion.add response=ok characterId={character.Id} companionId={companion.Id}");
+        return Ok("Character companion added.", new Dictionary<string, object> { { "companion", CompanionPayload(companion) } });
+    }
+
+    public ResponseEnvelope CharacterCompanionUpdate(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var companionId = RequireLength(PayloadReader.GetString(context.Request.Payload, "companionId"), 1, 128, "companionId");
+        var incoming = ParseCompanion(PayloadReader.GetDictionary(context.Request.Payload, "companion") ?? context.Request.Payload);
+        var existing = character.Companions.FirstOrDefault(x => string.Equals(x.Id, companionId, StringComparison.OrdinalIgnoreCase))
+            ?? throw new KeyNotFoundException("Companion not found.");
+        incoming.Id = existing.Id;
+        character.Companions[character.Companions.IndexOf(existing)] = incoming;
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.companion.update response=ok characterId={character.Id} companionId={incoming.Id}");
+        return Ok("Character companion updated.", new Dictionary<string, object> { { "companion", CompanionPayload(incoming) } });
+    }
+
+    public ResponseEnvelope CharacterCompanionRemove(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var companionId = RequireLength(PayloadReader.GetString(context.Request.Payload, "companionId"), 1, 128, "companionId");
+        character.Companions.RemoveAll(x => string.Equals(x.Id, companionId, StringComparison.OrdinalIgnoreCase));
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.companion.remove response=ok characterId={character.Id} companionId={companionId}");
+        return Ok("Character companion removed.");
+    }
+
+    public ResponseEnvelope CharacterHoldingAdd(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var holding = ParseHolding(PayloadReader.GetDictionary(context.Request.Payload, "holding") ?? context.Request.Payload);
+        character.Holdings.Add(holding);
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.holding.add response=ok characterId={character.Id} holdingId={holding.Id}");
+        return Ok("Character holding added.");
+    }
+
+    public ResponseEnvelope CharacterHoldingUpdate(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var holdingId = RequireLength(PayloadReader.GetString(context.Request.Payload, "holdingId"), 1, 128, "holdingId");
+        var incoming = ParseHolding(PayloadReader.GetDictionary(context.Request.Payload, "holding") ?? context.Request.Payload);
+        var existing = character.Holdings.FirstOrDefault(x => string.Equals(x.Id, holdingId, StringComparison.OrdinalIgnoreCase))
+            ?? throw new KeyNotFoundException("Holding not found.");
+        incoming.Id = existing.Id;
+        character.Holdings[character.Holdings.IndexOf(existing)] = incoming;
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.holding.update response=ok characterId={character.Id} holdingId={incoming.Id}");
+        return Ok("Character holding updated.");
+    }
+
+    public ResponseEnvelope CharacterHoldingRemove(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var holdingId = RequireLength(PayloadReader.GetString(context.Request.Payload, "holdingId"), 1, 128, "holdingId");
+        character.Holdings.RemoveAll(x => string.Equals(x.Id, holdingId, StringComparison.OrdinalIgnoreCase));
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.holding.remove response=ok characterId={character.Id} holdingId={holdingId}");
+        return Ok("Character holding removed.");
+    }
+
+    public ResponseEnvelope CharacterReputationEntryAdd(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var entry = ParseReputationEntry(PayloadReader.GetDictionary(context.Request.Payload, "entry") ?? context.Request.Payload);
+        character.Reputation.Add(entry);
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.reputation.entry.add response=ok characterId={character.Id} reputationId={entry.Id}");
+        return Ok("Character reputation entry added.");
+    }
+
+    public ResponseEnvelope CharacterReputationEntryUpdate(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var entryId = RequireLength(PayloadReader.GetString(context.Request.Payload, "entryId"), 1, 128, "entryId");
+        var incoming = ParseReputationEntry(PayloadReader.GetDictionary(context.Request.Payload, "entry") ?? context.Request.Payload);
+        var existing = character.Reputation.FirstOrDefault(x => string.Equals(x.Id, entryId, StringComparison.OrdinalIgnoreCase))
+            ?? throw new KeyNotFoundException("Reputation entry not found.");
+        incoming.Id = existing.Id;
+        character.Reputation[character.Reputation.IndexOf(existing)] = incoming;
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.reputation.entry.update response=ok characterId={character.Id} reputationId={incoming.Id}");
+        return Ok("Character reputation entry updated.");
+    }
+
+    public ResponseEnvelope CharacterReputationEntryRemove(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var entryId = RequireLength(PayloadReader.GetString(context.Request.Payload, "entryId"), 1, 128, "entryId");
+        character.Reputation.RemoveAll(x => string.Equals(x.Id, entryId, StringComparison.OrdinalIgnoreCase));
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.reputation.entry.remove response=ok characterId={character.Id} reputationId={entryId}");
+        return Ok("Character reputation entry removed.");
     }
 
     public ResponseEnvelope CharacterAdminList(CommandContext context)
@@ -1008,8 +1178,8 @@ public partial class ServiceHub
         details["currencies"] = CurrencyListPayload(c);
         details["inventory"] = c.Inventory.Select(InventoryPayload).Cast<object>().ToArray();
         details["companions"] = c.Companions.Select(CompanionPayload).Cast<object>().ToArray();
-        details["holdings"] = c.Holdings.Select(x => new Dictionary<string, object> { { "name", x.Name }, { "description", x.Description } }).Cast<object>().ToArray();
-        details["reputation"] = (!isPrivileged && c.Visibility.HideReputationForOthers) ? "[hidden]" : (object)c.Reputation.Select(x => new Dictionary<string, object> { { "scope", x.Scope }, { "groupKey", x.GroupKey }, { "value", x.Value } }).Cast<object>().ToArray();
+        details["holdings"] = c.Holdings.Select(x => new Dictionary<string, object> { { "id", x.Id }, { "name", x.Name }, { "type", x.Type }, { "description", x.Description }, { "owners", x.Owners.Cast<object>().ToArray() }, { "notes", x.Notes }, { "archived", x.Archived } }).Cast<object>().ToArray();
+        details["reputation"] = (!isPrivileged && c.Visibility.HideReputationForOthers) ? "[hidden]" : (object)c.Reputation.Select(x => new Dictionary<string, object> { { "id", x.Id }, { "scope", x.Scope }, { "scopeType", x.ScopeType.ToString() }, { "groupKey", x.GroupKey }, { "targetType", x.TargetType.ToString() }, { "targetName", x.TargetName }, { "value", x.Value }, { "notes", x.Notes }, { "isHiddenForOthers", x.IsHiddenForOthers }, { "archived", x.Archived } }).Cast<object>().ToArray();
         details["classProgress"] = c.ClassProgress.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "experience", x.Experience } }).Cast<object>().ToArray();
         details["skills"] = c.Skills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "name", x.Name }, { "description", x.Description }, { "type", x.Type.ToString() }, { "available", x.IsAvailable }, { "reason", x.UnavailableReason } }).Cast<object>().ToArray();
         details["raceCode"] = c.RaceCode;
@@ -1036,27 +1206,34 @@ public partial class ServiceHub
 
     private static Dictionary<string, object> InventoryPayload(InventoryItem x) => new Dictionary<string, object>
     {
-        { "itemCode", x.ItemCode }, { "label", x.Label }, { "description", x.Description }, { "quantity", x.Quantity }, { "durability", x.Durability ?? 0 }, { "consumptionPerUse", x.ConsumptionPerUse ?? 0 }, { "equipped", x.Equipped }
+        { "id", x.Id },
+        { "itemCode", x.ItemCode },
+        { "name", string.IsNullOrWhiteSpace(x.Name) ? x.Label : x.Name },
+        { "label", string.IsNullOrWhiteSpace(x.Label) ? x.Name : x.Label },
+        { "description", x.Description },
+        { "category", x.Category },
+        { "quantity", x.Quantity },
+        { "durabilityOrHealth", x.DurabilityOrHealth ?? x.Durability ?? 0 },
+        { "durability", x.Durability ?? x.DurabilityOrHealth ?? 0 },
+        { "isEquipped", x.IsEquipped || x.Equipped },
+        { "equipped", x.Equipped || x.IsEquipped },
+        { "usesAmmoOrConsumable", x.UsesAmmoOrConsumable },
+        { "consumptionPerUse", x.ConsumptionPerUse ?? 0 },
+        { "properties", x.Properties },
+        { "notes", x.Notes },
+        { "archived", x.Archived },
+        { "deleted", x.Deleted }
     };
 
     private static Dictionary<string, object> CompanionPayload(Companion c) => new Dictionary<string, object>
     {
-        { "id", c.Id }, { "name", c.Name }, { "species", c.Species }, { "notes", c.Notes }, { "inventory", c.Inventory.Select(InventoryPayload).Cast<object>().ToArray() }
+        { "id", c.Id }, { "name", c.Name }, { "species", c.Species }, { "description", c.Description }, { "notes", c.Notes }, { "statsSummary", c.StatsSummary }, { "isArchived", c.IsArchived }, { "inventory", c.Inventory.Select(InventoryPayload).Cast<object>().ToArray() }
     };
 
     private List<InventoryItem> ParseInventoryList(IList<object>? list)
     {
         if (list == null) return new List<InventoryItem>();
-        return list.OfType<Dictionary<string, object>>().Select(item => new InventoryItem
-        {
-            ItemCode = PayloadReader.GetString(item, "itemCode") ?? string.Empty,
-            Label = PayloadReader.GetString(item, "label") ?? string.Empty,
-            Description = PayloadReader.GetString(item, "description") ?? string.Empty,
-            Quantity = RequireRange(PayloadReader.GetInt(item, "quantity"), 0, 100000, "quantity"),
-            Durability = PayloadReader.GetInt(item, "durability"),
-            ConsumptionPerUse = PayloadReader.GetInt(item, "consumptionPerUse"),
-            Equipped = PayloadReader.GetBool(item, "equipped")
-        }).ToList();
+        return list.OfType<Dictionary<string, object>>().Select(ParseInventoryItem).ToList();
     }
 
     private List<ReputationRef> ParseReputationList(IList<object>? list)
@@ -1064,9 +1241,16 @@ public partial class ServiceHub
         if (list == null) return new List<ReputationRef>();
         return list.OfType<Dictionary<string, object>>().Select(item => new ReputationRef
         {
+            Id = PayloadReader.GetString(item, "id") ?? Guid.NewGuid().ToString("N"),
             Scope = RequireLength(PayloadReader.GetString(item, "scope"), 3, 32, "scope"),
+            ScopeType = ParseScopeType(PayloadReader.GetString(item, "scopeType")),
             GroupKey = RequireLength(PayloadReader.GetString(item, "groupKey"), 0, 128, "groupKey"),
-            Value = RequireRange(PayloadReader.GetInt(item, "value"), -9999, 9999, "value")
+            TargetType = ParseTargetType(PayloadReader.GetString(item, "targetType")),
+            TargetName = RequireLength(PayloadReader.GetString(item, "targetName"), 0, 128, "targetName"),
+            Value = RequireRange(PayloadReader.GetInt(item, "value"), -9999, 9999, "value"),
+            Notes = RequireLength(PayloadReader.GetString(item, "notes"), 0, 1024, "notes"),
+            IsHiddenForOthers = PayloadReader.GetBool(item, "isHiddenForOthers"),
+            Archived = PayloadReader.GetBool(item, "archived")
         }).ToList();
     }
 
@@ -1075,10 +1259,61 @@ public partial class ServiceHub
         if (list == null) return new List<HoldingRef>();
         return list.OfType<Dictionary<string, object>>().Select(item => new HoldingRef
         {
+            Id = PayloadReader.GetString(item, "id") ?? Guid.NewGuid().ToString("N"),
             Name = RequireLength(PayloadReader.GetString(item, "name"), 1, 128, "name"),
-            Description = RequireLength(PayloadReader.GetString(item, "description"), 0, 512, "description")
+            Type = RequireLength(PayloadReader.GetString(item, "type"), 0, 64, "type"),
+            Description = RequireLength(PayloadReader.GetString(item, "description"), 0, 512, "description"),
+            Owners = (PayloadReader.GetList(item, "owners") ?? new List<object>()).Select(x => x?.ToString() ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).ToList(),
+            Notes = RequireLength(PayloadReader.GetString(item, "notes"), 0, 1024, "notes"),
+            Archived = PayloadReader.GetBool(item, "archived")
         }).ToList();
     }
+
+    private InventoryItem ParseInventoryItem(Dictionary<string, object> item)
+    {
+        var durabilityOrHealth = PayloadReader.GetInt(item, "durabilityOrHealth");
+        var durability = PayloadReader.GetInt(item, "durability");
+        var isEquipped = PayloadReader.GetBool(item, "isEquipped") || PayloadReader.GetBool(item, "equipped");
+        var name = PayloadReader.GetString(item, "name") ?? string.Empty;
+        var label = PayloadReader.GetString(item, "label") ?? string.Empty;
+        return new InventoryItem
+        {
+            Id = PayloadReader.GetString(item, "id") ?? Guid.NewGuid().ToString("N"),
+            ItemCode = PayloadReader.GetString(item, "itemCode") ?? string.Empty,
+            Name = RequireLength(name, 0, 128, "name"),
+            Label = RequireLength(string.IsNullOrWhiteSpace(label) ? name : label, 0, 128, "label"),
+            Description = RequireLength(PayloadReader.GetString(item, "description"), 0, 1024, "description"),
+            Category = RequireLength(PayloadReader.GetString(item, "category"), 0, 64, "category"),
+            Quantity = RequireRange(PayloadReader.GetInt(item, "quantity"), 0, 100000, "quantity"),
+            DurabilityOrHealth = durabilityOrHealth ?? durability,
+            Durability = durability ?? durabilityOrHealth,
+            IsEquipped = isEquipped,
+            Equipped = isEquipped,
+            UsesAmmoOrConsumable = PayloadReader.GetBool(item, "usesAmmoOrConsumable"),
+            ConsumptionPerUse = PayloadReader.GetInt(item, "consumptionPerUse"),
+            Properties = RequireLength(PayloadReader.GetString(item, "properties"), 0, 2048, "properties"),
+            Notes = RequireLength(PayloadReader.GetString(item, "notes"), 0, 1024, "notes"),
+            Archived = PayloadReader.GetBool(item, "archived"),
+            Deleted = PayloadReader.GetBool(item, "deleted")
+        };
+    }
+
+    private Companion ParseCompanion(Dictionary<string, object> source) => new Companion
+    {
+        Id = PayloadReader.GetString(source, "id") ?? Guid.NewGuid().ToString("N"),
+        Name = RequireLength(PayloadReader.GetString(source, "name"), 1, 128, "name"),
+        Species = RequireLength(PayloadReader.GetString(source, "species"), 0, 64, "species"),
+        Description = RequireLength(PayloadReader.GetString(source, "description"), 0, 1024, "description"),
+        Notes = RequireLength(PayloadReader.GetString(source, "notes"), 0, 1024, "notes"),
+        StatsSummary = RequireLength(PayloadReader.GetString(source, "statsSummary"), 0, 512, "statsSummary"),
+        IsArchived = PayloadReader.GetBool(source, "isArchived"),
+        Inventory = ParseInventoryList(PayloadReader.GetList(source, "inventory"))
+    };
+
+    private HoldingRef ParseHolding(Dictionary<string, object> source) => ParseHoldingsList(new List<object> { source }).First();
+    private ReputationRef ParseReputationEntry(Dictionary<string, object> source) => ParseReputationList(new List<object> { source }).First();
+    private static ReputationScopeType ParseScopeType(string? value) => Enum.TryParse<ReputationScopeType>(value, true, out var parsed) ? parsed : ReputationScopeType.Character;
+    private static ReputationTargetType ParseTargetType(string? value) => Enum.TryParse<ReputationTargetType>(value, true, out var parsed) ? parsed : ReputationTargetType.Other;
 
     private Dictionary<string, object> BuildCharacterAggregatePayload(Character character, UserAccount viewer, bool includeNotesContext)
     {
@@ -1098,6 +1333,37 @@ public partial class ServiceHub
         character.Companions ??= new List<Companion>();
         character.Holdings ??= new List<HoldingRef>();
         character.Reputation ??= new List<ReputationRef>();
+        foreach (var item in character.Inventory)
+        {
+            if (string.IsNullOrWhiteSpace(item.Id)) item.Id = Guid.NewGuid().ToString("N");
+            if (string.IsNullOrWhiteSpace(item.Name)) item.Name = item.Label;
+            if (string.IsNullOrWhiteSpace(item.Label)) item.Label = item.Name;
+            item.IsEquipped = item.IsEquipped || item.Equipped;
+            item.Equipped = item.IsEquipped;
+            item.DurabilityOrHealth ??= item.Durability;
+            item.Durability ??= item.DurabilityOrHealth;
+        }
+        foreach (var companion in character.Companions)
+        {
+            if (string.IsNullOrWhiteSpace(companion.Id)) companion.Id = Guid.NewGuid().ToString("N");
+            companion.Inventory ??= new List<InventoryItem>();
+            foreach (var item in companion.Inventory)
+            {
+                if (string.IsNullOrWhiteSpace(item.Id)) item.Id = Guid.NewGuid().ToString("N");
+                if (string.IsNullOrWhiteSpace(item.Name)) item.Name = item.Label;
+                if (string.IsNullOrWhiteSpace(item.Label)) item.Label = item.Name;
+            }
+        }
+        foreach (var holding in character.Holdings)
+        {
+            if (string.IsNullOrWhiteSpace(holding.Id)) holding.Id = Guid.NewGuid().ToString("N");
+            holding.Owners ??= new List<string>();
+        }
+        foreach (var reputation in character.Reputation)
+        {
+            if (string.IsNullOrWhiteSpace(reputation.Id)) reputation.Id = Guid.NewGuid().ToString("N");
+            if (string.IsNullOrWhiteSpace(reputation.TargetName)) reputation.TargetName = reputation.GroupKey;
+        }
         character.ClassProgress ??= new List<CharacterClassProgress>();
         character.Skills ??= new List<SkillState>();
         character.CharacterClasses ??= new List<CharacterClassState>();

@@ -123,19 +123,32 @@ public class Companion
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = string.Empty;
     public string Species { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+    public string StatsSummary { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
     public List<InventoryItem> Inventory { get; set; } = new List<InventoryItem>();
 }
 
 public class InventoryItem
 {
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string ItemCode { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public string Label { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
     public int Quantity { get; set; } = 1;
+    public int? DurabilityOrHealth { get; set; }
     public int? Durability { get; set; }
-    public int? ConsumptionPerUse { get; set; }
+    public bool IsEquipped { get; set; }
     public bool Equipped { get; set; }
+    public bool UsesAmmoOrConsumable { get; set; }
+    public int? ConsumptionPerUse { get; set; }
+    public string Properties { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public bool Archived { get; set; }
+    public bool Deleted { get; set; }
 }
 
 public class Holding : EntityBase
@@ -147,8 +160,13 @@ public class Holding : EntityBase
 
 public class HoldingRef
 {
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public List<string> Owners { get; set; } = new List<string>();
+    public string Notes { get; set; } = string.Empty;
+    public bool Archived { get; set; }
 }
 
 public class ReputationEntry : EntityBase
@@ -159,11 +177,33 @@ public class ReputationEntry : EntityBase
     public int Value { get; set; }
 }
 
+public enum ReputationScopeType
+{
+    Character,
+    Group
+}
+
+public enum ReputationTargetType
+{
+    State,
+    Settlement,
+    Faction,
+    Group,
+    Other
+}
+
 public class ReputationRef
 {
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Scope { get; set; } = "Personal";
+    public ReputationScopeType ScopeType { get; set; } = ReputationScopeType.Character;
     public string GroupKey { get; set; } = string.Empty;
+    public ReputationTargetType TargetType { get; set; } = ReputationTargetType.Other;
+    public string TargetName { get; set; } = string.Empty;
     public int Value { get; set; }
+    public string Notes { get; set; } = string.Empty;
+    public bool IsHiddenForOthers { get; set; }
+    public bool Archived { get; set; }
 }
 
 public enum CurrencyDenomination
