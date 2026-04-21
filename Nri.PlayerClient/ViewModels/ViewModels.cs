@@ -62,6 +62,17 @@ public class StatRowVm
     public string Value { get; set; } = string.Empty;
 }
 
+public class InventoryDisplayItemVm : ViewModelBase
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public bool IsEquipped { get; set; }
+    public string Durability { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+}
+
 public class ReputationRowVm
 {
     public string Label { get; set; } = string.Empty;
@@ -165,6 +176,10 @@ public class PlayerMainViewModel : ViewModelBase
     private ClassBranchVm? _selectedClassBranch;
     private ClassEntryVm? _selectedClassEntry;
     private int _chatScrollRequestVersion;
+    private int _lastInventoryRenderCount = -1;
+    private bool? _lastInventoryPlaceholderHidden;
+    private string _lastInventoryPayloadSignature = string.Empty;
+    private InventoryDisplayItemVm? _selectedInventoryItem;
 
     public PlayerMainViewModel()
     {
@@ -339,6 +354,12 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<StatRowVm> AttributeStatRows { get; } = new ObservableCollection<StatRowVm>();
     public ObservableCollection<CurrencyRowVm> MoneyRows { get; } = new ObservableCollection<CurrencyRowVm>();
     public ObservableCollection<string> InventoryRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<InventoryDisplayItemVm> InventoryItems { get; } = new ObservableCollection<InventoryDisplayItemVm>();
+    public InventoryDisplayItemVm? SelectedInventoryItem
+    {
+        get => _selectedInventoryItem;
+        set { _selectedInventoryItem = value; Notify(); }
+    }
     public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<ReputationRowVm> ReputationRows { get; } = new ObservableCollection<ReputationRowVm>();
     public ObservableCollection<CompanionVm> Companions { get; } = new ObservableCollection<CompanionVm>();
@@ -618,6 +639,7 @@ public class PlayerMainViewModel : ViewModelBase
         {
             ApplyCharacterPayload(active.Payload);
             ActiveCharacterId = GetString(active.Payload, "characterId");
+            LoadActiveCharacterInventory();
             ActiveCharacterStatusText = string.IsNullOrWhiteSpace(ActiveCharacterId) ? "Активный персонаж не выбран" : $"Активный персонаж: {CharacterNameDisplay}";
             ClientLogService.Instance.Info($"activeCharacter.load id={ActiveCharacterId}");
             UpdateCharacterActiveFlags();
@@ -679,25 +701,23 @@ public class PlayerMainViewModel : ViewModelBase
         AddCurrency("Адамант", "Ad", "#5F9EA0", money, "Adamant");
         AddCurrency("Государева", "Sov", "#B05CFF", money, "Sovereign");
 
-        InventoryRows.Clear();
-        foreach (var item in ToObjectList(payload.ContainsKey("inventory") ? payload["inventory"] : new ArrayList()))
-        {
-            if (item is not Dictionary<string, object> map) continue;
-            InventoryRows.Add($"{GetString(map, "label")} x{GetString(map, "quantity")} | dur={GetString(map, "durability")} | equip={GetString(map, "equipped")} | use={GetString(map, "consumptionPerUse")}");
-        }
+        BindInventoryRows(payload.ContainsKey("inventory") ? payload["inventory"] : new ArrayList());
 
         HoldingsRows.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("holdings") ? payload["holdings"] : new ArrayList()))
             if (item is Dictionary<string, object> map)
-                HoldingsRows.Add($"{GetString(map, "name")} — {GetString(map, "description")}");
+                HoldingsRows.Add($"{GetString(map, "name")} ({GetString(map, "type")}) — {GetString(map, "description")}");
+        ClientLogService.Instance.Info($"activeCharacter.holdings loaded={HoldingsRows.Count}");
 
         ReputationRows.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("reputation") ? payload["reputation"] : new ArrayList()))
         {
             if (item is not Dictionary<string, object> map) continue;
             int.TryParse(GetString(map, "value"), out var value);
-            ReputationRows.Add(new ReputationRowVm { Label = GetString(map, "groupKey"), Value = value });
+            var label = FirstNonEmpty(GetString(map, "targetName"), GetString(map, "groupKey"), "Неизвестная сущность");
+            ReputationRows.Add(new ReputationRowVm { Label = $"{label} [{GetString(map, "targetType")}]", Value = value });
         }
+        ClientLogService.Instance.Info($"activeCharacter.reputation loaded={ReputationRows.Count}");
 
         Companions.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("companions") ? payload["companions"] : new ArrayList()))
@@ -733,6 +753,7 @@ public class PlayerMainViewModel : ViewModelBase
 
             Companions.Add(vm);
         }
+        ClientLogService.Instance.Info($"activeCharacter.companions loaded={Companions.Count}");
 
         EnsureCollectionPlaceholder(InventoryRows, "Нет данных по инвентарю");
         EnsureCollectionPlaceholder(HoldingsRows, "Нет данных по владениям");
@@ -742,6 +763,96 @@ public class PlayerMainViewModel : ViewModelBase
             SelectedCompanion = Companions.FirstOrDefault();
 
         NotifyCharacter();
+    }
+
+    private void LoadActiveCharacterInventory()
+    {
+        if (string.IsNullOrWhiteSpace(ActiveCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterInventoryGet(ActiveCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            var payloadKeys = string.Join(",", response.Payload.Keys.OrderBy(x => x, StringComparer.Ordinal));
+            var rawInventory = response.Payload.ContainsKey("inventory") ? response.Payload["inventory"] : null;
+            var rawType = rawInventory?.GetType().FullName ?? "null";
+            var rawItems = NormalizeInventoryRaw(rawInventory);
+            var signature = payloadKeys + "|" + rawType + "|" + rawItems.Count;
+            if (!string.Equals(_lastInventoryPayloadSignature, signature, StringComparison.Ordinal))
+            {
+                ClientLogService.Instance.Info($"inventory.player.payload.keys={payloadKeys}");
+                ClientLogService.Instance.Info($"inventory.player.raw.type={rawType}");
+                ClientLogService.Instance.Info($"inventory.player.raw.count={rawItems.Count}");
+                _lastInventoryPayloadSignature = signature;
+            }
+            BindInventoryRows(rawItems, CommandNames.CharacterInventoryGet);
+            ClientLogService.Instance.Info($"activeCharacter.inventory loaded={InventoryItems.Count}");
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex);
+        }
+    }
+
+    private void BindInventoryRows(object rawInventory)
+    {
+        BindInventoryRows(NormalizeInventoryRaw(rawInventory), CommandNames.CharacterGetActive);
+    }
+
+    private void BindInventoryRows(IList rawItems, string context)
+    {
+        InventoryItems.Clear();
+        InventoryRows.Clear();
+        foreach (var item in rawItems.Cast<object>())
+        {
+            var map = AsMap(item, context);
+            if (map == null) continue;
+            int.TryParse(FirstNonEmpty(GetString(map, "quantity"), "0"), out var quantity);
+            var durability = FirstNonEmpty(GetString(map, "durabilityOrHealth"), GetString(map, "durability"), "-");
+            var equippedText = FirstNonEmpty(GetString(map, "isEquipped"), GetString(map, "equipped"), "False");
+            var vm = new InventoryDisplayItemVm
+            {
+                Id = GetString(map, "id"),
+                Name = FirstNonEmpty(GetString(map, "name"), GetString(map, "label"), "Без названия"),
+                Quantity = quantity,
+                IsEquipped = string.Equals(equippedText, "True", StringComparison.OrdinalIgnoreCase),
+                Durability = durability,
+                Category = GetString(map, "category"),
+                Description = GetString(map, "description")
+            };
+            InventoryItems.Add(vm);
+            InventoryRows.Add($"{vm.Name} x{vm.Quantity} | экип: {vm.IsEquipped} | прочность: {vm.Durability} | cat={vm.Category}");
+        }
+        var placeholderHidden = InventoryItems.Count > 0;
+        if (!placeholderHidden) EnsureCollectionPlaceholder(InventoryRows, "Нет данных по инвентарю");
+        if (SelectedInventoryItem == null || !InventoryItems.Contains(SelectedInventoryItem))
+            SelectedInventoryItem = InventoryItems.FirstOrDefault();
+
+        if (_lastInventoryRenderCount != InventoryItems.Count)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.inventory.bind count={InventoryItems.Count}");
+            ClientLogService.Instance.Info($"inventory.player.mapped.count={InventoryItems.Count}");
+            ClientLogService.Instance.Info($"inventory.player.bound.count={InventoryItems.Count}");
+            ClientLogService.Instance.Info($"activeCharacter.inventory.render count={InventoryItems.Count}");
+            ClientLogService.Instance.Info($"inventory.player.render.count={InventoryItems.Count}");
+            _lastInventoryRenderCount = InventoryItems.Count;
+        }
+        if (_lastInventoryPlaceholderHidden != placeholderHidden)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.inventory.placeholder hidden={placeholderHidden.ToString().ToLowerInvariant()}");
+            _lastInventoryPlaceholderHidden = placeholderHidden;
+        }
+
+        Notify(nameof(InventoryItems));
+        Notify(nameof(SelectedInventoryItem));
+    }
+
+    private static IList NormalizeInventoryRaw(object? rawInventory)
+    {
+        if (rawInventory == null) return new ArrayList();
+        if (rawInventory is IList list) return list;
+        if (rawInventory is IDictionary) return new object[] { rawInventory };
+        if (rawInventory is IEnumerable enumerable && rawInventory is not string) return enumerable.Cast<object>().ToArray();
+        return new ArrayList();
     }
 
     private void CreateDiceRequest()

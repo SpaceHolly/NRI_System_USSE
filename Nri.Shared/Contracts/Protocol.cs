@@ -66,6 +66,27 @@ public static class CommandNames
     public const string CharacterGetReputation = "character.get.reputation";
     public const string CharacterGetHoldings = "character.get.holdings";
 
+    public const string CharacterInventoryGet = "character.inventory.get";
+    public const string CharacterInventoryItemAdd = "character.inventory.item.add";
+    public const string CharacterInventoryItemUpdate = "character.inventory.item.update";
+    public const string CharacterInventoryItemRemove = "character.inventory.item.remove";
+    public const string CharacterInventoryItemToggleEquip = "character.inventory.item.toggleEquip";
+
+    public const string CharacterCompanionsGet = "character.companions.get";
+    public const string CharacterCompanionAdd = "character.companion.add";
+    public const string CharacterCompanionUpdate = "character.companion.update";
+    public const string CharacterCompanionRemove = "character.companion.remove";
+
+    public const string CharacterHoldingsGet = "character.holdings.get";
+    public const string CharacterHoldingAdd = "character.holding.add";
+    public const string CharacterHoldingUpdate = "character.holding.update";
+    public const string CharacterHoldingRemove = "character.holding.remove";
+
+    public const string CharacterReputationGet = "character.reputation.get";
+    public const string CharacterReputationEntryAdd = "character.reputation.entry.add";
+    public const string CharacterReputationEntryUpdate = "character.reputation.entry.update";
+    public const string CharacterReputationEntryRemove = "character.reputation.entry.remove";
+
     public const string CharacterUpdateBasicInfo = "character.update.basicInfo";
     public const string CharacterUpdateStats = "character.update.stats";
     public const string CharacterUpdateVisibility = "character.update.visibility";

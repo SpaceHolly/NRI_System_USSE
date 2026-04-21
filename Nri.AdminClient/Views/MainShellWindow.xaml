@@ -455,11 +455,69 @@
                                     </Grid>
                                     <Border Style="{StaticResource CardStyle}" Margin="0,8,0,0"><StackPanel><TextBlock Text="Характеристики" Style="{StaticResource SectionTitleTextStyle}"/><UniformGrid Columns="5" Margin="0,6,0,0"><StackPanel><TextBlock Text="Здоровье"/><TextBox Text="{Binding Health}"/></StackPanel><StackPanel><TextBlock Text="Физ. броня"/><TextBox Text="{Binding PhysicalArmor}"/></StackPanel><StackPanel><TextBlock Text="Маг. броня"/><TextBox Text="{Binding MagicalArmor}"/></StackPanel><StackPanel><TextBlock Text="Мораль"/><TextBox Text="{Binding Morale}"/></StackPanel><StackPanel><TextBlock Text="Сила"/><TextBox Text="{Binding Strength}"/></StackPanel><StackPanel><TextBlock Text="Ловкость"/><TextBox Text="{Binding Dexterity}"/></StackPanel><StackPanel><TextBlock Text="Выносливость"/><TextBox Text="{Binding Endurance}"/></StackPanel><StackPanel><TextBlock Text="Мудрость"/><TextBox Text="{Binding Wisdom}"/></StackPanel><StackPanel><TextBlock Text="Интеллект"/><TextBox Text="{Binding Intellect}"/></StackPanel><StackPanel><TextBlock Text="Харизма"/><TextBox Text="{Binding Charisma}"/></StackPanel></UniformGrid><Button Margin="0,8,0,0" HorizontalAlignment="Left" Content="Сохранить характеристики" Command="{Binding SaveStatsCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/></StackPanel></Border>
                                     <Border Style="{StaticResource CardStyle}" Margin="0,8,0,0"><StackPanel><TextBlock Text="Финансы и опыт" Style="{StaticResource SectionTitleTextStyle}"/><UniformGrid Columns="3" Margin="0,6,0,0"><StackPanel><TextBlock Text="Железная"/><TextBox Text="{Binding Iron}"/></StackPanel><StackPanel><TextBlock Text="Бронзовая"/><TextBox Text="{Binding Bronze}"/></StackPanel><StackPanel><TextBlock Text="Серебряная"/><TextBox Text="{Binding Silver}"/></StackPanel><StackPanel><TextBlock Text="Золотая"/><TextBox Text="{Binding Gold}"/></StackPanel><StackPanel><TextBlock Text="Платиновая"/><TextBox Text="{Binding Platinum}"/></StackPanel><StackPanel><TextBlock Text="Орихалк"/><TextBox Text="{Binding Orichalcum}"/></StackPanel><StackPanel><TextBlock Text="Адамант"/><TextBox Text="{Binding Adamant}"/></StackPanel><StackPanel><TextBlock Text="Государева"/><TextBox Text="{Binding Sovereign}"/></StackPanel><StackPanel><TextBlock Text="Монеты опыта"/><TextBox Text="{Binding ExperienceCoins}"/></StackPanel></UniformGrid><WrapPanel Margin="0,8,0,0"><Button HorizontalAlignment="Left" Content="Сохранить финансы" Command="{Binding SaveMoneyCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Сохранить XP" Command="{Binding SaveXpCoinsCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/></WrapPanel></StackPanel></Border>
-                                    <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                                        <Border Style="{StaticResource CardStyle}" Margin="0,0,8,8"><StackPanel><TextBlock Text="Инвентарь" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding InventoryRows}" MinHeight="150"/></StackPanel></Border>
-                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="0,0,0,8"><StackPanel><TextBlock Text="Спутники" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding CompanionRows}" MinHeight="150"/></StackPanel></Border>
-                                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,8,0"><StackPanel><TextBlock Text="Владения" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding HoldingsRows}" MinHeight="150"/></StackPanel></Border>
-                                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Репутация" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding ReputationRows}" MinHeight="150"/></StackPanel></Border>
+                                    <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                        <Border Style="{StaticResource CardStyle}" Margin="0,0,8,8" MinHeight="260">
+                                            <Grid>
+                                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Инвентарь" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                    <WrapPanel Margin="0,6,0,6">
+                                                        <Button Content="Обновить" Command="{Binding InventoryReloadCommand}"/>
+                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Добавить" Command="{Binding InventoryAddItemCommand}"/>
+                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Изменить" Command="{Binding InventoryUpdateItemCommand}"/>
+                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Удалить" Command="{Binding InventoryRemoveItemCommand}"/>
+                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Toggle equip" Command="{Binding InventoryToggleEquipCommand}"/>
+                                                    </WrapPanel>
+                                                </StackPanel>
+                                                <Grid Grid.Row="1">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="1.65*"/></Grid.ColumnDefinitions>
+                                                    <ListView ItemsSource="{Binding InventoryItems}" SelectedItem="{Binding SelectedInventoryItem, Mode=TwoWay}" MinHeight="170">
+                                                        <ListView.View>
+                                                            <GridView>
+                                                                <GridViewColumn Header="Имя" Width="160" DisplayMemberBinding="{Binding Name}"/>
+                                                                <GridViewColumn Header="Кол-во" Width="58" DisplayMemberBinding="{Binding Quantity}"/>
+                                                                <GridViewColumn Header="Экип" Width="58" DisplayMemberBinding="{Binding IsEquipped}"/>
+                                                                <GridViewColumn Header="Прочность" Width="72" DisplayMemberBinding="{Binding DurabilityOrHealth}"/>
+                                                                <GridViewColumn Header="Категория" Width="120" DisplayMemberBinding="{Binding Category}"/>
+                                                            </GridView>
+                                                        </ListView.View>
+                                                    </ListView>
+                                                    <ScrollViewer Grid.Column="1" Margin="8,0,0,0" VerticalScrollBarVisibility="Auto">
+                                                        <StackPanel>
+                                                            <TextBlock Text="Имя"/>
+                                                            <TextBox Text="{Binding InventoryName, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <TextBlock Margin="0,6,0,0" Text="Описание"/>
+                                                            <TextBox Height="66" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding InventoryDescription, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <WrapPanel Margin="0,6,0,0">
+                                                                <StackPanel>
+                                                                    <TextBlock Text="Количество"/>
+                                                                    <TextBox Width="78" Text="{Binding InventoryQuantity, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                </StackPanel>
+                                                                <StackPanel Margin="8,0,0,0">
+                                                                    <TextBlock Text="Прочность / здоровье"/>
+                                                                    <TextBox Width="130" Text="{Binding InventoryDurabilityOrHealth, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                </StackPanel>
+                                                                <StackPanel Margin="8,0,0,0">
+                                                                    <TextBlock Text="Расход за использование"/>
+                                                                    <TextBox Width="130" Text="{Binding InventoryConsumptionPerUse, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                </StackPanel>
+                                                            </WrapPanel>
+                                                            <TextBlock Margin="0,6,0,0" Text="Категория"/>
+                                                            <TextBox Text="{Binding InventoryCategory, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <TextBlock Margin="0,6,0,0" Text="Доп. свойства / заметки"/>
+                                                            <TextBox Height="82" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding InventoryNotes, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <WrapPanel Margin="0,8,0,0">
+                                                                <CheckBox Content="Equipped" IsChecked="{Binding InventoryIsEquipped, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                <CheckBox Margin="10,0,0,0" Content="Uses ammo/consumable" IsChecked="{Binding InventoryUsesAmmoOrConsumable, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            </WrapPanel>
+                                                        </StackPanel>
+                                                    </ScrollViewer>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="0,0,0,8" MinHeight="260"><StackPanel><TextBlock Text="Спутники" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding CompanionRows}" MinHeight="190"/></StackPanel></Border>
+                                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,8,0" MinHeight="240"><StackPanel><TextBlock Text="Владения" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding HoldingsRows}" MinHeight="170"/></StackPanel></Border>
+                                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardStyle}" MinHeight="240"><StackPanel><TextBlock Text="Репутация" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding ReputationRows}" MinHeight="170"/></StackPanel></Border>
                                     </Grid>
                                 </StackPanel>
                             </ScrollViewer>

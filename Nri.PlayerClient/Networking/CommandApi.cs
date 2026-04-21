@@ -24,6 +24,10 @@ public class CommandApi
     public ResponseEnvelope GetActiveCharacter() => Send(CommandNames.CharacterGetActive);
     public ResponseEnvelope GetCharacterDetails(string characterId) => Send(CommandNames.CharacterGetDetails, new Dictionary<string, object> { { "characterId", characterId } });
     public ResponseEnvelope SetActiveCharacter(string characterId) => Send(CommandNames.CharacterSetActive, new Dictionary<string, object> { { "characterId", characterId } });
+    public ResponseEnvelope CharacterInventoryGet(string characterId) => Send(CommandNames.CharacterInventoryGet, new Dictionary<string, object> { { "characterId", characterId } });
+    public ResponseEnvelope CharacterCompanionsGet(string characterId) => Send(CommandNames.CharacterCompanionsGet, new Dictionary<string, object> { { "characterId", characterId } });
+    public ResponseEnvelope CharacterHoldingsGet(string characterId) => Send(CommandNames.CharacterHoldingsGet, new Dictionary<string, object> { { "characterId", characterId } });
+    public ResponseEnvelope CharacterReputationGet(string characterId) => Send(CommandNames.CharacterReputationGet, new Dictionary<string, object> { { "characterId", characterId } });
 
     public ResponseEnvelope CreateCharacter(Dictionary<string, object> payload) => Send(CommandNames.CharacterCreate, payload);
     public ResponseEnvelope DiceRollStandard(string formula, string visibility, string description, string? characterId = null)

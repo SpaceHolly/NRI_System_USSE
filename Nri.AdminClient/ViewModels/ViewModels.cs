@@ -70,6 +70,21 @@ public class RowVm : ViewModelBase
     public string Extra { get; set; } = string.Empty;
 }
 
+public class InventoryItemEditorVm : ViewModelBase
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public int? DurabilityOrHealth { get; set; }
+    public bool IsEquipped { get; set; }
+    public bool UsesAmmoOrConsumable { get; set; }
+    public int? ConsumptionPerUse { get; set; }
+    public string Category { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public string ListLabel => $"{Name} x{Quantity} | eq={IsEquipped} | dur={DurabilityOrHealth?.ToString() ?? "-"} | {Category}";
+}
+
 public sealed class ChatMessageRowVm : ViewModelBase
 {
     public string Sender { get; set; } = string.Empty;
@@ -310,6 +325,11 @@ public class AdminMainViewModel : ViewModelBase
         SaveStatsCommand = new RelayCommand(SaveStats);
         SaveMoneyCommand = new RelayCommand(SaveMoney);
         SaveXpCoinsCommand = new RelayCommand(SaveXpCoins);
+        InventoryReloadCommand = new RelayCommand(LoadCharacterInventory);
+        InventoryAddItemCommand = new RelayCommand(AddInventoryItem);
+        InventoryUpdateItemCommand = new RelayCommand(UpdateInventoryItem);
+        InventoryRemoveItemCommand = new RelayCommand(RemoveInventoryItem);
+        InventoryToggleEquipCommand = new RelayCommand(ToggleInventoryItemEquip);
         ApproveRequestCommand = new RelayCommand(ApproveRequest);
         RejectRequestCommand = new RelayCommand(RejectRequest);
         CombatStartCommand = new RelayCommand(() => RunUiAction("Запуск боя", CombatStart));
@@ -847,11 +867,46 @@ public class AdminMainViewModel : ViewModelBase
     public long Adamant { get; set; }
     public long Sovereign { get; set; }
     public long ExperienceCoins { get; set; }
+    public string InventoryName { get; set; } = string.Empty;
+    public string InventoryDescription { get; set; } = string.Empty;
+    public int InventoryQuantity { get; set; } = 1;
+    public int? InventoryDurabilityOrHealth { get; set; }
+    public bool InventoryIsEquipped { get; set; }
+    public bool InventoryUsesAmmoOrConsumable { get; set; }
+    public int? InventoryConsumptionPerUse { get; set; }
+    public string InventoryCategory { get; set; } = string.Empty;
+    public string InventoryNotes { get; set; } = string.Empty;
+    private InventoryItemEditorVm? _selectedInventoryItem;
+    public InventoryItemEditorVm? SelectedInventoryItem
+    {
+        get => _selectedInventoryItem;
+        set
+        {
+            _selectedInventoryItem = value;
+            if (value != null)
+            {
+                InventoryName = value.Name;
+                InventoryDescription = value.Description;
+                InventoryQuantity = value.Quantity;
+                InventoryDurabilityOrHealth = value.DurabilityOrHealth;
+                InventoryIsEquipped = value.IsEquipped;
+                InventoryUsesAmmoOrConsumable = value.UsesAmmoOrConsumable;
+                InventoryConsumptionPerUse = value.ConsumptionPerUse;
+                InventoryCategory = value.Category;
+                InventoryNotes = value.Notes;
+                NotifyInventoryEditor();
+                ClientLogService.Instance.Info($"inventory.editor.bind selectedItem={value.Id}");
+                ClientLogService.Instance.Info("inventory.editor.fields populated=true");
+            }
+            Notify();
+        }
+    }
 
     public ObservableCollection<RowVm> PendingAccounts { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> Players { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> Characters { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> InventoryRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<InventoryItemEditorVm> InventoryItems { get; } = new ObservableCollection<InventoryItemEditorVm>();
     public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> ReputationRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> CompanionRows { get; } = new ObservableCollection<string>();
@@ -946,6 +1001,11 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand SaveStatsCommand { get; }
     public ICommand SaveMoneyCommand { get; }
     public ICommand SaveXpCoinsCommand { get; }
+    public ICommand InventoryReloadCommand { get; }
+    public ICommand InventoryAddItemCommand { get; }
+    public ICommand InventoryUpdateItemCommand { get; }
+    public ICommand InventoryRemoveItemCommand { get; }
+    public ICommand InventoryToggleEquipCommand { get; }
     public ICommand ApproveRequestCommand { get; }
     public ICommand RejectRequestCommand { get; }
     public ICommand CombatStartCommand { get; }
@@ -1780,27 +1840,187 @@ public class AdminMainViewModel : ViewModelBase
         ClientLogService.Instance.Info($"character.reload stats={Health}/{Strength}/{Dexterity} money={Gold}/{Silver}/{Iron} xp={ExperienceCoins}");
         ClientLogService.Instance.Info($"character.money.reload values=Iron:{Iron},Bronze:{Bronze},Silver:{Silver},Gold:{Gold},Platinum:{Platinum},Orichalcum:{Orichalcum},Adamant:{Adamant},Sovereign:{Sovereign}");
 
-        InventoryRows.Clear();
-        foreach (var item in ToList(r.Payload.ContainsKey("inventory") ? r.Payload["inventory"] : new ArrayList()))
-            if (item is Dictionary<string, object> m)
-                InventoryRows.Add($"{S(m, "label")} x{S(m, "quantity")}");
+        ApplyInventoryPayload(r.Payload.ContainsKey("inventory") ? r.Payload["inventory"] : new ArrayList());
 
         HoldingsRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("holdings") ? r.Payload["holdings"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                HoldingsRows.Add($"{S(m, "name")} - {S(m, "description")}");
+                HoldingsRows.Add($"{S(m, "name")} ({S(m, "type")}) - {S(m, "description")}");
+        ClientLogService.Instance.Info($"selectedCharacter.holdings loaded={HoldingsRows.Count}");
 
         ReputationRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("reputation") ? r.Payload["reputation"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
-                ReputationRows.Add($"{S(m, "scope")}:{S(m, "groupKey")}={S(m, "value")}");
+                ReputationRows.Add($"{FirstNonEmpty(S(m, "targetName"), S(m, "groupKey"))} [{S(m, "targetType")}]: {S(m, "value")}");
+        ClientLogService.Instance.Info($"selectedCharacter.reputation loaded={ReputationRows.Count}");
 
         CompanionRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("companions") ? r.Payload["companions"] : new ArrayList()))
             if (item is Dictionary<string, object> m)
                 CompanionRows.Add($"{S(m, "name")} ({S(m, "species")})");
+        ClientLogService.Instance.Info($"selectedCharacter.companions loaded={CompanionRows.Count}");
 
         NotifyAllEditor();
+    }
+
+    private void LoadCharacterInventory()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterInventoryGet(SelectedCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            ApplyInventoryPayload(response.Payload.ContainsKey("inventory") ? response.Payload["inventory"] : new ArrayList());
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex.Message);
+        }
+    }
+
+    private void ApplyInventoryPayload(object? rawInventory)
+    {
+        InventoryRows.Clear();
+        InventoryItems.Clear();
+        foreach (var item in ToList(rawInventory))
+        {
+            var map = AsMap(item);
+            if (map == null) continue;
+            int.TryParse(FirstNonEmpty(S(map, "quantity"), "0"), out var quantity);
+            int? durability = null;
+            if (int.TryParse(FirstNonEmpty(S(map, "durabilityOrHealth"), S(map, "durability")), out var parsedDurability)) durability = parsedDurability;
+            int? consumption = null;
+            if (int.TryParse(S(map, "consumptionPerUse"), out var parsedConsumption)) consumption = parsedConsumption;
+            var vm = new InventoryItemEditorVm
+            {
+                Id = S(map, "id"),
+                Name = FirstNonEmpty(S(map, "name"), S(map, "label")),
+                Description = S(map, "description"),
+                Quantity = quantity,
+                DurabilityOrHealth = durability,
+                IsEquipped = string.Equals(FirstNonEmpty(S(map, "isEquipped"), S(map, "equipped")), "True", StringComparison.OrdinalIgnoreCase),
+                UsesAmmoOrConsumable = string.Equals(S(map, "usesAmmoOrConsumable"), "True", StringComparison.OrdinalIgnoreCase),
+                ConsumptionPerUse = consumption,
+                Category = S(map, "category"),
+                Notes = FirstNonEmpty(S(map, "notes"), S(map, "properties"))
+            };
+            InventoryItems.Add(vm);
+            InventoryRows.Add(vm.ListLabel);
+        }
+
+        if (SelectedInventoryItem == null || !InventoryItems.Contains(SelectedInventoryItem))
+            SelectedInventoryItem = InventoryItems.FirstOrDefault();
+        if (SelectedInventoryItem == null)
+        {
+            InventoryName = string.Empty;
+            InventoryDescription = string.Empty;
+            InventoryQuantity = 1;
+            InventoryDurabilityOrHealth = null;
+            InventoryIsEquipped = false;
+            InventoryUsesAmmoOrConsumable = false;
+            InventoryConsumptionPerUse = null;
+            InventoryCategory = string.Empty;
+            InventoryNotes = string.Empty;
+            NotifyInventoryEditor();
+        }
+        ClientLogService.Instance.Info($"selectedCharacter.inventory loaded={InventoryItems.Count}");
+        ClientLogService.Instance.Info($"inventory.list.render count={InventoryItems.Count}");
+        Notify(nameof(InventoryItems));
+    }
+
+    private void AddInventoryItem()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            ClientLogService.Instance.Info("inventory.item.add requested");
+            var response = _api.CharacterInventoryItemAdd(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "item", BuildInventoryRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("inventory.item.add success");
+            LoadCharacterInventory();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void UpdateInventoryItem()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedInventoryItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("inventory.item.update requested");
+            var response = _api.CharacterInventoryItemUpdate(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "itemId", SelectedInventoryItem.Id },
+                { "item", BuildInventoryRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("inventory.item.update success");
+            LoadCharacterInventory();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void RemoveInventoryItem()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedInventoryItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("inventory.item.remove requested");
+            var response = _api.CharacterInventoryItemRemove(SelectedCharacterId, SelectedInventoryItem.Id);
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("inventory.item.remove success");
+            LoadCharacterInventory();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void ToggleInventoryItemEquip()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedInventoryItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("inventory.item.toggleEquip requested");
+            var response = _api.CharacterInventoryItemToggleEquip(SelectedCharacterId, SelectedInventoryItem.Id);
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("inventory.item.toggleEquip success");
+            LoadCharacterInventory();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private Dictionary<string, object> BuildInventoryRequestPayload()
+    {
+        var payload = new Dictionary<string, object>
+        {
+            { "name", InventoryName },
+            { "description", InventoryDescription },
+            { "quantity", Math.Max(0, InventoryQuantity) },
+            { "isEquipped", InventoryIsEquipped },
+            { "usesAmmoOrConsumable", InventoryUsesAmmoOrConsumable },
+            { "category", InventoryCategory },
+            { "notes", InventoryNotes }
+        };
+        if (InventoryDurabilityOrHealth.HasValue) payload["durabilityOrHealth"] = InventoryDurabilityOrHealth.Value;
+        if (InventoryConsumptionPerUse.HasValue) payload["consumptionPerUse"] = InventoryConsumptionPerUse.Value;
+        return payload;
+    }
+
+    private void NotifyInventoryEditor()
+    {
+        Notify(nameof(InventoryName));
+        Notify(nameof(InventoryDescription));
+        Notify(nameof(InventoryQuantity));
+        Notify(nameof(InventoryDurabilityOrHealth));
+        Notify(nameof(InventoryIsEquipped));
+        Notify(nameof(InventoryUsesAmmoOrConsumable));
+        Notify(nameof(InventoryConsumptionPerUse));
+        Notify(nameof(InventoryCategory));
+        Notify(nameof(InventoryNotes));
     }
 
     private void LoadPendingRequests()
@@ -2590,7 +2810,11 @@ public class AdminMainViewModel : ViewModelBase
             };
             ClientLogService.Instance.Info($"character.update.money payloadKeys={string.Join(",", payload.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
             ClientLogService.Instance.Info($"character.money.save request currencies=Iron:{Iron},Bronze:{Bronze},Silver:{Silver},Gold:{Gold},Platinum:{Platinum},Orichalcum:{Orichalcum},Adamant:{Adamant},Sovereign:{Sovereign}");
-            ClientLogService.Instance.Info($"character.money.save payload={{{string.Join(", ", moneyPayload.OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => kv.Key + \":\" + kv.Value))}}}");
+            var payloadText = string.Join(
+                " | ",
+                moneyPayload.OrderBy(kv => kv.Key, StringComparer.Ordinal)
+                    .Select(kv => kv.Key + ":" + kv.Value));
+            ClientLogService.Instance.Info("character.money.save payload={" + payloadText + "}");
             var response = _api.UpdateCharacterMoney(payload);
             ClientLogService.Instance.Info($"character.update.money response={response.Status}:{response.Message}");
             ClientLogService.Instance.Info($"character.money.save response={response.Status}:{response.Message}");
@@ -2741,6 +2965,7 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(EditName)); Notify(nameof(EditRace)); Notify(nameof(EditHeight)); Notify(nameof(EditAge)); Notify(nameof(EditDescription)); Notify(nameof(EditBackstory));
         Notify(nameof(Health)); Notify(nameof(PhysicalArmor)); Notify(nameof(MagicalArmor)); Notify(nameof(Morale)); Notify(nameof(Strength)); Notify(nameof(Dexterity)); Notify(nameof(Endurance)); Notify(nameof(Wisdom)); Notify(nameof(Intellect)); Notify(nameof(Charisma));
         Notify(nameof(Iron)); Notify(nameof(Bronze)); Notify(nameof(Silver)); Notify(nameof(Gold)); Notify(nameof(Platinum)); Notify(nameof(Orichalcum)); Notify(nameof(Adamant)); Notify(nameof(Sovereign)); Notify(nameof(ExperienceCoins));
+        NotifyInventoryEditor();
     }
 
     private static T ReadJson<T>(string path, T fallback) where T : class
