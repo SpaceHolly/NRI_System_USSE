@@ -618,6 +618,7 @@ public class PlayerMainViewModel : ViewModelBase
         {
             ApplyCharacterPayload(active.Payload);
             ActiveCharacterId = GetString(active.Payload, "characterId");
+            LoadActiveCharacterInventory();
             ActiveCharacterStatusText = string.IsNullOrWhiteSpace(ActiveCharacterId) ? "Активный персонаж не выбран" : $"Активный персонаж: {CharacterNameDisplay}";
             ClientLogService.Instance.Info($"activeCharacter.load id={ActiveCharacterId}");
             UpdateCharacterActiveFlags();
@@ -750,6 +751,31 @@ public class PlayerMainViewModel : ViewModelBase
             SelectedCompanion = Companions.FirstOrDefault();
 
         NotifyCharacter();
+    }
+
+    private void LoadActiveCharacterInventory()
+    {
+        if (string.IsNullOrWhiteSpace(ActiveCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterInventoryGet(ActiveCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            InventoryRows.Clear();
+            foreach (var item in ToObjectList(response.Payload.ContainsKey("inventory") ? response.Payload["inventory"] : new ArrayList()))
+            {
+                if (item is not Dictionary<string, object> map) continue;
+                var name = FirstNonEmpty(GetString(map, "name"), GetString(map, "label"), "Без названия");
+                var durability = FirstNonEmpty(GetString(map, "durabilityOrHealth"), GetString(map, "durability"), "-");
+                var equipped = FirstNonEmpty(GetString(map, "isEquipped"), GetString(map, "equipped"), "False");
+                InventoryRows.Add($"{name} x{GetString(map, "quantity")} | экип: {equipped} | прочность: {durability} | cat={GetString(map, "category")}");
+            }
+            EnsureCollectionPlaceholder(InventoryRows, "Нет данных по инвентарю");
+            ClientLogService.Instance.Info($"activeCharacter.inventory loaded={InventoryRows.Count}");
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex);
+        }
     }
 
     private void CreateDiceRequest()
