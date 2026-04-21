@@ -78,6 +78,23 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CharacterGetInventory, new DelegateCommandHandler(hub.CharacterGetInventory));
         dispatcher.Register(CommandNames.CharacterGetReputation, new DelegateCommandHandler(hub.CharacterGetReputation));
         dispatcher.Register(CommandNames.CharacterGetHoldings, new DelegateCommandHandler(hub.CharacterGetHoldings));
+        dispatcher.Register(CommandNames.CharacterInventoryGet, new DelegateCommandHandler(hub.CharacterInventoryGet));
+        dispatcher.Register(CommandNames.CharacterInventoryItemAdd, new DelegateCommandHandler(hub.CharacterInventoryItemAdd));
+        dispatcher.Register(CommandNames.CharacterInventoryItemUpdate, new DelegateCommandHandler(hub.CharacterInventoryItemUpdate));
+        dispatcher.Register(CommandNames.CharacterInventoryItemRemove, new DelegateCommandHandler(hub.CharacterInventoryItemRemove));
+        dispatcher.Register(CommandNames.CharacterInventoryItemToggleEquip, new DelegateCommandHandler(hub.CharacterInventoryItemToggleEquip));
+        dispatcher.Register(CommandNames.CharacterCompanionsGet, new DelegateCommandHandler(hub.CharacterCompanionsGet));
+        dispatcher.Register(CommandNames.CharacterCompanionAdd, new DelegateCommandHandler(hub.CharacterCompanionAdd));
+        dispatcher.Register(CommandNames.CharacterCompanionUpdate, new DelegateCommandHandler(hub.CharacterCompanionUpdate));
+        dispatcher.Register(CommandNames.CharacterCompanionRemove, new DelegateCommandHandler(hub.CharacterCompanionRemove));
+        dispatcher.Register(CommandNames.CharacterHoldingsGet, new DelegateCommandHandler(hub.CharacterHoldingsGet));
+        dispatcher.Register(CommandNames.CharacterHoldingAdd, new DelegateCommandHandler(hub.CharacterHoldingAdd));
+        dispatcher.Register(CommandNames.CharacterHoldingUpdate, new DelegateCommandHandler(hub.CharacterHoldingUpdate));
+        dispatcher.Register(CommandNames.CharacterHoldingRemove, new DelegateCommandHandler(hub.CharacterHoldingRemove));
+        dispatcher.Register(CommandNames.CharacterReputationGet, new DelegateCommandHandler(hub.CharacterReputationGet));
+        dispatcher.Register(CommandNames.CharacterReputationEntryAdd, new DelegateCommandHandler(hub.CharacterReputationEntryAdd));
+        dispatcher.Register(CommandNames.CharacterReputationEntryUpdate, new DelegateCommandHandler(hub.CharacterReputationEntryUpdate));
+        dispatcher.Register(CommandNames.CharacterReputationEntryRemove, new DelegateCommandHandler(hub.CharacterReputationEntryRemove));
 
         dispatcher.Register(CommandNames.CharacterUpdateBasicInfo, new DelegateCommandHandler(hub.CharacterUpdateBasicInfo));
         dispatcher.Register(CommandNames.CharacterUpdateStats, new DelegateCommandHandler(hub.CharacterUpdateStats));

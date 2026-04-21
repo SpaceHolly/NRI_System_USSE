@@ -618,6 +618,7 @@ public class PlayerMainViewModel : ViewModelBase
         {
             ApplyCharacterPayload(active.Payload);
             ActiveCharacterId = GetString(active.Payload, "characterId");
+            LoadActiveCharacterInventory();
             ActiveCharacterStatusText = string.IsNullOrWhiteSpace(ActiveCharacterId) ? "Активный персонаж не выбран" : $"Активный персонаж: {CharacterNameDisplay}";
             ClientLogService.Instance.Info($"activeCharacter.load id={ActiveCharacterId}");
             UpdateCharacterActiveFlags();
@@ -683,21 +684,27 @@ public class PlayerMainViewModel : ViewModelBase
         foreach (var item in ToObjectList(payload.ContainsKey("inventory") ? payload["inventory"] : new ArrayList()))
         {
             if (item is not Dictionary<string, object> map) continue;
-            InventoryRows.Add($"{GetString(map, "label")} x{GetString(map, "quantity")} | dur={GetString(map, "durability")} | equip={GetString(map, "equipped")} | use={GetString(map, "consumptionPerUse")}");
+            var name = FirstNonEmpty(GetString(map, "name"), GetString(map, "label"), "Без названия");
+            var durability = FirstNonEmpty(GetString(map, "durabilityOrHealth"), GetString(map, "durability"));
+            var equipped = FirstNonEmpty(GetString(map, "isEquipped"), GetString(map, "equipped"));
+            InventoryRows.Add($"{name} x{GetString(map, "quantity")} | экип: {equipped} | прочность: {durability}");
         }
 
         HoldingsRows.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("holdings") ? payload["holdings"] : new ArrayList()))
             if (item is Dictionary<string, object> map)
-                HoldingsRows.Add($"{GetString(map, "name")} — {GetString(map, "description")}");
+                HoldingsRows.Add($"{GetString(map, "name")} ({GetString(map, "type")}) — {GetString(map, "description")}");
+        ClientLogService.Instance.Info($"activeCharacter.holdings loaded={HoldingsRows.Count}");
 
         ReputationRows.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("reputation") ? payload["reputation"] : new ArrayList()))
         {
             if (item is not Dictionary<string, object> map) continue;
             int.TryParse(GetString(map, "value"), out var value);
-            ReputationRows.Add(new ReputationRowVm { Label = GetString(map, "groupKey"), Value = value });
+            var label = FirstNonEmpty(GetString(map, "targetName"), GetString(map, "groupKey"), "Неизвестная сущность");
+            ReputationRows.Add(new ReputationRowVm { Label = $"{label} [{GetString(map, "targetType")}]", Value = value });
         }
+        ClientLogService.Instance.Info($"activeCharacter.reputation loaded={ReputationRows.Count}");
 
         Companions.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("companions") ? payload["companions"] : new ArrayList()))
@@ -733,6 +740,7 @@ public class PlayerMainViewModel : ViewModelBase
 
             Companions.Add(vm);
         }
+        ClientLogService.Instance.Info($"activeCharacter.companions loaded={Companions.Count}");
 
         EnsureCollectionPlaceholder(InventoryRows, "Нет данных по инвентарю");
         EnsureCollectionPlaceholder(HoldingsRows, "Нет данных по владениям");
@@ -742,6 +750,31 @@ public class PlayerMainViewModel : ViewModelBase
             SelectedCompanion = Companions.FirstOrDefault();
 
         NotifyCharacter();
+    }
+
+    private void LoadActiveCharacterInventory()
+    {
+        if (string.IsNullOrWhiteSpace(ActiveCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterInventoryGet(ActiveCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            InventoryRows.Clear();
+            foreach (var item in ToObjectList(response.Payload.ContainsKey("inventory") ? response.Payload["inventory"] : new ArrayList()))
+            {
+                if (item is not Dictionary<string, object> map) continue;
+                var name = FirstNonEmpty(GetString(map, "name"), GetString(map, "label"), "Без названия");
+                var durability = FirstNonEmpty(GetString(map, "durabilityOrHealth"), GetString(map, "durability"), "-");
+                var equipped = FirstNonEmpty(GetString(map, "isEquipped"), GetString(map, "equipped"), "False");
+                InventoryRows.Add($"{name} x{GetString(map, "quantity")} | экип: {equipped} | прочность: {durability} | cat={GetString(map, "category")}");
+            }
+            EnsureCollectionPlaceholder(InventoryRows, "Нет данных по инвентарю");
+            ClientLogService.Instance.Info($"activeCharacter.inventory loaded={InventoryRows.Count}");
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex);
+        }
     }
 
     private void CreateDiceRequest()
