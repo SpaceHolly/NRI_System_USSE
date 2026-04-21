@@ -895,6 +895,8 @@ public class AdminMainViewModel : ViewModelBase
                 InventoryCategory = value.Category;
                 InventoryNotes = value.Notes;
                 NotifyInventoryEditor();
+                ClientLogService.Instance.Info($"inventory.editor.bind selectedItem={value.Id}");
+                ClientLogService.Instance.Info("inventory.editor.fields populated=true");
             }
             Notify();
         }
@@ -1872,7 +1874,7 @@ public class AdminMainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            SetConnectionError(ex);
+            SetConnectionError(ex.Message);
         }
     }
 
@@ -1922,6 +1924,7 @@ public class AdminMainViewModel : ViewModelBase
             NotifyInventoryEditor();
         }
         ClientLogService.Instance.Info($"selectedCharacter.inventory loaded={InventoryItems.Count}");
+        ClientLogService.Instance.Info($"inventory.list.render count={InventoryItems.Count}");
         Notify(nameof(InventoryItems));
     }
 
@@ -1940,7 +1943,7 @@ public class AdminMainViewModel : ViewModelBase
             ClientLogService.Instance.Info("inventory.item.add success");
             LoadCharacterInventory();
         }
-        catch (Exception ex) { SetConnectionError(ex); }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
     }
 
     private void UpdateInventoryItem()
@@ -1959,7 +1962,7 @@ public class AdminMainViewModel : ViewModelBase
             ClientLogService.Instance.Info("inventory.item.update success");
             LoadCharacterInventory();
         }
-        catch (Exception ex) { SetConnectionError(ex); }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
     }
 
     private void RemoveInventoryItem()
@@ -1973,7 +1976,7 @@ public class AdminMainViewModel : ViewModelBase
             ClientLogService.Instance.Info("inventory.item.remove success");
             LoadCharacterInventory();
         }
-        catch (Exception ex) { SetConnectionError(ex); }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
     }
 
     private void ToggleInventoryItemEquip()
@@ -1987,7 +1990,7 @@ public class AdminMainViewModel : ViewModelBase
             ClientLogService.Instance.Info("inventory.item.toggleEquip success");
             LoadCharacterInventory();
         }
-        catch (Exception ex) { SetConnectionError(ex); }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
     }
 
     private Dictionary<string, object> BuildInventoryRequestPayload()
@@ -2807,7 +2810,11 @@ public class AdminMainViewModel : ViewModelBase
             };
             ClientLogService.Instance.Info($"character.update.money payloadKeys={string.Join(",", payload.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
             ClientLogService.Instance.Info($"character.money.save request currencies=Iron:{Iron},Bronze:{Bronze},Silver:{Silver},Gold:{Gold},Platinum:{Platinum},Orichalcum:{Orichalcum},Adamant:{Adamant},Sovereign:{Sovereign}");
-            ClientLogService.Instance.Info($"character.money.save payload={{{string.Join(", ", moneyPayload.OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => kv.Key + \":\" + kv.Value))}}}");
+            var payloadText = string.Join(
+                " | ",
+                moneyPayload.OrderBy(kv => kv.Key, StringComparer.Ordinal)
+                    .Select(kv => kv.Key + ":" + kv.Value));
+            ClientLogService.Instance.Info("character.money.save payload={" + payloadText + "}");
             var response = _api.UpdateCharacterMoney(payload);
             ClientLogService.Instance.Info($"character.update.money response={response.Status}:{response.Message}");
             ClientLogService.Instance.Info($"character.money.save response={response.Status}:{response.Message}");

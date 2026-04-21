@@ -470,16 +470,48 @@
                                                     </WrapPanel>
                                                 </StackPanel>
                                                 <Grid Grid.Row="1">
-                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
-                                                    <ListBox ItemsSource="{Binding InventoryItems}" SelectedItem="{Binding SelectedInventoryItem, Mode=TwoWay}" DisplayMemberPath="ListLabel" MinHeight="140"/>
-                                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                                        <TextBox Text="{Binding InventoryName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Name"/>
-                                                        <TextBox Margin="0,6,0,0" Text="{Binding InventoryDescription, UpdateSourceTrigger=PropertyChanged}" ToolTip="Description"/>
-                                                        <WrapPanel Margin="0,6,0,0"><TextBox Width="72" Text="{Binding InventoryQuantity, UpdateSourceTrigger=PropertyChanged}" ToolTip="Qty"/><TextBox Width="95" Margin="6,0,0,0" Text="{Binding InventoryDurabilityOrHealth, UpdateSourceTrigger=PropertyChanged}" ToolTip="Durability"/><TextBox Width="95" Margin="6,0,0,0" Text="{Binding InventoryConsumptionPerUse, UpdateSourceTrigger=PropertyChanged}" ToolTip="Use"/></WrapPanel>
-                                                        <TextBox Margin="0,6,0,0" Text="{Binding InventoryCategory, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category"/>
-                                                        <TextBox Margin="0,6,0,0" Text="{Binding InventoryNotes, UpdateSourceTrigger=PropertyChanged}" ToolTip="Notes"/>
-                                                        <WrapPanel Margin="0,6,0,0"><CheckBox Content="Equipped" IsChecked="{Binding InventoryIsEquipped, UpdateSourceTrigger=PropertyChanged}"/><CheckBox Margin="8,0,0,0" Content="Uses ammo/consumable" IsChecked="{Binding InventoryUsesAmmoOrConsumable, UpdateSourceTrigger=PropertyChanged}"/></WrapPanel>
-                                                    </StackPanel>
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="1.65*"/></Grid.ColumnDefinitions>
+                                                    <ListView ItemsSource="{Binding InventoryItems}" SelectedItem="{Binding SelectedInventoryItem, Mode=TwoWay}" MinHeight="170">
+                                                        <ListView.View>
+                                                            <GridView>
+                                                                <GridViewColumn Header="Имя" Width="160" DisplayMemberBinding="{Binding Name}"/>
+                                                                <GridViewColumn Header="Кол-во" Width="58" DisplayMemberBinding="{Binding Quantity}"/>
+                                                                <GridViewColumn Header="Экип" Width="58" DisplayMemberBinding="{Binding IsEquipped}"/>
+                                                                <GridViewColumn Header="Прочность" Width="72" DisplayMemberBinding="{Binding DurabilityOrHealth}"/>
+                                                                <GridViewColumn Header="Категория" Width="120" DisplayMemberBinding="{Binding Category}"/>
+                                                            </GridView>
+                                                        </ListView.View>
+                                                    </ListView>
+                                                    <ScrollViewer Grid.Column="1" Margin="8,0,0,0" VerticalScrollBarVisibility="Auto">
+                                                        <StackPanel>
+                                                            <TextBlock Text="Имя"/>
+                                                            <TextBox Text="{Binding InventoryName, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <TextBlock Margin="0,6,0,0" Text="Описание"/>
+                                                            <TextBox Height="66" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding InventoryDescription, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <WrapPanel Margin="0,6,0,0">
+                                                                <StackPanel>
+                                                                    <TextBlock Text="Количество"/>
+                                                                    <TextBox Width="78" Text="{Binding InventoryQuantity, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                </StackPanel>
+                                                                <StackPanel Margin="8,0,0,0">
+                                                                    <TextBlock Text="Прочность / здоровье"/>
+                                                                    <TextBox Width="130" Text="{Binding InventoryDurabilityOrHealth, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                </StackPanel>
+                                                                <StackPanel Margin="8,0,0,0">
+                                                                    <TextBlock Text="Расход за использование"/>
+                                                                    <TextBox Width="130" Text="{Binding InventoryConsumptionPerUse, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                </StackPanel>
+                                                            </WrapPanel>
+                                                            <TextBlock Margin="0,6,0,0" Text="Категория"/>
+                                                            <TextBox Text="{Binding InventoryCategory, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <TextBlock Margin="0,6,0,0" Text="Доп. свойства / заметки"/>
+                                                            <TextBox Height="82" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding InventoryNotes, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <WrapPanel Margin="0,8,0,0">
+                                                                <CheckBox Content="Equipped" IsChecked="{Binding InventoryIsEquipped, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                <CheckBox Margin="10,0,0,0" Content="Uses ammo/consumable" IsChecked="{Binding InventoryUsesAmmoOrConsumable, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            </WrapPanel>
+                                                        </StackPanel>
+                                                    </ScrollViewer>
                                                 </Grid>
                                             </Grid>
                                         </Border>

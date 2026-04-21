@@ -424,21 +424,32 @@
                                                     <TextBlock Text="Список предметов" FontWeight="Bold" FontSize="16"/>
                                                     <TextBlock Text="Инвентарь подготовлен под большой объём предметов и свойств." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                 </StackPanel>
-                                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                                    <ListBox x:Name="InventoryList" ItemsSource="{Binding InventoryRows}"/>
-                                                </ScrollViewer>
+                                                <ListView Grid.Row="1"
+                                                          x:Name="InventoryList"
+                                                          ItemsSource="{Binding InventoryItems}"
+                                                          SelectedItem="{Binding SelectedInventoryItem, Mode=TwoWay}">
+                                                    <ListView.View>
+                                                        <GridView>
+                                                            <GridViewColumn Header="Имя" Width="180" DisplayMemberBinding="{Binding Name}"/>
+                                                            <GridViewColumn Header="Кол-во" Width="68" DisplayMemberBinding="{Binding Quantity}"/>
+                                                            <GridViewColumn Header="Экипировано" Width="82" DisplayMemberBinding="{Binding IsEquipped}"/>
+                                                            <GridViewColumn Header="Прочность" Width="86" DisplayMemberBinding="{Binding Durability}"/>
+                                                            <GridViewColumn Header="Категория" Width="120" DisplayMemberBinding="{Binding Category}"/>
+                                                        </GridView>
+                                                    </ListView.View>
+                                                </ListView>
                                             </Grid>
                                         </Border>
                                         <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
                                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                                 <StackPanel>
                                                     <TextBlock Text="Карточка предмета" FontWeight="Bold" FontSize="16"/>
-                                                    <TextBlock Text="{Binding ElementName=InventoryList, Path=SelectedItem, TargetNullValue=Предмет не выбран}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="{Binding SelectedInventoryItem.Name, TargetNullValue=Предмет не выбран}" FontWeight="SemiBold" Margin="0,8,0,0"/>
                                                     <TextBlock Text="Описание" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
-                                                    <TextBlock Text="Здесь появятся описание, владельцы, прочность, статус экипировки, заряд и вложенное содержимое." TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding SelectedInventoryItem.Description, TargetNullValue=Описание отсутствует}" TextWrapping="Wrap"/>
                                                     <TextBlock Text="Свойства" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
                                                     <Border Style="{StaticResource CardStyle}" Background="#FF223452">
-                                                        <TextBlock Text="Дополнительные свойства и заметки предмета отображаются в строке списка и будут расширены на следующем этапе." TextWrapping="Wrap"/>
+                                                        <TextBlock Text="{Binding SelectedInventoryItem.Category, StringFormat=Категория: {0}, TargetNullValue=Категория не задана}" TextWrapping="Wrap"/>
                                                     </Border>
                                                 </StackPanel>
                                             </ScrollViewer>
