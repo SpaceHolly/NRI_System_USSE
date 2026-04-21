@@ -689,6 +689,7 @@ public class PlayerMainViewModel : ViewModelBase
             var equipped = FirstNonEmpty(GetString(map, "isEquipped"), GetString(map, "equipped"));
             InventoryRows.Add($"{name} x{GetString(map, "quantity")} | экип: {equipped} | прочность: {durability}");
         }
+        ClientLogService.Instance.Info($"activeCharacter.inventory loaded={InventoryRows.Count}");
 
         HoldingsRows.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("holdings") ? payload["holdings"] : new ArrayList()))
