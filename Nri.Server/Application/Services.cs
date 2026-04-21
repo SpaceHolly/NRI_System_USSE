@@ -511,7 +511,7 @@ public partial class ServiceHub
         var moneyRawRuntimeType = context.Request.Payload.ContainsKey("money") && context.Request.Payload["money"] != null
             ? context.Request.Payload["money"]!.GetType().FullName ?? context.Request.Payload["money"]!.GetType().Name
             : "null";
-        _logger.Admin($"character.update.money payloadKeys={string.Join(\",\", context.Request.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
+        _logger.Admin($"character.update.money payloadKeys={string.Join(",", context.Request.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
         _logger.Admin($"character.money.save runtimeType={moneyRawRuntimeType}");
         var moneyRaw = PayloadReader.GetDictionary(context.Request.Payload, "money") ?? new Dictionary<string, object>();
         _logger.Admin($"character.money.save request currencies={string.Join(\",\", moneyRaw.Keys.OrderBy(key => key, StringComparer.Ordinal))}");
@@ -536,8 +536,8 @@ public partial class ServiceHub
             updatedCurrencies++;
             acceptedCurrencies.Add(d + "=" + value.Value);
         }
-        _logger.Admin($"character.money.save accepted keys={string.Join(\",\", acceptedCurrencies)}");
-        _logger.Admin($"character.money.save rejected keys={string.Join(\",\", rejectedCurrencies)}");
+        _logger.Admin($"character.money.save accepted keys={string.Join(",", acceptedCurrencies)}");
+        _logger.Admin($"character.money.save rejected keys={string.Join(",", rejectedCurrencies)}");
         if (updatedCurrencies == 0)
         {
             _logger.Admin("character.money.save validator rejected keys=none-valid");
