@@ -85,6 +85,20 @@ public class InventoryItemEditorVm : ViewModelBase
     public string ListLabel => $"{Name} x{Quantity} | eq={IsEquipped} | dur={DurabilityOrHealth?.ToString() ?? "-"} | {Category}";
 }
 
+public class HoldingEditorVm : ViewModelBase
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
+    public List<string> Owners { get; set; } = new List<string>();
+    public string OwnersDisplay => Owners.Count == 0 ? "—" : string.Join(", ", Owners);
+    public string Preview => $"{Name} | {Type} | {(IsArchived ? "Archived" : "Active")} | {FirstNonEmpty(Description, Notes)}";
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+}
+
 public sealed class ChatMessageRowVm : ViewModelBase
 {
     public string Sender { get; set; } = string.Empty;
@@ -330,6 +344,10 @@ public class AdminMainViewModel : ViewModelBase
         InventoryUpdateItemCommand = new RelayCommand(UpdateInventoryItem);
         InventoryRemoveItemCommand = new RelayCommand(RemoveInventoryItem);
         InventoryToggleEquipCommand = new RelayCommand(ToggleInventoryItemEquip);
+        HoldingsReloadCommand = new RelayCommand(LoadCharacterHoldings);
+        HoldingAddCommand = new RelayCommand(AddHolding);
+        HoldingUpdateCommand = new RelayCommand(UpdateHolding);
+        HoldingRemoveCommand = new RelayCommand(RemoveHolding);
         ApproveRequestCommand = new RelayCommand(ApproveRequest);
         RejectRequestCommand = new RelayCommand(RejectRequest);
         CombatStartCommand = new RelayCommand(() => RunUiAction("Запуск боя", CombatStart));
@@ -908,6 +926,35 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> InventoryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<InventoryItemEditorVm> InventoryItems { get; } = new ObservableCollection<InventoryItemEditorVm>();
     public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<HoldingEditorVm> HoldingsItems { get; } = new ObservableCollection<HoldingEditorVm>();
+    public string HoldingName { get; set; } = string.Empty;
+    public string HoldingType { get; set; } = string.Empty;
+    public string HoldingDescription { get; set; } = string.Empty;
+    public string HoldingNotes { get; set; } = string.Empty;
+    public bool HoldingIsArchived { get; set; }
+    public string HoldingOwners { get; set; } = string.Empty;
+    private HoldingEditorVm? _selectedHoldingItem;
+    public HoldingEditorVm? SelectedHoldingItem
+    {
+        get => _selectedHoldingItem;
+        set
+        {
+            _selectedHoldingItem = value;
+            if (value != null)
+            {
+                HoldingName = value.Name;
+                HoldingType = value.Type;
+                HoldingDescription = value.Description;
+                HoldingNotes = value.Notes;
+                HoldingIsArchived = value.IsArchived;
+                HoldingOwners = value.OwnersDisplay;
+                NotifyHoldingEditor();
+                ClientLogService.Instance.Info($"holdings.editor.bind selectedHolding={value.Id}");
+                ClientLogService.Instance.Info("holdings.editor.fields populated=true");
+            }
+            Notify();
+        }
+    }
     public ObservableCollection<string> ReputationRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> CompanionRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<RowVm> PendingRequests { get; } = new ObservableCollection<RowVm>();
@@ -1006,6 +1053,10 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand InventoryUpdateItemCommand { get; }
     public ICommand InventoryRemoveItemCommand { get; }
     public ICommand InventoryToggleEquipCommand { get; }
+    public ICommand HoldingsReloadCommand { get; }
+    public ICommand HoldingAddCommand { get; }
+    public ICommand HoldingUpdateCommand { get; }
+    public ICommand HoldingRemoveCommand { get; }
     public ICommand ApproveRequestCommand { get; }
     public ICommand RejectRequestCommand { get; }
     public ICommand CombatStartCommand { get; }
@@ -1842,11 +1893,7 @@ public class AdminMainViewModel : ViewModelBase
 
         ApplyInventoryPayload(r.Payload.ContainsKey("inventory") ? r.Payload["inventory"] : new ArrayList());
 
-        HoldingsRows.Clear();
-        foreach (var item in ToList(r.Payload.ContainsKey("holdings") ? r.Payload["holdings"] : new ArrayList()))
-            if (item is Dictionary<string, object> m)
-                HoldingsRows.Add($"{S(m, "name")} ({S(m, "type")}) - {S(m, "description")}");
-        ClientLogService.Instance.Info($"selectedCharacter.holdings loaded={HoldingsRows.Count}");
+        ApplyHoldingsPayload(r.Payload.ContainsKey("holdings") ? r.Payload["holdings"] : new ArrayList());
 
         ReputationRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("reputation") ? r.Payload["reputation"] : new ArrayList()))
@@ -1876,6 +1923,60 @@ public class AdminMainViewModel : ViewModelBase
         {
             SetConnectionError(ex.Message);
         }
+    }
+
+    private void LoadCharacterHoldings()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterHoldingsGet(SelectedCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            ApplyHoldingsPayload(response.Payload.ContainsKey("holdings") ? response.Payload["holdings"] : new ArrayList());
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex.Message);
+        }
+    }
+
+    private void ApplyHoldingsPayload(object? rawHoldings)
+    {
+        HoldingsRows.Clear();
+        HoldingsItems.Clear();
+        foreach (var item in ToList(rawHoldings ?? new ArrayList()))
+        {
+            var map = AsMap(item);
+            if (map == null) continue;
+            var owners = ToList(map.ContainsKey("owners") ? map["owners"] : new ArrayList()).Cast<object>().Select(x => x?.ToString() ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+            var vm = new HoldingEditorVm
+            {
+                Id = S(map, "id"),
+                Name = S(map, "name"),
+                Type = S(map, "type"),
+                Description = S(map, "description"),
+                Notes = S(map, "notes"),
+                IsArchived = string.Equals(FirstNonEmpty(S(map, "isArchived"), S(map, "archived")), "True", StringComparison.OrdinalIgnoreCase),
+                Owners = owners
+            };
+            HoldingsItems.Add(vm);
+            HoldingsRows.Add(vm.Preview);
+        }
+        if (SelectedHoldingItem == null || !HoldingsItems.Contains(SelectedHoldingItem))
+            SelectedHoldingItem = HoldingsItems.FirstOrDefault();
+        if (SelectedHoldingItem == null)
+        {
+            HoldingName = string.Empty;
+            HoldingType = string.Empty;
+            HoldingDescription = string.Empty;
+            HoldingNotes = string.Empty;
+            HoldingIsArchived = false;
+            HoldingOwners = string.Empty;
+            NotifyHoldingEditor();
+        }
+        ClientLogService.Instance.Info($"selectedCharacter.holdings loaded={HoldingsItems.Count}");
+        ClientLogService.Instance.Info($"holdings.list.render count={HoldingsItems.Count}");
+        Notify(nameof(HoldingsItems));
     }
 
     private void ApplyInventoryPayload(object? rawInventory)
@@ -1993,6 +2094,57 @@ public class AdminMainViewModel : ViewModelBase
         catch (Exception ex) { SetConnectionError(ex.Message); }
     }
 
+    private void AddHolding()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            ClientLogService.Instance.Info("holding.add requested");
+            var response = _api.CharacterHoldingAdd(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "holding", BuildHoldingRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("holding.add success");
+            LoadCharacterHoldings();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void UpdateHolding()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedHoldingItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("holding.update requested");
+            var response = _api.CharacterHoldingUpdate(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "holdingId", SelectedHoldingItem.Id },
+                { "holding", BuildHoldingRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("holding.update success");
+            LoadCharacterHoldings();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void RemoveHolding()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedHoldingItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("holding.remove requested");
+            var response = _api.CharacterHoldingRemove(SelectedCharacterId, SelectedHoldingItem.Id);
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("holding.remove success");
+            LoadCharacterHoldings();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
     private Dictionary<string, object> BuildInventoryRequestPayload()
     {
         var payload = new Dictionary<string, object>
@@ -2010,6 +2162,26 @@ public class AdminMainViewModel : ViewModelBase
         return payload;
     }
 
+    private Dictionary<string, object> BuildHoldingRequestPayload()
+    {
+        var ownerValues = HoldingOwners.Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Cast<object>()
+            .ToArray();
+        return new Dictionary<string, object>
+        {
+            { "name", HoldingName },
+            { "type", HoldingType },
+            { "description", HoldingDescription },
+            { "notes", HoldingNotes },
+            { "archived", HoldingIsArchived },
+            { "isArchived", HoldingIsArchived },
+            { "owners", ownerValues }
+        };
+    }
+
     private void NotifyInventoryEditor()
     {
         Notify(nameof(InventoryName));
@@ -2021,6 +2193,16 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(InventoryConsumptionPerUse));
         Notify(nameof(InventoryCategory));
         Notify(nameof(InventoryNotes));
+    }
+
+    private void NotifyHoldingEditor()
+    {
+        Notify(nameof(HoldingName));
+        Notify(nameof(HoldingType));
+        Notify(nameof(HoldingDescription));
+        Notify(nameof(HoldingNotes));
+        Notify(nameof(HoldingIsArchived));
+        Notify(nameof(HoldingOwners));
     }
 
     private void LoadPendingRequests()
@@ -2966,6 +3148,7 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(Health)); Notify(nameof(PhysicalArmor)); Notify(nameof(MagicalArmor)); Notify(nameof(Morale)); Notify(nameof(Strength)); Notify(nameof(Dexterity)); Notify(nameof(Endurance)); Notify(nameof(Wisdom)); Notify(nameof(Intellect)); Notify(nameof(Charisma));
         Notify(nameof(Iron)); Notify(nameof(Bronze)); Notify(nameof(Silver)); Notify(nameof(Gold)); Notify(nameof(Platinum)); Notify(nameof(Orichalcum)); Notify(nameof(Adamant)); Notify(nameof(Sovereign)); Notify(nameof(ExperienceCoins));
         NotifyInventoryEditor();
+        NotifyHoldingEditor();
     }
 
     private static T ReadJson<T>(string path, T fallback) where T : class
