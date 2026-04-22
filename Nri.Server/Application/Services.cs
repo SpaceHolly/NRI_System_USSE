@@ -703,7 +703,7 @@ public partial class ServiceHub
         character.Holdings.Add(holding);
         _repositories.Characters.Replace(character);
         _logger.Admin($"character.holding.add response=ok characterId={character.Id} holdingId={holding.Id}");
-        return Ok("Character holding added.");
+        return Ok("Character holding added.", new Dictionary<string, object> { { "holding", HoldingPayload(holding) } });
     }
 
     public ResponseEnvelope CharacterHoldingUpdate(CommandContext context)
@@ -718,7 +718,7 @@ public partial class ServiceHub
         character.Holdings[character.Holdings.IndexOf(existing)] = incoming;
         _repositories.Characters.Replace(character);
         _logger.Admin($"character.holding.update response=ok characterId={character.Id} holdingId={incoming.Id}");
-        return Ok("Character holding updated.");
+        return Ok("Character holding updated.", new Dictionary<string, object> { { "holding", HoldingPayload(incoming) } });
     }
 
     public ResponseEnvelope CharacterHoldingRemove(CommandContext context)
@@ -1179,7 +1179,7 @@ public partial class ServiceHub
         details["currencies"] = CurrencyListPayload(c);
         details["inventory"] = c.Inventory.Select(InventoryPayload).Cast<object>().ToArray();
         details["companions"] = c.Companions.Select(CompanionPayload).Cast<object>().ToArray();
-        details["holdings"] = c.Holdings.Select(x => new Dictionary<string, object> { { "id", x.Id }, { "name", x.Name }, { "type", x.Type }, { "description", x.Description }, { "owners", x.Owners.Cast<object>().ToArray() }, { "notes", x.Notes }, { "archived", x.Archived } }).Cast<object>().ToArray();
+        details["holdings"] = c.Holdings.Select(HoldingPayload).Cast<object>().ToArray();
         details["reputation"] = (!isPrivileged && c.Visibility.HideReputationForOthers) ? "[hidden]" : (object)c.Reputation.Select(x => new Dictionary<string, object> { { "id", x.Id }, { "scope", x.Scope }, { "scopeType", x.ScopeType.ToString() }, { "groupKey", x.GroupKey }, { "targetType", x.TargetType.ToString() }, { "targetName", x.TargetName }, { "value", x.Value }, { "notes", x.Notes }, { "isHiddenForOthers", x.IsHiddenForOthers }, { "archived", x.Archived } }).Cast<object>().ToArray();
         details["classProgress"] = c.ClassProgress.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "experience", x.Experience } }).Cast<object>().ToArray();
         details["skills"] = c.Skills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "name", x.Name }, { "description", x.Description }, { "type", x.Type.ToString() }, { "available", x.IsAvailable }, { "reason", x.UnavailableReason } }).Cast<object>().ToArray();
@@ -1231,6 +1231,18 @@ public partial class ServiceHub
         { "id", c.Id }, { "name", c.Name }, { "species", c.Species }, { "description", c.Description }, { "notes", c.Notes }, { "statsSummary", c.StatsSummary }, { "isArchived", c.IsArchived }, { "inventory", c.Inventory.Select(InventoryPayload).Cast<object>().ToArray() }
     };
 
+    private static Dictionary<string, object> HoldingPayload(HoldingRef x) => new Dictionary<string, object>
+    {
+        { "id", x.Id },
+        { "name", x.Name },
+        { "type", x.Type },
+        { "description", x.Description },
+        { "owners", x.Owners.Cast<object>().ToArray() },
+        { "notes", x.Notes },
+        { "archived", x.Archived },
+        { "isArchived", x.Archived }
+    };
+
     private List<InventoryItem> ParseInventoryList(IList<object>? list)
     {
         if (list == null) return new List<InventoryItem>();
@@ -1266,7 +1278,7 @@ public partial class ServiceHub
             Description = RequireLength(PayloadReader.GetString(item, "description"), 0, 512, "description"),
             Owners = (PayloadReader.GetList(item, "owners") ?? new List<object>()).Select(x => x?.ToString() ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).ToList(),
             Notes = RequireLength(PayloadReader.GetString(item, "notes"), 0, 1024, "notes"),
-            Archived = PayloadReader.GetBool(item, "archived")
+            Archived = PayloadReader.GetBool(item, "archived") || PayloadReader.GetBool(item, "isArchived")
         }).ToList();
     }
 

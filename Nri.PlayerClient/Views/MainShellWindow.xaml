@@ -473,18 +473,34 @@
                                                     <TextBlock Text="Список владений" FontWeight="Bold" FontSize="16"/>
                                                     <TextBlock Text="Корабли, поместья, участки и другие крупные сущности будут собраны здесь." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
                                                 </StackPanel>
-                                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                                    <ListBox x:Name="HoldingsList" ItemsSource="{Binding HoldingsRows}"/>
-                                                </ScrollViewer>
+                                                <ListView Grid.Row="1"
+                                                          x:Name="HoldingsList"
+                                                          ItemsSource="{Binding HoldingsItems}"
+                                                          SelectedItem="{Binding SelectedHoldingItem, Mode=TwoWay}">
+                                                    <ListView.View>
+                                                        <GridView>
+                                                            <GridViewColumn Header="Название" Width="170" DisplayMemberBinding="{Binding Name}"/>
+                                                            <GridViewColumn Header="Тип" Width="120" DisplayMemberBinding="{Binding Type}"/>
+                                                            <GridViewColumn Header="Статус" Width="90" DisplayMemberBinding="{Binding StatusLabel}"/>
+                                                            <GridViewColumn Header="Описание/заметки" Width="260" DisplayMemberBinding="{Binding Preview}"/>
+                                                        </GridView>
+                                                    </ListView.View>
+                                                </ListView>
                                             </Grid>
                                         </Border>
                                         <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
                                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                                 <StackPanel>
                                                     <TextBlock Text="Карточка владения" FontWeight="Bold" FontSize="16"/>
-                                                    <TextBlock Text="{Binding ElementName=HoldingsList, Path=SelectedItem, TargetNullValue=Владение не выбрано}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.Name, TargetNullValue=Владение не выбрано}" FontWeight="SemiBold" Margin="0,8,0,0"/>
                                                     <TextBlock Text="Тип и владельцы" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
-                                                    <TextBlock Text="Здесь будут тип владения, список владельцев, описание, статус и дополнительные свойства." TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.Type, StringFormat=Тип: {0}, TargetNullValue=Тип не указан}" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.OwnersDisplay, StringFormat=Owners: {0}, TargetNullValue=Owners: —}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.StatusLabel, StringFormat=Статус: {0}, TargetNullValue=Статус: —}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="Описание" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.Description, TargetNullValue=Описание отсутствует}" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="Заметки" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.Notes, TargetNullValue=Заметки отсутствуют}" TextWrapping="Wrap"/>
                                                 </StackPanel>
                                             </ScrollViewer>
                                         </Border>
