@@ -1274,33 +1274,6 @@ public partial class ServiceHub
         { "isArchived", x.Archived }
     };
 
-    private static Dictionary<string, object> HoldingPayload(HoldingRef x) => new Dictionary<string, object>
-    {
-        { "id", x.Id },
-        { "name", x.Name },
-        { "type", x.Type },
-        { "description", x.Description },
-        { "owners", x.Owners.Cast<object>().ToArray() },
-        { "notes", x.Notes },
-        { "archived", x.Archived },
-        { "isArchived", x.Archived }
-    };
-
-    private static Dictionary<string, object> ReputationPayload(ReputationRef x) => new Dictionary<string, object>
-    {
-        { "id", x.Id },
-        { "scope", x.Scope },
-        { "scopeType", x.ScopeType.ToString() },
-        { "groupKey", x.GroupKey },
-        { "targetType", x.TargetType.ToString() },
-        { "targetName", x.TargetName },
-        { "value", x.Value },
-        { "notes", x.Notes },
-        { "isHiddenForOthers", x.IsHiddenForOthers },
-        { "archived", x.Archived },
-        { "isArchived", x.Archived }
-    };
-
     private List<InventoryItem> ParseInventoryList(IList<object>? list)
     {
         if (list == null) return new List<InventoryItem>();
@@ -1387,6 +1360,7 @@ public partial class ServiceHub
 
     private HoldingRef ParseHolding(Dictionary<string, object> source) => ParseHoldingsList(new List<object> { source }).First();
     private ReputationRef ParseReputationEntry(Dictionary<string, object> source) => ParseReputationList(new List<object> { source }).First();
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     private static ReputationScopeType ParseScopeType(string? value) => Enum.TryParse<ReputationScopeType>(value, true, out var parsed) ? parsed : ReputationScopeType.Character;
     private static ReputationTargetType ParseTargetType(string? value) => Enum.TryParse<ReputationTargetType>(value, true, out var parsed) ? parsed : ReputationTargetType.Other;
 
