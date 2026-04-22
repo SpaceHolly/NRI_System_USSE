@@ -1274,6 +1274,33 @@ public partial class ServiceHub
         { "isArchived", x.Archived }
     };
 
+    private static Dictionary<string, object> HoldingPayload(HoldingRef x) => new Dictionary<string, object>
+    {
+        { "id", x.Id },
+        { "name", x.Name },
+        { "type", x.Type },
+        { "description", x.Description },
+        { "owners", x.Owners.Cast<object>().ToArray() },
+        { "notes", x.Notes },
+        { "archived", x.Archived },
+        { "isArchived", x.Archived }
+    };
+
+    private static Dictionary<string, object> ReputationPayload(ReputationRef x) => new Dictionary<string, object>
+    {
+        { "id", x.Id },
+        { "scope", x.Scope },
+        { "scopeType", x.ScopeType.ToString() },
+        { "groupKey", x.GroupKey },
+        { "targetType", x.TargetType.ToString() },
+        { "targetName", x.TargetName },
+        { "value", x.Value },
+        { "notes", x.Notes },
+        { "isHiddenForOthers", x.IsHiddenForOthers },
+        { "archived", x.Archived },
+        { "isArchived", x.Archived }
+    };
+
     private List<InventoryItem> ParseInventoryList(IList<object>? list)
     {
         if (list == null) return new List<InventoryItem>();
