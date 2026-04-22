@@ -2934,17 +2934,17 @@ public class AdminMainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
         SkillRows.Clear();
-        var r = _api.SkillsList(SelectedCharacterId);
+        var r = _api.CharacterSkillsGet(SelectedCharacterId);
         if (r.Status != ResponseStatus.Ok || !r.Payload.ContainsKey("items")) return;
         foreach (var item in ToList(r.Payload["items"]))
         {
             if (item is not Dictionary<string, object> m) continue;
             SkillRows.Add(new RowVm
             {
-                Id = S(m, "skillId"),
-                Name = S(m, "name"),
-                State = $"type={S(m, "type")}",
-                Extra = $"acquired={S(m, "acquired")} • available={S(m, "available")} • reason={S(m, "reason")}"
+                Id = S(m, "skillCode"),
+                Name = S(m, "skillCode"),
+                State = $"tier={S(m, "tier")}",
+                Extra = $"level={S(m, "level")} • acquired={S(m, "acquired")} • learnedUtc={S(m, "learnedUtc")}"
             });
         }
         RestoreSelection(SkillRows, SelectedSkillId, value => SelectedSkillId = value);
@@ -2953,7 +2953,7 @@ public class AdminMainViewModel : ViewModelBase
     private void AcquireSkill()
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedSkillId)) return;
-        _api.SkillsAcquire(SelectedCharacterId, SelectedSkillId);
+        _api.CharacterSkillAdd(SelectedCharacterId, SelectedSkillId, 1);
         LoadSkills();
     }
 

@@ -46,6 +46,8 @@ public sealed class AdminDefinitionHandlers
             new DelegateRequestHandler(CommandNames.DefinitionsSkillGet, HandleGetSkillByCode),
             new DelegateRequestHandler(CommandNames.DefinitionsSkillSave, HandleSaveSkill),
             new DelegateRequestHandler(CommandNames.DefinitionsSkillArchive, HandleArchiveSkill),
+            new DelegateRequestHandler(CommandNames.SkillsSave, HandleSaveSkill),
+            new DelegateRequestHandler(CommandNames.SkillsArchive, HandleArchiveSkill),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceList, HandleGetRaceList),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceGet, HandleGetRaceByCode),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceSave, HandleSaveRace),

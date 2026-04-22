@@ -607,6 +607,70 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterCompanionsGet(CommandContext context) => CharacterGetCompanions(context);
     public ResponseEnvelope CharacterHoldingsGet(CommandContext context) => CharacterGetHoldings(context);
     public ResponseEnvelope CharacterReputationGet(CommandContext context) => CharacterGetReputation(context);
+    public ResponseEnvelope CharacterSkillsGet(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        EnsureCharacterDefaults(character);
+        return Ok("Character skills loaded.", new Dictionary<string, object>
+        {
+            { "items", character.CharacterSkills.Select(CharacterSkillPayload).Cast<object>().ToArray() }
+        });
+    }
+
+    public ResponseEnvelope CharacterSkillAdd(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        EnsureCharacterDefaults(character);
+        var skillCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "skillCode"), 1, 128, "skillCode");
+        if (character.CharacterSkills.Any(x => string.Equals(x.SkillCode, skillCode, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"Skill '{skillCode}' already exists.");
+        var definition = _repositories.DefinitionSkills.GetByCode(skillCode)
+            ?? throw new KeyNotFoundException($"Skill '{skillCode}' not found.");
+        var level = RequireRange(PayloadReader.GetInt(context.Request.Payload, "level"), 1, 999, "level");
+        var skill = new CharacterSkillState
+        {
+            SkillCode = definition.Code,
+            Tier = definition.Tier,
+            Level = Math.Min(level, Math.Max(1, definition.MaxLevel)),
+            Acquired = true,
+            LearnedUtc = DateTime.UtcNow
+        };
+        character.CharacterSkills.Add(skill);
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.skill.add response=ok characterId={character.Id} skillCode={skill.SkillCode} level={skill.Level}");
+        return Ok("Character skill added.", new Dictionary<string, object> { { "item", CharacterSkillPayload(skill) } });
+    }
+
+    public ResponseEnvelope CharacterSkillUpdateLevel(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        EnsureCharacterDefaults(character);
+        var skillCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "skillCode"), 1, 128, "skillCode");
+        var skill = character.CharacterSkills.FirstOrDefault(x => string.Equals(x.SkillCode, skillCode, StringComparison.OrdinalIgnoreCase))
+            ?? throw new KeyNotFoundException($"Skill '{skillCode}' not found on character.");
+        var definition = _repositories.DefinitionSkills.GetByCode(skill.SkillCode)
+            ?? throw new KeyNotFoundException($"Skill '{skill.SkillCode}' definition not found.");
+        var level = RequireRange(PayloadReader.GetInt(context.Request.Payload, "level"), 1, 999, "level");
+        skill.Level = Math.Min(level, Math.Max(1, definition.MaxLevel));
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.skill.updateLevel response=ok characterId={character.Id} skillCode={skill.SkillCode} level={skill.Level}");
+        return Ok("Character skill level updated.", new Dictionary<string, object> { { "item", CharacterSkillPayload(skill) } });
+    }
+
+    public ResponseEnvelope CharacterSkillRemove(CommandContext context)
+    {
+        _ = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        EnsureCharacterDefaults(character);
+        var skillCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "skillCode"), 1, 128, "skillCode");
+        character.CharacterSkills.RemoveAll(x => string.Equals(x.SkillCode, skillCode, StringComparison.OrdinalIgnoreCase));
+        _repositories.Characters.Replace(character);
+        _logger.Admin($"character.skill.remove response=ok characterId={character.Id} skillCode={skillCode}");
+        return Ok("Character skill removed.");
+    }
 
     public ResponseEnvelope CharacterInventoryItemAdd(CommandContext context)
     {
@@ -1565,6 +1629,15 @@ public partial class ServiceHub
             LearnedUtc = DateTime.UtcNow
         }).ToList();
     }
+
+    private static Dictionary<string, object> CharacterSkillPayload(CharacterSkillState skill) => new Dictionary<string, object>
+    {
+        { "skillCode", skill.SkillCode },
+        { "tier", skill.Tier },
+        { "level", skill.Level },
+        { "acquired", skill.Acquired },
+        { "learnedUtc", skill.LearnedUtc }
+    };
 
     private Dictionary<string, object> BuildNotesContextPayload(string characterId)
     {
