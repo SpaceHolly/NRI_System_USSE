@@ -613,7 +613,54 @@
                                             </ScrollViewer>
                                         </Grid>
                                     </Border>
-                                    <Border Style="{StaticResource CardStyle}" Margin="0,8,0,0" MinHeight="200"><StackPanel><TextBlock Text="Репутация" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding ReputationRows}" MinHeight="140"/></StackPanel></Border>
+                                    <Border Style="{StaticResource CardStyle}" Margin="0,8,0,0" MinHeight="260">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="1.3*"/>
+                                                <ColumnDefinition Width="1.7*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid Grid.Column="0" Margin="0,0,8,0">
+                                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Репутация" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                    <WrapPanel Margin="0,6,0,6">
+                                                        <Button Content="Обновить" Command="{Binding ReputationReloadCommand}"/>
+                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Добавить" Command="{Binding ReputationAddCommand}"/>
+                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Изменить" Command="{Binding ReputationUpdateCommand}"/>
+                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Удалить" Command="{Binding ReputationRemoveCommand}"/>
+                                                    </WrapPanel>
+                                                </StackPanel>
+                                                <ListView Grid.Row="1" ItemsSource="{Binding ReputationItems}" SelectedItem="{Binding SelectedReputationItem, Mode=TwoWay}" MinHeight="140">
+                                                    <ListView.View>
+                                                        <GridView>
+                                                            <GridViewColumn Header="Target" Width="170" DisplayMemberBinding="{Binding TargetName}"/>
+                                                            <GridViewColumn Header="Type" Width="100" DisplayMemberBinding="{Binding TargetType}"/>
+                                                            <GridViewColumn Header="Scope" Width="90" DisplayMemberBinding="{Binding ScopeType}"/>
+                                                            <GridViewColumn Header="Value" Width="70" DisplayMemberBinding="{Binding Value}"/>
+                                                            <GridViewColumn Header="Status" Width="90" DisplayMemberBinding="{Binding StatusLabel}"/>
+                                                            <GridViewColumn Header="Notes" Width="220" DisplayMemberBinding="{Binding Notes}"/>
+                                                        </GridView>
+                                                    </ListView.View>
+                                                </ListView>
+                                            </Grid>
+                                            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                                                <StackPanel>
+                                                    <TextBlock Text="Редактор записи" Style="{StaticResource TitleTextStyle}"/>
+                                                    <TextBlock Text="ScopeType" Margin="0,6,0,0"/>
+                                                    <ComboBox ItemsSource="{Binding ReputationScopeTypeOptions}" SelectedItem="{Binding ReputationScopeTypeInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <TextBlock Text="TargetType" Margin="0,6,0,0"/>
+                                                    <ComboBox ItemsSource="{Binding ReputationTargetTypeOptions}" SelectedItem="{Binding ReputationTargetTypeInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <TextBlock Text="TargetName" Margin="0,6,0,0"/>
+                                                    <TextBox Text="{Binding ReputationTargetNameInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <TextBlock Text="Value" Margin="0,6,0,0"/>
+                                                    <TextBox Text="{Binding ReputationValueInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <TextBlock Text="Notes" Margin="0,6,0,0"/>
+                                                    <TextBox Height="92" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding ReputationNotesInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <CheckBox Margin="0,8,0,0" Content="Archived" IsChecked="{Binding ReputationIsArchivedInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                </StackPanel>
+                                            </ScrollViewer>
+                                        </Grid>
+                                    </Border>
                                 </StackPanel>
                             </ScrollViewer>
                         </Grid>

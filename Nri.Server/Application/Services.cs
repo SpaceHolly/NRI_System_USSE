@@ -740,7 +740,7 @@ public partial class ServiceHub
         character.Reputation.Add(entry);
         _repositories.Characters.Replace(character);
         _logger.Admin($"character.reputation.entry.add response=ok characterId={character.Id} reputationId={entry.Id}");
-        return Ok("Character reputation entry added.");
+        return Ok("Character reputation entry added.", new Dictionary<string, object> { { "entry", ReputationPayload(entry) } });
     }
 
     public ResponseEnvelope CharacterReputationEntryUpdate(CommandContext context)
@@ -755,7 +755,7 @@ public partial class ServiceHub
         character.Reputation[character.Reputation.IndexOf(existing)] = incoming;
         _repositories.Characters.Replace(character);
         _logger.Admin($"character.reputation.entry.update response=ok characterId={character.Id} reputationId={incoming.Id}");
-        return Ok("Character reputation entry updated.");
+        return Ok("Character reputation entry updated.", new Dictionary<string, object> { { "entry", ReputationPayload(incoming) } });
     }
 
     public ResponseEnvelope CharacterReputationEntryRemove(CommandContext context)
@@ -1180,7 +1180,7 @@ public partial class ServiceHub
         details["inventory"] = c.Inventory.Select(InventoryPayload).Cast<object>().ToArray();
         details["companions"] = c.Companions.Select(CompanionPayload).Cast<object>().ToArray();
         details["holdings"] = c.Holdings.Select(HoldingPayload).Cast<object>().ToArray();
-        details["reputation"] = (!isPrivileged && c.Visibility.HideReputationForOthers) ? "[hidden]" : (object)c.Reputation.Select(x => new Dictionary<string, object> { { "id", x.Id }, { "scope", x.Scope }, { "scopeType", x.ScopeType.ToString() }, { "groupKey", x.GroupKey }, { "targetType", x.TargetType.ToString() }, { "targetName", x.TargetName }, { "value", x.Value }, { "notes", x.Notes }, { "isHiddenForOthers", x.IsHiddenForOthers }, { "archived", x.Archived } }).Cast<object>().ToArray();
+        details["reputation"] = (!isPrivileged && c.Visibility.HideReputationForOthers) ? "[hidden]" : (object)c.Reputation.Select(ReputationPayload).Cast<object>().ToArray();
         details["classProgress"] = c.ClassProgress.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "experience", x.Experience } }).Cast<object>().ToArray();
         details["skills"] = c.Skills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "name", x.Name }, { "description", x.Description }, { "type", x.Type.ToString() }, { "available", x.IsAvailable }, { "reason", x.UnavailableReason } }).Cast<object>().ToArray();
         details["raceCode"] = c.RaceCode;
@@ -1243,6 +1243,21 @@ public partial class ServiceHub
         { "isArchived", x.Archived }
     };
 
+    private static Dictionary<string, object> ReputationPayload(ReputationRef x) => new Dictionary<string, object>
+    {
+        { "id", x.Id },
+        { "scope", x.Scope },
+        { "scopeType", x.ScopeType.ToString() },
+        { "groupKey", x.GroupKey },
+        { "targetType", x.TargetType.ToString() },
+        { "targetName", x.TargetName },
+        { "value", x.Value },
+        { "notes", x.Notes },
+        { "isHiddenForOthers", x.IsHiddenForOthers },
+        { "archived", x.Archived },
+        { "isArchived", x.Archived }
+    };
+
     private List<InventoryItem> ParseInventoryList(IList<object>? list)
     {
         if (list == null) return new List<InventoryItem>();
@@ -1263,7 +1278,7 @@ public partial class ServiceHub
             Value = RequireRange(PayloadReader.GetInt(item, "value"), -9999, 9999, "value"),
             Notes = RequireLength(PayloadReader.GetString(item, "notes"), 0, 1024, "notes"),
             IsHiddenForOthers = PayloadReader.GetBool(item, "isHiddenForOthers"),
-            Archived = PayloadReader.GetBool(item, "archived")
+            Archived = PayloadReader.GetBool(item, "archived") || PayloadReader.GetBool(item, "isArchived")
         }).ToList();
     }
 
