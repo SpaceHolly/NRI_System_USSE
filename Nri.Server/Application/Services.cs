@@ -609,9 +609,10 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterReputationGet(CommandContext context) => CharacterGetReputation(context);
     public ResponseEnvelope CharacterSkillsGet(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         EnsureCharacterDefaults(character);
+        _logger.Admin($"character.skills.get actor={actor.Login} characterId={character.Id} count={character.CharacterSkills.Count}");
         return Ok("Character skills loaded.", new Dictionary<string, object>
         {
             { "items", character.CharacterSkills.Select(CharacterSkillPayload).Cast<object>().ToArray() }
@@ -620,7 +621,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope CharacterSkillAdd(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         EnsureCharacterDefaults(character);
         var skillCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "skillCode"), 1, 128, "skillCode");
@@ -639,13 +640,13 @@ public partial class ServiceHub
         };
         character.CharacterSkills.Add(skill);
         _repositories.Characters.Replace(character);
-        _logger.Admin($"character.skill.add response=ok characterId={character.Id} skillCode={skill.SkillCode} level={skill.Level}");
+        _logger.Admin($"character.skill.add actor={actor.Login} response=ok characterId={character.Id} skillCode={skill.SkillCode} level={skill.Level}");
         return Ok("Character skill added.", new Dictionary<string, object> { { "item", CharacterSkillPayload(skill) } });
     }
 
     public ResponseEnvelope CharacterSkillUpdateLevel(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         EnsureCharacterDefaults(character);
         var skillCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "skillCode"), 1, 128, "skillCode");
@@ -656,19 +657,19 @@ public partial class ServiceHub
         var level = RequireRange(PayloadReader.GetInt(context.Request.Payload, "level"), 1, 999, "level");
         skill.Level = Math.Min(level, Math.Max(1, definition.MaxLevel));
         _repositories.Characters.Replace(character);
-        _logger.Admin($"character.skill.updateLevel response=ok characterId={character.Id} skillCode={skill.SkillCode} level={skill.Level}");
+        _logger.Admin($"character.skill.updateLevel actor={actor.Login} response=ok characterId={character.Id} skillCode={skill.SkillCode} level={skill.Level}");
         return Ok("Character skill level updated.", new Dictionary<string, object> { { "item", CharacterSkillPayload(skill) } });
     }
 
     public ResponseEnvelope CharacterSkillRemove(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         EnsureCharacterDefaults(character);
         var skillCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "skillCode"), 1, 128, "skillCode");
         character.CharacterSkills.RemoveAll(x => string.Equals(x.SkillCode, skillCode, StringComparison.OrdinalIgnoreCase));
         _repositories.Characters.Replace(character);
-        _logger.Admin($"character.skill.remove response=ok characterId={character.Id} skillCode={skillCode}");
+        _logger.Admin($"character.skill.remove actor={actor.Login} response=ok characterId={character.Id} skillCode={skillCode}");
         return Ok("Character skill removed.");
     }
 

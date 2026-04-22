@@ -299,6 +299,7 @@ public class AdminMainViewModel : ViewModelBase
     private string _selectedCombatParticipantId = string.Empty;
     private string _selectedClassNodeId = string.Empty;
     private string _selectedSkillId = string.Empty;
+    private int _characterSkillLevelInput = 1;
     private string _selectedReferenceId = string.Empty;
     private string _selectedClassDefinitionCode = string.Empty;
     private string _selectedSkillDefinitionCode = string.Empty;
@@ -418,7 +419,9 @@ public class AdminMainViewModel : ViewModelBase
         LoadClassTreeCommand = new RelayCommand(() => RunUiAction("Загрузка class tree", LoadClassTree));
         AcquireClassNodeCommand = new RelayCommand(() => RunUiAction("Выдача class node", AcquireClassNode));
         LoadSkillsCommand = new RelayCommand(() => RunUiAction("Загрузка навыков", LoadSkills));
-        AcquireSkillCommand = new RelayCommand(() => RunUiAction("Выдача навыка", AcquireSkill));
+        AcquireSkillCommand = new RelayCommand(() => RunUiAction("Добавление навыка персонажу", AcquireSkill));
+        UpdateSkillLevelCommand = new RelayCommand(() => RunUiAction("Обновление уровня навыка", UpdateSkillLevel));
+        RemoveSkillCommand = new RelayCommand(() => RunUiAction("Удаление навыка персонажа", RemoveSkill));
         ChatSendCommand = new RelayCommand(() => RunUiAction("Отправка сообщения", ChatSend));
         ChatRefreshCommand = new RelayCommand(() => RunUiAction("Обновление чата", ChatRefresh));
         ChatMuteUserCommand = new RelayCommand(ChatMuteUser);
@@ -560,7 +563,9 @@ public class AdminMainViewModel : ViewModelBase
     public bool CanManageSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanArchiveSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && SelectedSkillDefinition != null;
     public bool CanAcquireClassNode => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedClassNode != null;
-    public bool CanAcquireSkill => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedSkill != null;
+    public bool CanAcquireSkill => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && !string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode);
+    public bool CanUpdateCharacterSkillLevel => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedSkill != null;
+    public bool CanRemoveCharacterSkill => CanUpdateCharacterSkillLevel;
     public bool CanManageReferenceRecord => ArePrivilegedSectionsEnabled && !IsBusy && SelectedReference != null;
     public bool CanManageSelectedBackup => ArePrivilegedSectionsEnabled && !IsBusy && SelectedBackup != null;
     public bool CanRefreshSystem => ArePrivilegedSectionsEnabled && !IsBusy;
@@ -668,6 +673,9 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(CanOpenSelectedCharacter));
                 Notify(nameof(CanRollCharacterDice));
                 Notify(nameof(DiceRollAvailabilityHint));
+                Notify(nameof(CanAcquireSkill));
+                Notify(nameof(CanUpdateCharacterSkillLevel));
+                Notify(nameof(CanRemoveCharacterSkill));
                 TraceDiceAvailability();
                 ClientLogService.Instance.Info($"ui.people.character.selected characterId={_selectedCharacterId}");
             }
@@ -771,6 +779,7 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(SelectedSkillSummary));
                 Notify(nameof(SelectedContentSummary));
                 Notify(nameof(CanArchiveSkillDefinition));
+                Notify(nameof(CanAcquireSkill));
             }
         }
     }
@@ -788,6 +797,22 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(SelectedSkillSummary));
                 Notify(nameof(SelectedContentSummary));
                 Notify(nameof(CanAcquireSkill));
+                Notify(nameof(CanUpdateCharacterSkillLevel));
+                Notify(nameof(CanRemoveCharacterSkill));
+                if (SelectedSkill != null) CharacterSkillLevelInput = ParseLevelFromSkillState(SelectedSkill.State);
+            }
+        }
+    }
+    public int CharacterSkillLevelInput
+    {
+        get => _characterSkillLevelInput;
+        set
+        {
+            var normalized = Math.Max(1, value);
+            if (_characterSkillLevelInput != normalized)
+            {
+                _characterSkillLevelInput = normalized;
+                Notify();
             }
         }
     }
@@ -1198,6 +1223,8 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand AcquireClassNodeCommand { get; }
     public ICommand LoadSkillsCommand { get; }
     public ICommand AcquireSkillCommand { get; }
+    public ICommand UpdateSkillLevelCommand { get; }
+    public ICommand RemoveSkillCommand { get; }
     public ICommand ChatSendCommand { get; }
     public ICommand ChatRefreshCommand { get; }
     public ICommand ChatMuteUserCommand { get; }
@@ -1449,6 +1476,9 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(CanManageSelectedLock));
         Notify(nameof(CanManageSelectedCharacter));
         Notify(nameof(CanManageCharacterVisibility));
+        Notify(nameof(CanAcquireSkill));
+        Notify(nameof(CanUpdateCharacterSkillLevel));
+        Notify(nameof(CanRemoveCharacterSkill));
         Notify(nameof(CanRefreshNotes));
         Notify(nameof(CanCreateNote));
         Notify(nameof(CanArchiveNote));
@@ -2010,6 +2040,11 @@ public class AdminMainViewModel : ViewModelBase
         ApplyReputationPayload(r.Payload.ContainsKey("reputation") ? r.Payload["reputation"] : new ArrayList());
 
         ApplyCompanionsPayload(r.Payload.ContainsKey("companions") ? r.Payload["companions"] : new ArrayList());
+        if (SkillDefinitionRows.Count == 0)
+        {
+            RefreshDefinitionSkills();
+        }
+        LoadSkills();
 
         NotifyAllEditor();
     }
@@ -2814,6 +2849,7 @@ public class AdminMainViewModel : ViewModelBase
             });
         }
         ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Навыки loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}");
+        ClientLogService.Instance.Info($"skillDefinitions.render count={SkillDefinitionRows.Count}");
         RestoreSelection(SkillDefinitionRows, SelectedSkillDefinitionCode, value => SelectedSkillDefinitionCode = value);
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedSkillDefinition));
@@ -2943,17 +2979,41 @@ public class AdminMainViewModel : ViewModelBase
             {
                 Id = S(m, "skillCode"),
                 Name = S(m, "skillCode"),
-                State = $"tier={S(m, "tier")}",
-                Extra = $"level={S(m, "level")} • acquired={S(m, "acquired")} • learnedUtc={S(m, "learnedUtc")}"
+                State = $"level={S(m, "level")} • tier={S(m, "tier")}",
+                Extra = $"acquired={S(m, "acquired")} • learnedUtc={S(m, "learnedUtc")}"
             });
         }
         RestoreSelection(SkillRows, SelectedSkillId, value => SelectedSkillId = value);
+        ClientLogService.Instance.Info($"selectedCharacter.skills loaded={SkillRows.Count}");
     }
 
     private void AcquireSkill()
     {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode)) return;
+        ClientLogService.Instance.Info($"character.skill.add selectedSkillCode={SelectedSkillDefinitionCode}");
+        var response = _api.CharacterSkillAdd(SelectedCharacterId, SelectedSkillDefinitionCode, CharacterSkillLevelInput);
+        ClientLogService.Instance.Info($"character.skill.add response={response.Status}");
+        if (response.Status != ResponseStatus.Ok) throw new InvalidOperationException(response.Message);
+        SelectedSkillId = SelectedSkillDefinitionCode;
+        LoadSkills();
+    }
+
+    private void UpdateSkillLevel()
+    {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedSkillId)) return;
-        _api.CharacterSkillAdd(SelectedCharacterId, SelectedSkillId, 1);
+        var response = _api.CharacterSkillUpdateLevel(SelectedCharacterId, SelectedSkillId, CharacterSkillLevelInput);
+        ClientLogService.Instance.Info($"character.skill.updateLevel response={response.Status}");
+        if (response.Status != ResponseStatus.Ok) throw new InvalidOperationException(response.Message);
+        LoadSkills();
+    }
+
+    private void RemoveSkill()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedSkillId)) return;
+        var response = _api.CharacterSkillRemove(SelectedCharacterId, SelectedSkillId);
+        ClientLogService.Instance.Info($"character.skill.remove response={response.Status}");
+        if (response.Status != ResponseStatus.Ok) throw new InvalidOperationException(response.Message);
+        SelectedSkillId = string.Empty;
         LoadSkills();
     }
 
@@ -3057,6 +3117,17 @@ public class AdminMainViewModel : ViewModelBase
     }
 
     private static int ParseInt(string value, int fallback) => int.TryParse(value, out var parsed) ? parsed : fallback;
+    private static int ParseLevelFromSkillState(string state)
+    {
+        if (string.IsNullOrWhiteSpace(state)) return 1;
+        var marker = "level=";
+        var index = state.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (index < 0) return 1;
+        var start = index + marker.Length;
+        var end = state.IndexOf(' ', start);
+        var raw = end > start ? state.Substring(start, end - start) : state.Substring(start);
+        return int.TryParse(raw, out var parsed) && parsed > 0 ? parsed : 1;
+    }
     private static bool ParseBool(string value, bool fallback) => bool.TryParse(value, out var parsed) ? parsed : fallback;
     private static List<string> SplitCsv(string value) => value.Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Select(item => item.Trim()).Where(item => !string.IsNullOrWhiteSpace(item)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     private static List<string> ReadStringList(Dictionary<string, object> map, string key) => ToList(map.ContainsKey(key) ? map[key] : new ArrayList()).Cast<object>().Select(item => Convert.ToString(item) ?? string.Empty).Where(item => !string.IsNullOrWhiteSpace(item)).ToList();

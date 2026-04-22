@@ -709,6 +709,46 @@
                                             </ScrollViewer>
                                         </Grid>
                                     </Border>
+                                    <Border Style="{StaticResource CardStyle}" Margin="0,8,0,0" MinHeight="280">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="1.2*"/>
+                                                <ColumnDefinition Width="1.8*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                                <TextBlock Text="Skill definitions" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                <TextBlock Margin="0,6,0,4" Text="Выберите definition навыка для добавления персонажу"/>
+                                                <DataGrid ItemsSource="{Binding FilteredSkillDefinitionRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedSkillDefinitionCode, UpdateSourceTrigger=PropertyChanged}" MinHeight="180">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="Code" Binding="{Binding Id}" Width="1.4*"/>
+                                                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="1.6*"/>
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1">
+                                                <DockPanel>
+                                                    <TextBlock Text="Навыки выбранного персонажа" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding LoadSkillsCommand}"/>
+                                                </DockPanel>
+                                                <WrapPanel Margin="0,6,0,6">
+                                                    <TextBlock Text="Уровень:" VerticalAlignment="Center"/>
+                                                    <TextBox Width="70" Margin="6,0,0,0" Text="{Binding CharacterSkillLevelInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <Button Margin="8,0,0,0" Content="Добавить выбранный навык персонажу" Command="{Binding AcquireSkillCommand}" IsEnabled="{Binding CanAcquireSkill}"/>
+                                                    <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Изменить уровень" Command="{Binding UpdateSkillLevelCommand}" IsEnabled="{Binding CanUpdateCharacterSkillLevel}"/>
+                                                    <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Удалить навык" Command="{Binding RemoveSkillCommand}" IsEnabled="{Binding CanRemoveCharacterSkill}"/>
+                                                </WrapPanel>
+                                                <ListView ItemsSource="{Binding SkillRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedSkillId, UpdateSourceTrigger=PropertyChanged}" MinHeight="180">
+                                                    <ListView.View>
+                                                        <GridView>
+                                                            <GridViewColumn Header="Skill" Width="180" DisplayMemberBinding="{Binding Name}"/>
+                                                            <GridViewColumn Header="State" Width="170" DisplayMemberBinding="{Binding State}"/>
+                                                            <GridViewColumn Header="Details" Width="250" DisplayMemberBinding="{Binding Extra}"/>
+                                                        </GridView>
+                                                    </ListView.View>
+                                                </ListView>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
                                 </StackPanel>
                             </ScrollViewer>
                         </Grid>

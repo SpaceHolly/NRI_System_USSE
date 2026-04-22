@@ -216,6 +216,8 @@ public class PlayerMainViewModel : ViewModelBase
     private int _lastCompanionsRenderCount = -1;
     private bool? _lastCompanionsPlaceholderHidden;
     private int _lastCompanionsLoadedCount = -1;
+    private int _lastSkillsRenderCount = -1;
+    private bool? _lastSkillsPlaceholderHidden;
 
     public PlayerMainViewModel()
     {
@@ -1698,13 +1700,40 @@ public class PlayerMainViewModel : ViewModelBase
 
         SkillRows.Clear();
         SkillCatalogRows.Clear();
-        var skills = _api.SkillsList(SelectedCharacterId);
-        foreach (var item in ToObjectList(skills.Payload.ContainsKey("items") ? skills.Payload["items"] : new ArrayList()))
+        var skills = _api.CharacterSkillsGet(SelectedCharacterId);
+        if (skills.Status != ResponseStatus.Ok)
+        {
+            EnsureCollectionPlaceholder(SkillRows, "Нет данных по навыкам");
+            EnsureCollectionPlaceholder(SkillCatalogRows, "Нет доступных навыков");
+            return;
+        }
+        var items = ToObjectList(skills.Payload.ContainsKey("items") ? skills.Payload["items"] : new ArrayList());
+        ClientLogService.Instance.Info($"activeCharacter.skills loaded={items.Count}");
+        foreach (var item in items)
         {
             if (item is not Dictionary<string, object> map) continue;
-            var row = $"{GetString(map, "name")} [{GetString(map, "type")}] | acquired={GetString(map, "acquired")} | available={GetString(map, "available")} | {GetString(map, "reason")}";
+            var row = $"{GetString(map, "skillCode")} | level={GetString(map, "level")} | tier={GetString(map, "tier")} | acquired={GetString(map, "acquired")}";
             SkillCatalogRows.Add(row);
             SkillRows.Add(row);
+        }
+
+        var placeholderHidden = SkillRows.Count > 0;
+        if (!placeholderHidden)
+        {
+            EnsureCollectionPlaceholder(SkillRows, "Нет данных по навыкам");
+            EnsureCollectionPlaceholder(SkillCatalogRows, "Нет доступных навыков");
+        }
+
+        ClientLogService.Instance.Info($"activeCharacter.skills.bind count={SkillRows.Count}");
+        if (_lastSkillsRenderCount != SkillRows.Count)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.skills.render count={SkillRows.Count}");
+            _lastSkillsRenderCount = SkillRows.Count;
+        }
+        if (_lastSkillsPlaceholderHidden != placeholderHidden)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.skills.placeholder hidden={placeholderHidden.ToString().ToLowerInvariant()}");
+            _lastSkillsPlaceholderHidden = placeholderHidden;
         }
     }
 
