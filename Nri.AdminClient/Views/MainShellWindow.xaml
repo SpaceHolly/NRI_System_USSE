@@ -566,7 +566,55 @@
                                             </Grid>
                                         </Grid>
                                     </Border>
-                                    <Border Style="{StaticResource CardStyle}" Margin="0,8,0,0" MinHeight="200"><StackPanel><TextBlock Text="Спутники" Style="{StaticResource SectionTitleTextStyle}"/><ListBox ItemsSource="{Binding CompanionRows}" MinHeight="140"/></StackPanel></Border>
+                                    <Border Style="{StaticResource CardStyle}" Margin="0,8,0,0" MinHeight="260">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="1.3*"/>
+                                                <ColumnDefinition Width="1.7*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid Grid.Column="0" Margin="0,0,8,0">
+                                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Спутники" Style="{StaticResource SectionTitleTextStyle}"/>
+                                                    <WrapPanel Margin="0,6,0,6">
+                                                        <Button Content="Обновить" Command="{Binding CompanionsReloadCommand}"/>
+                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Добавить" Command="{Binding CompanionAddCommand}"/>
+                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Изменить" Command="{Binding CompanionUpdateCommand}"/>
+                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Удалить" Command="{Binding CompanionRemoveCommand}"/>
+                                                    </WrapPanel>
+                                                </StackPanel>
+                                                <ListView Grid.Row="1" ItemsSource="{Binding CompanionItems}" SelectedItem="{Binding SelectedCompanionItem, Mode=TwoWay}" MinHeight="140">
+                                                    <ListView.View>
+                                                        <GridView>
+                                                            <GridViewColumn Header="Name" Width="170" DisplayMemberBinding="{Binding Name}"/>
+                                                            <GridViewColumn Header="Type" Width="110" DisplayMemberBinding="{Binding Type}"/>
+                                                            <GridViewColumn Header="Status" Width="90" DisplayMemberBinding="{Binding StatusLabel}"/>
+                                                            <GridViewColumn Header="Preview" Width="260" DisplayMemberBinding="{Binding Preview}"/>
+                                                        </GridView>
+                                                    </ListView.View>
+                                                </ListView>
+                                            </Grid>
+                                            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                                                <StackPanel>
+                                                    <TextBlock Text="Редактор спутника" Style="{StaticResource TitleTextStyle}"/>
+                                                    <TextBlock Text="Name" Margin="0,6,0,0"/>
+                                                    <TextBox Text="{Binding CompanionNameInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <TextBlock Text="Type" Margin="0,6,0,0"/>
+                                                    <TextBox Text="{Binding CompanionTypeInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <TextBlock Text="Description" Margin="0,6,0,0"/>
+                                                    <TextBox Height="72" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding CompanionDescriptionInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <TextBlock Text="Notes" Margin="0,6,0,0"/>
+                                                    <TextBox Height="72" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding CompanionNotesInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <TextBlock Text="OwnerCharacterId" Margin="0,6,0,0"/>
+                                                    <TextBox IsReadOnly="True" Text="{Binding CompanionOwnerCharacterIdInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <CheckBox Margin="0,8,0,0" Content="Archived" IsChecked="{Binding CompanionIsArchivedInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,8,0,0">
+                                                        <TextBlock Text="{Binding CompanionOwnCollectionsPreview}" TextWrapping="Wrap"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </ScrollViewer>
+                                        </Grid>
+                                    </Border>
                                     <Border Style="{StaticResource CardStyle}" Margin="0,8,0,0" MinHeight="260">
                                         <Grid>
                                             <Grid.ColumnDefinitions>

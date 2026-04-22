@@ -113,6 +113,26 @@ public class ReputationEditorVm : ViewModelBase
     private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
 }
 
+public class CompanionEditorVm : ViewModelBase
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public string OwnerCharacterId { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
+    public int OwnInventoryCount { get; set; }
+    public int OwnHoldingsCount { get; set; }
+    public int OwnReputationCount { get; set; }
+    public object[] OwnInventoryPayload { get; set; } = Array.Empty<object>();
+    public object[] OwnHoldingsPayload { get; set; } = Array.Empty<object>();
+    public object[] OwnReputationPayload { get; set; } = Array.Empty<object>();
+    public string StatusLabel => IsArchived ? "Archived" : "Active";
+    public string Preview => $"{Name} [{Type}] {StatusLabel} | {FirstNonEmpty(Description, Notes)}";
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+}
+
 public sealed class ChatMessageRowVm : ViewModelBase
 {
     public string Sender { get; set; } = string.Empty;
@@ -366,6 +386,10 @@ public class AdminMainViewModel : ViewModelBase
         ReputationAddCommand = new RelayCommand(AddReputationEntry);
         ReputationUpdateCommand = new RelayCommand(UpdateReputationEntry);
         ReputationRemoveCommand = new RelayCommand(RemoveReputationEntry);
+        CompanionsReloadCommand = new RelayCommand(LoadCharacterCompanions);
+        CompanionAddCommand = new RelayCommand(AddCompanion);
+        CompanionUpdateCommand = new RelayCommand(UpdateCompanion);
+        CompanionRemoveCommand = new RelayCommand(RemoveCompanion);
         ApproveRequestCommand = new RelayCommand(ApproveRequest);
         RejectRequestCommand = new RelayCommand(RejectRequest);
         CombatStartCommand = new RelayCommand(() => RunUiAction("Запуск боя", CombatStart));
@@ -1006,6 +1030,37 @@ public class AdminMainViewModel : ViewModelBase
         }
     }
     public ObservableCollection<string> CompanionRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<CompanionEditorVm> CompanionItems { get; } = new ObservableCollection<CompanionEditorVm>();
+    public string CompanionNameInput { get; set; } = string.Empty;
+    public string CompanionTypeInput { get; set; } = string.Empty;
+    public string CompanionDescriptionInput { get; set; } = string.Empty;
+    public string CompanionNotesInput { get; set; } = string.Empty;
+    public bool CompanionIsArchivedInput { get; set; }
+    public string CompanionOwnerCharacterIdInput { get; set; } = string.Empty;
+    public string CompanionOwnCollectionsPreview { get; set; } = "Inventory: 0 | Holdings: 0 | Reputation: 0";
+    private CompanionEditorVm? _selectedCompanionItem;
+    public CompanionEditorVm? SelectedCompanionItem
+    {
+        get => _selectedCompanionItem;
+        set
+        {
+            _selectedCompanionItem = value;
+            if (value != null)
+            {
+                CompanionNameInput = value.Name;
+                CompanionTypeInput = value.Type;
+                CompanionDescriptionInput = value.Description;
+                CompanionNotesInput = value.Notes;
+                CompanionIsArchivedInput = value.IsArchived;
+                CompanionOwnerCharacterIdInput = value.OwnerCharacterId;
+                CompanionOwnCollectionsPreview = $"Inventory: {value.OwnInventoryCount} | Holdings: {value.OwnHoldingsCount} | Reputation: {value.OwnReputationCount}";
+                NotifyCompanionEditor();
+                ClientLogService.Instance.Info($"companions.editor.bind selectedCompanion={value.Id}");
+                ClientLogService.Instance.Info("companions.editor.fields populated=true");
+            }
+            Notify();
+        }
+    }
     public ObservableCollection<RowVm> PendingRequests { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> RequestHistoryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> DiceFeedRows { get; } = new ObservableCollection<string>();
@@ -1110,6 +1165,10 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand ReputationAddCommand { get; }
     public ICommand ReputationUpdateCommand { get; }
     public ICommand ReputationRemoveCommand { get; }
+    public ICommand CompanionsReloadCommand { get; }
+    public ICommand CompanionAddCommand { get; }
+    public ICommand CompanionUpdateCommand { get; }
+    public ICommand CompanionRemoveCommand { get; }
     public ICommand ApproveRequestCommand { get; }
     public ICommand RejectRequestCommand { get; }
     public ICommand CombatStartCommand { get; }
@@ -1950,11 +2009,7 @@ public class AdminMainViewModel : ViewModelBase
 
         ApplyReputationPayload(r.Payload.ContainsKey("reputation") ? r.Payload["reputation"] : new ArrayList());
 
-        CompanionRows.Clear();
-        foreach (var item in ToList(r.Payload.ContainsKey("companions") ? r.Payload["companions"] : new ArrayList()))
-            if (item is Dictionary<string, object> m)
-                CompanionRows.Add($"{S(m, "name")} ({S(m, "species")})");
-        ClientLogService.Instance.Info($"selectedCharacter.companions loaded={CompanionRows.Count}");
+        ApplyCompanionsPayload(r.Payload.ContainsKey("companions") ? r.Payload["companions"] : new ArrayList());
 
         NotifyAllEditor();
     }
@@ -1997,6 +2052,21 @@ public class AdminMainViewModel : ViewModelBase
             var response = _api.CharacterReputationGet(SelectedCharacterId);
             if (response.Status != ResponseStatus.Ok) return;
             ApplyReputationPayload(response.Payload.ContainsKey("reputation") ? response.Payload["reputation"] : new ArrayList());
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex.Message);
+        }
+    }
+
+    private void LoadCharacterCompanions()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterCompanionsGet(SelectedCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            ApplyCompanionsPayload(response.Payload.ContainsKey("companions") ? response.Payload["companions"] : new ArrayList());
         }
         catch (Exception ex)
         {
@@ -2080,6 +2150,57 @@ public class AdminMainViewModel : ViewModelBase
         ClientLogService.Instance.Info($"selectedCharacter.reputation loaded={ReputationItems.Count}");
         ClientLogService.Instance.Info($"reputation.list.render count={ReputationItems.Count}");
         Notify(nameof(ReputationItems));
+    }
+
+    private void ApplyCompanionsPayload(object? rawCompanions)
+    {
+        CompanionRows.Clear();
+        CompanionItems.Clear();
+        foreach (var item in ToList(rawCompanions ?? new ArrayList()))
+        {
+            var map = AsMap(item);
+            if (map == null) continue;
+            var inventoryCount = ToList(map.ContainsKey("inventory") ? map["inventory"] : new ArrayList()).Count;
+            var holdingsCount = ToList(map.ContainsKey("holdings") ? map["holdings"] : new ArrayList()).Count;
+            var reputationCount = ToList(map.ContainsKey("reputation") ? map["reputation"] : new ArrayList()).Count;
+            var ownInventory = ToList(map.ContainsKey("inventory") ? map["inventory"] : new ArrayList()).Cast<object>().ToArray();
+            var ownHoldings = ToList(map.ContainsKey("holdings") ? map["holdings"] : new ArrayList()).Cast<object>().ToArray();
+            var ownReputation = ToList(map.ContainsKey("reputation") ? map["reputation"] : new ArrayList()).Cast<object>().ToArray();
+            var vm = new CompanionEditorVm
+            {
+                Id = S(map, "id"),
+                Name = S(map, "name"),
+                Type = FirstNonEmpty(S(map, "type"), S(map, "species")),
+                Description = S(map, "description"),
+                Notes = S(map, "notes"),
+                OwnerCharacterId = FirstNonEmpty(S(map, "ownerCharacterId"), SelectedCharacterId),
+                IsArchived = string.Equals(FirstNonEmpty(S(map, "isArchived"), S(map, "archived")), "True", StringComparison.OrdinalIgnoreCase),
+                OwnInventoryCount = inventoryCount,
+                OwnHoldingsCount = holdingsCount,
+                OwnReputationCount = reputationCount,
+                OwnInventoryPayload = ownInventory,
+                OwnHoldingsPayload = ownHoldings,
+                OwnReputationPayload = ownReputation
+            };
+            CompanionItems.Add(vm);
+            CompanionRows.Add(vm.Preview);
+        }
+        if (SelectedCompanionItem == null || !CompanionItems.Contains(SelectedCompanionItem))
+            SelectedCompanionItem = CompanionItems.FirstOrDefault();
+        if (SelectedCompanionItem == null)
+        {
+            CompanionNameInput = string.Empty;
+            CompanionTypeInput = string.Empty;
+            CompanionDescriptionInput = string.Empty;
+            CompanionNotesInput = string.Empty;
+            CompanionIsArchivedInput = false;
+            CompanionOwnerCharacterIdInput = SelectedCharacterId;
+            CompanionOwnCollectionsPreview = "Inventory: 0 | Holdings: 0 | Reputation: 0";
+            NotifyCompanionEditor();
+        }
+        ClientLogService.Instance.Info($"selectedCharacter.companions loaded={CompanionItems.Count}");
+        ClientLogService.Instance.Info($"companions.list.render count={CompanionItems.Count}");
+        Notify(nameof(CompanionItems));
     }
 
     private void ApplyInventoryPayload(object? rawInventory)
@@ -2299,6 +2420,57 @@ public class AdminMainViewModel : ViewModelBase
         catch (Exception ex) { SetConnectionError(ex.Message); }
     }
 
+    private void AddCompanion()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            ClientLogService.Instance.Info("companion.add requested");
+            var response = _api.CharacterCompanionAdd(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "companion", BuildCompanionRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("companion.add success");
+            LoadCharacterCompanions();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void UpdateCompanion()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedCompanionItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("companion.update requested");
+            var response = _api.CharacterCompanionUpdate(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "companionId", SelectedCompanionItem.Id },
+                { "companion", BuildCompanionRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("companion.update success");
+            LoadCharacterCompanions();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void RemoveCompanion()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedCompanionItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("companion.remove requested");
+            var response = _api.CharacterCompanionRemove(SelectedCharacterId, SelectedCompanionItem.Id);
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("companion.remove success");
+            LoadCharacterCompanions();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
     private Dictionary<string, object> BuildInventoryRequestPayload()
     {
         var payload = new Dictionary<string, object>
@@ -2353,6 +2525,26 @@ public class AdminMainViewModel : ViewModelBase
         };
     }
 
+    private Dictionary<string, object> BuildCompanionRequestPayload()
+    {
+        var ownInventory = SelectedCompanionItem?.OwnInventoryPayload ?? Array.Empty<object>();
+        var ownHoldings = SelectedCompanionItem?.OwnHoldingsPayload ?? Array.Empty<object>();
+        var ownReputation = SelectedCompanionItem?.OwnReputationPayload ?? Array.Empty<object>();
+        return new Dictionary<string, object>
+        {
+            { "name", CompanionNameInput },
+            { "type", CompanionTypeInput },
+            { "species", CompanionTypeInput },
+            { "description", CompanionDescriptionInput },
+            { "notes", CompanionNotesInput },
+            { "ownerCharacterId", FirstNonEmpty(CompanionOwnerCharacterIdInput, SelectedCharacterId) },
+            { "isArchived", CompanionIsArchivedInput },
+            { "inventory", ownInventory },
+            { "holdings", ownHoldings },
+            { "reputation", ownReputation }
+        };
+    }
+
     private void NotifyInventoryEditor()
     {
         Notify(nameof(InventoryName));
@@ -2384,6 +2576,17 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(ReputationValueInput));
         Notify(nameof(ReputationNotesInput));
         Notify(nameof(ReputationIsArchivedInput));
+    }
+
+    private void NotifyCompanionEditor()
+    {
+        Notify(nameof(CompanionNameInput));
+        Notify(nameof(CompanionTypeInput));
+        Notify(nameof(CompanionDescriptionInput));
+        Notify(nameof(CompanionNotesInput));
+        Notify(nameof(CompanionIsArchivedInput));
+        Notify(nameof(CompanionOwnerCharacterIdInput));
+        Notify(nameof(CompanionOwnCollectionsPreview));
     }
 
     private void LoadPendingRequests()
@@ -3331,6 +3534,7 @@ public class AdminMainViewModel : ViewModelBase
         NotifyInventoryEditor();
         NotifyHoldingEditor();
         NotifyReputationEditor();
+        NotifyCompanionEditor();
     }
 
     private static T ReadJson<T>(string path, T fallback) where T : class

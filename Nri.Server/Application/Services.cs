@@ -318,6 +318,7 @@ public partial class ServiceHub
         var owner = GetAccount(c.OwnerUserId);
         if (!CanViewCharacter(actor, owner, c)) throw new UnauthorizedAccessException("Character companions unavailable.");
         var payload = CharacterDetailsPayload(c, owner, actor);
+        _logger.Admin($"character.companions.get count={c.Companions.Count}");
         return Ok("Companions loaded.", new Dictionary<string, object> { { "companions", payload["companions"] } });
     }
 
@@ -663,6 +664,8 @@ public partial class ServiceHub
         _ = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var companion = ParseCompanion(PayloadReader.GetDictionary(context.Request.Payload, "companion") ?? context.Request.Payload);
+        if (string.IsNullOrWhiteSpace(companion.OwnerCharacterId)) companion.OwnerCharacterId = character.Id;
+        if (string.IsNullOrWhiteSpace(companion.Type)) companion.Type = companion.Species;
         character.Companions.Add(companion);
         _repositories.Characters.Replace(character);
         _logger.Admin($"character.companion.add response=ok characterId={character.Id} companionId={companion.Id}");
@@ -678,6 +681,8 @@ public partial class ServiceHub
         var existing = character.Companions.FirstOrDefault(x => string.Equals(x.Id, companionId, StringComparison.OrdinalIgnoreCase))
             ?? throw new KeyNotFoundException("Companion not found.");
         incoming.Id = existing.Id;
+        if (string.IsNullOrWhiteSpace(incoming.OwnerCharacterId)) incoming.OwnerCharacterId = existing.OwnerCharacterId;
+        if (string.IsNullOrWhiteSpace(incoming.Type)) incoming.Type = FirstNonEmpty(existing.Type, incoming.Species, existing.Species);
         character.Companions[character.Companions.IndexOf(existing)] = incoming;
         _repositories.Characters.Replace(character);
         _logger.Admin($"character.companion.update response=ok characterId={character.Id} companionId={incoming.Id}");
@@ -1228,7 +1233,45 @@ public partial class ServiceHub
 
     private static Dictionary<string, object> CompanionPayload(Companion c) => new Dictionary<string, object>
     {
-        { "id", c.Id }, { "name", c.Name }, { "species", c.Species }, { "description", c.Description }, { "notes", c.Notes }, { "statsSummary", c.StatsSummary }, { "isArchived", c.IsArchived }, { "inventory", c.Inventory.Select(InventoryPayload).Cast<object>().ToArray() }
+        { "id", c.Id },
+        { "name", c.Name },
+        { "type", c.Type },
+        { "species", c.Species },
+        { "description", c.Description },
+        { "notes", c.Notes },
+        { "ownerCharacterId", c.OwnerCharacterId },
+        { "statsSummary", c.StatsSummary },
+        { "isArchived", c.IsArchived },
+        { "inventory", c.Inventory.Select(InventoryPayload).Cast<object>().ToArray() },
+        { "holdings", c.Holdings.Select(HoldingPayload).Cast<object>().ToArray() },
+        { "reputation", c.Reputation.Select(ReputationPayload).Cast<object>().ToArray() }
+    };
+
+    private static Dictionary<string, object> HoldingPayload(HoldingRef x) => new Dictionary<string, object>
+    {
+        { "id", x.Id },
+        { "name", x.Name },
+        { "type", x.Type },
+        { "description", x.Description },
+        { "owners", x.Owners.Cast<object>().ToArray() },
+        { "notes", x.Notes },
+        { "archived", x.Archived },
+        { "isArchived", x.Archived }
+    };
+
+    private static Dictionary<string, object> ReputationPayload(ReputationRef x) => new Dictionary<string, object>
+    {
+        { "id", x.Id },
+        { "scope", x.Scope },
+        { "scopeType", x.ScopeType.ToString() },
+        { "groupKey", x.GroupKey },
+        { "targetType", x.TargetType.ToString() },
+        { "targetName", x.TargetName },
+        { "value", x.Value },
+        { "notes", x.Notes },
+        { "isHiddenForOthers", x.IsHiddenForOthers },
+        { "archived", x.Archived },
+        { "isArchived", x.Archived }
     };
 
     private static Dictionary<string, object> HoldingPayload(HoldingRef x) => new Dictionary<string, object>
@@ -1330,12 +1373,16 @@ public partial class ServiceHub
     {
         Id = PayloadReader.GetString(source, "id") ?? Guid.NewGuid().ToString("N"),
         Name = RequireLength(PayloadReader.GetString(source, "name"), 1, 128, "name"),
-        Species = RequireLength(PayloadReader.GetString(source, "species"), 0, 64, "species"),
+        Type = RequireLength(FirstNonEmpty(PayloadReader.GetString(source, "type"), PayloadReader.GetString(source, "species")), 0, 64, "type"),
+        Species = RequireLength(FirstNonEmpty(PayloadReader.GetString(source, "species"), PayloadReader.GetString(source, "type")), 0, 64, "species"),
         Description = RequireLength(PayloadReader.GetString(source, "description"), 0, 1024, "description"),
         Notes = RequireLength(PayloadReader.GetString(source, "notes"), 0, 1024, "notes"),
+        OwnerCharacterId = RequireLength(PayloadReader.GetString(source, "ownerCharacterId"), 0, 128, "ownerCharacterId"),
         StatsSummary = RequireLength(PayloadReader.GetString(source, "statsSummary"), 0, 512, "statsSummary"),
         IsArchived = PayloadReader.GetBool(source, "isArchived"),
-        Inventory = ParseInventoryList(PayloadReader.GetList(source, "inventory"))
+        Inventory = ParseInventoryList(PayloadReader.GetList(source, "inventory")),
+        Holdings = ParseHoldingsList(PayloadReader.GetList(source, "holdings")),
+        Reputation = ParseReputationList(PayloadReader.GetList(source, "reputation"))
     };
 
     private HoldingRef ParseHolding(Dictionary<string, object> source) => ParseHoldingsList(new List<object> { source }).First();
@@ -1374,12 +1421,26 @@ public partial class ServiceHub
         foreach (var companion in character.Companions)
         {
             if (string.IsNullOrWhiteSpace(companion.Id)) companion.Id = Guid.NewGuid().ToString("N");
+            if (string.IsNullOrWhiteSpace(companion.OwnerCharacterId)) companion.OwnerCharacterId = character.Id;
+            if (string.IsNullOrWhiteSpace(companion.Type)) companion.Type = companion.Species;
             companion.Inventory ??= new List<InventoryItem>();
+            companion.Holdings ??= new List<HoldingRef>();
+            companion.Reputation ??= new List<ReputationRef>();
             foreach (var item in companion.Inventory)
             {
                 if (string.IsNullOrWhiteSpace(item.Id)) item.Id = Guid.NewGuid().ToString("N");
                 if (string.IsNullOrWhiteSpace(item.Name)) item.Name = item.Label;
                 if (string.IsNullOrWhiteSpace(item.Label)) item.Label = item.Name;
+            }
+            foreach (var holding in companion.Holdings)
+            {
+                if (string.IsNullOrWhiteSpace(holding.Id)) holding.Id = Guid.NewGuid().ToString("N");
+                holding.Owners ??= new List<string>();
+            }
+            foreach (var reputation in companion.Reputation)
+            {
+                if (string.IsNullOrWhiteSpace(reputation.Id)) reputation.Id = Guid.NewGuid().ToString("N");
+                if (string.IsNullOrWhiteSpace(reputation.TargetName)) reputation.TargetName = reputation.GroupKey;
             }
         }
         foreach (var holding in character.Holdings)

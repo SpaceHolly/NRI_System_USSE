@@ -105,11 +105,16 @@ public class CompanionVm : ViewModelBase
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
     public string Species { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string OwnerCharacterId { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
     public string NameDisplay => string.IsNullOrWhiteSpace(Name) ? "Безымянный компаньон" : Name;
-    public string SpeciesDisplay => string.IsNullOrWhiteSpace(Species) ? "Не указано" : Species;
+    public string SpeciesDisplay => string.IsNullOrWhiteSpace(Type) ? (string.IsNullOrWhiteSpace(Species) ? "Не указано" : Species) : Type;
     public string NotesDisplay => string.IsNullOrWhiteSpace(Notes) ? "Описание компаньона не загружено" : Notes;
+    public string StatusLabel => IsArchived ? "Archived" : "Active";
     public ObservableCollection<StatRowVm> StatsRows { get; } = new ObservableCollection<StatRowVm>();
     public ObservableCollection<StatRowVm> CoreStatRows { get; } = new ObservableCollection<StatRowVm>();
     public ObservableCollection<StatRowVm> AttributeStatRows { get; } = new ObservableCollection<StatRowVm>();
@@ -208,6 +213,9 @@ public class PlayerMainViewModel : ViewModelBase
     private int _lastReputationRenderCount = -1;
     private bool? _lastReputationPlaceholderHidden;
     private int _lastReputationLoadedCount = -1;
+    private int _lastCompanionsRenderCount = -1;
+    private bool? _lastCompanionsPlaceholderHidden;
+    private int _lastCompanionsLoadedCount = -1;
 
     public PlayerMainViewModel()
     {
@@ -676,6 +684,7 @@ public class PlayerMainViewModel : ViewModelBase
             LoadActiveCharacterInventory();
             LoadActiveCharacterHoldings();
             LoadActiveCharacterReputation();
+            LoadActiveCharacterCompanions();
             ActiveCharacterStatusText = string.IsNullOrWhiteSpace(ActiveCharacterId) ? "Активный персонаж не выбран" : $"Активный персонаж: {CharacterNameDisplay}";
             ClientLogService.Instance.Info($"activeCharacter.load id={ActiveCharacterId}");
             UpdateCharacterActiveFlags();
@@ -743,46 +752,12 @@ public class PlayerMainViewModel : ViewModelBase
 
         BindReputationRows(payload.ContainsKey("reputation") ? payload["reputation"] : new ArrayList(), CommandNames.CharacterGetActive);
 
-        Companions.Clear();
-        foreach (var item in ToObjectList(payload.ContainsKey("companions") ? payload["companions"] : new ArrayList()))
-        {
-            if (item is not Dictionary<string, object> map) continue;
-            var vm = new CompanionVm
-            {
-                Id = GetString(map, "id"),
-                Name = string.IsNullOrWhiteSpace(GetString(map, "name")) ? "Безымянный компаньон" : GetString(map, "name"),
-                Species = GetString(map, "species"),
-                Notes = GetString(map, "notes")
-            };
-            AddCompanionStatScaffold(vm);
-            if (map.ContainsKey("stats") && map["stats"] is Dictionary<string, object> companionStats)
-                ApplyCompanionStats(vm, companionStats);
-
-            foreach (var inv in ToObjectList(map.ContainsKey("inventory") ? map["inventory"] : new ArrayList()))
-                if (inv is Dictionary<string, object> im)
-                    vm.InventoryRows.Add($"{GetString(im, "label")} x{GetString(im, "quantity")}");
-
-            foreach (var hold in ToObjectList(map.ContainsKey("holdings") ? map["holdings"] : new ArrayList()))
-                if (hold is Dictionary<string, object> hm)
-                    vm.HoldingsRows.Add($"{GetString(hm, "name")} — {GetString(hm, "description")}");
-
-            foreach (var sk in ToObjectList(map.ContainsKey("skills") ? map["skills"] : new ArrayList()))
-                if (sk is Dictionary<string, object> sm)
-                    vm.SkillsRows.Add($"{GetString(sm, "name")} [{GetString(sm, "type")}] ");
-
-            EnsureCollectionPlaceholder(vm.InventoryRows, "Нет данных по инвентарю");
-            EnsureCollectionPlaceholder(vm.HoldingsRows, "Нет данных по владениям");
-            EnsureCollectionPlaceholder(vm.SkillsRows, "Нет данных по навыкам");
-            EnsureCollectionPlaceholder(vm.ClassRows, "Классы компаньона не загружены");
-
-            Companions.Add(vm);
-        }
-        ClientLogService.Instance.Info($"activeCharacter.companions loaded={Companions.Count}");
+        BindCompanions(payload.ContainsKey("companions") ? payload["companions"] : new ArrayList(), CommandNames.CharacterGetActive);
 
         EnsureCollectionPlaceholder(InventoryRows, "Нет данных по инвентарю");
         if (HoldingsItems.Count == 0) EnsureCollectionPlaceholder(HoldingsRows, "Нет данных по владениям");
         if (ReputationRows.Count == 0) EnsureReputationPlaceholder();
-        EnsureCompanionsPlaceholder();
+        if (Companions.Count == 0) EnsureCompanionsPlaceholder();
         if (SelectedCompanion == null || !Companions.Contains(SelectedCompanion))
             SelectedCompanion = Companions.FirstOrDefault();
 
@@ -994,6 +969,83 @@ public class PlayerMainViewModel : ViewModelBase
             _lastReputationPlaceholderHidden = placeholderHidden;
         }
         Notify(nameof(ReputationRows));
+    }
+
+    private void LoadActiveCharacterCompanions()
+    {
+        if (string.IsNullOrWhiteSpace(ActiveCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterCompanionsGet(ActiveCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            BindCompanions(response.Payload.ContainsKey("companions") ? response.Payload["companions"] : new ArrayList(), CommandNames.CharacterCompanionsGet);
+            if (_lastCompanionsLoadedCount != Companions.Count)
+            {
+                ClientLogService.Instance.Info($"activeCharacter.companions loaded={Companions.Count}");
+                _lastCompanionsLoadedCount = Companions.Count;
+            }
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex);
+        }
+    }
+
+    private void BindCompanions(object rawCompanions, string context)
+    {
+        Companions.Clear();
+        foreach (var item in ToObjectList(rawCompanions))
+        {
+            var map = AsMap(item, context);
+            if (map == null) continue;
+            var vm = new CompanionVm
+            {
+                Id = GetString(map, "id"),
+                Name = string.IsNullOrWhiteSpace(GetString(map, "name")) ? "Безымянный компаньон" : GetString(map, "name"),
+                Type = FirstNonEmpty(GetString(map, "type"), GetString(map, "species")),
+                Species = GetString(map, "species"),
+                Description = GetString(map, "description"),
+                Notes = GetString(map, "notes"),
+                OwnerCharacterId = FirstNonEmpty(GetString(map, "ownerCharacterId"), ActiveCharacterId),
+                IsArchived = string.Equals(FirstNonEmpty(GetString(map, "isArchived"), GetString(map, "archived")), "True", StringComparison.OrdinalIgnoreCase)
+            };
+            AddCompanionStatScaffold(vm);
+            if (map.ContainsKey("stats") && map["stats"] is Dictionary<string, object> companionStats)
+                ApplyCompanionStats(vm, companionStats);
+
+            foreach (var inv in ToObjectList(map.ContainsKey("inventory") ? map["inventory"] : new ArrayList()))
+                if (inv is Dictionary<string, object> im)
+                    vm.InventoryRows.Add($"{GetString(im, "label")} x{GetString(im, "quantity")}");
+
+            foreach (var hold in ToObjectList(map.ContainsKey("holdings") ? map["holdings"] : new ArrayList()))
+                if (hold is Dictionary<string, object> hm)
+                    vm.HoldingsRows.Add($"{GetString(hm, "name")} — {GetString(hm, "description")}");
+
+            EnsureCollectionPlaceholder(vm.InventoryRows, "Нет данных по инвентарю");
+            EnsureCollectionPlaceholder(vm.HoldingsRows, "Нет данных по владениям");
+            EnsureCollectionPlaceholder(vm.SkillsRows, "Нет данных по навыкам");
+            EnsureCollectionPlaceholder(vm.ClassRows, "Классы компаньона не загружены");
+
+            Companions.Add(vm);
+        }
+
+        var placeholderHidden = Companions.Count > 0;
+        if (!placeholderHidden) EnsureCompanionsPlaceholder();
+        if (SelectedCompanion == null || !Companions.Contains(SelectedCompanion))
+            SelectedCompanion = Companions.FirstOrDefault();
+        if (_lastCompanionsRenderCount != Companions.Count)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.companions.bind count={Companions.Count}");
+            ClientLogService.Instance.Info($"activeCharacter.companions.render count={Companions.Count}");
+            _lastCompanionsRenderCount = Companions.Count;
+        }
+        if (_lastCompanionsPlaceholderHidden != placeholderHidden)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.companions.placeholder hidden={placeholderHidden.ToString().ToLowerInvariant()}");
+            _lastCompanionsPlaceholderHidden = placeholderHidden;
+        }
+        Notify(nameof(Companions));
+        Notify(nameof(SelectedCompanion));
     }
 
     private void CreateDiceRequest()
@@ -1930,7 +1982,7 @@ public class PlayerMainViewModel : ViewModelBase
     {
         if (Companions.Count == 0)
         {
-            var vm = new CompanionVm { Name = "Нет данных", Species = "—", Notes = "Сервер не вернул компаньонов" };
+            var vm = new CompanionVm { Name = "Нет данных", Type = "—", Species = "—", Notes = "Сервер не вернул компаньонов", Description = "Сервер не вернул компаньонов", OwnerCharacterId = ActiveCharacterId };
             AddCompanionStatScaffold(vm);
             vm.InventoryRows.Add("Нет данных");
             vm.HoldingsRows.Add("Нет данных");

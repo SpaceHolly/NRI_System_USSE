@@ -574,11 +574,15 @@
                                                                 </Grid.ColumnDefinitions>
                                                                 <StackPanel>
                                                                     <TextBlock Text="{Binding NameDisplay}" FontSize="22" FontWeight="Bold"/>
-                                                                    <TextBlock Text="{Binding SpeciesDisplay, StringFormat=Вид: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                                    <TextBlock Text="{Binding SpeciesDisplay, StringFormat=Тип: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                                    <TextBlock Text="{Binding StatusLabel, StringFormat=Статус: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                                    <TextBlock Text="{Binding OwnerCharacterId, StringFormat=OwnerCharacterId: {0}}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
                                                                 </StackPanel>
                                                                 <StackPanel Grid.Column="1">
                                                                     <TextBlock Text="Описание" FontWeight="Bold"/>
-                                                                    <TextBlock Text="{Binding NotesDisplay}" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                                                                    <TextBlock Text="{Binding Description, TargetNullValue=Описание отсутствует}" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                                                                    <TextBlock Text="Заметки" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding NotesDisplay}" TextWrapping="Wrap"/>
                                                                 </StackPanel>
                                                             </Grid>
                                                         </Border>
