@@ -73,10 +73,31 @@ public class InventoryDisplayItemVm : ViewModelBase
     public string Description { get; set; } = string.Empty;
 }
 
+public class HoldingDisplayItemVm : ViewModelBase
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public string OwnersDisplay { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
+    public string StatusLabel => IsArchived ? "Archived" : "Active";
+    public string Preview => FirstNonEmpty(Description, Notes, "Описание отсутствует");
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+}
+
 public class ReputationRowVm
 {
-    public string Label { get; set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
+    public string ScopeType { get; set; } = "Character";
+    public string TargetType { get; set; } = "Other";
+    public string TargetName { get; set; } = string.Empty;
     public int Value { get; set; }
+    public string Notes { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
+    public string Label => string.IsNullOrWhiteSpace(TargetName) ? "Неизвестная сущность" : TargetName;
+    public string StatusLabel => IsArchived ? "Archived" : "Active";
     public double Percent => (Value + 100) / 200.0 * 100.0;
 }
 
@@ -180,6 +201,13 @@ public class PlayerMainViewModel : ViewModelBase
     private bool? _lastInventoryPlaceholderHidden;
     private string _lastInventoryPayloadSignature = string.Empty;
     private InventoryDisplayItemVm? _selectedInventoryItem;
+    private int _lastHoldingsRenderCount = -1;
+    private bool? _lastHoldingsPlaceholderHidden;
+    private int _lastHoldingsLoadedCount = -1;
+    private HoldingDisplayItemVm? _selectedHoldingItem;
+    private int _lastReputationRenderCount = -1;
+    private bool? _lastReputationPlaceholderHidden;
+    private int _lastReputationLoadedCount = -1;
 
     public PlayerMainViewModel()
     {
@@ -361,6 +389,12 @@ public class PlayerMainViewModel : ViewModelBase
         set { _selectedInventoryItem = value; Notify(); }
     }
     public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<HoldingDisplayItemVm> HoldingsItems { get; } = new ObservableCollection<HoldingDisplayItemVm>();
+    public HoldingDisplayItemVm? SelectedHoldingItem
+    {
+        get => _selectedHoldingItem;
+        set { _selectedHoldingItem = value; Notify(); }
+    }
     public ObservableCollection<ReputationRowVm> ReputationRows { get; } = new ObservableCollection<ReputationRowVm>();
     public ObservableCollection<CompanionVm> Companions { get; } = new ObservableCollection<CompanionVm>();
     public CompanionVm? SelectedCompanion
@@ -640,6 +674,8 @@ public class PlayerMainViewModel : ViewModelBase
             ApplyCharacterPayload(active.Payload);
             ActiveCharacterId = GetString(active.Payload, "characterId");
             LoadActiveCharacterInventory();
+            LoadActiveCharacterHoldings();
+            LoadActiveCharacterReputation();
             ActiveCharacterStatusText = string.IsNullOrWhiteSpace(ActiveCharacterId) ? "Активный персонаж не выбран" : $"Активный персонаж: {CharacterNameDisplay}";
             ClientLogService.Instance.Info($"activeCharacter.load id={ActiveCharacterId}");
             UpdateCharacterActiveFlags();
@@ -703,21 +739,9 @@ public class PlayerMainViewModel : ViewModelBase
 
         BindInventoryRows(payload.ContainsKey("inventory") ? payload["inventory"] : new ArrayList());
 
-        HoldingsRows.Clear();
-        foreach (var item in ToObjectList(payload.ContainsKey("holdings") ? payload["holdings"] : new ArrayList()))
-            if (item is Dictionary<string, object> map)
-                HoldingsRows.Add($"{GetString(map, "name")} ({GetString(map, "type")}) — {GetString(map, "description")}");
-        ClientLogService.Instance.Info($"activeCharacter.holdings loaded={HoldingsRows.Count}");
+        BindHoldingsRows(payload.ContainsKey("holdings") ? payload["holdings"] : new ArrayList(), CommandNames.CharacterGetActive);
 
-        ReputationRows.Clear();
-        foreach (var item in ToObjectList(payload.ContainsKey("reputation") ? payload["reputation"] : new ArrayList()))
-        {
-            if (item is not Dictionary<string, object> map) continue;
-            int.TryParse(GetString(map, "value"), out var value);
-            var label = FirstNonEmpty(GetString(map, "targetName"), GetString(map, "groupKey"), "Неизвестная сущность");
-            ReputationRows.Add(new ReputationRowVm { Label = $"{label} [{GetString(map, "targetType")}]", Value = value });
-        }
-        ClientLogService.Instance.Info($"activeCharacter.reputation loaded={ReputationRows.Count}");
+        BindReputationRows(payload.ContainsKey("reputation") ? payload["reputation"] : new ArrayList(), CommandNames.CharacterGetActive);
 
         Companions.Clear();
         foreach (var item in ToObjectList(payload.ContainsKey("companions") ? payload["companions"] : new ArrayList()))
@@ -756,8 +780,8 @@ public class PlayerMainViewModel : ViewModelBase
         ClientLogService.Instance.Info($"activeCharacter.companions loaded={Companions.Count}");
 
         EnsureCollectionPlaceholder(InventoryRows, "Нет данных по инвентарю");
-        EnsureCollectionPlaceholder(HoldingsRows, "Нет данных по владениям");
-        EnsureReputationPlaceholder();
+        if (HoldingsItems.Count == 0) EnsureCollectionPlaceholder(HoldingsRows, "Нет данных по владениям");
+        if (ReputationRows.Count == 0) EnsureReputationPlaceholder();
         EnsureCompanionsPlaceholder();
         if (SelectedCompanion == null || !Companions.Contains(SelectedCompanion))
             SelectedCompanion = Companions.FirstOrDefault();
@@ -853,6 +877,123 @@ public class PlayerMainViewModel : ViewModelBase
         if (rawInventory is IDictionary) return new object[] { rawInventory };
         if (rawInventory is IEnumerable enumerable && rawInventory is not string) return enumerable.Cast<object>().ToArray();
         return new ArrayList();
+    }
+
+    private void LoadActiveCharacterHoldings()
+    {
+        if (string.IsNullOrWhiteSpace(ActiveCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterHoldingsGet(ActiveCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            BindHoldingsRows(response.Payload.ContainsKey("holdings") ? response.Payload["holdings"] : new ArrayList(), CommandNames.CharacterHoldingsGet);
+            if (_lastHoldingsLoadedCount != HoldingsItems.Count)
+            {
+                ClientLogService.Instance.Info($"activeCharacter.holdings loaded={HoldingsItems.Count}");
+                _lastHoldingsLoadedCount = HoldingsItems.Count;
+            }
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex);
+        }
+    }
+
+    private void BindHoldingsRows(object rawHoldings, string context)
+    {
+        HoldingsRows.Clear();
+        HoldingsItems.Clear();
+        foreach (var item in ToObjectList(rawHoldings))
+        {
+            var map = AsMap(item, context);
+            if (map == null) continue;
+            var owners = ToObjectList(map.ContainsKey("owners") ? map["owners"] : new ArrayList()).Cast<object>().Select(x => x?.ToString() ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
+            var vm = new HoldingDisplayItemVm
+            {
+                Id = GetString(map, "id"),
+                Name = FirstNonEmpty(GetString(map, "name"), "Без названия"),
+                Type = GetString(map, "type"),
+                Description = GetString(map, "description"),
+                Notes = GetString(map, "notes"),
+                OwnersDisplay = owners.Length == 0 ? "—" : string.Join(", ", owners),
+                IsArchived = string.Equals(FirstNonEmpty(GetString(map, "isArchived"), GetString(map, "archived")), "True", StringComparison.OrdinalIgnoreCase)
+            };
+            HoldingsItems.Add(vm);
+            HoldingsRows.Add($"{vm.Name} ({vm.Type}) [{vm.StatusLabel}] — {vm.Preview}");
+        }
+
+        var placeholderHidden = HoldingsItems.Count > 0;
+        if (!placeholderHidden) EnsureCollectionPlaceholder(HoldingsRows, "Нет данных по владениям");
+        if (SelectedHoldingItem == null || !HoldingsItems.Contains(SelectedHoldingItem))
+            SelectedHoldingItem = HoldingsItems.FirstOrDefault();
+        if (_lastHoldingsRenderCount != HoldingsItems.Count)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.holdings.bind count={HoldingsItems.Count}");
+            ClientLogService.Instance.Info($"activeCharacter.holdings.render count={HoldingsItems.Count}");
+            _lastHoldingsRenderCount = HoldingsItems.Count;
+        }
+        if (_lastHoldingsPlaceholderHidden != placeholderHidden)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.holdings.placeholder hidden={placeholderHidden.ToString().ToLowerInvariant()}");
+            _lastHoldingsPlaceholderHidden = placeholderHidden;
+        }
+        Notify(nameof(HoldingsItems));
+        Notify(nameof(SelectedHoldingItem));
+    }
+
+    private void LoadActiveCharacterReputation()
+    {
+        if (string.IsNullOrWhiteSpace(ActiveCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterReputationGet(ActiveCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            BindReputationRows(response.Payload.ContainsKey("reputation") ? response.Payload["reputation"] : new ArrayList(), CommandNames.CharacterReputationGet);
+            if (_lastReputationLoadedCount != ReputationRows.Count)
+            {
+                ClientLogService.Instance.Info($"activeCharacter.reputation loaded={ReputationRows.Count}");
+                _lastReputationLoadedCount = ReputationRows.Count;
+            }
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex);
+        }
+    }
+
+    private void BindReputationRows(object rawReputation, string context)
+    {
+        ReputationRows.Clear();
+        foreach (var item in ToObjectList(rawReputation))
+        {
+            var map = AsMap(item, context);
+            if (map == null) continue;
+            int.TryParse(GetString(map, "value"), out var value);
+            ReputationRows.Add(new ReputationRowVm
+            {
+                Id = GetString(map, "id"),
+                ScopeType = FirstNonEmpty(GetString(map, "scopeType"), "Character"),
+                TargetType = FirstNonEmpty(GetString(map, "targetType"), "Other"),
+                TargetName = FirstNonEmpty(GetString(map, "targetName"), GetString(map, "groupKey"), "Неизвестная сущность"),
+                Value = value,
+                Notes = GetString(map, "notes"),
+                IsArchived = string.Equals(FirstNonEmpty(GetString(map, "isArchived"), GetString(map, "archived")), "True", StringComparison.OrdinalIgnoreCase)
+            });
+        }
+        var placeholderHidden = ReputationRows.Count > 0;
+        if (!placeholderHidden) EnsureReputationPlaceholder();
+        if (_lastReputationRenderCount != ReputationRows.Count)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.reputation.bind count={ReputationRows.Count}");
+            ClientLogService.Instance.Info($"activeCharacter.reputation.render count={ReputationRows.Count}");
+            _lastReputationRenderCount = ReputationRows.Count;
+        }
+        if (_lastReputationPlaceholderHidden != placeholderHidden)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.reputation.placeholder hidden={placeholderHidden.ToString().ToLowerInvariant()}");
+            _lastReputationPlaceholderHidden = placeholderHidden;
+        }
+        Notify(nameof(ReputationRows));
     }
 
     private void CreateDiceRequest()
@@ -1782,7 +1923,7 @@ public class PlayerMainViewModel : ViewModelBase
     private void EnsureReputationPlaceholder()
     {
         if (ReputationRows.Count == 0)
-            ReputationRows.Add(new ReputationRowVm { Label = "Нет данных", Value = 0 });
+            ReputationRows.Add(new ReputationRowVm { TargetName = "Нет данных", TargetType = "Other", ScopeType = "Character", Value = 0, Notes = "Записи репутации отсутствуют" });
     }
 
     private void EnsureCompanionsPlaceholder()

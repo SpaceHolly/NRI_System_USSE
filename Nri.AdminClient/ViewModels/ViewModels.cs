@@ -85,6 +85,34 @@ public class InventoryItemEditorVm : ViewModelBase
     public string ListLabel => $"{Name} x{Quantity} | eq={IsEquipped} | dur={DurabilityOrHealth?.ToString() ?? "-"} | {Category}";
 }
 
+public class HoldingEditorVm : ViewModelBase
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
+    public List<string> Owners { get; set; } = new List<string>();
+    public string OwnersDisplay => Owners.Count == 0 ? "—" : string.Join(", ", Owners);
+    public string Preview => $"{Name} | {Type} | {(IsArchived ? "Archived" : "Active")} | {FirstNonEmpty(Description, Notes)}";
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+}
+
+public class ReputationEditorVm : ViewModelBase
+{
+    public string Id { get; set; } = string.Empty;
+    public string ScopeType { get; set; } = "Character";
+    public string TargetType { get; set; } = "Other";
+    public string TargetName { get; set; } = string.Empty;
+    public int Value { get; set; }
+    public string Notes { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
+    public string StatusLabel => IsArchived ? "Archived" : "Active";
+    public string Preview => $"{TargetName} [{TargetType}/{ScopeType}] = {Value} | {FirstNonEmpty(Notes, "—")}";
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+}
+
 public sealed class ChatMessageRowVm : ViewModelBase
 {
     public string Sender { get; set; } = string.Empty;
@@ -330,6 +358,14 @@ public class AdminMainViewModel : ViewModelBase
         InventoryUpdateItemCommand = new RelayCommand(UpdateInventoryItem);
         InventoryRemoveItemCommand = new RelayCommand(RemoveInventoryItem);
         InventoryToggleEquipCommand = new RelayCommand(ToggleInventoryItemEquip);
+        HoldingsReloadCommand = new RelayCommand(LoadCharacterHoldings);
+        HoldingAddCommand = new RelayCommand(AddHolding);
+        HoldingUpdateCommand = new RelayCommand(UpdateHolding);
+        HoldingRemoveCommand = new RelayCommand(RemoveHolding);
+        ReputationReloadCommand = new RelayCommand(LoadCharacterReputation);
+        ReputationAddCommand = new RelayCommand(AddReputationEntry);
+        ReputationUpdateCommand = new RelayCommand(UpdateReputationEntry);
+        ReputationRemoveCommand = new RelayCommand(RemoveReputationEntry);
         ApproveRequestCommand = new RelayCommand(ApproveRequest);
         RejectRequestCommand = new RelayCommand(RejectRequest);
         CombatStartCommand = new RelayCommand(() => RunUiAction("Запуск боя", CombatStart));
@@ -908,7 +944,67 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> InventoryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<InventoryItemEditorVm> InventoryItems { get; } = new ObservableCollection<InventoryItemEditorVm>();
     public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<HoldingEditorVm> HoldingsItems { get; } = new ObservableCollection<HoldingEditorVm>();
+    public string HoldingName { get; set; } = string.Empty;
+    public string HoldingType { get; set; } = string.Empty;
+    public string HoldingDescription { get; set; } = string.Empty;
+    public string HoldingNotes { get; set; } = string.Empty;
+    public bool HoldingIsArchived { get; set; }
+    public string HoldingOwners { get; set; } = string.Empty;
+    private HoldingEditorVm? _selectedHoldingItem;
+    public HoldingEditorVm? SelectedHoldingItem
+    {
+        get => _selectedHoldingItem;
+        set
+        {
+            _selectedHoldingItem = value;
+            if (value != null)
+            {
+                HoldingName = value.Name;
+                HoldingType = value.Type;
+                HoldingDescription = value.Description;
+                HoldingNotes = value.Notes;
+                HoldingIsArchived = value.IsArchived;
+                HoldingOwners = value.OwnersDisplay;
+                NotifyHoldingEditor();
+                ClientLogService.Instance.Info($"holdings.editor.bind selectedHolding={value.Id}");
+                ClientLogService.Instance.Info("holdings.editor.fields populated=true");
+            }
+            Notify();
+        }
+    }
     public ObservableCollection<string> ReputationRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<ReputationEditorVm> ReputationItems { get; } = new ObservableCollection<ReputationEditorVm>();
+    public ObservableCollection<string> ReputationScopeTypeOptions { get; } = new ObservableCollection<string> { "Character", "Group" };
+    public ObservableCollection<string> ReputationTargetTypeOptions { get; } = new ObservableCollection<string> { "State", "Settlement", "Faction", "Group", "Other" };
+    public string ReputationScopeTypeInput { get; set; } = "Character";
+    public string ReputationTargetTypeInput { get; set; } = "Other";
+    public string ReputationTargetNameInput { get; set; } = string.Empty;
+    public int ReputationValueInput { get; set; }
+    public string ReputationNotesInput { get; set; } = string.Empty;
+    public bool ReputationIsArchivedInput { get; set; }
+    private ReputationEditorVm? _selectedReputationItem;
+    public ReputationEditorVm? SelectedReputationItem
+    {
+        get => _selectedReputationItem;
+        set
+        {
+            _selectedReputationItem = value;
+            if (value != null)
+            {
+                ReputationScopeTypeInput = value.ScopeType;
+                ReputationTargetTypeInput = value.TargetType;
+                ReputationTargetNameInput = value.TargetName;
+                ReputationValueInput = value.Value;
+                ReputationNotesInput = value.Notes;
+                ReputationIsArchivedInput = value.IsArchived;
+                NotifyReputationEditor();
+                ClientLogService.Instance.Info($"reputation.editor.bind selectedEntry={value.Id}");
+                ClientLogService.Instance.Info("reputation.editor.fields populated=true");
+            }
+            Notify();
+        }
+    }
     public ObservableCollection<string> CompanionRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<RowVm> PendingRequests { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> RequestHistoryRows { get; } = new ObservableCollection<string>();
@@ -1006,6 +1102,14 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand InventoryUpdateItemCommand { get; }
     public ICommand InventoryRemoveItemCommand { get; }
     public ICommand InventoryToggleEquipCommand { get; }
+    public ICommand HoldingsReloadCommand { get; }
+    public ICommand HoldingAddCommand { get; }
+    public ICommand HoldingUpdateCommand { get; }
+    public ICommand HoldingRemoveCommand { get; }
+    public ICommand ReputationReloadCommand { get; }
+    public ICommand ReputationAddCommand { get; }
+    public ICommand ReputationUpdateCommand { get; }
+    public ICommand ReputationRemoveCommand { get; }
     public ICommand ApproveRequestCommand { get; }
     public ICommand RejectRequestCommand { get; }
     public ICommand CombatStartCommand { get; }
@@ -1842,17 +1946,9 @@ public class AdminMainViewModel : ViewModelBase
 
         ApplyInventoryPayload(r.Payload.ContainsKey("inventory") ? r.Payload["inventory"] : new ArrayList());
 
-        HoldingsRows.Clear();
-        foreach (var item in ToList(r.Payload.ContainsKey("holdings") ? r.Payload["holdings"] : new ArrayList()))
-            if (item is Dictionary<string, object> m)
-                HoldingsRows.Add($"{S(m, "name")} ({S(m, "type")}) - {S(m, "description")}");
-        ClientLogService.Instance.Info($"selectedCharacter.holdings loaded={HoldingsRows.Count}");
+        ApplyHoldingsPayload(r.Payload.ContainsKey("holdings") ? r.Payload["holdings"] : new ArrayList());
 
-        ReputationRows.Clear();
-        foreach (var item in ToList(r.Payload.ContainsKey("reputation") ? r.Payload["reputation"] : new ArrayList()))
-            if (item is Dictionary<string, object> m)
-                ReputationRows.Add($"{FirstNonEmpty(S(m, "targetName"), S(m, "groupKey"))} [{S(m, "targetType")}]: {S(m, "value")}");
-        ClientLogService.Instance.Info($"selectedCharacter.reputation loaded={ReputationRows.Count}");
+        ApplyReputationPayload(r.Payload.ContainsKey("reputation") ? r.Payload["reputation"] : new ArrayList());
 
         CompanionRows.Clear();
         foreach (var item in ToList(r.Payload.ContainsKey("companions") ? r.Payload["companions"] : new ArrayList()))
@@ -1876,6 +1972,114 @@ public class AdminMainViewModel : ViewModelBase
         {
             SetConnectionError(ex.Message);
         }
+    }
+
+    private void LoadCharacterHoldings()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterHoldingsGet(SelectedCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            ApplyHoldingsPayload(response.Payload.ContainsKey("holdings") ? response.Payload["holdings"] : new ArrayList());
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex.Message);
+        }
+    }
+
+    private void LoadCharacterReputation()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterReputationGet(SelectedCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            ApplyReputationPayload(response.Payload.ContainsKey("reputation") ? response.Payload["reputation"] : new ArrayList());
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex.Message);
+        }
+    }
+
+    private void ApplyHoldingsPayload(object? rawHoldings)
+    {
+        HoldingsRows.Clear();
+        HoldingsItems.Clear();
+        foreach (var item in ToList(rawHoldings ?? new ArrayList()))
+        {
+            var map = AsMap(item);
+            if (map == null) continue;
+            var owners = ToList(map.ContainsKey("owners") ? map["owners"] : new ArrayList()).Cast<object>().Select(x => x?.ToString() ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+            var vm = new HoldingEditorVm
+            {
+                Id = S(map, "id"),
+                Name = S(map, "name"),
+                Type = S(map, "type"),
+                Description = S(map, "description"),
+                Notes = S(map, "notes"),
+                IsArchived = string.Equals(FirstNonEmpty(S(map, "isArchived"), S(map, "archived")), "True", StringComparison.OrdinalIgnoreCase),
+                Owners = owners
+            };
+            HoldingsItems.Add(vm);
+            HoldingsRows.Add(vm.Preview);
+        }
+        if (SelectedHoldingItem == null || !HoldingsItems.Contains(SelectedHoldingItem))
+            SelectedHoldingItem = HoldingsItems.FirstOrDefault();
+        if (SelectedHoldingItem == null)
+        {
+            HoldingName = string.Empty;
+            HoldingType = string.Empty;
+            HoldingDescription = string.Empty;
+            HoldingNotes = string.Empty;
+            HoldingIsArchived = false;
+            HoldingOwners = string.Empty;
+            NotifyHoldingEditor();
+        }
+        ClientLogService.Instance.Info($"selectedCharacter.holdings loaded={HoldingsItems.Count}");
+        ClientLogService.Instance.Info($"holdings.list.render count={HoldingsItems.Count}");
+        Notify(nameof(HoldingsItems));
+    }
+
+    private void ApplyReputationPayload(object? rawReputation)
+    {
+        ReputationRows.Clear();
+        ReputationItems.Clear();
+        foreach (var item in ToList(rawReputation ?? new ArrayList()))
+        {
+            var map = AsMap(item);
+            if (map == null) continue;
+            int.TryParse(S(map, "value"), out var value);
+            var vm = new ReputationEditorVm
+            {
+                Id = S(map, "id"),
+                ScopeType = FirstNonEmpty(S(map, "scopeType"), "Character"),
+                TargetType = FirstNonEmpty(S(map, "targetType"), "Other"),
+                TargetName = FirstNonEmpty(S(map, "targetName"), S(map, "groupKey")),
+                Value = value,
+                Notes = S(map, "notes"),
+                IsArchived = string.Equals(FirstNonEmpty(S(map, "isArchived"), S(map, "archived")), "True", StringComparison.OrdinalIgnoreCase)
+            };
+            ReputationItems.Add(vm);
+            ReputationRows.Add(vm.Preview);
+        }
+        if (SelectedReputationItem == null || !ReputationItems.Contains(SelectedReputationItem))
+            SelectedReputationItem = ReputationItems.FirstOrDefault();
+        if (SelectedReputationItem == null)
+        {
+            ReputationScopeTypeInput = "Character";
+            ReputationTargetTypeInput = "Other";
+            ReputationTargetNameInput = string.Empty;
+            ReputationValueInput = 0;
+            ReputationNotesInput = string.Empty;
+            ReputationIsArchivedInput = false;
+            NotifyReputationEditor();
+        }
+        ClientLogService.Instance.Info($"selectedCharacter.reputation loaded={ReputationItems.Count}");
+        ClientLogService.Instance.Info($"reputation.list.render count={ReputationItems.Count}");
+        Notify(nameof(ReputationItems));
     }
 
     private void ApplyInventoryPayload(object? rawInventory)
@@ -1993,6 +2197,108 @@ public class AdminMainViewModel : ViewModelBase
         catch (Exception ex) { SetConnectionError(ex.Message); }
     }
 
+    private void AddHolding()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            ClientLogService.Instance.Info("holding.add requested");
+            var response = _api.CharacterHoldingAdd(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "holding", BuildHoldingRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("holding.add success");
+            LoadCharacterHoldings();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void UpdateHolding()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedHoldingItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("holding.update requested");
+            var response = _api.CharacterHoldingUpdate(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "holdingId", SelectedHoldingItem.Id },
+                { "holding", BuildHoldingRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("holding.update success");
+            LoadCharacterHoldings();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void RemoveHolding()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedHoldingItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("holding.remove requested");
+            var response = _api.CharacterHoldingRemove(SelectedCharacterId, SelectedHoldingItem.Id);
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("holding.remove success");
+            LoadCharacterHoldings();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void AddReputationEntry()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            ClientLogService.Instance.Info("reputation.add requested");
+            var response = _api.CharacterReputationEntryAdd(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "entry", BuildReputationRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("reputation.add success");
+            LoadCharacterReputation();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void UpdateReputationEntry()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedReputationItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("reputation.update requested");
+            var response = _api.CharacterReputationEntryUpdate(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "entryId", SelectedReputationItem.Id },
+                { "entry", BuildReputationRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("reputation.update success");
+            LoadCharacterReputation();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void RemoveReputationEntry()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedReputationItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("reputation.remove requested");
+            var response = _api.CharacterReputationEntryRemove(SelectedCharacterId, SelectedReputationItem.Id);
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("reputation.remove success");
+            LoadCharacterReputation();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
     private Dictionary<string, object> BuildInventoryRequestPayload()
     {
         var payload = new Dictionary<string, object>
@@ -2010,6 +2316,43 @@ public class AdminMainViewModel : ViewModelBase
         return payload;
     }
 
+    private Dictionary<string, object> BuildHoldingRequestPayload()
+    {
+        var ownerValues = HoldingOwners.Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Cast<object>()
+            .ToArray();
+        return new Dictionary<string, object>
+        {
+            { "name", HoldingName },
+            { "type", HoldingType },
+            { "description", HoldingDescription },
+            { "notes", HoldingNotes },
+            { "archived", HoldingIsArchived },
+            { "isArchived", HoldingIsArchived },
+            { "owners", ownerValues }
+        };
+    }
+
+    private Dictionary<string, object> BuildReputationRequestPayload()
+    {
+        return new Dictionary<string, object>
+        {
+            { "scope", ReputationScopeTypeInput == "Group" ? "Group" : "Character" },
+            { "scopeType", ReputationScopeTypeInput },
+            { "groupKey", ReputationScopeTypeInput == "Group" ? ReputationTargetNameInput : string.Empty },
+            { "targetType", ReputationTargetTypeInput },
+            { "targetName", ReputationTargetNameInput },
+            { "value", ReputationValueInput },
+            { "notes", ReputationNotesInput },
+            { "archived", ReputationIsArchivedInput },
+            { "isArchived", ReputationIsArchivedInput },
+            { "isHiddenForOthers", false }
+        };
+    }
+
     private void NotifyInventoryEditor()
     {
         Notify(nameof(InventoryName));
@@ -2021,6 +2364,26 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(InventoryConsumptionPerUse));
         Notify(nameof(InventoryCategory));
         Notify(nameof(InventoryNotes));
+    }
+
+    private void NotifyHoldingEditor()
+    {
+        Notify(nameof(HoldingName));
+        Notify(nameof(HoldingType));
+        Notify(nameof(HoldingDescription));
+        Notify(nameof(HoldingNotes));
+        Notify(nameof(HoldingIsArchived));
+        Notify(nameof(HoldingOwners));
+    }
+
+    private void NotifyReputationEditor()
+    {
+        Notify(nameof(ReputationScopeTypeInput));
+        Notify(nameof(ReputationTargetTypeInput));
+        Notify(nameof(ReputationTargetNameInput));
+        Notify(nameof(ReputationValueInput));
+        Notify(nameof(ReputationNotesInput));
+        Notify(nameof(ReputationIsArchivedInput));
     }
 
     private void LoadPendingRequests()
@@ -2966,6 +3329,8 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(Health)); Notify(nameof(PhysicalArmor)); Notify(nameof(MagicalArmor)); Notify(nameof(Morale)); Notify(nameof(Strength)); Notify(nameof(Dexterity)); Notify(nameof(Endurance)); Notify(nameof(Wisdom)); Notify(nameof(Intellect)); Notify(nameof(Charisma));
         Notify(nameof(Iron)); Notify(nameof(Bronze)); Notify(nameof(Silver)); Notify(nameof(Gold)); Notify(nameof(Platinum)); Notify(nameof(Orichalcum)); Notify(nameof(Adamant)); Notify(nameof(Sovereign)); Notify(nameof(ExperienceCoins));
         NotifyInventoryEditor();
+        NotifyHoldingEditor();
+        NotifyReputationEditor();
     }
 
     private static T ReadJson<T>(string path, T fallback) where T : class
