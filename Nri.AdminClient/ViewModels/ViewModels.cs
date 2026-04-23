@@ -305,6 +305,9 @@ public class AdminMainViewModel : ViewModelBase
     private string _selectedSkillDefinitionCode = string.Empty;
     private string _selectedBackupId = string.Empty;
     private string _selectedDiagnosticsId = string.Empty;
+    private string _editSkillCode = string.Empty;
+    private string _editSkillName = string.Empty;
+    private string _skillDefinitionsContentButtonsSignature = string.Empty;
     private int _selectedContentTabIndex;
     private int _selectedSystemTabIndex;
     private string _charactersSearchText = string.Empty;
@@ -561,7 +564,10 @@ public class AdminMainViewModel : ViewModelBase
     public bool CanManageClassDefinition => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanArchiveClassDefinition => ArePrivilegedSectionsEnabled && !IsBusy && SelectedClassDefinition != null;
     public bool CanManageSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy;
-    public bool CanArchiveSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && SelectedSkillDefinition != null;
+    public bool CanCreateSkillDefinition => ArePrivilegedSectionsEnabled;
+    public bool CanRefreshSkillDefinitions => ArePrivilegedSectionsEnabled;
+    public bool CanSaveSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(EditSkillCode) && !string.IsNullOrWhiteSpace(EditSkillName);
+    public bool CanArchiveSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && (!string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode) || !string.IsNullOrWhiteSpace(EditSkillCode));
     public bool CanAcquireClassNode => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedClassNode != null;
     public bool CanAcquireSkill => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && !string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode);
     public bool CanUpdateCharacterSkillLevel => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedSkill != null;
@@ -780,6 +786,7 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(SelectedContentSummary));
                 Notify(nameof(CanArchiveSkillDefinition));
                 Notify(nameof(CanAcquireSkill));
+                TraceSkillDefinitionContentButtons();
             }
         }
     }
@@ -829,8 +836,32 @@ public class AdminMainViewModel : ViewModelBase
     public string EditClassRequiredClassCodes { get; set; } = string.Empty;
     public bool EditClassIsActive { get; set; } = true;
     public string EditClassStatus { get; set; } = DefinitionStatus.Draft.ToString();
-    public string EditSkillCode { get; set; } = string.Empty;
-    public string EditSkillName { get; set; } = string.Empty;
+    public string EditSkillCode
+    {
+        get => _editSkillCode;
+        set
+        {
+            if (_editSkillCode == value) return;
+            _editSkillCode = value;
+            Notify();
+            Notify(nameof(CanSaveSkillDefinition));
+            Notify(nameof(CanArchiveSkillDefinition));
+            TraceSkillDefinitionContentButtons();
+        }
+    }
+
+    public string EditSkillName
+    {
+        get => _editSkillName;
+        set
+        {
+            if (_editSkillName == value) return;
+            _editSkillName = value;
+            Notify();
+            Notify(nameof(CanSaveSkillDefinition));
+            TraceSkillDefinitionContentButtons();
+        }
+    }
     public string EditSkillDescription { get; set; } = string.Empty;
     public int EditSkillTier { get; set; } = 1;
     public int EditSkillMaxLevel { get; set; } = 1;
@@ -1487,12 +1518,17 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(CanManageWorkspace));
         Notify(nameof(CanInitiateConnection));
         Notify(nameof(CanControlContent));
+        Notify(nameof(CanCreateSkillDefinition));
+        Notify(nameof(CanRefreshSkillDefinitions));
+        Notify(nameof(CanSaveSkillDefinition));
+        Notify(nameof(CanArchiveSkillDefinition));
         Notify(nameof(CanRefreshContent));
         Notify(nameof(CanAcquireClassNode));
         Notify(nameof(CanAcquireSkill));
         Notify(nameof(CanManageReferenceRecord));
         Notify(nameof(CanManageSelectedBackup));
         Notify(nameof(CanRefreshSystem));
+        TraceSkillDefinitionContentButtons();
     }
 
     public void LoadWorkspaceLayout()
@@ -2848,14 +2884,15 @@ public class AdminMainViewModel : ViewModelBase
             {
                 Id = S(map, "code"),
                 Name = FirstNonEmpty(S(map, "name"), S(map, "code")),
-                State = $"sourceType={FirstNonEmpty(S(map, "skillCategory"), "Undefined")} • maxLevel={S(map, "maxLevel")}",
-                Extra = $"active={S(map, "isActive")} • archived={isArchived}"
+                State = $"тип источника={FirstNonEmpty(S(map, "skillCategory"), "Undefined")} • макс. уровень={S(map, "maxLevel")}",
+                Extra = $"активен={S(map, "isActive")} • архивирован={isArchived}"
             });
         }
         ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Навыки loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}");
         ClientLogService.Instance.Info($"skillDefinitions.content.load count={SkillDefinitionRows.Count}");
         ClientLogService.Instance.Info($"skillDefinitions.render count={SkillDefinitionRows.Count}");
         RestoreSelection(SkillDefinitionRows, SelectedSkillDefinitionCode, value => SelectedSkillDefinitionCode = value);
+        TraceSkillDefinitionContentButtons();
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedSkillDefinition));
         Notify(nameof(SelectedSkillSummary));
@@ -2887,6 +2924,7 @@ public class AdminMainViewModel : ViewModelBase
         SkillLevelEditorRows.Clear();
         SkillLevelEditorRows.Add(new SkillLevelEditorRowVm { Level = 1, Description = string.Empty });
         NotifySkillDefinitionEditor();
+        TraceSkillDefinitionContentButtons();
     }
 
     private void SaveSkillDefinition()
@@ -2899,6 +2937,7 @@ public class AdminMainViewModel : ViewModelBase
             ApplySkillDefinitionEditor(map);
         }
         RefreshDefinitionSkills();
+        TraceSkillDefinitionContentButtons();
     }
 
     private void ArchiveSkillDefinition()
@@ -2912,6 +2951,7 @@ public class AdminMainViewModel : ViewModelBase
         {
             OpenSelectedSkillDefinition();
         }
+        TraceSkillDefinitionContentButtons();
     }
 
     private void AddSkillLevel()
@@ -2930,6 +2970,18 @@ public class AdminMainViewModel : ViewModelBase
         EditSkillMaxLevel = Math.Max(1, SkillLevelEditorRows.Count);
         Notify(nameof(EditSkillMaxLevel));
         Notify(nameof(SkillEditorHintText));
+    }
+
+    private void TraceSkillDefinitionContentButtons()
+    {
+        var signature = $"{CanCreateSkillDefinition}|{CanSaveSkillDefinition}|{CanArchiveSkillDefinition}|{CanRefreshSkillDefinitions}";
+        if (string.Equals(signature, _skillDefinitionsContentButtonsSignature, StringComparison.Ordinal))
+            return;
+        _skillDefinitionsContentButtonsSignature = signature;
+        ClientLogService.Instance.Info($"skillDefinitions.content.new enabled={CanCreateSkillDefinition.ToString().ToLowerInvariant()}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.save enabled={CanSaveSkillDefinition.ToString().ToLowerInvariant()}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.archive enabled={CanArchiveSkillDefinition.ToString().ToLowerInvariant()}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.refresh enabled={CanRefreshSkillDefinitions.ToString().ToLowerInvariant()}");
     }
 
     private void LoadClassTree()
@@ -2987,8 +3039,8 @@ public class AdminMainViewModel : ViewModelBase
             {
                 Id = S(m, "skillCode"),
                 Name = S(m, "skillCode"),
-                State = $"level={S(m, "level")} • tier={S(m, "tier")}",
-                Extra = $"acquired={S(m, "acquired")} • learnedUtc={S(m, "learnedUtc")}"
+                State = $"уровень={S(m, "level")} • ранг={S(m, "tier")}",
+                Extra = $"получен={S(m, "acquired")} • изучен={S(m, "learnedUtc")}"
             });
         }
         RestoreSelection(SkillRows, SelectedSkillId, value => SelectedSkillId = value);
