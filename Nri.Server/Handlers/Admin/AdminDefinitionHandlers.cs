@@ -46,6 +46,8 @@ public sealed class AdminDefinitionHandlers
             new DelegateRequestHandler(CommandNames.DefinitionsSkillGet, HandleGetSkillByCode),
             new DelegateRequestHandler(CommandNames.DefinitionsSkillSave, HandleSaveSkill),
             new DelegateRequestHandler(CommandNames.DefinitionsSkillArchive, HandleArchiveSkill),
+            new DelegateRequestHandler(CommandNames.SkillsSave, HandleSaveSkill),
+            new DelegateRequestHandler(CommandNames.SkillsArchive, HandleArchiveSkill),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceList, HandleGetRaceList),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceGet, HandleGetRaceByCode),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceSave, HandleSaveRace),
@@ -144,6 +146,7 @@ public sealed class AdminDefinitionHandlers
     {
         var request = new GetSkillListRequest { IncludeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived") };
         var response = new GetSkillListResponse { Items = _skillService.GetAll(request.IncludeArchived) };
+        _logger.Admin($"skills.list count={response.Items.Count}");
         return Ok("Skill definitions loaded.", new Dictionary<string, object> { { "items", response.Items.Select(ToPayload).Cast<object>().ToArray() } });
     }
 
@@ -159,6 +162,7 @@ public sealed class AdminDefinitionHandlers
         var request = new SaveSkillRequest { Definition = ReadSkillDefinition(context.Request.Payload) };
         var actor = RequireActor(context);
         var response = _skillService.Save(request.Definition, actor.Id);
+        _logger.Admin($"skills.save response=ok code={response.Item.Code} actor={actor.Login}");
         return Ok(response.Created ? "Skill definition created." : "Skill definition updated.", new Dictionary<string, object>
         {
             { "created", response.Created },
@@ -172,6 +176,7 @@ public sealed class AdminDefinitionHandlers
         var request = new ArchiveSkillRequest { Code = RequireString(context.Request.Payload, "code") };
         var actor = RequireActor(context);
         var archived = _skillService.Archive(request.Code, actor.Id);
+        _logger.Admin($"skills.archive response=ok code={request.Code} archived={archived} actor={actor.Login}");
         var response = new ArchiveSkillResponse { Code = request.Code, Archived = archived };
         return Ok(archived ? "Skill definition archived." : "Skill definition already archived.", new Dictionary<string, object>
         {
