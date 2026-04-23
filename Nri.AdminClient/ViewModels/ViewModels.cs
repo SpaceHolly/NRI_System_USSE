@@ -2044,6 +2044,7 @@ public class AdminMainViewModel : ViewModelBase
         {
             RefreshDefinitionSkills();
         }
+        ClientLogService.Instance.Info($"skillDefinitions.assignment.load count={SkillDefinitionRows.Count}");
         LoadSkills();
 
         NotifyAllEditor();
@@ -2836,19 +2837,23 @@ public class AdminMainViewModel : ViewModelBase
     private void RefreshDefinitionSkills()
     {
         SkillDefinitionRows.Clear();
+        ClientLogService.Instance.Info("skillDefinitions.content.load requested");
         var response = EnsureSuccess(_api.DefinitionsSkillsGet(true));
         foreach (var item in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
         {
             if (item is not Dictionary<string, object> map) continue;
+            var status = FirstNonEmpty(S(map, "status"), "Draft");
+            var isArchived = string.Equals(status, DefinitionStatus.Archived.ToString(), StringComparison.OrdinalIgnoreCase);
             SkillDefinitionRows.Add(new RowVm
             {
                 Id = S(map, "code"),
                 Name = FirstNonEmpty(S(map, "name"), S(map, "code")),
-                State = $"tier={S(map, "tier")} • {S(map, "status")}",
-                Extra = $"maxLevel={S(map, "maxLevel")} • category={S(map, "skillCategory")} • active={S(map, "isActive")}"
+                State = $"sourceType={FirstNonEmpty(S(map, "skillCategory"), "Undefined")} • maxLevel={S(map, "maxLevel")}",
+                Extra = $"active={S(map, "isActive")} • archived={isArchived}"
             });
         }
         ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Навыки loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.load count={SkillDefinitionRows.Count}");
         ClientLogService.Instance.Info($"skillDefinitions.render count={SkillDefinitionRows.Count}");
         RestoreSelection(SkillDefinitionRows, SelectedSkillDefinitionCode, value => SelectedSkillDefinitionCode = value);
         Notify(nameof(ContentSummary));
@@ -2886,7 +2891,9 @@ public class AdminMainViewModel : ViewModelBase
 
     private void SaveSkillDefinition()
     {
+        var code = FirstNonEmpty(EditSkillCode, SelectedSkillDefinitionCode);
         var response = EnsureSuccess(_api.DefinitionSkillSave(BuildSkillDefinitionPayload()));
+        ClientLogService.Instance.Info($"skillDefinition.save code={code} response={response.Status}");
         if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
         {
             ApplySkillDefinitionEditor(map);
@@ -2898,7 +2905,8 @@ public class AdminMainViewModel : ViewModelBase
     {
         var code = FirstNonEmpty(SelectedSkillDefinitionCode, EditSkillCode);
         if (string.IsNullOrWhiteSpace(code)) return;
-        EnsureSuccess(_api.DefinitionSkillArchive(code));
+        var response = EnsureSuccess(_api.DefinitionSkillArchive(code));
+        ClientLogService.Instance.Info($"skillDefinition.archive code={code} response={response.Status}");
         RefreshDefinitionSkills();
         if (string.Equals(EditSkillCode, code, StringComparison.OrdinalIgnoreCase))
         {
