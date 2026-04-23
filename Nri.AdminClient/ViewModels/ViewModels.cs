@@ -420,7 +420,7 @@ public class AdminMainViewModel : ViewModelBase
         AcquireClassNodeCommand = new RelayCommand(() => RunUiAction("Выдача class node", AcquireClassNode));
         LoadSkillsCommand = new RelayCommand(() => RunUiAction("Загрузка навыков", LoadSkills));
         AcquireSkillCommand = new RelayCommand(() => RunUiAction("Добавление навыка персонажу", AcquireSkill));
-        UpdateSkillLevelCommand = new RelayCommand(() => RunUiAction("Обновление уровня навыка", UpdateSkillLevel));
+        UpdateSkillLevelCommand = new RelayCommand(() => RunUiAction("Сохранение уровня навыка", UpdateSkillLevel));
         RemoveSkillCommand = new RelayCommand(() => RunUiAction("Удаление навыка персонажа", RemoveSkill));
         ChatSendCommand = new RelayCommand(() => RunUiAction("Отправка сообщения", ChatSend));
         ChatRefreshCommand = new RelayCommand(() => RunUiAction("Обновление чата", ChatRefresh));

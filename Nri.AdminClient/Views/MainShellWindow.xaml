@@ -730,12 +730,13 @@
                                                     <TextBlock Text="Навыки выбранного персонажа" Style="{StaticResource SectionTitleTextStyle}"/>
                                                     <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding LoadSkillsCommand}"/>
                                                 </DockPanel>
+                                                <TextBlock Margin="0,4,0,0" Text="Выберите definition слева, укажите уровень и нажмите «Добавить». Для изменения уровня выберите навык справа, измените поле уровня и нажмите «Сохранить»." TextWrapping="Wrap"/>
                                                 <WrapPanel Margin="0,6,0,6">
-                                                    <TextBlock Text="Уровень:" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Уровень навыка:" VerticalAlignment="Center"/>
                                                     <TextBox Width="70" Margin="6,0,0,0" Text="{Binding CharacterSkillLevelInput, UpdateSourceTrigger=PropertyChanged}"/>
-                                                    <Button Margin="8,0,0,0" Content="Добавить выбранный навык персонажу" Command="{Binding AcquireSkillCommand}" IsEnabled="{Binding CanAcquireSkill}"/>
-                                                    <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Изменить уровень" Command="{Binding UpdateSkillLevelCommand}" IsEnabled="{Binding CanUpdateCharacterSkillLevel}"/>
-                                                    <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Удалить навык" Command="{Binding RemoveSkillCommand}" IsEnabled="{Binding CanRemoveCharacterSkill}"/>
+                                                    <Button Margin="8,0,0,0" Content="Добавить" Command="{Binding AcquireSkillCommand}" IsEnabled="{Binding CanAcquireSkill}"/>
+                                                    <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Сохранить" Command="{Binding UpdateSkillLevelCommand}" IsEnabled="{Binding CanUpdateCharacterSkillLevel}"/>
+                                                    <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Удалить" Command="{Binding RemoveSkillCommand}" IsEnabled="{Binding CanRemoveCharacterSkill}"/>
                                                 </WrapPanel>
                                                 <ListView ItemsSource="{Binding SkillRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedSkillId, UpdateSourceTrigger=PropertyChanged}" MinHeight="180">
                                                     <ListView.View>
