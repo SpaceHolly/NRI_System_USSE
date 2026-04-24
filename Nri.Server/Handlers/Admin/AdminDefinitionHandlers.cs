@@ -46,6 +46,8 @@ public sealed class AdminDefinitionHandlers
             new DelegateRequestHandler(CommandNames.DefinitionsSkillGet, HandleGetSkillByCode),
             new DelegateRequestHandler(CommandNames.DefinitionsSkillSave, HandleSaveSkill),
             new DelegateRequestHandler(CommandNames.DefinitionsSkillArchive, HandleArchiveSkill),
+            new DelegateRequestHandler(CommandNames.SkillsSave, HandleSaveSkill),
+            new DelegateRequestHandler(CommandNames.SkillsArchive, HandleArchiveSkill),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceList, HandleGetRaceList),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceGet, HandleGetRaceByCode),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceSave, HandleSaveRace),
@@ -144,6 +146,7 @@ public sealed class AdminDefinitionHandlers
     {
         var request = new GetSkillListRequest { IncludeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived") };
         var response = new GetSkillListResponse { Items = _skillService.GetAll(request.IncludeArchived) };
+        _logger.Admin($"skills.list count={response.Items.Count}");
         return Ok("Skill definitions loaded.", new Dictionary<string, object> { { "items", response.Items.Select(ToPayload).Cast<object>().ToArray() } });
     }
 
@@ -156,9 +159,16 @@ public sealed class AdminDefinitionHandlers
 
     private ResponseEnvelope HandleSaveSkill(CommandContext context)
     {
+        var payloadKeys = context.Request.Payload.Keys.ToArray();
+        var hasDefinition = context.Request.Payload.ContainsKey("definition");
+        context.Request.Payload.TryGetValue("definition", out var definitionRaw);
+        var definitionType = definitionRaw == null ? "null" : definitionRaw.GetType().FullName ?? definitionRaw.GetType().Name;
+        var definitionParsed = PayloadReader.GetDictionary(context.Request.Payload, "definition");
+        _logger.Admin($"skills.save payloadKeys={string.Join(",", payloadKeys)} definition_key_present={hasDefinition} definition_type={definitionType} definition_parse_success={(definitionParsed != null)}");
         var request = new SaveSkillRequest { Definition = ReadSkillDefinition(context.Request.Payload) };
         var actor = RequireActor(context);
         var response = _skillService.Save(request.Definition, actor.Id);
+        _logger.Admin($"skills.save response=ok code={response.Item.Code} actor={actor.Login}");
         return Ok(response.Created ? "Skill definition created." : "Skill definition updated.", new Dictionary<string, object>
         {
             { "created", response.Created },
@@ -172,6 +182,7 @@ public sealed class AdminDefinitionHandlers
         var request = new ArchiveSkillRequest { Code = RequireString(context.Request.Payload, "code") };
         var actor = RequireActor(context);
         var archived = _skillService.Archive(request.Code, actor.Id);
+        _logger.Admin($"skills.archive response=ok code={request.Code} archived={archived} actor={actor.Login}");
         var response = new ArchiveSkillResponse { Code = request.Code, Archived = archived };
         return Ok(archived ? "Skill definition archived." : "Skill definition already archived.", new Dictionary<string, object>
         {
@@ -396,7 +407,8 @@ public sealed class AdminDefinitionHandlers
 
     private static IDictionary<string, object> RequireMap(IDictionary<string, object> payload, string key)
     {
-        if (!payload.TryGetValue(key, out var value) || !(value is IDictionary<string, object> map)) throw new ArgumentException($"{key} is required.");
+        var map = PayloadReader.GetDictionary(payload, key);
+        if (map == null || map.Count == 0) throw new ArgumentException($"{key} is required.");
         return map;
     }
 
