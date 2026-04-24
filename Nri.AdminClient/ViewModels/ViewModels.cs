@@ -2914,9 +2914,14 @@ public class AdminMainViewModel : ViewModelBase
         var code = FirstNonEmpty(EditSkillCode);
         if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Для создания укажите код навыка.");
         if (string.IsNullOrWhiteSpace(EditSkillName)) throw new ArgumentException("Для создания укажите название навыка.");
+        ClientLogService.Instance.Info($"skillDefinition.create begin code={code}");
+        var dto = BuildSkillDefinitionPayload();
+        ClientLogService.Instance.Info($"skillDefinition.create dtoBuilt code={FirstNonEmpty(S(dto, \"code\"), code)} name={S(dto, \"name\")} sourceType={S(dto, \"skillCategory\")} maxLevel={S(dto, \"maxLevel\")}");
+        var payload = new Dictionary<string, object> { { "definition", dto } };
+        ClientLogService.Instance.Info($"skillDefinition.create payloadHasDefinition={payload.ContainsKey(\"definition\").ToString().ToLowerInvariant()} payloadKeys={string.Join(\",\", payload.Keys)}");
 
         SelectedSkillDefinitionCode = string.Empty;
-        var response = EnsureSuccess(_api.DefinitionSkillSave(BuildSkillDefinitionPayload()));
+        var response = EnsureSuccess(_api.DefinitionSkillSavePayload(payload));
         ClientLogService.Instance.Info($"skillDefinition.create code={code} response={response.Status}");
         if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
         {
@@ -2931,7 +2936,9 @@ public class AdminMainViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode))
             throw new InvalidOperationException("Для сохранения выберите существующий definition навыка.");
         var code = FirstNonEmpty(EditSkillCode, SelectedSkillDefinitionCode);
-        var response = EnsureSuccess(_api.DefinitionSkillSave(BuildSkillDefinitionPayload()));
+        var dto = BuildSkillDefinitionPayload();
+        var payload = new Dictionary<string, object> { { "definition", dto } };
+        var response = EnsureSuccess(_api.DefinitionSkillSavePayload(payload));
         ClientLogService.Instance.Info($"skillDefinition.save code={code} response={response.Status}");
         if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
         {

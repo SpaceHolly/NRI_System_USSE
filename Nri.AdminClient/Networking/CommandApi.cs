@@ -114,6 +114,7 @@ public class CommandApi
     public ResponseEnvelope DefinitionsSkillsGet(bool includeArchived = false) => Send(CommandNames.DefinitionsSkillsGet, new Dictionary<string, object> { { "includeArchived", includeArchived } });
     public ResponseEnvelope DefinitionSkillGet(string code) => Send(CommandNames.DefinitionsSkillGet, new Dictionary<string, object> { { "code", code } });
     public ResponseEnvelope DefinitionSkillSave(Dictionary<string, object> definition) => Send(CommandNames.DefinitionsSkillSave, new Dictionary<string, object> { { "definition", definition } });
+    public ResponseEnvelope DefinitionSkillSavePayload(Dictionary<string, object> payload) => Send(CommandNames.DefinitionsSkillSave, payload);
     public ResponseEnvelope DefinitionSkillArchive(string code) => Send(CommandNames.DefinitionsSkillArchive, new Dictionary<string, object> { { "code", code } });
     public ResponseEnvelope SkillsSave(Dictionary<string, object> definition) => Send(CommandNames.SkillsSave, new Dictionary<string, object> { { "definition", definition } });
     public ResponseEnvelope SkillsArchive(string code) => Send(CommandNames.SkillsArchive, new Dictionary<string, object> { { "code", code } });
