@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 using Nri.PlayerClient.Diagnostics;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
@@ -58,17 +59,23 @@ public class JsonTcpClient : IJsonTcpClient
 
         ClientLogService.Instance.Info($"Connecting to server: {_config.ServerHost}:{_config.ServerPort}");
         Disconnect();
-        _tcpClient = new TcpClient();
-        var connectTask = _tcpClient.ConnectAsync(_config.ServerHost, _config.ServerPort);
+        var connectingClient = new TcpClient();
+        var connectTask = connectingClient.ConnectAsync(_config.ServerHost, _config.ServerPort);
         if (!connectTask.Wait(TimeSpan.FromSeconds(5)))
         {
-            Disconnect();
+            ObserveFaultedTask(connectTask);
+            connectingClient.Dispose();
             var timeout = new TimeoutException("Connection timeout.");
             ClientLogService.Instance.Error("Network connection timeout", timeout);
             throw timeout;
         }
 
-        var stream = _tcpClient.GetStream();
+        connectTask.GetAwaiter().GetResult();
+
+        _tcpClient = connectingClient;
+        var stream = connectingClient.GetStream();
+        stream.ReadTimeout = 5000;
+        stream.WriteTimeout = 5000;
         _reader = new StreamReader(stream);
         _writer = new StreamWriter(stream) { AutoFlush = true };
         ClientLogService.Instance.Info($"Connected to server: {_config.ServerHost}:{_config.ServerPort}");
@@ -113,4 +120,17 @@ public class JsonTcpClient : IJsonTcpClient
     }
 
     public void Dispose() => Disconnect();
+
+    private static void ObserveFaultedTask(Task task)
+    {
+        if (task.IsFaulted)
+        {
+            _ = task.Exception;
+            return;
+        }
+
+        task.ContinueWith(
+            continuation => _ = continuation.Exception,
+            TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnFaulted);
+    }
 }
