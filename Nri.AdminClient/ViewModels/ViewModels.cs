@@ -413,7 +413,7 @@ public class AdminMainViewModel : ViewModelBase
         SaveClassDefinitionCommand = new RelayCommand(() => RunUiAction("Сохранение definitions класса", SaveClassDefinition));
         ArchiveClassDefinitionCommand = new RelayCommand(() => RunUiAction("Архивация definitions класса", ArchiveClassDefinition));
         RefreshDefinitionSkillsCommand = new RelayCommand(() => RunUiAction("Загрузка definitions навыков", RefreshDefinitionSkills));
-        NewSkillDefinitionCommand = new RelayCommand(NewSkillDefinition);
+        NewSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Создание definitions навыка", NewSkillDefinition));
         OpenSelectedSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Открытие definitions навыка", OpenSelectedSkillDefinition));
         SaveSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Сохранение definitions навыка", SaveSkillDefinition));
         ArchiveSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Архивация definitions навыка", ArchiveSkillDefinition));
