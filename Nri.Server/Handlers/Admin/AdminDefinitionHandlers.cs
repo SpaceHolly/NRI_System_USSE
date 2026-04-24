@@ -164,7 +164,20 @@ public sealed class AdminDefinitionHandlers
         context.Request.Payload.TryGetValue("definition", out var definitionRaw);
         var definitionType = definitionRaw == null ? "null" : definitionRaw.GetType().FullName ?? definitionRaw.GetType().Name;
         var definitionParsed = PayloadReader.GetDictionary(context.Request.Payload, "definition");
-        _logger.Admin($"skills.save payloadKeys={string.Join(",", payloadKeys)} definition_key_present={hasDefinition} definition_type={definitionType} definition_parse_success={(definitionParsed != null)}");
+        var levelsCount = 0;
+        var levelsItemKeys = string.Empty;
+        if (definitionParsed != null && definitionParsed.TryGetValue("levels", out var levelsRaw) && levelsRaw is IEnumerable levelsItems)
+        {
+            var firstLevel = levelsItems.Cast<object?>().FirstOrDefault();
+            if (firstLevel is IDictionary<string, object> firstMap)
+            {
+                levelsItemKeys = string.Join(",", firstMap.Keys);
+            }
+
+            levelsCount = levelsItems.Cast<object?>().Count();
+        }
+
+        _logger.Admin($"skills.save payloadKeys={string.Join(",", payloadKeys)} definition_key_present={hasDefinition} definition_type={definitionType} definition_parse_success={(definitionParsed != null)} levels_count={levelsCount} levels_item_keys={levelsItemKeys}");
         var request = new SaveSkillRequest { Definition = ReadSkillDefinition(context.Request.Payload) };
         var actor = RequireActor(context);
         var response = _skillService.Save(request.Definition, actor.Id);

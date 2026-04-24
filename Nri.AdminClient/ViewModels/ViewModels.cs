@@ -2938,7 +2938,12 @@ public class AdminMainViewModel : ViewModelBase
             throw new InvalidOperationException("Для сохранения выберите существующий definition навыка.");
         var code = FirstNonEmpty(EditSkillCode, SelectedSkillDefinitionCode);
         var dto = BuildSkillDefinitionPayload();
+        var dtoLevels = ToList(dto.ContainsKey("levels") ? dto["levels"] : new ArrayList()).OfType<Dictionary<string, object>>().ToList();
+        var firstLevel = dtoLevels.FirstOrDefault();
+        ClientLogService.Instance.Info(
+            $"skillDefinition.save dtoBuilt code={FirstNonEmpty(S(dto, \"code\"), code)} maxLevel={S(dto, \"maxLevel\")} levels_count={dtoLevels.Count} levels_item_keys={string.Join(\",\", firstLevel?.Keys ?? Array.Empty<string>())}");
         var payload = new Dictionary<string, object> { { "definition", dto } };
+        ClientLogService.Instance.Info($"skillDefinition.save payloadHasDefinition={payload.ContainsKey(\"definition\").ToString().ToLowerInvariant()} payloadKeys={string.Join(\",\", payload.Keys)}");
         var response = EnsureSuccess(_api.DefinitionSkillSavePayload(payload));
         ClientLogService.Instance.Info($"skillDefinition.save code={code} response={response.Status}");
         if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
@@ -3169,6 +3174,9 @@ public class AdminMainViewModel : ViewModelBase
                 { "effects", new object[0] }
             });
         }
+
+        var firstLevel = configuredLevels.FirstOrDefault();
+        ClientLogService.Instance.Debug($"skillDefinition.payload.levels shape count={configuredLevels.Count} itemKeys={string.Join(\",\", firstLevel?.Keys ?? Array.Empty<string>())}");
 
         return new Dictionary<string, object>
         {
