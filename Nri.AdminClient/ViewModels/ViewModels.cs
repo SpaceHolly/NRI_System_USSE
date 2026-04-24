@@ -2916,7 +2916,8 @@ public class AdminMainViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(EditSkillName)) throw new ArgumentException("Для создания укажите название навыка.");
         ClientLogService.Instance.Info($"skillDefinition.create begin code={code}");
         var dto = BuildSkillDefinitionPayload();
-        ClientLogService.Instance.Info($"skillDefinition.create dtoBuilt code={FirstNonEmpty(S(dto, \"code\"), code)} name={S(dto, \"name\")} sourceType={S(dto, \"skillCategory\")} maxLevel={S(dto, \"maxLevel\")}");
+        var dtoLevelsCount = ToList(dto.ContainsKey("levels") ? dto["levels"] : new ArrayList()).Count;
+        ClientLogService.Instance.Info($"skillDefinition.create dtoBuilt code={FirstNonEmpty(S(dto, \"code\"), code)} name={S(dto, \"name\")} sourceType={S(dto, \"skillCategory\")} maxLevel={S(dto, \"maxLevel\")} levels={dtoLevelsCount}");
         var payload = new Dictionary<string, object> { { "definition", dto } };
         ClientLogService.Instance.Info($"skillDefinition.create payloadHasDefinition={payload.ContainsKey(\"definition\").ToString().ToLowerInvariant()} payloadKeys={string.Join(\",\", payload.Keys)}");
 
@@ -3151,24 +3152,36 @@ public class AdminMainViewModel : ViewModelBase
 
     private Dictionary<string, object> BuildSkillDefinitionPayload()
     {
+        var effectiveMaxLevel = Math.Max(1, EditSkillMaxLevel);
+        var configuredByLevel = SkillLevelEditorRows
+            .Where(level => level.Level > 0)
+            .GroupBy(level => level.Level)
+            .ToDictionary(group => group.Key, group => group.Last().Description, EqualityComparer<int>.Default);
+
+        var configuredLevels = new List<Dictionary<string, object>>();
+        for (var level = 1; level <= effectiveMaxLevel; level++)
+        {
+            configuredLevels.Add(new Dictionary<string, object>
+            {
+                { "level", level },
+                { "description", configuredByLevel.TryGetValue(level, out var description) ? description : string.Empty },
+                { "requirements", new object[0] },
+                { "effects", new object[0] }
+            });
+        }
+
         return new Dictionary<string, object>
         {
             { "code", EditSkillCode },
             { "name", EditSkillName },
             { "description", EditSkillDescription },
             { "tier", EditSkillTier },
-            { "maxLevel", EditSkillMaxLevel },
+            { "maxLevel", effectiveMaxLevel },
             { "skillCategory", EditSkillCategory },
             { "isClassSkill", EditSkillIsClassSkill },
             { "requiredClassCodes", SplitCsv(EditSkillRequiredClassCodes).Cast<object>().ToArray() },
             { "requiredSkillCodes", SplitCsv(EditSkillRequiredSkillCodes).Cast<object>().ToArray() },
-            { "levels", SkillLevelEditorRows.Select(level => new Dictionary<string, object>
-                {
-                    { "level", level.Level },
-                    { "description", level.Description },
-                    { "requirements", new object[0] },
-                    { "effects", new object[0] }
-                }).Cast<object>().ToArray() },
+            { "levels", configuredLevels.Cast<object>().ToArray() },
             { "isActive", EditSkillIsActive },
             { "status", EditSkillStatus }
         };
