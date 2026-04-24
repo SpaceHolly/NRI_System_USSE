@@ -238,7 +238,7 @@ public sealed class AdminDefinitionHandlers
         };
     }
 
-    private static SkillDefinitionDto ReadSkillDefinition(IDictionary<string, object> payload)
+    private SkillDefinitionDto ReadSkillDefinition(IDictionary<string, object> payload)
     {
         var map = RequireMap(payload, "definition");
         return new SkillDefinitionDto
@@ -285,13 +285,21 @@ public sealed class AdminDefinitionHandlers
         };
     }
 
-    private static List<SkillLevelDefinition> ReadSkillLevels(IDictionary<string, object> map)
+    private List<SkillLevelDefinition> ReadSkillLevels(IDictionary<string, object> map)
     {
         var result = new List<SkillLevelDefinition>();
-        if (!map.TryGetValue("levels", out var raw) || !(raw is IEnumerable items)) return result;
+        if (!map.TryGetValue("levels", out var raw) || raw is not IEnumerable items)
+        {
+            _logger.Admin($"skillDefinition.server.levels.rawType={(raw == null ? "null" : raw.GetType().FullName ?? raw.GetType().Name)}");
+            _logger.Admin("skillDefinition.server.levels.parsedCount=0");
+            return result;
+        }
+
+        _logger.Admin($"skillDefinition.server.levels.rawType={raw.GetType().FullName ?? raw.GetType().Name}");
         foreach (var item in items)
         {
-            if (!(item is IDictionary<string, object> levelMap)) continue;
+            var levelMap = ToObjectDictionary(item);
+            if (levelMap == null) continue;
             result.Add(new SkillLevelDefinition
             {
                 Level = GetInt(levelMap, "level"),
@@ -301,16 +309,23 @@ public sealed class AdminDefinitionHandlers
             });
         }
 
+        _logger.Admin($"skillDefinition.server.levels.parsedCount={result.Count}");
         return result;
     }
 
-    private static List<RequirementDefinition> ReadRequirements(IDictionary<string, object> map)
+    private List<RequirementDefinition> ReadRequirements(IDictionary<string, object> map)
     {
         var result = new List<RequirementDefinition>();
-        if (!map.TryGetValue("requirements", out var raw) || !(raw is IEnumerable items)) return result;
+        if (!map.TryGetValue("requirements", out var raw) || raw is not IEnumerable items)
+        {
+            _logger.Admin("skillDefinition.server.requirements.parsedCount=0");
+            return result;
+        }
+
         foreach (var item in items)
         {
-            if (!(item is IDictionary<string, object> requirementMap)) continue;
+            var requirementMap = ToObjectDictionary(item);
+            if (requirementMap == null) continue;
             result.Add(new RequirementDefinition
             {
                 RequirementType = GetString(requirementMap, "requirementType"),
@@ -320,16 +335,23 @@ public sealed class AdminDefinitionHandlers
             });
         }
 
+        _logger.Admin($"skillDefinition.server.requirements.parsedCount={result.Count}");
         return result;
     }
 
-    private static List<EffectDefinition> ReadEffects(IDictionary<string, object> map)
+    private List<EffectDefinition> ReadEffects(IDictionary<string, object> map)
     {
         var result = new List<EffectDefinition>();
-        if (!map.TryGetValue("effects", out var raw) || !(raw is IEnumerable items)) return result;
+        if (!map.TryGetValue("effects", out var raw) || raw is not IEnumerable items)
+        {
+            _logger.Admin("skillDefinition.server.effects.parsedCount=0");
+            return result;
+        }
+
         foreach (var item in items)
         {
-            if (!(item is IDictionary<string, object> effectMap)) continue;
+            var effectMap = ToObjectDictionary(item);
+            if (effectMap == null) continue;
             result.Add(new EffectDefinition
             {
                 EffectType = GetString(effectMap, "effectType"),
@@ -339,7 +361,64 @@ public sealed class AdminDefinitionHandlers
             });
         }
 
+        _logger.Admin($"skillDefinition.server.effects.parsedCount={result.Count}");
         return result;
+    }
+
+    private static IDictionary<string, object>? ToObjectDictionary(object? raw)
+    {
+        if (raw == null) return null;
+        if (raw is IDictionary<string, object> typedMap) return typedMap;
+
+        if (raw is IDictionary dictionary)
+        {
+            var result = new Dictionary<string, object>(StringComparer.Ordinal);
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                var key = Convert.ToString(entry.Key);
+                if (string.IsNullOrWhiteSpace(key)) continue;
+                result[key] = entry.Value!;
+            }
+
+            return result;
+        }
+
+        if (raw is IEnumerable enumerable && raw is not string)
+        {
+            var result = new Dictionary<string, object>(StringComparer.Ordinal);
+            foreach (var item in enumerable)
+            {
+                if (!TryReadKeyValuePair(item, out var key, out var value)) return null;
+                result[key] = value!;
+            }
+
+            return result.Count == 0 ? null : result;
+        }
+
+        return null;
+    }
+
+    private static bool TryReadKeyValuePair(object? raw, out string key, out object? value)
+    {
+        key = string.Empty;
+        value = null;
+
+        if (raw == null) return false;
+        if (raw is DictionaryEntry dictionaryEntry)
+        {
+            key = Convert.ToString(dictionaryEntry.Key) ?? string.Empty;
+            value = dictionaryEntry.Value;
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        var type = raw.GetType();
+        var keyProperty = type.GetProperty("Key");
+        var valueProperty = type.GetProperty("Value");
+        if (keyProperty == null || valueProperty == null) return false;
+
+        key = Convert.ToString(keyProperty.GetValue(raw)) ?? string.Empty;
+        value = valueProperty.GetValue(raw);
+        return !string.IsNullOrWhiteSpace(key);
     }
 
     private static Dictionary<string, object> ToPayload(ClassDefinitionDto dto)
