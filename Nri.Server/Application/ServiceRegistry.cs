@@ -95,6 +95,10 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CharacterReputationEntryAdd, new DelegateCommandHandler(hub.CharacterReputationEntryAdd));
         dispatcher.Register(CommandNames.CharacterReputationEntryUpdate, new DelegateCommandHandler(hub.CharacterReputationEntryUpdate));
         dispatcher.Register(CommandNames.CharacterReputationEntryRemove, new DelegateCommandHandler(hub.CharacterReputationEntryRemove));
+        dispatcher.Register(CommandNames.CharacterSkillsGet, new DelegateCommandHandler(hub.CharacterSkillsGet));
+        dispatcher.Register(CommandNames.CharacterSkillAdd, new DelegateCommandHandler(hub.CharacterSkillAdd));
+        dispatcher.Register(CommandNames.CharacterSkillUpdateLevel, new DelegateCommandHandler(hub.CharacterSkillUpdateLevel));
+        dispatcher.Register(CommandNames.CharacterSkillRemove, new DelegateCommandHandler(hub.CharacterSkillRemove));
 
         dispatcher.Register(CommandNames.CharacterUpdateBasicInfo, new DelegateCommandHandler(hub.CharacterUpdateBasicInfo));
         dispatcher.Register(CommandNames.CharacterUpdateStats, new DelegateCommandHandler(hub.CharacterUpdateStats));
@@ -162,6 +166,8 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.DefinitionsSkillGet, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsSkillSave, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsSkillArchive, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.SkillsSave, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.SkillsArchive, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsReload, new DelegateCommandHandler(hub.DefinitionsReload));
         dispatcher.Register(CommandNames.DefinitionsVersionGet, new DelegateCommandHandler(hub.DefinitionsVersionGet));
 

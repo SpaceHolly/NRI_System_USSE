@@ -122,12 +122,16 @@ public class Companion
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
     public string Species { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+    public string OwnerCharacterId { get; set; } = string.Empty;
     public string StatsSummary { get; set; } = string.Empty;
     public bool IsArchived { get; set; }
     public List<InventoryItem> Inventory { get; set; } = new List<InventoryItem>();
+    public List<HoldingRef> Holdings { get; set; } = new List<HoldingRef>();
+    public List<ReputationRef> Reputation { get; set; } = new List<ReputationRef>();
 }
 
 public class InventoryItem
