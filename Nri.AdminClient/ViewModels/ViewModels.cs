@@ -564,9 +564,9 @@ public class AdminMainViewModel : ViewModelBase
     public bool CanManageClassDefinition => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanArchiveClassDefinition => ArePrivilegedSectionsEnabled && !IsBusy && SelectedClassDefinition != null;
     public bool CanManageSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy;
-    public bool CanCreateSkillDefinition => ArePrivilegedSectionsEnabled;
+    public bool CanCreateSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(EditSkillCode) && !string.IsNullOrWhiteSpace(EditSkillName);
     public bool CanRefreshSkillDefinitions => ArePrivilegedSectionsEnabled;
-    public bool CanSaveSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(EditSkillCode) && !string.IsNullOrWhiteSpace(EditSkillName);
+    public bool CanSaveSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode) && !string.IsNullOrWhiteSpace(EditSkillCode) && !string.IsNullOrWhiteSpace(EditSkillName);
     public bool CanArchiveSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && (!string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode) || !string.IsNullOrWhiteSpace(EditSkillCode));
     public bool CanAcquireClassNode => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedClassNode != null;
     public bool CanAcquireSkill => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && !string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode);
@@ -844,6 +844,7 @@ public class AdminMainViewModel : ViewModelBase
             if (_editSkillCode == value) return;
             _editSkillCode = value;
             Notify();
+            Notify(nameof(CanCreateSkillDefinition));
             Notify(nameof(CanSaveSkillDefinition));
             Notify(nameof(CanArchiveSkillDefinition));
             TraceSkillDefinitionContentButtons();
@@ -858,6 +859,7 @@ public class AdminMainViewModel : ViewModelBase
             if (_editSkillName == value) return;
             _editSkillName = value;
             Notify();
+            Notify(nameof(CanCreateSkillDefinition));
             Notify(nameof(CanSaveSkillDefinition));
             TraceSkillDefinitionContentButtons();
         }
@@ -2909,26 +2911,25 @@ public class AdminMainViewModel : ViewModelBase
 
     private void NewSkillDefinition()
     {
+        var code = FirstNonEmpty(EditSkillCode);
+        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Для создания укажите код навыка.");
+        if (string.IsNullOrWhiteSpace(EditSkillName)) throw new ArgumentException("Для создания укажите название навыка.");
+
         SelectedSkillDefinitionCode = string.Empty;
-        EditSkillCode = string.Empty;
-        EditSkillName = string.Empty;
-        EditSkillDescription = string.Empty;
-        EditSkillTier = 1;
-        EditSkillMaxLevel = 1;
-        EditSkillCategory = SkillCategory.Undefined.ToString();
-        EditSkillIsClassSkill = false;
-        EditSkillRequiredClassCodes = string.Empty;
-        EditSkillRequiredSkillCodes = string.Empty;
-        EditSkillIsActive = true;
-        EditSkillStatus = DefinitionStatus.Draft.ToString();
-        SkillLevelEditorRows.Clear();
-        SkillLevelEditorRows.Add(new SkillLevelEditorRowVm { Level = 1, Description = string.Empty });
-        NotifySkillDefinitionEditor();
+        var response = EnsureSuccess(_api.DefinitionSkillSave(BuildSkillDefinitionPayload()));
+        ClientLogService.Instance.Info($"skillDefinition.create code={code} response={response.Status}");
+        if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
+        {
+            ApplySkillDefinitionEditor(map);
+        }
+        RefreshDefinitionSkills();
         TraceSkillDefinitionContentButtons();
     }
 
     private void SaveSkillDefinition()
     {
+        if (string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode))
+            throw new InvalidOperationException("Для сохранения выберите существующий definition навыка.");
         var code = FirstNonEmpty(EditSkillCode, SelectedSkillDefinitionCode);
         var response = EnsureSuccess(_api.DefinitionSkillSave(BuildSkillDefinitionPayload()));
         ClientLogService.Instance.Info($"skillDefinition.save code={code} response={response.Status}");

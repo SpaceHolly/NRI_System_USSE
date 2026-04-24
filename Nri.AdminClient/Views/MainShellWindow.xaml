@@ -890,8 +890,8 @@
 
                                         <TextBlock Text="Редактор определения навыка" Style="{StaticResource TitleTextStyle}" Margin="0,8,0,0"/>
                                         <WrapPanel Margin="0,6,0,0">
-                                            <Button Content="Новый" Command="{Binding NewSkillDefinitionCommand}" IsEnabled="{Binding CanCreateSkillDefinition}"/>
-                                            <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Открыть" Command="{Binding OpenSelectedSkillDefinitionCommand}" IsEnabled="{Binding CanCreateSkillDefinition}"/>
+                                            <Button Content="Создать" Command="{Binding NewSkillDefinitionCommand}" IsEnabled="{Binding CanCreateSkillDefinition}"/>
+                                            <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Открыть" Command="{Binding OpenSelectedSkillDefinitionCommand}" IsEnabled="{Binding CanRefreshSkillDefinitions}"/>
                                             <Button Margin="8,0,0,0" Content="Сохранить" Command="{Binding SaveSkillDefinitionCommand}" IsEnabled="{Binding CanSaveSkillDefinition}"/>
                                             <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Архивировать" Command="{Binding ArchiveSkillDefinitionCommand}" IsEnabled="{Binding CanArchiveSkillDefinition}"/>
                                         </WrapPanel>
