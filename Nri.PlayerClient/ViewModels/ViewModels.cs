@@ -1762,11 +1762,11 @@ public class PlayerMainViewModel : ViewModelBase
         if (!placeholderHidden) EnsureCollectionPlaceholder(SkillRows, "Нет данных по навыкам");
         ClientLogService.Instance.Info($"player.skills.placeholder hidden={placeholderHidden.ToString().ToLowerInvariant()}");
 
-        ClientLogService.Instance.Info($"activeCharacter.skills.bind count={SkillRows.Count}");
-        if (_lastSkillsRenderCount != SkillRows.Count)
+        ClientLogService.Instance.Info($"player.skills.character.bind count={mappedCount}");
+        if (_lastSkillsRenderCount != mappedCount)
         {
-            ClientLogService.Instance.Info($"activeCharacter.skills.render count={SkillRows.Count}");
-            _lastSkillsRenderCount = SkillRows.Count;
+            ClientLogService.Instance.Info($"activeCharacter.skills.render count={mappedCount}");
+            _lastSkillsRenderCount = mappedCount;
         }
         if (_lastSkillsPlaceholderHidden != placeholderHidden)
         {

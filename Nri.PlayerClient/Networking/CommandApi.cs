@@ -57,7 +57,7 @@ public class CommandApi
     public ResponseEnvelope ClassTreeAcquireNode(string characterId, string nodeId) => Send(CommandNames.ClassTreeAcquireNode, new Dictionary<string, object> { { "characterId", characterId }, { "nodeId", nodeId } });
     public ResponseEnvelope ProgressionAvailableSkills(string characterId) => Send(CommandNames.ProgressionAvailableSkills, new Dictionary<string, object> { { "characterId", characterId } });
     public ResponseEnvelope SkillsList(string characterId) => Send(CommandNames.SkillsList, new Dictionary<string, object> { { "characterId", characterId } });
-    public ResponseEnvelope SkillsAcquire(string characterId, string skillId) => Send(CommandNames.SkillsAcquire, new Dictionary<string, object> { { "characterId", characterId }, { "skillId", skillId } });
+    public ResponseEnvelope SkillsAcquire(string characterId, string skillId) => Send(CommandNames.SkillsAcquire, new Dictionary<string, object> { { "characterId", characterId }, { "skillCode", skillId } });
 
     public ResponseEnvelope CombatVisibleState(string sessionId) => Send(CommandNames.CombatVisibleState, new Dictionary<string, object> { { "sessionId", sessionId } });
     public ResponseEnvelope CombatTimeline(string sessionId) => Send(CommandNames.CombatTimeline, new Dictionary<string, object> { { "sessionId", sessionId } });

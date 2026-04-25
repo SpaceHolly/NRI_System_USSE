@@ -610,26 +610,18 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterSkillsGet(CommandContext context)
     {
         var actor = GetCurrentAccount(context);
-        var roles = string.Join(",", actor.Roles.Select(role => role.ToString()));
-        var isAdmin = actor.Roles.Contains(UserRole.Admin) || actor.Roles.Contains(UserRole.SuperAdmin);
         var requestedCharacterId = PayloadReader.GetString(context.Request.Payload, "characterId");
-        Character character;
-
-        if (isAdmin)
-        {
-            character = GetCharacter(RequireLength(requestedCharacterId, 8, 128, "characterId"));
-        }
-        else
-        {
-            character = ResolveOwnedCharacter(context, actor);
-        }
-
-        var ownerCheck = string.Equals(character.OwnerUserId, actor.Id, StringComparison.OrdinalIgnoreCase);
-        var allowed = isAdmin || ownerCheck;
-        _logger.Admin($"character.skills.get auth userId={actor.Id} role={roles} characterId={character.Id} ownerCheck={ownerCheck} allowed={allowed}");
+        var character = string.IsNullOrWhiteSpace(requestedCharacterId)
+            ? ResolveOwnedCharacter(context, actor)
+            : GetCharacter(RequireLength(requestedCharacterId, 8, 128, "characterId"));
+        EnsureCharacterDefaults(character);
+        var owner = GetAccount(character.OwnerUserId);
+        var ownerCheck = string.Equals(owner.Id, actor.Id, StringComparison.OrdinalIgnoreCase);
+        var isAdmin = actor.Roles.Contains(UserRole.Admin) || actor.Roles.Contains(UserRole.SuperAdmin);
+        var allowed = (ownerCheck || isAdmin) && CanViewCharacter(actor, owner, character);
+        _logger.Admin($"character.skills.get auth actor={actor.Login} characterId={character.Id} ownerCheck={ownerCheck} allowed={allowed}");
         if (!allowed) throw new UnauthorizedAccessException("Character skills unavailable.");
 
-        EnsureCharacterDefaults(character);
         _logger.Admin($"character.skills.get actor={actor.Login} characterId={character.Id} count={character.CharacterSkills.Count}");
         return Ok("Character skills loaded.", new Dictionary<string, object>
         {
