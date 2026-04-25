@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using Nri.ChatClient.Diagnostics;
@@ -10,15 +9,17 @@ namespace Nri.ChatClient;
 
 public partial class App : Application
 {
-    public static ClientConfig ClientConfig { get; private set; } = new ClientConfig();
+    public static ClientConfig ClientConfig { get; } = new ClientConfig
+    {
+        ServerHost = "127.0.0.1",
+        ServerPort = 4600,
+        PreserveClientLogs = false
+    };
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        var configPath = Path.Combine(AppContext.BaseDirectory, "client.config.json");
-        ClientConfig = ClientLogService.LoadClientConfig(configPath);
         var logger = ClientLogService.Initialize("ChatClient", ClientConfig.PreserveClientLogs);
-        logger.Info("Config load attempt path=" + configPath);
-        logger.Info($"Loaded client config: host={ClientConfig.ServerHost}, port={ClientConfig.ServerPort}, preserveClientLogs={ClientConfig.PreserveClientLogs}");
+        logger.Info($"Loaded client config defaults: host={ClientConfig.ServerHost}, port={ClientConfig.ServerPort}, preserveClientLogs={ClientConfig.PreserveClientLogs}");
 
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {

@@ -1,9 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
-using System.Runtime.Serialization.Json;
 using System.Threading;
-using Nri.Shared.Configuration;
 
 namespace Nri.ChatClient.Diagnostics;
 
@@ -15,8 +13,9 @@ public sealed class ClientLogService
     private readonly object _writeSync = new object();
     private readonly string _appName;
     private readonly bool _preserveLogs;
-    private readonly string _logFilePath;
-    private readonly StreamWriter _writer;
+    private readonly bool _enabled;
+    private readonly string? _logFilePath;
+    private readonly StreamWriter? _writer;
     private bool _gracefulShutdown;
     private bool _abnormalTermination;
     private bool _completed;
@@ -25,13 +24,23 @@ public sealed class ClientLogService
     {
         _appName = appName;
         _preserveLogs = preserveLogs;
+#if CHATCLIENT_FILE_LOGS
+        _enabled = true;
         var stamp = DateTime.Now.ToString("dd.MM.yyyy+HH.mm.ss", CultureInfo.InvariantCulture);
         _logFilePath = Path.Combine(AppContext.BaseDirectory, $"{stamp}-{appName}-log.txt");
         var stream = new FileStream(_logFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
         _writer = new StreamWriter(stream) { AutoFlush = true };
+#else
+        _enabled = false;
+        _logFilePath = null;
+        _writer = null;
+#endif
 
         Info($"Application start: {_appName}");
-        Info($"Log file path: {_logFilePath}");
+        if (_enabled && _logFilePath is not null)
+        {
+            Info($"Log file path: {_logFilePath}");
+        }
         Info($"PreserveClientLogs: {_preserveLogs}");
     }
 
@@ -45,25 +54,6 @@ public sealed class ClientLogService
     }
 
     public static ClientLogService Instance => _instance ?? throw new InvalidOperationException("ClientLogService is not initialized.");
-
-    public static ClientConfig LoadClientConfig(string configPath)
-    {
-        try
-        {
-            if (!File.Exists(configPath))
-            {
-                return new ClientConfig();
-            }
-
-            using var stream = File.OpenRead(configPath);
-            var serializer = new DataContractJsonSerializer(typeof(ClientConfig));
-            return serializer.ReadObject(stream) as ClientConfig ?? new ClientConfig();
-        }
-        catch
-        {
-            return new ClientConfig();
-        }
-    }
 
     public void Info(string message) => Write("INFO", message);
     public void Debug(string message) => Write("DEBUG", message);
@@ -104,9 +94,9 @@ public sealed class ClientLogService
             _completed = true;
             var keepLog = _preserveLogs || !_gracefulShutdown || _abnormalTermination;
             WriteCore("INFO", $"Application closing. graceful={_gracefulShutdown}, abnormal={_abnormalTermination}, preserveLogs={_preserveLogs}, keepLog={keepLog}");
-            _writer.Dispose();
+            _writer?.Dispose();
 
-            if (!keepLog)
+            if (!keepLog && _logFilePath is not null)
             {
                 try
                 {
@@ -135,6 +125,11 @@ public sealed class ClientLogService
 
     private void WriteCore(string level, string message)
     {
+        if (!_enabled || _writer is null)
+        {
+            return;
+        }
+
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
         var threadId = Thread.CurrentThread.ManagedThreadId;
         _writer.WriteLine($"{timestamp} [{level}] [t:{threadId}] {message}");
