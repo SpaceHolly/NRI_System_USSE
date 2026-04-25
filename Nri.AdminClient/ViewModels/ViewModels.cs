@@ -2877,19 +2877,32 @@ public class AdminMainViewModel : ViewModelBase
         SkillDefinitionRows.Clear();
         ClientLogService.Instance.Info("skillDefinitions.content.load requested");
         var response = EnsureSuccess(_api.DefinitionsSkillsGet(true));
-        foreach (var item in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
+        var payloadKeys = string.Join(",", response.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal));
+        var rawItems = ExtractSkillDefinitionItems(response.Payload, out var rawCollectionKey);
+        var mappedCount = 0;
+        string firstRowCode = string.Empty;
+        foreach (var item in rawItems)
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item, CommandNames.DefinitionsSkillsGet);
+            if (map == null) continue;
             var status = FirstNonEmpty(S(map, "status"), "Draft");
             var isArchived = string.Equals(status, DefinitionStatus.Archived.ToString(), StringComparison.OrdinalIgnoreCase);
+            var code = S(map, "code");
             SkillDefinitionRows.Add(new RowVm
             {
-                Id = S(map, "code"),
-                Name = FirstNonEmpty(S(map, "name"), S(map, "code")),
+                Id = code,
+                Name = FirstNonEmpty(S(map, "name"), code),
                 State = $"тип источника={FirstNonEmpty(S(map, "skillCategory"), "Undefined")} • макс. уровень={S(map, "maxLevel")}",
                 Extra = $"активен={S(map, "isActive")} • архивирован={isArchived}"
             });
+            mappedCount++;
+            if (string.IsNullOrWhiteSpace(firstRowCode)) firstRowCode = code;
         }
+        ClientLogService.Instance.Info($"skillDefinitions.content.response.keys={payloadKeys}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.rawCollectionKey={rawCollectionKey}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.rawCount={rawItems.Count}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.mappedCount={mappedCount}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.firstRow.code={FirstNonEmpty(firstRowCode, "<none>")}");
         ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Навыки loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}");
         ClientLogService.Instance.Info($"skillDefinitions.content.load count={SkillDefinitionRows.Count}");
         ClientLogService.Instance.Info($"skillDefinitions.render count={SkillDefinitionRows.Count}");
@@ -2917,9 +2930,9 @@ public class AdminMainViewModel : ViewModelBase
         ClientLogService.Instance.Info($"skillDefinition.create begin code={code}");
         var dto = BuildSkillDefinitionPayload();
         var dtoLevelsCount = ToList(dto.ContainsKey("levels") ? dto["levels"] : new ArrayList()).Count;
-        ClientLogService.Instance.Info($"skillDefinition.create dtoBuilt code={FirstNonEmpty(S(dto, \"code\"), code)} name={S(dto, \"name\")} sourceType={S(dto, \"skillCategory\")} maxLevel={S(dto, \"maxLevel\")} levels={dtoLevelsCount}");
+        ClientLogService.Instance.Info($"skillDefinition.create dtoBuilt code={FirstNonEmpty(S(dto, "code"), code)} name={S(dto, "name")} sourceType={S(dto, "skillCategory")} maxLevel={S(dto, "maxLevel")} levels={dtoLevelsCount}");
         var payload = new Dictionary<string, object> { { "definition", dto } };
-        ClientLogService.Instance.Info($"skillDefinition.create payloadHasDefinition={payload.ContainsKey(\"definition\").ToString().ToLowerInvariant()} payloadKeys={string.Join(\",\", payload.Keys)}");
+        ClientLogService.Instance.Info($"skillDefinition.create payloadHasDefinition={payload.ContainsKey("definition").ToString().ToLowerInvariant()} payloadKeys={string.Join(",", payload.Keys)}");
 
         SelectedSkillDefinitionCode = string.Empty;
         var response = EnsureSuccess(_api.DefinitionSkillSavePayload(payload));
@@ -2941,9 +2954,9 @@ public class AdminMainViewModel : ViewModelBase
         var dtoLevels = ToList(dto.ContainsKey("levels") ? dto["levels"] : new ArrayList()).OfType<Dictionary<string, object>>().ToList();
         var firstLevel = dtoLevels.FirstOrDefault();
         ClientLogService.Instance.Info(
-            $"skillDefinition.save dtoBuilt code={FirstNonEmpty(S(dto, \"code\"), code)} maxLevel={S(dto, \"maxLevel\")} levels_count={dtoLevels.Count} levels_item_keys={string.Join(\",\", firstLevel?.Keys ?? Array.Empty<string>())}");
+            $"skillDefinition.save dtoBuilt code={FirstNonEmpty(S(dto, "code"), code)} maxLevel={S(dto, "maxLevel")} levels_count={dtoLevels.Count} levels_item_keys={string.Join(",", firstLevel?.Keys ?? Array.Empty<string>())}");
         var payload = new Dictionary<string, object> { { "definition", dto } };
-        ClientLogService.Instance.Info($"skillDefinition.save payloadHasDefinition={payload.ContainsKey(\"definition\").ToString().ToLowerInvariant()} payloadKeys={string.Join(\",\", payload.Keys)}");
+        ClientLogService.Instance.Info($"skillDefinition.save payloadHasDefinition={payload.ContainsKey("definition").ToString().ToLowerInvariant()} payloadKeys={string.Join(",", payload.Keys)}");
         var response = EnsureSuccess(_api.DefinitionSkillSavePayload(payload));
         ClientLogService.Instance.Info($"skillDefinition.save code={code} response={response.Status}");
         if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
@@ -3176,7 +3189,7 @@ public class AdminMainViewModel : ViewModelBase
         }
 
         var firstLevel = configuredLevels.FirstOrDefault();
-        ClientLogService.Instance.Debug($"skillDefinition.payload.levels shape count={configuredLevels.Count} itemKeys={string.Join(\",\", firstLevel?.Keys ?? Array.Empty<string>())}");
+        ClientLogService.Instance.Debug($"skillDefinition.payload.levels shape count={configuredLevels.Count} itemKeys={string.Join(",", firstLevel?.Keys ?? Array.Empty<string>())}");
 
         return new Dictionary<string, object>
         {
@@ -3721,6 +3734,37 @@ public class AdminMainViewModel : ViewModelBase
 
     private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     private static IList ToList(object value) => value as IList ?? new ArrayList();
+    private static IList ExtractSkillDefinitionItems(Dictionary<string, object> payload, out string rawCollectionKey)
+    {
+        foreach (var key in new[] { "items", "definitions", "skills" })
+        {
+            if (!payload.ContainsKey(key))
+            {
+                continue;
+            }
+
+            rawCollectionKey = key;
+            return NormalizePayloadList(payload[key], out _);
+        }
+
+        foreach (var entry in payload)
+        {
+            if (entry.Value is string)
+            {
+                continue;
+            }
+
+            if (entry.Value is IEnumerable)
+            {
+                rawCollectionKey = entry.Key;
+                return NormalizePayloadList(entry.Value, out _);
+            }
+        }
+
+        rawCollectionKey = "<none>";
+        return new ArrayList();
+    }
+
     private static IList ExtractChatItems(Dictionary<string, object> payload, out string sourceKey, out string payloadKeys, out string rawItemsType)
     {
         payloadKeys = string.Join(",", payload.Keys.OrderBy(x => x, StringComparer.Ordinal));
