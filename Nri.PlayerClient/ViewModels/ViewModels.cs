@@ -1715,7 +1715,6 @@ public class PlayerMainViewModel : ViewModelBase
                 if (map == null) continue;
                 var code = GetString(map, "code");
                 var name = FirstNonEmpty(GetString(map, "name"), code);
-                var available = GetString(map, "available");
                 SkillCatalogRows.Add($"{code} | {name} | available={available}");
                 catalogMappedCount++;
             }
