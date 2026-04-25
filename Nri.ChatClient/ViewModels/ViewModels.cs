@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
@@ -259,9 +260,7 @@ public class ChatClientMainViewModel : ViewModelBase
     private void RefreshAll()
     {
         if (!IsAuthenticated)
-        {
             return;
-        }
 
         try
         {
@@ -279,9 +278,7 @@ public class ChatClientMainViewModel : ViewModelBase
     private void SendChat()
     {
         if (!IsAuthenticated || string.IsNullOrWhiteSpace(ChatTextInput))
-        {
             return;
-        }
 
         var sessionId = ResolveSessionId();
         var type = ToServerChatType(ChatTypeInput);
@@ -307,9 +304,7 @@ public class ChatClientMainViewModel : ViewModelBase
     private void RollDice()
     {
         if (!IsAuthenticated)
-        {
             return;
-        }
 
         var formula = BuildFormula();
         if (string.IsNullOrWhiteSpace(formula))
@@ -324,13 +319,9 @@ public class ChatClientMainViewModel : ViewModelBase
             var isTest = string.Equals(DiceModeInput, "Тестовый", StringComparison.OrdinalIgnoreCase);
             ClientLogService.Instance.Info($"dice.roll.send formula={formula} visibility={visibility} test={isTest}");
             if (isTest)
-            {
                 _api.DiceRollTest(formula, visibility, DiceDescriptionInput.Trim());
-            }
             else
-            {
                 _api.DiceRollStandard(formula, visibility, DiceDescriptionInput.Trim());
-            }
 
             RefreshAll();
         }
@@ -353,13 +344,24 @@ public class ChatClientMainViewModel : ViewModelBase
         ClientLogService.Instance.Info($"chat.feed.rawCollectionKey={extraction.CollectionKey}");
         ClientLogService.Instance.Info($"chat.feed.rawCount={extraction.Items.Count}");
 
+        var firstRaw = extraction.Items.Count > 0 ? extraction.Items[0] : null;
+        var firstMap = ToObjectDictionary(firstRaw);
+        var firstTextCandidate = firstMap == null ? string.Empty : FirstNonEmpty(GetStringByKeys(firstMap, "text", "message", "content", "body"));
+        var firstTimeCandidate = firstMap == null ? string.Empty : FirstNonEmpty(GetStringByKeys(firstMap, "created", "createdUtc", "timestamp", "time", "sentAt", "sentAtUtc"));
+        ClientLogService.Instance.Info($"chat.feed.firstRawType={(firstRaw == null ? "null" : firstRaw.GetType().FullName)}");
+        ClientLogService.Instance.Info($"chat.feed.firstMapKeys={(firstMap == null ? "<none>" : string.Join(",", firstMap.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)))}");
+        ClientLogService.Instance.Info($"chat.feed.firstMapTextCandidate={firstTextCandidate}");
+        ClientLogService.Instance.Info($"chat.feed.firstMapTimeCandidate={firstTimeCandidate}");
+
         var mappedCount = 0;
         foreach (var item in extraction.Items)
         {
-            var map = AsMap(item);
+            var map = ToObjectDictionary(item);
             if (map == null) continue;
+
             var row = BuildChatMessageRow(map);
             if (row == null) continue;
+
             mappedCount++;
             ChatRows.Add(row);
         }
@@ -389,11 +391,21 @@ public class ChatClientMainViewModel : ViewModelBase
         ClientLogService.Instance.Info($"dice.feed.rawCollectionKey={extraction.CollectionKey}");
         ClientLogService.Instance.Info($"dice.feed.rawCount={extraction.Items.Count}");
 
+        var firstRaw = extraction.Items.Count > 0 ? extraction.Items[0] : null;
+        var firstMap = ToObjectDictionary(firstRaw);
+        var firstResultCandidate = firstMap == null
+            ? string.Empty
+            : FirstNonEmpty(GetStringByKeys(firstMap, "result", "total", "value", "summary", "description"));
+        ClientLogService.Instance.Info($"dice.feed.firstRawType={(firstRaw == null ? "null" : firstRaw.GetType().FullName)}");
+        ClientLogService.Instance.Info($"dice.feed.firstMapKeys={(firstMap == null ? "<none>" : string.Join(",", firstMap.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)))}");
+        ClientLogService.Instance.Info($"dice.feed.firstMapResultCandidate={firstResultCandidate}");
+
         var mappedCount = 0;
         foreach (var item in extraction.Items)
         {
-            var map = AsMap(item);
+            var map = ToObjectDictionary(item);
             if (map == null) continue;
+
             var row = BuildDiceMessageRow(map);
             if (row == null) continue;
 
@@ -481,7 +493,6 @@ public class ChatClientMainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(ChatSessionId))
             ChatSessionId = "default";
-
         return ChatSessionId.Trim();
     }
 
@@ -490,20 +501,24 @@ public class ChatClientMainViewModel : ViewModelBase
         var count = ParsePositiveInt(DiceCount, 1);
         var faces = ParsePositiveInt(DiceFaces, 20);
         var modifier = ParseInt(DiceModifier, 0);
-
-        if (modifier == 0) return $"{count}d{faces}";
-        return modifier > 0 ? $"{count}d{faces}+{modifier}" : $"{count}d{faces}{modifier}";
+        return modifier == 0 ? $"{count}d{faces}" : modifier > 0 ? $"{count}d{faces}+{modifier}" : $"{count}d{faces}{modifier}";
     }
 
     private static TimelineRowVm? BuildChatMessageRow(Dictionary<string, object> map)
     {
-        var sender = FirstNonEmpty(GetString(map, "senderDisplayName"), GetString(map, "senderUserId"), "Система");
-        var text = FirstNonEmpty(GetString(map, "text"), GetString(map, "message"), GetString(map, "body"));
+        var text = FirstNonEmpty(GetStringByKeys(map, "text", "message", "content", "body"));
+        if (string.IsNullOrWhiteSpace(text))
+            text = FirstNonEmpty(GetStringByKeys(map, "summary", "description", "comment"));
+        if (string.IsNullOrWhiteSpace(text))
+            text = BuildFallbackText(map);
+
         if (string.IsNullOrWhiteSpace(text))
             return null;
 
-        var type = FirstNonEmpty(GetString(map, "type"), "Public");
-        var createdRaw = FirstNonEmpty(GetString(map, "createdUtc"), GetString(map, "createdAt"), GetString(map, "at"));
+        var sender = FirstNonEmpty(GetStringByKeys(map, "sender", "senderName", "author", "login", "user", "senderDisplayName", "senderUserId"), "System");
+        var type = FirstNonEmpty(GetStringByKeys(map, "kind", "type", "messageType"), "Public");
+        var createdRaw = FirstNonEmpty(GetStringByKeys(map, "created", "createdUtc", "timestamp", "time", "sentAt", "sentAtUtc", "createdAt", "at"));
+
         return new TimelineRowVm
         {
             Sender = sender,
@@ -516,39 +531,57 @@ public class ChatClientMainViewModel : ViewModelBase
 
     private static TimelineRowVm? BuildDiceMessageRow(Dictionary<string, object> map)
     {
-        var creator = FirstNonEmpty(GetString(map, "creatorLogin"), GetString(map, "creatorUserId"), "Система");
-        var formula = GetString(map, "formula");
-        var total = ExtractDiceTotal(map);
-        if (string.IsNullOrWhiteSpace(formula))
-            return null;
+        var formula = FirstNonEmpty(GetStringByKeys(map, "formula", "expression"));
+        var result = FirstNonEmpty(GetStringByKeys(map, "total", "value"));
 
-        var isTest = string.Equals(GetString(map, "isTestRoll"), "True", StringComparison.OrdinalIgnoreCase);
-        var details = BuildDiceRollDetails(map);
-        var visibility = GetString(map, "visibility");
-        var createdRaw = FirstNonEmpty(GetString(map, "createdUtc"), GetString(map, "createdAtUtc"), GetString(map, "requestedUtc"), GetString(map, "resolvedUtc"), GetString(map, "at"));
+        if (string.IsNullOrWhiteSpace(result) && map.TryGetValue("result", out var rawResult))
+        {
+            var resultMap = ToObjectDictionary(rawResult);
+            if (resultMap != null)
+                result = FirstNonEmpty(GetStringByKeys(resultMap, "total", "value", "result"));
+        }
+
+        var summary = FirstNonEmpty(GetStringByKeys(map, "summary", "description", "comment", "text"));
+        var sender = FirstNonEmpty(GetStringByKeys(map, "actor", "actorName", "sender", "login", "user", "creatorLogin", "creatorUserId"), "System");
+        var createdRaw = FirstNonEmpty(GetStringByKeys(map, "created", "createdUtc", "timestamp", "time", "rolledAt", "rolledAtUtc", "createdAtUtc", "requestedUtc", "resolvedUtc", "at"));
+
+        string text;
+        if (!string.IsNullOrWhiteSpace(formula) || !string.IsNullOrWhiteSpace(result))
+        {
+            var left = string.IsNullOrWhiteSpace(formula) ? "dice" : formula;
+            var right = string.IsNullOrWhiteSpace(result) ? "?" : result;
+            var details = BuildDiceRollDetails(map);
+            var visibility = FirstNonEmpty(GetStringByKeys(map, "visibility"));
+            text = string.IsNullOrWhiteSpace(visibility)
+                ? $"{left} = {right}{details}"
+                : $"{left} = {right}{details} | {visibility}";
+        }
+        else if (!string.IsNullOrWhiteSpace(summary))
+        {
+            text = summary;
+        }
+        else
+        {
+            text = BuildFallbackText(map);
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
 
         return new TimelineRowVm
         {
-            Sender = creator,
-            Text = $"{(isTest ? "[ТЕСТ] " : string.Empty)}{formula} = {total}{details} | {visibility}",
+            Sender = sender,
+            Text = text,
             Timestamp = FormatTimestamp(createdRaw),
             SortTicks = ParseTimelineTicks(createdRaw),
             IsSystem = true
         };
     }
 
-    private static string ExtractDiceTotal(Dictionary<string, object> map)
-    {
-        if (!map.TryGetValue("result", out var rawResult)) return "?";
-        var resultMap = AsMap(rawResult);
-        if (resultMap == null) return "?";
-        return FirstNonEmpty(GetString(resultMap, "total"), "?");
-    }
-
     private static string BuildDiceRollDetails(Dictionary<string, object> map)
     {
         if (!map.TryGetValue("result", out var rawResult)) return string.Empty;
-        var resultMap = AsMap(rawResult);
+        var resultMap = ToObjectDictionary(rawResult);
         if (resultMap == null || !resultMap.TryGetValue("rolls", out var rawRolls)) return string.Empty;
 
         var values = new List<string>();
@@ -558,8 +591,7 @@ public class ChatClientMainViewModel : ViewModelBase
             if (!string.IsNullOrWhiteSpace(value)) values.Add(value);
         }
 
-        if (values.Count == 0) return string.Empty;
-        return $" ({string.Join(",", values)})";
+        return values.Count == 0 ? string.Empty : $" ({string.Join(",", values)})";
     }
 
     private static (string CollectionKey, IList Items) ExtractFeedCollection(Dictionary<string, object> payload, params string[] preferredKeys)
@@ -567,14 +599,12 @@ public class ChatClientMainViewModel : ViewModelBase
         foreach (var key in preferredKeys)
         {
             if (!payload.TryGetValue(key, out var candidate)) continue;
-            if (TryGetList(candidate, out var list))
-                return (key, list);
+            if (TryGetList(candidate, out var list)) return (key, list);
         }
 
         foreach (var entry in payload)
         {
-            if (TryGetList(entry.Value, out var list))
-                return ($"fallback:{entry.Key}", list);
+            if (TryGetList(entry.Value, out var list)) return ($"fallback:{entry.Key}", list);
         }
 
         return ("none", new ArrayList());
@@ -597,8 +627,7 @@ public class ChatClientMainViewModel : ViewModelBase
         if (value is IEnumerable enumerable)
         {
             var result = new ArrayList();
-            foreach (var item in enumerable)
-                result.Add(item);
+            foreach (var item in enumerable) result.Add(item);
             list = result;
             return true;
         }
@@ -607,24 +636,105 @@ public class ChatClientMainViewModel : ViewModelBase
         return false;
     }
 
-    private static Dictionary<string, object>? AsMap(object? value)
+    private static Dictionary<string, object>? ToObjectDictionary(object? raw)
     {
-        if (value is Dictionary<string, object> typedMap)
-            return typedMap;
+        if (raw == null) return null;
 
-        if (value is IDictionary dictionary)
+        if (raw is Dictionary<string, object> direct)
+            return new Dictionary<string, object>(direct, StringComparer.OrdinalIgnoreCase);
+
+        if (raw is IDictionary dictionary)
         {
-            var map = new Dictionary<string, object>();
+            var map = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             foreach (DictionaryEntry entry in dictionary)
             {
-                var key = Convert.ToString(entry.Key);
-                if (!string.IsNullOrWhiteSpace(key))
-                    map[key] = entry.Value;
+                var key = Convert.ToString(entry.Key, CultureInfo.InvariantCulture);
+                if (!string.IsNullOrWhiteSpace(key)) map[key] = entry.Value;
             }
-            return map;
+            if (map.Count > 0) return map;
         }
 
-        return null;
+        if (raw is DictionaryEntry singleEntry)
+        {
+            var key = Convert.ToString(singleEntry.Key, CultureInfo.InvariantCulture);
+            if (!string.IsNullOrWhiteSpace(key))
+                return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase) { [key] = singleEntry.Value };
+        }
+
+        if (raw is IEnumerable enumerable && raw is not string)
+        {
+            var map = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in enumerable)
+            {
+                if (TryReadKeyValue(item, out var key, out var value)) map[key] = value;
+            }
+            if (map.Count > 0) return map;
+        }
+
+        if (TryReadKeyValue(raw, out var objectKey, out var objectValue))
+            return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase) { [objectKey] = objectValue };
+
+        var props = raw.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        if (props.Length == 0) return null;
+
+        var propertyMap = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        foreach (var prop in props)
+        {
+            if (!prop.CanRead || prop.GetIndexParameters().Length != 0) continue;
+            var value = prop.GetValue(raw);
+            if (value != null) propertyMap[prop.Name] = value;
+        }
+
+        return propertyMap.Count == 0 ? null : propertyMap;
+    }
+
+    private static bool TryReadKeyValue(object? raw, out string key, out object? value)
+    {
+        key = string.Empty;
+        value = null;
+        if (raw == null) return false;
+
+        if (raw is DictionaryEntry entry)
+        {
+            key = Convert.ToString(entry.Key, CultureInfo.InvariantCulture) ?? string.Empty;
+            value = entry.Value;
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        var type = raw.GetType();
+        var keyProp = type.GetProperty("Key", BindingFlags.Instance | BindingFlags.Public);
+        var valueProp = type.GetProperty("Value", BindingFlags.Instance | BindingFlags.Public);
+        if (keyProp == null || valueProp == null || !keyProp.CanRead || !valueProp.CanRead)
+            return false;
+
+        var rawKey = keyProp.GetValue(raw);
+        key = Convert.ToString(rawKey, CultureInfo.InvariantCulture) ?? string.Empty;
+        value = valueProp.GetValue(raw);
+        return !string.IsNullOrWhiteSpace(key);
+    }
+
+    private static string GetStringByKeys(Dictionary<string, object> map, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (!map.TryGetValue(key, out var rawValue) || rawValue == null) continue;
+            var text = Convert.ToString(rawValue, CultureInfo.InvariantCulture) ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(text)) return text;
+        }
+
+        return string.Empty;
+    }
+
+    private static string BuildFallbackText(Dictionary<string, object> map)
+    {
+        foreach (var key in map.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+        {
+            var text = Convert.ToString(map[key], CultureInfo.InvariantCulture);
+            if (!string.IsNullOrWhiteSpace(text))
+                return $"{key}: {text}";
+        }
+
+        return string.Empty;
     }
 
     private static IList ToObjectList(object payload) => payload as IList ?? new ArrayList();
@@ -648,9 +758,6 @@ public class ChatClientMainViewModel : ViewModelBase
         };
     }
 
-    private static string GetString(Dictionary<string, object> map, string key)
-        => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key], CultureInfo.InvariantCulture) ?? string.Empty : string.Empty;
-
     private static string FirstNonEmpty(params string[] values)
     {
         foreach (var value in values)
@@ -658,6 +765,7 @@ public class ChatClientMainViewModel : ViewModelBase
             if (!string.IsNullOrWhiteSpace(value))
                 return value;
         }
+
         return string.Empty;
     }
 
