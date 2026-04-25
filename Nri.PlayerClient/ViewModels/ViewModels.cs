@@ -1056,19 +1056,23 @@ public class PlayerMainViewModel : ViewModelBase
         {
             var formula = DiceCount + "d" + DiceFaces + (DiceModifier == 0 ? string.Empty : DiceModifier > 0 ? "+" + DiceModifier : DiceModifier.ToString());
             var visibility = ToServerDiceVisibility(DiceVisibilityInput);
+            var comment = DiceDescriptionInput;
             ClientLogService.Instance.Info("dice.actor.mode=account");
             ClientLogService.Instance.Info($"dice.roll.actor login={PlayerDisplayName} userId=unknown");
+            ClientLogService.Instance.Info($"dice.roll.comment input={comment}");
+            ClientLogService.Instance.Info("dice.roll.payload.keys=formula,visibility,description");
+            ClientLogService.Instance.Info($"dice.roll.payload.commentPresent={!string.IsNullOrWhiteSpace(comment)}");
             if (string.Equals(DiceModeInput, "Тестовый", StringComparison.OrdinalIgnoreCase))
             {
                 ClientLogService.Instance.Info($"dice.roll.test.send actor={PlayerDisplayName} formula={formula}");
-                _api.DiceRollTest(formula, visibility, DiceDescriptionInput);
+                _api.DiceRollTest(formula, visibility, comment);
                 var currentTest = _api.DiceTestGetCurrent();
                 ClientLogService.Instance.Info($"dice.test.getCurrent.status={currentTest.Status}");
             }
             else
             {
                 ClientLogService.Instance.Info($"dice.roll.standard.send actor={PlayerDisplayName} formula={formula}");
-                _api.DiceRollStandard(formula, visibility, DiceDescriptionInput);
+                _api.DiceRollStandard(formula, visibility, comment);
             }
             RefreshBottomPanel();
         }
@@ -1192,8 +1196,10 @@ public class PlayerMainViewModel : ViewModelBase
         var feedItems = ToObjectList(feed.Payload.ContainsKey("items") ? feed.Payload["items"] : new ArrayList());
         ClientLogService.Instance.Debug($"dice.feed.refresh itemsRaw={feedItems.Count}");
         var mappedDice = 0;
+        var commentMapped = false;
         var firstDiceTimestampRaw = string.Empty;
         var firstDiceTimestampMapped = string.Empty;
+        var firstDiceComment = string.Empty;
         foreach (var item in feedItems)
         {
             var map = AsMap(item, CommandNames.DiceVisibleFeed);
@@ -1204,7 +1210,13 @@ public class PlayerMainViewModel : ViewModelBase
             var isTest = string.Equals(GetString(map, "isTestRoll"), "True", StringComparison.OrdinalIgnoreCase);
             var label = isTest ? "[ТЕСТ] " : string.Empty;
             var details = BuildDiceRollDetails(map, CommandNames.DiceVisibleFeed);
+            var comment = FirstNonEmpty(GetString(map, "description"), GetString(map, "comment"), GetString(map, "note"), GetString(map, "text"));
             var diceText = $"{label}{GetString(map, "formula")} = {total}{details} | {GetString(map, "visibility")}";
+            if (!string.IsNullOrWhiteSpace(comment) && diceText.IndexOf(comment, StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                diceText += $" — {comment}";
+                commentMapped = true;
+            }
             var createdRaw = FirstNonEmpty(
                 GetString(map, "createdUtc"),
                 GetString(map, "createdAtUtc"),
@@ -1226,14 +1238,17 @@ public class PlayerMainViewModel : ViewModelBase
             {
                 firstDiceTimestampRaw = createdRaw;
                 firstDiceTimestampMapped = timestampMapped;
+                firstDiceComment = comment;
             }
         }
         if (mappedDice > 0)
         {
             ClientLogService.Instance.Debug($"dice.timeline timestampRaw={firstDiceTimestampRaw}");
             ClientLogService.Instance.Debug($"dice.timeline timestampMapped={firstDiceTimestampMapped}");
+            ClientLogService.Instance.Debug($"dice.feed.firstComment={firstDiceComment}");
         }
         ClientLogService.Instance.Debug($"dice.feed.refresh itemsMapped={mappedDice}");
+        ClientLogService.Instance.Debug($"dice.feed.commentMapped={commentMapped}");
 
         RequestRows.Clear();
         var req = _api.ListMyRequests();
