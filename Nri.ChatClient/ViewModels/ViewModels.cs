@@ -48,8 +48,11 @@ public class ChatClientMainViewModel : ViewModelBase
     private readonly CommandApi _api;
 
     private string _connectionState = "Оффлайн";
-    private string _statusText = "Подключитесь и выполните вход";
+    private string _statusText = "Укажите сервер и выполните вход";
     private bool _isAuthenticated;
+    private bool _isConnectionPopupOpen;
+    private bool _isAuthPopupOpen;
+
     private string _serverHostInput;
     private string _serverPortInput;
     private string _loginText = string.Empty;
@@ -57,10 +60,12 @@ public class ChatClientMainViewModel : ViewModelBase
     private string _chatTextInput = string.Empty;
     private string _chatSessionId = "default";
     private string _chatTypeInput = "Общее";
-    private string _diceFormulaInput = "1d20";
     private string _diceDescriptionInput = string.Empty;
     private string _diceVisibilityInput = "Общее";
-    private bool _isTestRoll;
+    private string _diceModeInput = "Обычный";
+    private string _diceCount = "1";
+    private string _diceFaces = "20";
+    private string _diceModifier = "0";
 
     public ChatClientMainViewModel()
     {
@@ -70,12 +75,16 @@ public class ChatClientMainViewModel : ViewModelBase
         _client = new JsonTcpClient(config, _session);
         _api = new CommandApi(_client);
 
+        ToggleConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
+        ToggleAuthPopupCommand = new RelayCommand(() => IsAuthPopupOpen = !IsAuthPopupOpen);
+        ConnectToServerCommand = new RelayCommand(ConnectToServer);
         LoginCommand = new RelayCommand(Login);
         RefreshCommand = new RelayCommand(RefreshAll);
         SendChatCommand = new RelayCommand(SendChat);
         RollDiceCommand = new RelayCommand(RollDice);
 
         ClientLogService.Instance.Info("chatclient.vm.initialized");
+        UpdateStatusSummary();
     }
 
     public ObservableCollection<TimelineRowVm> ChatRows { get; } = new ObservableCollection<TimelineRowVm>();
@@ -85,26 +94,64 @@ public class ChatClientMainViewModel : ViewModelBase
 
     public ObservableCollection<string> ChatTypeOptions { get; } = new ObservableCollection<string> { "Общее", "Системное" };
     public ObservableCollection<string> DiceVisibilityOptions { get; } = new ObservableCollection<string> { "Общее", "Только мастеру", "Теневой" };
+    public ObservableCollection<string> DiceModeOptions { get; } = new ObservableCollection<string> { "Обычный", "Тестовый" };
 
+    public ICommand ToggleConnectionPopupCommand { get; }
+    public ICommand ToggleAuthPopupCommand { get; }
+    public ICommand ConnectToServerCommand { get; }
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand SendChatCommand { get; }
     public ICommand RollDiceCommand { get; }
 
-    public string ConnectionState { get => _connectionState; set { _connectionState = value; Notify(); } }
+    public string ConnectionState
+    {
+        get => _connectionState;
+        set
+        {
+            _connectionState = value;
+            Notify();
+            Notify(nameof(IsOnline));
+        }
+    }
+
     public string StatusText { get => _statusText; set { _statusText = value; Notify(); } }
-    public bool IsAuthenticated { get => _isAuthenticated; set { _isAuthenticated = value; Notify(); } }
+    public bool IsAuthenticated { get => _isAuthenticated; set { _isAuthenticated = value; Notify(); Notify(nameof(UserSummary)); } }
+    public bool IsConnectionPopupOpen { get => _isConnectionPopupOpen; set { _isConnectionPopupOpen = value; Notify(); } }
+    public bool IsAuthPopupOpen { get => _isAuthPopupOpen; set { _isAuthPopupOpen = value; Notify(); } }
+
     public string ServerHostInput { get => _serverHostInput; set { _serverHostInput = value; Notify(); } }
     public string ServerPortInput { get => _serverPortInput; set { _serverPortInput = value; Notify(); } }
-    public string LoginText { get => _loginText; set { _loginText = value; Notify(); } }
+    public string LoginText { get => _loginText; set { _loginText = value; Notify(); Notify(nameof(UserSummary)); } }
     public string PasswordText { get => _passwordText; set { _passwordText = value; Notify(); } }
     public string ChatTextInput { get => _chatTextInput; set { _chatTextInput = value; Notify(); } }
     public string ChatSessionId { get => _chatSessionId; set { _chatSessionId = value; Notify(); } }
     public string ChatTypeInput { get => _chatTypeInput; set { _chatTypeInput = value; Notify(); } }
-    public string DiceFormulaInput { get => _diceFormulaInput; set { _diceFormulaInput = value; Notify(); } }
     public string DiceDescriptionInput { get => _diceDescriptionInput; set { _diceDescriptionInput = value; Notify(); } }
     public string DiceVisibilityInput { get => _diceVisibilityInput; set { _diceVisibilityInput = value; Notify(); } }
-    public bool IsTestRoll { get => _isTestRoll; set { _isTestRoll = value; Notify(); } }
+    public string DiceModeInput { get => _diceModeInput; set { _diceModeInput = value; Notify(); } }
+    public string DiceCount { get => _diceCount; set { _diceCount = value; Notify(); } }
+    public string DiceFaces { get => _diceFaces; set { _diceFaces = value; Notify(); } }
+    public string DiceModifier { get => _diceModifier; set { _diceModifier = value; Notify(); } }
+
+    public bool IsOnline => string.Equals(ConnectionState, "Онлайн", StringComparison.OrdinalIgnoreCase);
+    public string UserSummary => IsAuthenticated ? $"Пользователь: {LoginText}" : "Пользователь: не авторизован";
+
+    private void ConnectToServer()
+    {
+        try
+        {
+            EnsureConnected();
+            ConnectionState = "Онлайн";
+            StatusText = $"Сервер доступен: {ServerHostInput}:{ServerPortInput}";
+            IsConnectionPopupOpen = false;
+            ClientLogService.Instance.Info($"connect.manual.success endpoint={ServerHostInput}:{ServerPortInput}");
+        }
+        catch (Exception ex)
+        {
+            HandleConnectionError(ex);
+        }
+    }
 
     private void Login()
     {
@@ -116,15 +163,15 @@ public class ChatClientMainViewModel : ViewModelBase
             if (result.Status != ResponseStatus.Ok)
             {
                 IsAuthenticated = false;
-                ConnectionState = "Оффлайн";
                 StatusText = $"Ошибка входа: {result.Message}";
                 ClientLogService.Instance.Warn($"login.fail user={LoginText} message={result.Message}");
                 return;
             }
 
-            IsAuthenticated = true;
             ConnectionState = "Онлайн";
-            StatusText = $"Подключено к {ServerHostInput}:{ServerPortInput} как {LoginText}";
+            IsAuthenticated = true;
+            IsAuthPopupOpen = false;
+            StatusText = $"Подключено к {ServerHostInput}:{ServerPortInput}";
             ClientLogService.Instance.Info($"login.success user={LoginText}");
             RefreshAll();
         }
@@ -146,6 +193,7 @@ public class ChatClientMainViewModel : ViewModelBase
             RefreshChatFeed();
             RefreshDiceFeed();
             BuildMergedTimeline();
+            UpdateStatusSummary();
             ClientLogService.Instance.Info($"tab.render chat={ChatRows.Count} dice={DiceRows.Count} merged={MergedTimelineRows.Count}");
         }
         catch (Exception ex)
@@ -184,22 +232,30 @@ public class ChatClientMainViewModel : ViewModelBase
 
     private void RollDice()
     {
-        if (!IsAuthenticated || string.IsNullOrWhiteSpace(DiceFormulaInput))
+        if (!IsAuthenticated)
         {
+            return;
+        }
+
+        var formula = BuildFormula();
+        if (string.IsNullOrWhiteSpace(formula))
+        {
+            StatusText = "Укажите корректные параметры броска.";
             return;
         }
 
         try
         {
             var visibility = ToServerDiceVisibility(DiceVisibilityInput);
-            ClientLogService.Instance.Info($"dice.roll.send formula={DiceFormulaInput} visibility={visibility} test={IsTestRoll}");
-            if (IsTestRoll)
+            var isTest = string.Equals(DiceModeInput, "Тестовый", StringComparison.OrdinalIgnoreCase);
+            ClientLogService.Instance.Info($"dice.roll.send formula={formula} visibility={visibility} test={isTest}");
+            if (isTest)
             {
-                _api.DiceRollTest(DiceFormulaInput.Trim(), visibility, DiceDescriptionInput.Trim());
+                _api.DiceRollTest(formula, visibility, DiceDescriptionInput.Trim());
             }
             else
             {
-                _api.DiceRollStandard(DiceFormulaInput.Trim(), visibility, DiceDescriptionInput.Trim());
+                _api.DiceRollStandard(formula, visibility, DiceDescriptionInput.Trim());
             }
 
             RefreshAll();
@@ -232,6 +288,11 @@ public class ChatClientMainViewModel : ViewModelBase
             }
         }
 
+        if (ChatRows.Count == 0)
+        {
+            ChatRows.Add(new TimelineRowVm { Sender = "Система", Text = "Нет сообщений", IsSystem = true });
+        }
+
         ClientLogService.Instance.Info($"chat.feed.load items={ChatRows.Count} session={sessionId}");
     }
 
@@ -257,10 +318,20 @@ public class ChatClientMainViewModel : ViewModelBase
             }
 
             DiceRows.Add(row);
-            if (string.Equals(row.Sender, LoginText, StringComparison.OrdinalIgnoreCase) && MyLastRollRows.Count < 8)
+            if (string.Equals(row.Sender, LoginText, StringComparison.OrdinalIgnoreCase) && MyLastRollRows.Count < 10)
             {
                 MyLastRollRows.Add(row);
             }
+        }
+
+        if (DiceRows.Count == 0)
+        {
+            DiceRows.Add(new TimelineRowVm { Sender = "Система", Text = "Нет видимых бросков", IsSystem = true });
+        }
+
+        if (MyLastRollRows.Count == 0)
+        {
+            MyLastRollRows.Add(new TimelineRowVm { Sender = "Система", Text = "Ваших бросков пока нет", IsSystem = true });
         }
 
         ClientLogService.Instance.Info($"dice.feed.load items={DiceRows.Count} myLast={MyLastRollRows.Count}");
@@ -269,7 +340,8 @@ public class ChatClientMainViewModel : ViewModelBase
     private void BuildMergedTimeline()
     {
         MergedTimelineRows.Clear();
-        var merged = ChatRows.Concat(DiceRows)
+        var merged = ChatRows
+            .Concat(DiceRows.Where(row => !string.Equals(row.Text, "Нет видимых бросков", StringComparison.OrdinalIgnoreCase)))
             .OrderBy(item => item.SortTicks == 0 ? long.MaxValue : item.SortTicks)
             .ThenBy(item => item.Timestamp, StringComparer.Ordinal)
             .ToList();
@@ -277,6 +349,11 @@ public class ChatClientMainViewModel : ViewModelBase
         foreach (var item in merged)
         {
             MergedTimelineRows.Add(item);
+        }
+
+        if (MergedTimelineRows.Count == 0)
+        {
+            MergedTimelineRows.Add(new TimelineRowVm { Sender = "Система", Text = "Лента пуста", IsSystem = true });
         }
 
         ClientLogService.Instance.Info($"timeline.merged.count value={MergedTimelineRows.Count}");
@@ -314,6 +391,13 @@ public class ChatClientMainViewModel : ViewModelBase
         ClientLogService.Instance.Error("connection.error", ex);
     }
 
+    private void UpdateStatusSummary()
+    {
+        StatusText = IsAuthenticated
+            ? $"Онлайн · чат: {ChatRows.Count} · броски: {DiceRows.Count}"
+            : StatusText;
+    }
+
     private string ResolveSessionId()
     {
         if (string.IsNullOrWhiteSpace(ChatSessionId))
@@ -322,6 +406,26 @@ public class ChatClientMainViewModel : ViewModelBase
         }
 
         return ChatSessionId.Trim();
+    }
+
+    private string BuildFormula()
+    {
+        var count = ParsePositiveInt(DiceCount, 1);
+        var faces = ParsePositiveInt(DiceFaces, 20);
+        var modifier = ParseInt(DiceModifier, 0);
+        if (count <= 0 || faces <= 0)
+        {
+            return string.Empty;
+        }
+
+        if (modifier == 0)
+        {
+            return $"{count}d{faces}";
+        }
+
+        return modifier > 0
+            ? $"{count}d{faces}+{modifier}"
+            : $"{count}d{faces}{modifier}";
     }
 
     private static TimelineRowVm? BuildChatMessageRow(Dictionary<string, object> map)
@@ -347,7 +451,7 @@ public class ChatClientMainViewModel : ViewModelBase
 
     private static TimelineRowVm? BuildDiceMessageRow(Dictionary<string, object> map)
     {
-        var creator = FirstNonEmpty(GetString(map, "creatorLogin"), GetString(map, "creatorUserId"), "Unknown");
+        var creator = FirstNonEmpty(GetString(map, "creatorLogin"), GetString(map, "creatorUserId"), "Система");
         var formula = GetString(map, "formula");
         var total = ExtractDiceTotal(map);
         if (string.IsNullOrWhiteSpace(formula))
@@ -462,6 +566,26 @@ public class ChatClientMainViewModel : ViewModelBase
         }
 
         return string.Empty;
+    }
+
+    private static int ParsePositiveInt(string raw, int fallback)
+    {
+        if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) && parsed > 0)
+        {
+            return parsed;
+        }
+
+        return fallback;
+    }
+
+    private static int ParseInt(string raw, int fallback)
+    {
+        if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return parsed;
+        }
+
+        return fallback;
     }
 
     private static string FormatTimestamp(string rawValue)

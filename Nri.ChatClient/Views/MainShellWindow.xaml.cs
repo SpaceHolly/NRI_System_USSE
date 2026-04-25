@@ -37,7 +37,7 @@ public partial class MainShellWindow : Window
         };
     }
 
-    private void PasswordInput_OnPasswordChanged(object sender, RoutedEventArgs e)
+    private void OnAuthPasswordChanged(object sender, RoutedEventArgs e)
     {
         if (DataContext is ChatClientMainViewModel vm && sender is PasswordBox box)
         {

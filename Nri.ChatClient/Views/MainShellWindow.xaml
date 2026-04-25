@@ -6,42 +6,43 @@
         mc:Ignorable="d"
         Title="NRI Chat Client"
         Height="760"
-        Width="980"
-        MinHeight="680"
-        MinWidth="900">
-    <Grid Margin="12">
+        Width="560"
+        MinHeight="700"
+        MinWidth="520"
+        MaxWidth="660">
+    <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Border Style="{StaticResource CardStyle}" Padding="10">
+        <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="NRI / Chat" FontWeight="Bold" FontSize="18" Margin="0,0,12,0"/>
-                    <Border Style="{StaticResource StatusBadgeStyle}">
-                        <TextBlock Text="{Binding ConnectionState}" Foreground="White" FontWeight="SemiBold"/>
-                    </Border>
-                    <TextBlock Text="{Binding StatusText}" Margin="12,0,0,0" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" Width="340"/>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="NRI / Chat Client" FontWeight="Bold" FontSize="18" Foreground="{StaticResource TextBrush}"/>
+                        <Border Style="{StaticResource StatusBadgeStyle}" Margin="10,0,0,0">
+                            <TextBlock Text="{Binding ConnectionState}" FontWeight="SemiBold"/>
+                        </Border>
+                    </StackPanel>
+                    <TextBlock Text="{Binding UserSummary}" Margin="0,4,0,0" Foreground="{StaticResource MutedBrush}"/>
+                    <TextBlock Text="{Binding StatusText}" Margin="0,2,0,0" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <TextBox Width="130" Text="{Binding ServerHostInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Host"/>
-                    <TextBox Width="70" Text="{Binding ServerPortInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Port"/>
-                    <TextBox Width="140" Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Login"/>
-                    <PasswordBox x:Name="PasswordInput" Width="140" PasswordChanged="PasswordInput_OnPasswordChanged" ToolTip="Password"/>
-                    <Button Content="Войти" Command="{Binding LoginCommand}"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                    <Button x:Name="ConnectionButton" Content="Сервер" Command="{Binding ToggleConnectionPopupCommand}"/>
+                    <Button x:Name="AuthButton" Content="Вход" Command="{Binding ToggleAuthPopupCommand}"/>
                     <Button Content="Обновить" Command="{Binding RefreshCommand}"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,10,0,0" Padding="8">
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,0" Padding="8">
             <TabControl>
                 <TabItem Header="Чат">
                     <Grid>
@@ -50,46 +51,61 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <ListBox x:Name="TimelineList" ItemsSource="{Binding MergedTimelineRows}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,8">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,6">
-                                        <StackPanel>
-                                            <TextBlock TextWrapping="Wrap">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsSystem}" Value="True">
-                                                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                                <Run Text="{Binding Sender}" FontWeight="SemiBold"/>
-                                                <Run Text=": "/>
-                                                <Run Text="{Binding Text}"/>
-                                            </TextBlock>
-                                            <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="0,0,0,8" Padding="8">
+                            <ListBox x:Name="TimelineList"
+                                     ItemsSource="{Binding MergedTimelineRows}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     BorderThickness="0"
+                                     Background="Transparent">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource CardStyle}" Background="#FF223452" Padding="9" Margin="0,0,0,6">
+                                            <StackPanel>
+                                                <TextBlock TextWrapping="Wrap">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSystem}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                    <Run Text="{Binding Sender}" FontWeight="SemiBold"/>
+                                                    <Run Text=": "/>
+                                                    <Run Text="{Binding Text}"/>
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
 
                         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="8">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="6"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBox Grid.Row="0" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}" MinHeight="60" MaxHeight="120" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+
+                                <TextBox Grid.Row="0"
+                                         Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}"
+                                         MinHeight="72"
+                                         MaxHeight="130"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"
+                                         ToolTip="Введите сообщение"/>
+
                                 <Grid Grid.Row="2">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="150"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="98"/>
                                     </Grid.ColumnDefinitions>
                                     <ComboBox Grid.Column="0" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}"/>
                                     <Button Grid.Column="2" Content="Отправить" Command="{Binding SendChatCommand}" Height="32"/>
@@ -100,56 +116,78 @@
                 </TabItem>
 
                 <TabItem Header="Броски">
-                    <Grid Margin="4">
+                    <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="*"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <Border Style="{StaticResource CardStyle}" Padding="10">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="170"/>
-                                    <ColumnDefinition Width="170"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="Формула" FontWeight="SemiBold"/>
-                                    <TextBox Text="{Binding DiceFormulaInput, UpdateSourceTrigger=PropertyChanged}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                    <TextBlock Text="Видимость" FontWeight="SemiBold"/>
-                                    <ComboBox ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="2" Margin="8,0,0,0">
-                                    <TextBlock Text="Комментарий" FontWeight="SemiBold"/>
-                                    <TextBox Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="10,0,0,0">
-                                    <CheckBox Content="Тест" IsChecked="{Binding IsTestRoll}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <Button Content="Бросить" Command="{Binding RollDiceCommand}" Height="32" MinWidth="90"/>
-                                </StackPanel>
-                            </Grid>
+                        <Border Grid.Row="0" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                            <StackPanel>
+                                <TextBlock Text="Панель броска" FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="Обычный бросок уходит в общую ленту, тестовый — как тестовый результат." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+
+                                <WrapPanel>
+                                    <TextBlock Text="Режим" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <ComboBox Width="110" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/>
+                                    <TextBlock Text="Формула" VerticalAlignment="Center" Margin="10,0,6,0"/>
+                                    <TextBox Width="36" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="d" VerticalAlignment="Center" Margin="4,0"/>
+                                    <TextBox Width="44" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBox Width="56" Margin="6,0,0,0" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}" ToolTip="Модификатор"/>
+                                </WrapPanel>
+
+                                <WrapPanel Margin="0,6,0,0">
+                                    <TextBlock Text="Видимость" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <ComboBox Width="150" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
+                                    <Button Content="Бросить" Command="{Binding RollDiceCommand}" Margin="8,0,0,0"/>
+                                </WrapPanel>
+
+                                <TextBox Margin="0,6,0,0" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Комментарий к броску"/>
+                            </StackPanel>
                         </Border>
 
-                        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
+                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,4">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Text="Мои последние броски" FontWeight="Bold" FontSize="14"/>
-                                <ListBox Grid.Row="1" ItemsSource="{Binding MyLastRollRows}" Margin="0,8,0,0">
+                                <TextBlock Text="Видимые броски" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding DiceRows}" Margin="0,8,0,0" BorderThickness="0" Background="Transparent">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,6" Padding="8">
+                                            <Border Style="{StaticResource CardStyle}" Background="#FF223452" Padding="8" Margin="0,0,0,6">
                                                 <StackPanel>
                                                     <TextBlock TextWrapping="Wrap">
+                                                        <Run Text="{Binding Sender}" FontWeight="SemiBold"/>
+                                                        <Run Text=": "/>
                                                         <Run Text="{Binding Text}"/>
                                                     </TextBlock>
-                                                    <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}"/>
+                                                    <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,4,0,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Мои последние броски" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding MyLastRollRows}" Margin="0,8,0,0" BorderThickness="0" Background="Transparent">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource CardStyle}" Background="#FF223452" Padding="8" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <TextBlock TextWrapping="Wrap" Text="{Binding Text}"/>
+                                                    <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
                                                 </StackPanel>
                                             </Border>
                                         </DataTemplate>
@@ -161,5 +199,38 @@
                 </TabItem>
             </TabControl>
         </Border>
+
+        <Popup IsOpen="{Binding IsConnectionPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=ConnectionButton}" StaysOpen="False">
+            <Border Style="{StaticResource CardStyle}" Width="340" Background="{StaticResource PanelAltBrush}">
+                <StackPanel>
+                    <TextBlock Text="Подключение" FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"/>
+                    <TextBlock Text="Адрес"/>
+                    <TextBox Text="{Binding ServerHostInput, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Порт" Margin="0,8,0,0"/>
+                    <TextBox Text="{Binding ServerPortInput, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Border Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Статус" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding ConnectionState}" Margin="0,3,0,0"/>
+                            <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Button Content="Подключиться" Command="{Binding ConnectToServerCommand}" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <Popup IsOpen="{Binding IsAuthPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=AuthButton}" StaysOpen="False">
+            <Border Style="{StaticResource CardStyle}" Width="320" Background="{StaticResource PanelAltBrush}">
+                <StackPanel>
+                    <TextBlock Text="Авторизация" FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"/>
+                    <TextBlock Text="Логин"/>
+                    <TextBox Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Пароль" Margin="0,6,0,0"/>
+                    <PasswordBox x:Name="AuthPasswordBox" PasswordChanged="OnAuthPasswordChanged"/>
+                    <Button Content="Войти" Command="{Binding LoginCommand}" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+        </Popup>
     </Grid>
 </Window>
