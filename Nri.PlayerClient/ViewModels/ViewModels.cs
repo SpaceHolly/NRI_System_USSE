@@ -1747,6 +1747,25 @@ public class PlayerMainViewModel : ViewModelBase
             ClientLogService.Instance.Info($"activeCharacter.skills.placeholder hidden={placeholderHidden.ToString().ToLowerInvariant()}");
             _lastSkillsPlaceholderHidden = placeholderHidden;
         }
+
+        var placeholderHidden = SkillRows.Count > 0;
+        if (!placeholderHidden)
+        {
+            EnsureCollectionPlaceholder(SkillRows, "Нет данных по навыкам");
+            EnsureCollectionPlaceholder(SkillCatalogRows, "Нет доступных навыков");
+        }
+
+        ClientLogService.Instance.Info($"activeCharacter.skills.bind count={SkillRows.Count}");
+        if (_lastSkillsRenderCount != SkillRows.Count)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.skills.render count={SkillRows.Count}");
+            _lastSkillsRenderCount = SkillRows.Count;
+        }
+        if (_lastSkillsPlaceholderHidden != placeholderHidden)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.skills.placeholder hidden={placeholderHidden.ToString().ToLowerInvariant()}");
+            _lastSkillsPlaceholderHidden = placeholderHidden;
+        }
     }
 
     private void AcquireClassNode(object? parameter)
