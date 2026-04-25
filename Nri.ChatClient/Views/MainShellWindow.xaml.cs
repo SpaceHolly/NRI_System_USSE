@@ -40,34 +40,37 @@ public partial class MainShellWindow : Window
     private void OnAuthPasswordChanged(object sender, RoutedEventArgs e)
     {
         if (DataContext is ChatClientMainViewModel vm && sender is PasswordBox box)
-        {
             vm.PasswordText = box.Password;
-        }
     }
-
 
     private void OnRegisterPasswordChanged(object sender, RoutedEventArgs e)
     {
         if (DataContext is ChatClientMainViewModel vm && sender is PasswordBox box)
-        {
             vm.RegisterPasswordText = box.Password;
-        }
+    }
+
+    private void OnOldPasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is ChatClientMainViewModel vm && sender is PasswordBox box)
+            vm.OldPasswordText = box.Password;
+    }
+
+    private void OnNewPasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is ChatClientMainViewModel vm && sender is PasswordBox box)
+            vm.NewPasswordText = box.Password;
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ChatClientMainViewModel.IsAuthenticated))
-        {
             ScrollToLatest(force: true);
-        }
     }
 
     private void OnTimelineRowsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (_userAtLatest)
-        {
             ScrollToLatest(force: false);
-        }
     }
 
     private void OnTimelineScrollChanged(object sender, ScrollChangedEventArgs e)
@@ -78,15 +81,8 @@ public partial class MainShellWindow : Window
 
     private void ScrollToLatest(bool force)
     {
-        if (TimelineList.Items.Count == 0)
-        {
-            return;
-        }
-
-        if (!force && !_userAtLatest)
-        {
-            return;
-        }
+        if (TimelineList.Items.Count == 0) return;
+        if (!force && !_userAtLatest) return;
 
         var last = TimelineList.Items[TimelineList.Items.Count - 1];
         TimelineList.ScrollIntoView(last);
@@ -98,16 +94,9 @@ public partial class MainShellWindow : Window
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
         {
             var child = VisualTreeHelper.GetChild(root, i);
-            if (child is ScrollViewer sv)
-            {
-                return sv;
-            }
-
+            if (child is ScrollViewer sv) return sv;
             var nested = FindDescendantScrollViewer(child);
-            if (nested != null)
-            {
-                return nested;
-            }
+            if (nested != null) return nested;
         }
 
         return null;

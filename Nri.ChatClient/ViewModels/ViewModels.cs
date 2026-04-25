@@ -39,6 +39,7 @@ public class TimelineRowVm
     public string Timestamp { get; set; } = string.Empty;
     public long SortTicks { get; set; }
     public bool IsSystem { get; set; }
+    public string DisplayText => string.IsNullOrWhiteSpace(Sender) ? Text : $"{Sender}: {Text}";
 }
 
 public class ChatClientMainViewModel : ViewModelBase
@@ -52,8 +53,6 @@ public class ChatClientMainViewModel : ViewModelBase
     private bool _isAuthenticated;
     private bool _isConnectionPopupOpen;
     private bool _isAuthPopupOpen;
-    private bool _isRegisterPopupOpen;
-    private bool _isChangePasswordPopupOpen;
 
     private string _serverHostInput;
     private string _serverPortInput;
@@ -76,7 +75,7 @@ public class ChatClientMainViewModel : ViewModelBase
     public ChatClientMainViewModel()
     {
         var config = App.ClientConfig ?? new ClientConfig();
-        _serverHostInput = config.ServerHost;
+        _serverHostInput = string.IsNullOrWhiteSpace(config.ServerHost) ? "127.0.0.1" : config.ServerHost;
         var resolvedPort = config.ServerPort > 0 ? config.ServerPort : 4600;
         _serverPortInput = resolvedPort.ToString(CultureInfo.InvariantCulture);
         _client = new JsonTcpClient(config, _session);
@@ -84,8 +83,6 @@ public class ChatClientMainViewModel : ViewModelBase
 
         ToggleConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
         ToggleAuthPopupCommand = new RelayCommand(() => IsAuthPopupOpen = !IsAuthPopupOpen);
-        ToggleRegisterPopupCommand = new RelayCommand(() => IsRegisterPopupOpen = !IsRegisterPopupOpen);
-        ToggleChangePasswordPopupCommand = new RelayCommand(() => IsChangePasswordPopupOpen = !IsChangePasswordPopupOpen);
         ConnectToServerCommand = new RelayCommand(ConnectToServer);
         RegisterCommand = new RelayCommand(Register);
         ChangePasswordCommand = new RelayCommand(ChangePassword);
@@ -95,7 +92,6 @@ public class ChatClientMainViewModel : ViewModelBase
         RollDiceCommand = new RelayCommand(RollDice);
 
         ClientLogService.Instance.Info("chatclient.vm.initialized");
-        UpdateStatusSummary();
     }
 
     public ObservableCollection<TimelineRowVm> ChatRows { get; } = new ObservableCollection<TimelineRowVm>();
@@ -109,8 +105,6 @@ public class ChatClientMainViewModel : ViewModelBase
 
     public ICommand ToggleConnectionPopupCommand { get; }
     public ICommand ToggleAuthPopupCommand { get; }
-    public ICommand ToggleRegisterPopupCommand { get; }
-    public ICommand ToggleChangePasswordPopupCommand { get; }
     public ICommand ConnectToServerCommand { get; }
     public ICommand RegisterCommand { get; }
     public ICommand ChangePasswordCommand { get; }
@@ -134,8 +128,6 @@ public class ChatClientMainViewModel : ViewModelBase
     public bool IsAuthenticated { get => _isAuthenticated; set { _isAuthenticated = value; Notify(); Notify(nameof(UserSummary)); } }
     public bool IsConnectionPopupOpen { get => _isConnectionPopupOpen; set { _isConnectionPopupOpen = value; Notify(); } }
     public bool IsAuthPopupOpen { get => _isAuthPopupOpen; set { _isAuthPopupOpen = value; Notify(); } }
-    public bool IsRegisterPopupOpen { get => _isRegisterPopupOpen; set { _isRegisterPopupOpen = value; Notify(); } }
-    public bool IsChangePasswordPopupOpen { get => _isChangePasswordPopupOpen; set { _isChangePasswordPopupOpen = value; Notify(); } }
 
     public string ServerHostInput { get => _serverHostInput; set { _serverHostInput = value; Notify(); } }
     public string ServerPortInput { get => _serverPortInput; set { _serverPortInput = value; Notify(); } }
@@ -174,7 +166,6 @@ public class ChatClientMainViewModel : ViewModelBase
         }
     }
 
-
     private void Register()
     {
         if (string.IsNullOrWhiteSpace(RegisterLoginText) || string.IsNullOrWhiteSpace(RegisterPasswordText))
@@ -195,7 +186,6 @@ public class ChatClientMainViewModel : ViewModelBase
             {
                 LoginText = RegisterLoginText.Trim();
                 RegisterPasswordText = string.Empty;
-                IsRegisterPopupOpen = false;
             }
         }
         catch (Exception ex)
@@ -230,7 +220,6 @@ public class ChatClientMainViewModel : ViewModelBase
             {
                 OldPasswordText = string.Empty;
                 NewPasswordText = string.Empty;
-                IsChangePasswordPopupOpen = false;
             }
         }
         catch (Exception ex)
@@ -279,7 +268,6 @@ public class ChatClientMainViewModel : ViewModelBase
             RefreshChatFeed();
             RefreshDiceFeed();
             BuildMergedTimeline();
-            UpdateStatusSummary();
             ClientLogService.Instance.Info($"tab.render chat={ChatRows.Count} dice={DiceRows.Count} merged={MergedTimelineRows.Count}");
         }
         catch (Exception ex)
@@ -356,76 +344,87 @@ public class ChatClientMainViewModel : ViewModelBase
     {
         var sessionId = ResolveSessionId();
         ChatRows.Clear();
-        var response = _api.ChatVisibleFeed(sessionId, 120);
-        var items = ExtractChatItems(response.Payload);
 
-        foreach (var item in items)
+        var response = _api.ChatVisibleFeed(sessionId, 120);
+        var responseKeys = string.Join(",", response.Payload.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+        var extraction = ExtractFeedCollection(response.Payload, "items", "messages", "feed", "history", "rows", "entries");
+
+        ClientLogService.Instance.Info($"chat.feed.response.keys={responseKeys}");
+        ClientLogService.Instance.Info($"chat.feed.rawCollectionKey={extraction.CollectionKey}");
+        ClientLogService.Instance.Info($"chat.feed.rawCount={extraction.Items.Count}");
+
+        var mappedCount = 0;
+        foreach (var item in extraction.Items)
         {
             var map = AsMap(item);
-            if (map == null)
-            {
-                continue;
-            }
-
+            if (map == null) continue;
             var row = BuildChatMessageRow(map);
-            if (row != null)
-            {
-                ChatRows.Add(row);
-            }
+            if (row == null) continue;
+            mappedCount++;
+            ChatRows.Add(row);
         }
 
+        var placeholderAdded = false;
         if (ChatRows.Count == 0)
         {
+            placeholderAdded = true;
             ChatRows.Add(new TimelineRowVm { Sender = "Система", Text = "Нет сообщений", IsSystem = true });
         }
 
-        ClientLogService.Instance.Info($"chat.feed.load items={ChatRows.Count} session={sessionId}");
+        ClientLogService.Instance.Info($"chat.feed.mappedCount={mappedCount}");
+        ClientLogService.Instance.Info($"chat.feed.placeholderAdded={placeholderAdded}");
+        ClientLogService.Instance.Info($"chat.feed.displayCount={ChatRows.Count}");
     }
 
     private void RefreshDiceFeed()
     {
         DiceRows.Clear();
         MyLastRollRows.Clear();
-        var response = _api.DiceVisibleFeed();
-        var items = ToObjectList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList());
 
-        foreach (var item in items)
+        var response = _api.DiceVisibleFeed();
+        var responseKeys = string.Join(",", response.Payload.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+        var extraction = ExtractFeedCollection(response.Payload, "items", "messages", "feed", "history", "rows", "entries");
+
+        ClientLogService.Instance.Info($"dice.feed.response.keys={responseKeys}");
+        ClientLogService.Instance.Info($"dice.feed.rawCollectionKey={extraction.CollectionKey}");
+        ClientLogService.Instance.Info($"dice.feed.rawCount={extraction.Items.Count}");
+
+        var mappedCount = 0;
+        foreach (var item in extraction.Items)
         {
             var map = AsMap(item);
-            if (map == null)
-            {
-                continue;
-            }
-
+            if (map == null) continue;
             var row = BuildDiceMessageRow(map);
-            if (row == null)
-            {
-                continue;
-            }
+            if (row == null) continue;
 
+            mappedCount++;
             DiceRows.Add(row);
             if (string.Equals(row.Sender, LoginText, StringComparison.OrdinalIgnoreCase) && MyLastRollRows.Count < 10)
-            {
                 MyLastRollRows.Add(row);
-            }
         }
 
+        var placeholderAdded = false;
         if (DiceRows.Count == 0)
         {
+            placeholderAdded = true;
             DiceRows.Add(new TimelineRowVm { Sender = "Система", Text = "Нет видимых бросков", IsSystem = true });
         }
 
         if (MyLastRollRows.Count == 0)
-        {
             MyLastRollRows.Add(new TimelineRowVm { Sender = "Система", Text = "Ваших бросков пока нет", IsSystem = true });
-        }
 
-        ClientLogService.Instance.Info($"dice.feed.load items={DiceRows.Count} myLast={MyLastRollRows.Count}");
+        ClientLogService.Instance.Info($"dice.feed.mappedCount={mappedCount}");
+        ClientLogService.Instance.Info($"dice.feed.placeholderAdded={placeholderAdded}");
+        ClientLogService.Instance.Info($"dice.feed.displayCount={DiceRows.Count}");
     }
 
     private void BuildMergedTimeline()
     {
         MergedTimelineRows.Clear();
+
+        var chatPlaceholders = ChatRows.Count(row => string.Equals(row.Text, "Нет сообщений", StringComparison.OrdinalIgnoreCase));
+        var dicePlaceholders = DiceRows.Count(row => string.Equals(row.Text, "Нет видимых бросков", StringComparison.OrdinalIgnoreCase));
+
         var merged = ChatRows
             .Concat(DiceRows.Where(row => !string.Equals(row.Text, "Нет видимых бросков", StringComparison.OrdinalIgnoreCase)))
             .OrderBy(item => item.SortTicks == 0 ? long.MaxValue : item.SortTicks)
@@ -433,29 +432,30 @@ public class ChatClientMainViewModel : ViewModelBase
             .ToList();
 
         foreach (var item in merged)
-        {
             MergedTimelineRows.Add(item);
-        }
 
+        var placeholderAdded = false;
         if (MergedTimelineRows.Count == 0)
         {
+            placeholderAdded = true;
             MergedTimelineRows.Add(new TimelineRowVm { Sender = "Система", Text = "Лента пуста", IsSystem = true });
         }
 
-        ClientLogService.Instance.Info($"timeline.merged.count value={MergedTimelineRows.Count}");
+        ClientLogService.Instance.Info($"timeline.merged.chatRows={ChatRows.Count}");
+        ClientLogService.Instance.Info($"timeline.merged.diceRows={DiceRows.Count}");
+        ClientLogService.Instance.Info($"timeline.merged.chatPlaceholders={chatPlaceholders}");
+        ClientLogService.Instance.Info($"timeline.merged.dicePlaceholders={dicePlaceholders}");
+        ClientLogService.Instance.Info($"timeline.merged.placeholderAdded={placeholderAdded}");
+        ClientLogService.Instance.Info($"timeline.merged.displayCount={MergedTimelineRows.Count}");
     }
 
     private void EnsureConnected()
     {
         if (!int.TryParse(ServerPortInput, NumberStyles.Integer, CultureInfo.InvariantCulture, out var port))
-        {
             throw new InvalidOperationException("Порт указан неверно.");
-        }
 
         if (_client.ServerHost != ServerHostInput || _client.ServerPort != port)
-        {
             _client.UpdateEndpoint(ServerHostInput, port);
-        }
 
         _client.Connect();
     }
@@ -477,19 +477,10 @@ public class ChatClientMainViewModel : ViewModelBase
         ClientLogService.Instance.Error("connection.error", ex);
     }
 
-    private void UpdateStatusSummary()
-    {
-        StatusText = IsAuthenticated
-            ? $"Онлайн · чат: {ChatRows.Count} · броски: {DiceRows.Count}"
-            : StatusText;
-    }
-
     private string ResolveSessionId()
     {
         if (string.IsNullOrWhiteSpace(ChatSessionId))
-        {
             ChatSessionId = "default";
-        }
 
         return ChatSessionId.Trim();
     }
@@ -499,19 +490,9 @@ public class ChatClientMainViewModel : ViewModelBase
         var count = ParsePositiveInt(DiceCount, 1);
         var faces = ParsePositiveInt(DiceFaces, 20);
         var modifier = ParseInt(DiceModifier, 0);
-        if (count <= 0 || faces <= 0)
-        {
-            return string.Empty;
-        }
 
-        if (modifier == 0)
-        {
-            return $"{count}d{faces}";
-        }
-
-        return modifier > 0
-            ? $"{count}d{faces}+{modifier}"
-            : $"{count}d{faces}{modifier}";
+        if (modifier == 0) return $"{count}d{faces}";
+        return modifier > 0 ? $"{count}d{faces}+{modifier}" : $"{count}d{faces}{modifier}";
     }
 
     private static TimelineRowVm? BuildChatMessageRow(Dictionary<string, object> map)
@@ -519,9 +500,7 @@ public class ChatClientMainViewModel : ViewModelBase
         var sender = FirstNonEmpty(GetString(map, "senderDisplayName"), GetString(map, "senderUserId"), "Система");
         var text = FirstNonEmpty(GetString(map, "text"), GetString(map, "message"), GetString(map, "body"));
         if (string.IsNullOrWhiteSpace(text))
-        {
             return null;
-        }
 
         var type = FirstNonEmpty(GetString(map, "type"), "Public");
         var createdRaw = FirstNonEmpty(GetString(map, "createdUtc"), GetString(map, "createdAt"), GetString(map, "at"));
@@ -541,9 +520,7 @@ public class ChatClientMainViewModel : ViewModelBase
         var formula = GetString(map, "formula");
         var total = ExtractDiceTotal(map);
         if (string.IsNullOrWhiteSpace(formula))
-        {
             return null;
-        }
 
         var isTest = string.Equals(GetString(map, "isTestRoll"), "True", StringComparison.OrdinalIgnoreCase);
         var details = BuildDiceRollDetails(map);
@@ -585,19 +562,55 @@ public class ChatClientMainViewModel : ViewModelBase
         return $" ({string.Join(",", values)})";
     }
 
-    private static IList ExtractChatItems(Dictionary<string, object> payload)
+    private static (string CollectionKey, IList Items) ExtractFeedCollection(Dictionary<string, object> payload, params string[] preferredKeys)
     {
-        if (payload.TryGetValue("messages", out var messages)) return ToObjectList(messages);
-        if (payload.TryGetValue("items", out var items)) return ToObjectList(items);
-        return new ArrayList();
+        foreach (var key in preferredKeys)
+        {
+            if (!payload.TryGetValue(key, out var candidate)) continue;
+            if (TryGetList(candidate, out var list))
+                return (key, list);
+        }
+
+        foreach (var entry in payload)
+        {
+            if (TryGetList(entry.Value, out var list))
+                return ($"fallback:{entry.Key}", list);
+        }
+
+        return ("none", new ArrayList());
+    }
+
+    private static bool TryGetList(object? value, out IList list)
+    {
+        if (value is string)
+        {
+            list = new ArrayList();
+            return false;
+        }
+
+        if (value is IList typedList)
+        {
+            list = typedList;
+            return true;
+        }
+
+        if (value is IEnumerable enumerable)
+        {
+            var result = new ArrayList();
+            foreach (var item in enumerable)
+                result.Add(item);
+            list = result;
+            return true;
+        }
+
+        list = new ArrayList();
+        return false;
     }
 
     private static Dictionary<string, object>? AsMap(object? value)
     {
         if (value is Dictionary<string, object> typedMap)
-        {
             return typedMap;
-        }
 
         if (value is IDictionary dictionary)
         {
@@ -606,11 +619,8 @@ public class ChatClientMainViewModel : ViewModelBase
             {
                 var key = Convert.ToString(entry.Key);
                 if (!string.IsNullOrWhiteSpace(key))
-                {
                     map[key] = entry.Value;
-                }
             }
-
             return map;
         }
 
@@ -646,40 +656,20 @@ public class ChatClientMainViewModel : ViewModelBase
         foreach (var value in values)
         {
             if (!string.IsNullOrWhiteSpace(value))
-            {
                 return value;
-            }
         }
-
         return string.Empty;
     }
 
     private static int ParsePositiveInt(string raw, int fallback)
-    {
-        if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) && parsed > 0)
-        {
-            return parsed;
-        }
-
-        return fallback;
-    }
+        => int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) && parsed > 0 ? parsed : fallback;
 
     private static int ParseInt(string raw, int fallback)
-    {
-        if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
-        {
-            return parsed;
-        }
-
-        return fallback;
-    }
+        => int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : fallback;
 
     private static string FormatTimestamp(string rawValue)
     {
-        if (string.IsNullOrWhiteSpace(rawValue))
-        {
-            return string.Empty;
-        }
+        if (string.IsNullOrWhiteSpace(rawValue)) return string.Empty;
 
         if (TryParseServerTimestamp(rawValue, out var parsed))
         {
@@ -695,10 +685,7 @@ public class ChatClientMainViewModel : ViewModelBase
     private static long ParseTimelineTicks(string rawValue)
     {
         if (TryParseServerTimestamp(rawValue, out var parsed))
-        {
             return parsed.Ticks;
-        }
-
         return 0;
     }
 
