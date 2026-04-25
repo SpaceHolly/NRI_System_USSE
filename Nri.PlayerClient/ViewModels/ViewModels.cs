@@ -1702,10 +1702,13 @@ public class PlayerMainViewModel : ViewModelBase
         SkillCatalogRows.Clear();
 
         var catalog = _api.ProgressionAvailableSkills(SelectedCharacterId);
+        var catalogPayloadKeys = string.Join(",", catalog.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal));
         var catalogMappedCount = 0;
+        var catalogRawCount = 0;
         if (catalog.Status == ResponseStatus.Ok)
         {
             var catalogItems = ExtractCharacterSkillsItems(catalog.Payload, out _);
+            catalogRawCount = catalogItems.Count;
             foreach (var item in catalogItems)
             {
                 var map = AsMap(item, CommandNames.ProgressionAvailableSkills);
@@ -1717,14 +1720,19 @@ public class PlayerMainViewModel : ViewModelBase
                 catalogMappedCount++;
             }
         }
+        ClientLogService.Instance.Info($"player.skillCatalog.response.keys={catalogPayloadKeys}");
+        ClientLogService.Instance.Info($"player.skillCatalog.rawCount={catalogRawCount}");
+        ClientLogService.Instance.Info($"player.skillCatalog.mappedCount={catalogMappedCount}");
 
         var skills = _api.CharacterSkillsGet(SelectedCharacterId);
-        ClientLogService.Instance.Info($"player.skills.response status={skills.Status}");
+        ClientLogService.Instance.Info($"player.characterSkills.response status={skills.Status}");
         var mappedCount = 0;
+        var characterRawCount = 0;
         if (skills.Status == ResponseStatus.Ok)
         {
             var payloadKeys = string.Join(",", skills.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal));
             var items = ExtractCharacterSkillsItems(skills.Payload, out var rawCollectionKey);
+            characterRawCount = items.Count;
             string firstSkillCode = string.Empty;
             foreach (var item in items)
             {
@@ -1741,9 +1749,9 @@ public class PlayerMainViewModel : ViewModelBase
             ClientLogService.Instance.Info($"character.skills.rawCount={items.Count}");
             ClientLogService.Instance.Info($"character.skills.mappedCount={mappedCount}");
             ClientLogService.Instance.Info($"character.skills.firstSkillCode={FirstNonEmpty(firstSkillCode, "<none>")}");
-            ClientLogService.Instance.Info($"player.skills.rawCount={items.Count}");
-            ClientLogService.Instance.Info($"player.skills.mappedCount={mappedCount}");
         }
+        ClientLogService.Instance.Info($"player.characterSkills.rawCount={characterRawCount}");
+        ClientLogService.Instance.Info($"player.characterSkills.mappedCount={mappedCount}");
 
         ClientLogService.Instance.Info($"player.skillCatalog.count={catalogMappedCount}");
         ClientLogService.Instance.Info($"player.characterSkills.count={mappedCount}");
