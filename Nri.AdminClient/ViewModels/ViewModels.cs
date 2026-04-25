@@ -2954,7 +2954,7 @@ public class AdminMainViewModel : ViewModelBase
         var dtoLevels = ToList(dto.ContainsKey("levels") ? dto["levels"] : new ArrayList()).OfType<Dictionary<string, object>>().ToList();
         var firstLevel = dtoLevels.FirstOrDefault();
         ClientLogService.Instance.Info(
-            $"skillDefinition.save dtoBuilt code={FirstNonEmpty(S(dto, "code"), code)} maxLevel={S(dto, "maxLevel")} levels_count={dtoLevels.Count} levels_item_keys={string.Join(",", firstLevel?.Keys ?? Array.Empty<string>())}");
+            $"skillDefinition.save dtoBuilt code={FirstNonEmpty(S(dto, "code"), code)} maxLevel={S(dto, "maxLevel")} levels_count={dtoLevels.Count} levels_item_keys={string.Join(",", firstLevel?.Keys?.ToArray() ?? Array.Empty<string>())}");
         var payload = new Dictionary<string, object> { { "definition", dto } };
         ClientLogService.Instance.Info($"skillDefinition.save payloadHasDefinition={payload.ContainsKey("definition").ToString().ToLowerInvariant()} payloadKeys={string.Join(",", payload.Keys)}");
         var response = EnsureSuccess(_api.DefinitionSkillSavePayload(payload));
@@ -3058,18 +3058,32 @@ public class AdminMainViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
         SkillRows.Clear();
         var r = _api.CharacterSkillsGet(SelectedCharacterId);
-        if (r.Status != ResponseStatus.Ok || !r.Payload.ContainsKey("items")) return;
-        foreach (var item in ToList(r.Payload["items"]))
+        if (r.Status != ResponseStatus.Ok) return;
+
+        var payloadKeys = string.Join(",", r.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal));
+        var rawItems = ExtractCharacterSkillsItems(r.Payload, out var rawCollectionKey);
+        var mappedCount = 0;
+        string firstSkillCode = string.Empty;
+        foreach (var item in rawItems)
         {
-            if (item is not Dictionary<string, object> m) continue;
+            var m = AsMap(item, CommandNames.CharacterSkillsGet);
+            if (m == null) continue;
+            var skillCode = S(m, "skillCode");
             SkillRows.Add(new RowVm
             {
-                Id = S(m, "skillCode"),
-                Name = S(m, "skillCode"),
+                Id = skillCode,
+                Name = skillCode,
                 State = $"уровень={S(m, "level")} • ранг={S(m, "tier")}",
                 Extra = $"получен={S(m, "acquired")} • изучен={S(m, "learnedUtc")}"
             });
+            mappedCount++;
+            if (string.IsNullOrWhiteSpace(firstSkillCode)) firstSkillCode = skillCode;
         }
+        ClientLogService.Instance.Info($"character.skills.response.keys={payloadKeys}");
+        ClientLogService.Instance.Info($"character.skills.rawCollectionKey={rawCollectionKey}");
+        ClientLogService.Instance.Info($"character.skills.rawCount={rawItems.Count}");
+        ClientLogService.Instance.Info($"character.skills.mappedCount={mappedCount}");
+        ClientLogService.Instance.Info($"character.skills.firstSkillCode={FirstNonEmpty(firstSkillCode, "<none>")}");
         RestoreSelection(SkillRows, SelectedSkillId, value => SelectedSkillId = value);
         ClientLogService.Instance.Info($"selectedCharacter.skills loaded={SkillRows.Count}");
     }
@@ -3189,7 +3203,7 @@ public class AdminMainViewModel : ViewModelBase
         }
 
         var firstLevel = configuredLevels.FirstOrDefault();
-        ClientLogService.Instance.Debug($"skillDefinition.payload.levels shape count={configuredLevels.Count} itemKeys={string.Join(",", firstLevel?.Keys ?? Array.Empty<string>())}");
+        ClientLogService.Instance.Debug($"skillDefinition.payload.levels shape count={configuredLevels.Count} itemKeys={string.Join(",", firstLevel?.Keys?.ToArray() ?? Array.Empty<string>())}");
 
         return new Dictionary<string, object>
         {
@@ -3734,6 +3748,37 @@ public class AdminMainViewModel : ViewModelBase
 
     private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     private static IList ToList(object value) => value as IList ?? new ArrayList();
+    private static IList ExtractCharacterSkillsItems(Dictionary<string, object> payload, out string rawCollectionKey)
+    {
+        foreach (var key in new[] { "items", "skills", "characterSkills" })
+        {
+            if (!payload.ContainsKey(key))
+            {
+                continue;
+            }
+
+            rawCollectionKey = key;
+            return NormalizePayloadList(payload[key], out _);
+        }
+
+        foreach (var entry in payload)
+        {
+            if (entry.Value is string)
+            {
+                continue;
+            }
+
+            if (entry.Value is IEnumerable)
+            {
+                rawCollectionKey = entry.Key;
+                return NormalizePayloadList(entry.Value, out _);
+            }
+        }
+
+        rawCollectionKey = "<none>";
+        return new ArrayList();
+    }
+
     private static IList ExtractSkillDefinitionItems(Dictionary<string, object> payload, out string rawCollectionKey)
     {
         foreach (var key in new[] { "items", "definitions", "skills" })

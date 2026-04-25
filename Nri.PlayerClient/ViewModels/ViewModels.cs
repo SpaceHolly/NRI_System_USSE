@@ -1707,14 +1707,45 @@ public class PlayerMainViewModel : ViewModelBase
             EnsureCollectionPlaceholder(SkillCatalogRows, "Нет доступных навыков");
             return;
         }
-        var items = ToObjectList(skills.Payload.ContainsKey("items") ? skills.Payload["items"] : new ArrayList());
-        ClientLogService.Instance.Info($"activeCharacter.skills loaded={items.Count}");
+        var payloadKeys = string.Join(",", skills.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal));
+        var items = ExtractCharacterSkillsItems(skills.Payload, out var rawCollectionKey);
+        var mappedCount = 0;
+        string firstSkillCode = string.Empty;
         foreach (var item in items)
         {
-            if (item is not Dictionary<string, object> map) continue;
-            var row = $"{GetString(map, "skillCode")} | level={GetString(map, "level")} | tier={GetString(map, "tier")} | acquired={GetString(map, "acquired")}";
+            var map = AsMap(item, CommandNames.CharacterSkillsGet);
+            if (map == null) continue;
+            var skillCode = GetString(map, "skillCode");
+            var row = $"{skillCode} | level={GetString(map, "level")} | tier={GetString(map, "tier")} | acquired={GetString(map, "acquired")}";
             SkillCatalogRows.Add(row);
             SkillRows.Add(row);
+            mappedCount++;
+            if (string.IsNullOrWhiteSpace(firstSkillCode)) firstSkillCode = skillCode;
+        }
+        ClientLogService.Instance.Info($"character.skills.response.keys={payloadKeys}");
+        ClientLogService.Instance.Info($"character.skills.rawCollectionKey={rawCollectionKey}");
+        ClientLogService.Instance.Info($"character.skills.rawCount={items.Count}");
+        ClientLogService.Instance.Info($"character.skills.mappedCount={mappedCount}");
+        ClientLogService.Instance.Info($"character.skills.firstSkillCode={FirstNonEmpty(firstSkillCode, "<none>")}");
+        ClientLogService.Instance.Info($"activeCharacter.skills loaded={mappedCount}");
+
+        var placeholderHidden = SkillRows.Count > 0;
+        if (!placeholderHidden)
+        {
+            EnsureCollectionPlaceholder(SkillRows, "Нет данных по навыкам");
+            EnsureCollectionPlaceholder(SkillCatalogRows, "Нет доступных навыков");
+        }
+
+        ClientLogService.Instance.Info($"activeCharacter.skills.bind count={SkillRows.Count}");
+        if (_lastSkillsRenderCount != SkillRows.Count)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.skills.render count={SkillRows.Count}");
+            _lastSkillsRenderCount = SkillRows.Count;
+        }
+        if (_lastSkillsPlaceholderHidden != placeholderHidden)
+        {
+            ClientLogService.Instance.Info($"activeCharacter.skills.placeholder hidden={placeholderHidden.ToString().ToLowerInvariant()}");
+            _lastSkillsPlaceholderHidden = placeholderHidden;
         }
 
         var placeholderHidden = SkillRows.Count > 0;
@@ -2594,6 +2625,37 @@ public class PlayerMainViewModel : ViewModelBase
 
         sourceKey = "<none>";
         rawItemsType = "<none>";
+        return new ArrayList();
+    }
+
+    private static IList ExtractCharacterSkillsItems(Dictionary<string, object> payload, out string rawCollectionKey)
+    {
+        foreach (var key in new[] { "items", "skills", "characterSkills" })
+        {
+            if (!payload.ContainsKey(key))
+            {
+                continue;
+            }
+
+            rawCollectionKey = key;
+            return NormalizePayloadList(payload[key], out _);
+        }
+
+        foreach (var entry in payload)
+        {
+            if (entry.Value is string)
+            {
+                continue;
+            }
+
+            if (entry.Value is IEnumerable)
+            {
+                rawCollectionKey = entry.Key;
+                return NormalizePayloadList(entry.Value, out _);
+            }
+        }
+
+        rawCollectionKey = "<none>";
         return new ArrayList();
     }
 
