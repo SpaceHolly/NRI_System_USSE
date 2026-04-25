@@ -1700,44 +1700,59 @@ public class PlayerMainViewModel : ViewModelBase
 
         SkillRows.Clear();
         SkillCatalogRows.Clear();
+
+        var catalog = _api.ProgressionAvailableSkills(SelectedCharacterId);
+        var catalogMappedCount = 0;
+        if (catalog.Status == ResponseStatus.Ok)
+        {
+            var catalogItems = ExtractCharacterSkillsItems(catalog.Payload, out _);
+            foreach (var item in catalogItems)
+            {
+                var map = AsMap(item, CommandNames.ProgressionAvailableSkills);
+                if (map == null) continue;
+                var code = GetString(map, "code");
+                var name = FirstNonEmpty(GetString(map, "name"), code);
+                var available = GetString(map, "available");
+                SkillCatalogRows.Add($"{code} | {name} | available={available}");
+                catalogMappedCount++;
+            }
+        }
+
         var skills = _api.CharacterSkillsGet(SelectedCharacterId);
         ClientLogService.Instance.Info($"player.skills.response status={skills.Status}");
-        if (skills.Status != ResponseStatus.Ok)
-        {
-            EnsureCollectionPlaceholder(SkillRows, "Нет данных по навыкам");
-            EnsureCollectionPlaceholder(SkillCatalogRows, "Нет доступных навыков");
-            return;
-        }
-        var payloadKeys = string.Join(",", skills.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal));
-        var items = ExtractCharacterSkillsItems(skills.Payload, out var rawCollectionKey);
         var mappedCount = 0;
-        string firstSkillCode = string.Empty;
-        foreach (var item in items)
+        if (skills.Status == ResponseStatus.Ok)
         {
-            var map = AsMap(item, CommandNames.CharacterSkillsGet);
-            if (map == null) continue;
-            var skillCode = GetString(map, "skillCode");
-            var row = $"{skillCode} | level={GetString(map, "level")} | tier={GetString(map, "tier")} | acquired={GetString(map, "acquired")}";
-            SkillCatalogRows.Add(row);
-            SkillRows.Add(row);
-            mappedCount++;
-            if (string.IsNullOrWhiteSpace(firstSkillCode)) firstSkillCode = skillCode;
+            var payloadKeys = string.Join(",", skills.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal));
+            var items = ExtractCharacterSkillsItems(skills.Payload, out var rawCollectionKey);
+            string firstSkillCode = string.Empty;
+            foreach (var item in items)
+            {
+                var map = AsMap(item, CommandNames.CharacterSkillsGet);
+                if (map == null) continue;
+                var skillCode = GetString(map, "skillCode");
+                var row = $"{skillCode} | level={GetString(map, "level")} | tier={GetString(map, "tier")} | acquired={GetString(map, "acquired")}";
+                SkillRows.Add(row);
+                mappedCount++;
+                if (string.IsNullOrWhiteSpace(firstSkillCode)) firstSkillCode = skillCode;
+            }
+            ClientLogService.Instance.Info($"character.skills.response.keys={payloadKeys}");
+            ClientLogService.Instance.Info($"character.skills.rawCollectionKey={rawCollectionKey}");
+            ClientLogService.Instance.Info($"character.skills.rawCount={items.Count}");
+            ClientLogService.Instance.Info($"character.skills.mappedCount={mappedCount}");
+            ClientLogService.Instance.Info($"character.skills.firstSkillCode={FirstNonEmpty(firstSkillCode, "<none>")}");
+            ClientLogService.Instance.Info($"player.skills.rawCount={items.Count}");
+            ClientLogService.Instance.Info($"player.skills.mappedCount={mappedCount}");
         }
-        ClientLogService.Instance.Info($"character.skills.response.keys={payloadKeys}");
-        ClientLogService.Instance.Info($"character.skills.rawCollectionKey={rawCollectionKey}");
-        ClientLogService.Instance.Info($"character.skills.rawCount={items.Count}");
-        ClientLogService.Instance.Info($"character.skills.mappedCount={mappedCount}");
-        ClientLogService.Instance.Info($"character.skills.firstSkillCode={FirstNonEmpty(firstSkillCode, "<none>")}");
-        ClientLogService.Instance.Info($"player.skills.rawCount={items.Count}");
-        ClientLogService.Instance.Info($"player.skills.mappedCount={mappedCount}");
+
+        ClientLogService.Instance.Info($"player.skillCatalog.count={catalogMappedCount}");
+        ClientLogService.Instance.Info($"player.characterSkills.count={mappedCount}");
         ClientLogService.Instance.Info($"activeCharacter.skills loaded={mappedCount}");
 
-        var placeholderHidden = SkillRows.Count > 0;
-        if (!placeholderHidden)
-        {
-            EnsureCollectionPlaceholder(SkillRows, "Нет данных по навыкам");
-            EnsureCollectionPlaceholder(SkillCatalogRows, "Нет доступных навыков");
-        }
+        var placeholderHidden = mappedCount > 0;
+        if (catalogMappedCount == 0) EnsureCollectionPlaceholder(SkillCatalogRows, "Нет доступных навыков");
+        if (!placeholderHidden) EnsureCollectionPlaceholder(SkillRows, "Нет данных по навыкам");
+        ClientLogService.Instance.Info($"player.skills.placeholder hidden={placeholderHidden.ToString().ToLowerInvariant()}");
 
         ClientLogService.Instance.Info($"activeCharacter.skills.bind count={SkillRows.Count}");
         if (_lastSkillsRenderCount != SkillRows.Count)
