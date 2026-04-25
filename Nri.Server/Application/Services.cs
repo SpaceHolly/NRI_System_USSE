@@ -2311,6 +2311,7 @@ public partial class ServiceHub
         {
             var roll = CreateResolvedDiceRoll(context, actor, isTestRoll: false);
             _repositories.DiceRequests.Insert(roll);
+            _logger.Admin($"dice.roll.saved commentPresent={!string.IsNullOrWhiteSpace(roll.Description)}");
             _logger.Admin($"dice.roll.standard created actor={actor.Login} requestId={roll.Id}");
             _logger.Admin($"dice.roll.standard actor={actor.Login} requestId={roll.Id} total={roll.Result?.Total ?? 0}");
             return Ok("Standard dice roll created.", DiceRequestPayload(roll, actor));
@@ -2339,6 +2340,7 @@ public partial class ServiceHub
             if (existing == null)
             {
                 _repositories.DiceRequests.Insert(roll);
+                _logger.Admin($"dice.roll.saved commentPresent={!string.IsNullOrWhiteSpace(roll.Description)}");
                 _logger.Admin($"dice.roll.test replacedPrevious=false actor={actor.Login} requestId={roll.Id}");
                 _logger.Admin($"dice.roll.test actor={actor.Login} action=create requestId={roll.Id} total={roll.Result?.Total ?? 0}");
                 return Ok("Test dice roll created.", DiceRequestPayload(roll, actor));
@@ -2356,6 +2358,7 @@ public partial class ServiceHub
             existing.UpdatedUtc = newTimestamp;
             existing.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "TestReplaced", Comment = roll.Formula.Normalized });
             _repositories.DiceRequests.Replace(existing);
+            _logger.Admin($"dice.roll.saved commentPresent={!string.IsNullOrWhiteSpace(existing.Description)}");
             _logger.Admin($"dice.roll.test replacement oldTimestamp={oldTimestamp:o}");
             _logger.Admin($"dice.roll.test replacement newTimestamp={newTimestamp:o}");
             _logger.Admin("dice.roll.test replacement updated=true");
@@ -2398,7 +2401,13 @@ public partial class ServiceHub
                 throw new UnauthorizedAccessException("Character unavailable for dice roll.");
         }
 
-        var description = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 1024, "description");
+        var rawComment = FirstNonEmpty(
+            PayloadReader.GetString(context.Request.Payload, "description"),
+            PayloadReader.GetString(context.Request.Payload, "comment"),
+            PayloadReader.GetString(context.Request.Payload, "note"),
+            PayloadReader.GetString(context.Request.Payload, "text"));
+        var description = RequireLength(rawComment, 0, 1024, "description");
+        _logger.Admin($"dice.roll.comment received={!string.IsNullOrWhiteSpace(description)} length={description.Length}");
         var formulaInput = RequireLength(PayloadReader.GetString(context.Request.Payload, "formula"), 3, 64, "formula");
         var visibilityRaw = (PayloadReader.GetString(context.Request.Payload, "visibility") ?? RequestVisibility.Public.ToString());
         if (!Enum.TryParse(visibilityRaw, true, out RequestVisibility visibility)) visibility = RequestVisibility.Public;

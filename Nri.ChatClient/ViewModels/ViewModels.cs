@@ -317,11 +317,15 @@ public class ChatClientMainViewModel : ViewModelBase
         {
             var visibility = ToServerDiceVisibility(DiceVisibilityInput);
             var isTest = string.Equals(DiceModeInput, "Тестовый", StringComparison.OrdinalIgnoreCase);
+            var comment = DiceDescriptionInput.Trim();
+            ClientLogService.Instance.Info($"dice.roll.comment input={comment}");
+            ClientLogService.Instance.Info("dice.roll.payload.keys=formula,visibility,description");
+            ClientLogService.Instance.Info($"dice.roll.payload.commentPresent={!string.IsNullOrWhiteSpace(comment)}");
             ClientLogService.Instance.Info($"dice.roll.send formula={formula} visibility={visibility} test={isTest}");
             if (isTest)
-                _api.DiceRollTest(formula, visibility, DiceDescriptionInput.Trim());
+                _api.DiceRollTest(formula, visibility, comment);
             else
-                _api.DiceRollStandard(formula, visibility, DiceDescriptionInput.Trim());
+                _api.DiceRollStandard(formula, visibility, comment);
 
             RefreshAll();
         }
@@ -396,11 +400,16 @@ public class ChatClientMainViewModel : ViewModelBase
         var firstResultCandidate = firstMap == null
             ? string.Empty
             : FirstNonEmpty(GetStringByKeys(firstMap, "result", "total", "value", "summary", "description"));
+        var firstComment = firstMap == null
+            ? string.Empty
+            : FirstNonEmpty(GetStringByKeys(firstMap, "description", "comment", "note", "text"));
         ClientLogService.Instance.Info($"dice.feed.firstRawType={(firstRaw == null ? "null" : firstRaw.GetType().FullName)}");
         ClientLogService.Instance.Info($"dice.feed.firstMapKeys={(firstMap == null ? "<none>" : string.Join(",", firstMap.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)))}");
         ClientLogService.Instance.Info($"dice.feed.firstMapResultCandidate={firstResultCandidate}");
+        ClientLogService.Instance.Info($"dice.feed.firstComment={firstComment}");
 
         var mappedCount = 0;
+        var commentMapped = false;
         foreach (var item in extraction.Items)
         {
             var map = ToObjectDictionary(item);
@@ -410,6 +419,7 @@ public class ChatClientMainViewModel : ViewModelBase
             if (row == null) continue;
 
             mappedCount++;
+            if (row.Text.IndexOf(" — ", StringComparison.Ordinal) >= 0) commentMapped = true;
             DiceRows.Add(row);
             if (string.Equals(row.Sender, LoginText, StringComparison.OrdinalIgnoreCase) && MyLastRollRows.Count < 10)
                 MyLastRollRows.Add(row);
@@ -427,6 +437,7 @@ public class ChatClientMainViewModel : ViewModelBase
 
         ClientLogService.Instance.Info($"dice.feed.mappedCount={mappedCount}");
         ClientLogService.Instance.Info($"dice.feed.placeholderAdded={placeholderAdded}");
+        ClientLogService.Instance.Info($"dice.feed.commentMapped={commentMapped}");
         ClientLogService.Instance.Info($"dice.feed.displayCount={DiceRows.Count}");
     }
 
@@ -542,6 +553,7 @@ public class ChatClientMainViewModel : ViewModelBase
         }
 
         var summary = FirstNonEmpty(GetStringByKeys(map, "summary", "description", "comment", "text"));
+        var comment = FirstNonEmpty(GetStringByKeys(map, "description", "comment", "note", "text"));
         var sender = FirstNonEmpty(GetStringByKeys(map, "actor", "actorName", "sender", "login", "user", "creatorLogin", "creatorUserId"), "System");
         var createdRaw = FirstNonEmpty(GetStringByKeys(map, "created", "createdUtc", "timestamp", "time", "rolledAt", "rolledAtUtc", "createdAtUtc", "requestedUtc", "resolvedUtc", "at"));
 
@@ -564,6 +576,9 @@ public class ChatClientMainViewModel : ViewModelBase
         {
             text = BuildFallbackText(map);
         }
+
+        if (!string.IsNullOrWhiteSpace(comment) && text.IndexOf(comment, StringComparison.OrdinalIgnoreCase) < 0)
+            text += $" — {comment}";
 
         if (string.IsNullOrWhiteSpace(text))
             return null;
