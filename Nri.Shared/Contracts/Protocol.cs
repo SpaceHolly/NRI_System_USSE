@@ -86,6 +86,10 @@ public static class CommandNames
     public const string CharacterReputationEntryAdd = "character.reputation.entry.add";
     public const string CharacterReputationEntryUpdate = "character.reputation.entry.update";
     public const string CharacterReputationEntryRemove = "character.reputation.entry.remove";
+    public const string CharacterSkillsGet = "character.skills.get";
+    public const string CharacterSkillAdd = "character.skill.add";
+    public const string CharacterSkillUpdateLevel = "character.skill.updateLevel";
+    public const string CharacterSkillRemove = "character.skill.remove";
 
     public const string CharacterUpdateBasicInfo = "character.update.basicInfo";
     public const string CharacterUpdateStats = "character.update.stats";
@@ -180,6 +184,8 @@ public static class CommandNames
     public const string DefinitionsSkillGet = "definitions.skill.get";
     public const string DefinitionsSkillSave = "definitions.skill.save";
     public const string DefinitionsSkillArchive = "definitions.skill.archive";
+    public const string SkillsSave = "skills.save";
+    public const string SkillsArchive = "skills.archive";
     public const string DefinitionsReload = "definitions.reload";
     public const string DefinitionsVersionGet = "definitions.version.get";
 
