@@ -46,6 +46,8 @@ public sealed class AdminDefinitionHandlers
             new DelegateRequestHandler(CommandNames.DefinitionsSkillGet, HandleGetSkillByCode),
             new DelegateRequestHandler(CommandNames.DefinitionsSkillSave, HandleSaveSkill),
             new DelegateRequestHandler(CommandNames.DefinitionsSkillArchive, HandleArchiveSkill),
+            new DelegateRequestHandler(CommandNames.SkillsSave, HandleSaveSkill),
+            new DelegateRequestHandler(CommandNames.SkillsArchive, HandleArchiveSkill),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceList, HandleGetRaceList),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceGet, HandleGetRaceByCode),
             new DelegateRequestHandler(CommandNames.AdminDefinitionsRaceSave, HandleSaveRace),
@@ -144,6 +146,7 @@ public sealed class AdminDefinitionHandlers
     {
         var request = new GetSkillListRequest { IncludeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived") };
         var response = new GetSkillListResponse { Items = _skillService.GetAll(request.IncludeArchived) };
+        _logger.Admin($"skills.list count={response.Items.Count}");
         return Ok("Skill definitions loaded.", new Dictionary<string, object> { { "items", response.Items.Select(ToPayload).Cast<object>().ToArray() } });
     }
 
@@ -156,9 +159,29 @@ public sealed class AdminDefinitionHandlers
 
     private ResponseEnvelope HandleSaveSkill(CommandContext context)
     {
+        var payloadKeys = context.Request.Payload.Keys.ToArray();
+        var hasDefinition = context.Request.Payload.ContainsKey("definition");
+        context.Request.Payload.TryGetValue("definition", out var definitionRaw);
+        var definitionType = definitionRaw == null ? "null" : definitionRaw.GetType().FullName ?? definitionRaw.GetType().Name;
+        var definitionParsed = PayloadReader.GetDictionary(context.Request.Payload, "definition");
+        var levelsCount = 0;
+        var levelsItemKeys = string.Empty;
+        if (definitionParsed != null && definitionParsed.TryGetValue("levels", out var levelsRaw) && levelsRaw is IEnumerable levelsItems)
+        {
+            var firstLevel = levelsItems.Cast<object?>().FirstOrDefault();
+            if (firstLevel is IDictionary<string, object> firstMap)
+            {
+                levelsItemKeys = string.Join(",", firstMap.Keys);
+            }
+
+            levelsCount = levelsItems.Cast<object?>().Count();
+        }
+
+        _logger.Admin($"skills.save payloadKeys={string.Join(",", payloadKeys)} definition_key_present={hasDefinition} definition_type={definitionType} definition_parse_success={(definitionParsed != null)} levels_count={levelsCount} levels_item_keys={levelsItemKeys}");
         var request = new SaveSkillRequest { Definition = ReadSkillDefinition(context.Request.Payload) };
         var actor = RequireActor(context);
         var response = _skillService.Save(request.Definition, actor.Id);
+        _logger.Admin($"skills.save response=ok code={response.Item.Code} actor={actor.Login}");
         return Ok(response.Created ? "Skill definition created." : "Skill definition updated.", new Dictionary<string, object>
         {
             { "created", response.Created },
@@ -172,6 +195,7 @@ public sealed class AdminDefinitionHandlers
         var request = new ArchiveSkillRequest { Code = RequireString(context.Request.Payload, "code") };
         var actor = RequireActor(context);
         var archived = _skillService.Archive(request.Code, actor.Id);
+        _logger.Admin($"skills.archive response=ok code={request.Code} archived={archived} actor={actor.Login}");
         var response = new ArchiveSkillResponse { Code = request.Code, Archived = archived };
         return Ok(archived ? "Skill definition archived." : "Skill definition already archived.", new Dictionary<string, object>
         {
@@ -214,7 +238,7 @@ public sealed class AdminDefinitionHandlers
         };
     }
 
-    private static SkillDefinitionDto ReadSkillDefinition(IDictionary<string, object> payload)
+    private SkillDefinitionDto ReadSkillDefinition(IDictionary<string, object> payload)
     {
         var map = RequireMap(payload, "definition");
         return new SkillDefinitionDto
@@ -261,13 +285,21 @@ public sealed class AdminDefinitionHandlers
         };
     }
 
-    private static List<SkillLevelDefinition> ReadSkillLevels(IDictionary<string, object> map)
+    private List<SkillLevelDefinition> ReadSkillLevels(IDictionary<string, object> map)
     {
         var result = new List<SkillLevelDefinition>();
-        if (!map.TryGetValue("levels", out var raw) || !(raw is IEnumerable items)) return result;
+        if (!map.TryGetValue("levels", out var raw) || raw is not IEnumerable items)
+        {
+            _logger.Admin($"skillDefinition.server.levels.rawType={(raw == null ? "null" : raw.GetType().FullName ?? raw.GetType().Name)}");
+            _logger.Admin("skillDefinition.server.levels.parsedCount=0");
+            return result;
+        }
+
+        _logger.Admin($"skillDefinition.server.levels.rawType={raw.GetType().FullName ?? raw.GetType().Name}");
         foreach (var item in items)
         {
-            if (!(item is IDictionary<string, object> levelMap)) continue;
+            var levelMap = ToObjectDictionary(item);
+            if (levelMap == null) continue;
             result.Add(new SkillLevelDefinition
             {
                 Level = GetInt(levelMap, "level"),
@@ -277,16 +309,23 @@ public sealed class AdminDefinitionHandlers
             });
         }
 
+        _logger.Admin($"skillDefinition.server.levels.parsedCount={result.Count}");
         return result;
     }
 
-    private static List<RequirementDefinition> ReadRequirements(IDictionary<string, object> map)
+    private List<RequirementDefinition> ReadRequirements(IDictionary<string, object> map)
     {
         var result = new List<RequirementDefinition>();
-        if (!map.TryGetValue("requirements", out var raw) || !(raw is IEnumerable items)) return result;
+        if (!map.TryGetValue("requirements", out var raw) || raw is not IEnumerable items)
+        {
+            _logger.Admin("skillDefinition.server.requirements.parsedCount=0");
+            return result;
+        }
+
         foreach (var item in items)
         {
-            if (!(item is IDictionary<string, object> requirementMap)) continue;
+            var requirementMap = ToObjectDictionary(item);
+            if (requirementMap == null) continue;
             result.Add(new RequirementDefinition
             {
                 RequirementType = GetString(requirementMap, "requirementType"),
@@ -296,16 +335,23 @@ public sealed class AdminDefinitionHandlers
             });
         }
 
+        _logger.Admin($"skillDefinition.server.requirements.parsedCount={result.Count}");
         return result;
     }
 
-    private static List<EffectDefinition> ReadEffects(IDictionary<string, object> map)
+    private List<EffectDefinition> ReadEffects(IDictionary<string, object> map)
     {
         var result = new List<EffectDefinition>();
-        if (!map.TryGetValue("effects", out var raw) || !(raw is IEnumerable items)) return result;
+        if (!map.TryGetValue("effects", out var raw) || raw is not IEnumerable items)
+        {
+            _logger.Admin("skillDefinition.server.effects.parsedCount=0");
+            return result;
+        }
+
         foreach (var item in items)
         {
-            if (!(item is IDictionary<string, object> effectMap)) continue;
+            var effectMap = ToObjectDictionary(item);
+            if (effectMap == null) continue;
             result.Add(new EffectDefinition
             {
                 EffectType = GetString(effectMap, "effectType"),
@@ -315,7 +361,64 @@ public sealed class AdminDefinitionHandlers
             });
         }
 
+        _logger.Admin($"skillDefinition.server.effects.parsedCount={result.Count}");
         return result;
+    }
+
+    private static IDictionary<string, object>? ToObjectDictionary(object? raw)
+    {
+        if (raw == null) return null;
+        if (raw is IDictionary<string, object> typedMap) return typedMap;
+
+        if (raw is IDictionary dictionary)
+        {
+            var result = new Dictionary<string, object>(StringComparer.Ordinal);
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                var key = Convert.ToString(entry.Key);
+                if (string.IsNullOrWhiteSpace(key)) continue;
+                result[key] = entry.Value!;
+            }
+
+            return result;
+        }
+
+        if (raw is IEnumerable enumerable && raw is not string)
+        {
+            var result = new Dictionary<string, object>(StringComparer.Ordinal);
+            foreach (var item in enumerable)
+            {
+                if (!TryReadKeyValuePair(item, out var key, out var value)) return null;
+                result[key] = value!;
+            }
+
+            return result.Count == 0 ? null : result;
+        }
+
+        return null;
+    }
+
+    private static bool TryReadKeyValuePair(object? raw, out string key, out object? value)
+    {
+        key = string.Empty;
+        value = null;
+
+        if (raw == null) return false;
+        if (raw is DictionaryEntry dictionaryEntry)
+        {
+            key = Convert.ToString(dictionaryEntry.Key) ?? string.Empty;
+            value = dictionaryEntry.Value;
+            return !string.IsNullOrWhiteSpace(key);
+        }
+
+        var type = raw.GetType();
+        var keyProperty = type.GetProperty("Key");
+        var valueProperty = type.GetProperty("Value");
+        if (keyProperty == null || valueProperty == null) return false;
+
+        key = Convert.ToString(keyProperty.GetValue(raw)) ?? string.Empty;
+        value = valueProperty.GetValue(raw);
+        return !string.IsNullOrWhiteSpace(key);
     }
 
     private static Dictionary<string, object> ToPayload(ClassDefinitionDto dto)
@@ -396,7 +499,8 @@ public sealed class AdminDefinitionHandlers
 
     private static IDictionary<string, object> RequireMap(IDictionary<string, object> payload, string key)
     {
-        if (!payload.TryGetValue(key, out var value) || !(value is IDictionary<string, object> map)) throw new ArgumentException($"{key} is required.");
+        var map = PayloadReader.GetDictionary(payload, key);
+        if (map == null || map.Count == 0) throw new ArgumentException($"{key} is required.");
         return map;
     }
 

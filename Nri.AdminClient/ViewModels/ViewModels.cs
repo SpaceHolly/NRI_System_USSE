@@ -85,6 +85,54 @@ public class InventoryItemEditorVm : ViewModelBase
     public string ListLabel => $"{Name} x{Quantity} | eq={IsEquipped} | dur={DurabilityOrHealth?.ToString() ?? "-"} | {Category}";
 }
 
+public class HoldingEditorVm : ViewModelBase
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
+    public List<string> Owners { get; set; } = new List<string>();
+    public string OwnersDisplay => Owners.Count == 0 ? "—" : string.Join(", ", Owners);
+    public string Preview => $"{Name} | {Type} | {(IsArchived ? "Archived" : "Active")} | {FirstNonEmpty(Description, Notes)}";
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+}
+
+public class ReputationEditorVm : ViewModelBase
+{
+    public string Id { get; set; } = string.Empty;
+    public string ScopeType { get; set; } = "Character";
+    public string TargetType { get; set; } = "Other";
+    public string TargetName { get; set; } = string.Empty;
+    public int Value { get; set; }
+    public string Notes { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
+    public string StatusLabel => IsArchived ? "Archived" : "Active";
+    public string Preview => $"{TargetName} [{TargetType}/{ScopeType}] = {Value} | {FirstNonEmpty(Notes, "—")}";
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+}
+
+public class CompanionEditorVm : ViewModelBase
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public string OwnerCharacterId { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
+    public int OwnInventoryCount { get; set; }
+    public int OwnHoldingsCount { get; set; }
+    public int OwnReputationCount { get; set; }
+    public object[] OwnInventoryPayload { get; set; } = Array.Empty<object>();
+    public object[] OwnHoldingsPayload { get; set; } = Array.Empty<object>();
+    public object[] OwnReputationPayload { get; set; } = Array.Empty<object>();
+    public string StatusLabel => IsArchived ? "Archived" : "Active";
+    public string Preview => $"{Name} [{Type}] {StatusLabel} | {FirstNonEmpty(Description, Notes)}";
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+}
+
 public sealed class ChatMessageRowVm : ViewModelBase
 {
     public string Sender { get; set; } = string.Empty;
@@ -251,11 +299,15 @@ public class AdminMainViewModel : ViewModelBase
     private string _selectedCombatParticipantId = string.Empty;
     private string _selectedClassNodeId = string.Empty;
     private string _selectedSkillId = string.Empty;
+    private int _characterSkillLevelInput = 1;
     private string _selectedReferenceId = string.Empty;
     private string _selectedClassDefinitionCode = string.Empty;
     private string _selectedSkillDefinitionCode = string.Empty;
     private string _selectedBackupId = string.Empty;
     private string _selectedDiagnosticsId = string.Empty;
+    private string _editSkillCode = string.Empty;
+    private string _editSkillName = string.Empty;
+    private string _skillDefinitionsContentButtonsSignature = string.Empty;
     private int _selectedContentTabIndex;
     private int _selectedSystemTabIndex;
     private string _charactersSearchText = string.Empty;
@@ -330,6 +382,18 @@ public class AdminMainViewModel : ViewModelBase
         InventoryUpdateItemCommand = new RelayCommand(UpdateInventoryItem);
         InventoryRemoveItemCommand = new RelayCommand(RemoveInventoryItem);
         InventoryToggleEquipCommand = new RelayCommand(ToggleInventoryItemEquip);
+        HoldingsReloadCommand = new RelayCommand(LoadCharacterHoldings);
+        HoldingAddCommand = new RelayCommand(AddHolding);
+        HoldingUpdateCommand = new RelayCommand(UpdateHolding);
+        HoldingRemoveCommand = new RelayCommand(RemoveHolding);
+        ReputationReloadCommand = new RelayCommand(LoadCharacterReputation);
+        ReputationAddCommand = new RelayCommand(AddReputationEntry);
+        ReputationUpdateCommand = new RelayCommand(UpdateReputationEntry);
+        ReputationRemoveCommand = new RelayCommand(RemoveReputationEntry);
+        CompanionsReloadCommand = new RelayCommand(LoadCharacterCompanions);
+        CompanionAddCommand = new RelayCommand(AddCompanion);
+        CompanionUpdateCommand = new RelayCommand(UpdateCompanion);
+        CompanionRemoveCommand = new RelayCommand(RemoveCompanion);
         ApproveRequestCommand = new RelayCommand(ApproveRequest);
         RejectRequestCommand = new RelayCommand(RejectRequest);
         CombatStartCommand = new RelayCommand(() => RunUiAction("Запуск боя", CombatStart));
@@ -349,7 +413,7 @@ public class AdminMainViewModel : ViewModelBase
         SaveClassDefinitionCommand = new RelayCommand(() => RunUiAction("Сохранение definitions класса", SaveClassDefinition));
         ArchiveClassDefinitionCommand = new RelayCommand(() => RunUiAction("Архивация definitions класса", ArchiveClassDefinition));
         RefreshDefinitionSkillsCommand = new RelayCommand(() => RunUiAction("Загрузка definitions навыков", RefreshDefinitionSkills));
-        NewSkillDefinitionCommand = new RelayCommand(NewSkillDefinition);
+        NewSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Создание definitions навыка", NewSkillDefinition));
         OpenSelectedSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Открытие definitions навыка", OpenSelectedSkillDefinition));
         SaveSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Сохранение definitions навыка", SaveSkillDefinition));
         ArchiveSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Архивация definitions навыка", ArchiveSkillDefinition));
@@ -358,7 +422,9 @@ public class AdminMainViewModel : ViewModelBase
         LoadClassTreeCommand = new RelayCommand(() => RunUiAction("Загрузка class tree", LoadClassTree));
         AcquireClassNodeCommand = new RelayCommand(() => RunUiAction("Выдача class node", AcquireClassNode));
         LoadSkillsCommand = new RelayCommand(() => RunUiAction("Загрузка навыков", LoadSkills));
-        AcquireSkillCommand = new RelayCommand(() => RunUiAction("Выдача навыка", AcquireSkill));
+        AcquireSkillCommand = new RelayCommand(() => RunUiAction("Добавление навыка персонажу", AcquireSkill));
+        UpdateSkillLevelCommand = new RelayCommand(() => RunUiAction("Сохранение уровня навыка", UpdateSkillLevel));
+        RemoveSkillCommand = new RelayCommand(() => RunUiAction("Удаление навыка персонажа", RemoveSkill));
         ChatSendCommand = new RelayCommand(() => RunUiAction("Отправка сообщения", ChatSend));
         ChatRefreshCommand = new RelayCommand(() => RunUiAction("Обновление чата", ChatRefresh));
         ChatMuteUserCommand = new RelayCommand(ChatMuteUser);
@@ -498,9 +564,14 @@ public class AdminMainViewModel : ViewModelBase
     public bool CanManageClassDefinition => ArePrivilegedSectionsEnabled && !IsBusy;
     public bool CanArchiveClassDefinition => ArePrivilegedSectionsEnabled && !IsBusy && SelectedClassDefinition != null;
     public bool CanManageSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy;
-    public bool CanArchiveSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && SelectedSkillDefinition != null;
+    public bool CanCreateSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(EditSkillCode) && !string.IsNullOrWhiteSpace(EditSkillName);
+    public bool CanRefreshSkillDefinitions => ArePrivilegedSectionsEnabled;
+    public bool CanSaveSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode) && !string.IsNullOrWhiteSpace(EditSkillCode) && !string.IsNullOrWhiteSpace(EditSkillName);
+    public bool CanArchiveSkillDefinition => ArePrivilegedSectionsEnabled && !IsBusy && (!string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode) || !string.IsNullOrWhiteSpace(EditSkillCode));
     public bool CanAcquireClassNode => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedClassNode != null;
-    public bool CanAcquireSkill => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedSkill != null;
+    public bool CanAcquireSkill => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && !string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode);
+    public bool CanUpdateCharacterSkillLevel => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(SelectedCharacterId) && SelectedSkill != null;
+    public bool CanRemoveCharacterSkill => CanUpdateCharacterSkillLevel;
     public bool CanManageReferenceRecord => ArePrivilegedSectionsEnabled && !IsBusy && SelectedReference != null;
     public bool CanManageSelectedBackup => ArePrivilegedSectionsEnabled && !IsBusy && SelectedBackup != null;
     public bool CanRefreshSystem => ArePrivilegedSectionsEnabled && !IsBusy;
@@ -608,6 +679,9 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(CanOpenSelectedCharacter));
                 Notify(nameof(CanRollCharacterDice));
                 Notify(nameof(DiceRollAvailabilityHint));
+                Notify(nameof(CanAcquireSkill));
+                Notify(nameof(CanUpdateCharacterSkillLevel));
+                Notify(nameof(CanRemoveCharacterSkill));
                 TraceDiceAvailability();
                 ClientLogService.Instance.Info($"ui.people.character.selected characterId={_selectedCharacterId}");
             }
@@ -711,6 +785,8 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(SelectedSkillSummary));
                 Notify(nameof(SelectedContentSummary));
                 Notify(nameof(CanArchiveSkillDefinition));
+                Notify(nameof(CanAcquireSkill));
+                TraceSkillDefinitionContentButtons();
             }
         }
     }
@@ -728,6 +804,22 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(SelectedSkillSummary));
                 Notify(nameof(SelectedContentSummary));
                 Notify(nameof(CanAcquireSkill));
+                Notify(nameof(CanUpdateCharacterSkillLevel));
+                Notify(nameof(CanRemoveCharacterSkill));
+                if (SelectedSkill != null) CharacterSkillLevelInput = ParseLevelFromSkillState(SelectedSkill.State);
+            }
+        }
+    }
+    public int CharacterSkillLevelInput
+    {
+        get => _characterSkillLevelInput;
+        set
+        {
+            var normalized = Math.Max(1, value);
+            if (_characterSkillLevelInput != normalized)
+            {
+                _characterSkillLevelInput = normalized;
+                Notify();
             }
         }
     }
@@ -744,8 +836,34 @@ public class AdminMainViewModel : ViewModelBase
     public string EditClassRequiredClassCodes { get; set; } = string.Empty;
     public bool EditClassIsActive { get; set; } = true;
     public string EditClassStatus { get; set; } = DefinitionStatus.Draft.ToString();
-    public string EditSkillCode { get; set; } = string.Empty;
-    public string EditSkillName { get; set; } = string.Empty;
+    public string EditSkillCode
+    {
+        get => _editSkillCode;
+        set
+        {
+            if (_editSkillCode == value) return;
+            _editSkillCode = value;
+            Notify();
+            Notify(nameof(CanCreateSkillDefinition));
+            Notify(nameof(CanSaveSkillDefinition));
+            Notify(nameof(CanArchiveSkillDefinition));
+            TraceSkillDefinitionContentButtons();
+        }
+    }
+
+    public string EditSkillName
+    {
+        get => _editSkillName;
+        set
+        {
+            if (_editSkillName == value) return;
+            _editSkillName = value;
+            Notify();
+            Notify(nameof(CanCreateSkillDefinition));
+            Notify(nameof(CanSaveSkillDefinition));
+            TraceSkillDefinitionContentButtons();
+        }
+    }
     public string EditSkillDescription { get; set; } = string.Empty;
     public int EditSkillTier { get; set; } = 1;
     public int EditSkillMaxLevel { get; set; } = 1;
@@ -908,8 +1026,99 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> InventoryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<InventoryItemEditorVm> InventoryItems { get; } = new ObservableCollection<InventoryItemEditorVm>();
     public ObservableCollection<string> HoldingsRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<HoldingEditorVm> HoldingsItems { get; } = new ObservableCollection<HoldingEditorVm>();
+    public string HoldingName { get; set; } = string.Empty;
+    public string HoldingType { get; set; } = string.Empty;
+    public string HoldingDescription { get; set; } = string.Empty;
+    public string HoldingNotes { get; set; } = string.Empty;
+    public bool HoldingIsArchived { get; set; }
+    public string HoldingOwners { get; set; } = string.Empty;
+    private HoldingEditorVm? _selectedHoldingItem;
+    public HoldingEditorVm? SelectedHoldingItem
+    {
+        get => _selectedHoldingItem;
+        set
+        {
+            _selectedHoldingItem = value;
+            if (value != null)
+            {
+                HoldingName = value.Name;
+                HoldingType = value.Type;
+                HoldingDescription = value.Description;
+                HoldingNotes = value.Notes;
+                HoldingIsArchived = value.IsArchived;
+                HoldingOwners = value.OwnersDisplay;
+                NotifyHoldingEditor();
+                ClientLogService.Instance.Info($"holdings.editor.bind selectedHolding={value.Id}");
+                ClientLogService.Instance.Info("holdings.editor.fields populated=true");
+            }
+            Notify();
+        }
+    }
     public ObservableCollection<string> ReputationRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<ReputationEditorVm> ReputationItems { get; } = new ObservableCollection<ReputationEditorVm>();
+    public ObservableCollection<string> ReputationScopeTypeOptions { get; } = new ObservableCollection<string> { "Character", "Group" };
+    public ObservableCollection<string> ReputationTargetTypeOptions { get; } = new ObservableCollection<string> { "State", "Settlement", "Faction", "Group", "Other" };
+    public string ReputationScopeTypeInput { get; set; } = "Character";
+    public string ReputationTargetTypeInput { get; set; } = "Other";
+    public string ReputationTargetNameInput { get; set; } = string.Empty;
+    public int ReputationValueInput { get; set; }
+    public string ReputationNotesInput { get; set; } = string.Empty;
+    public bool ReputationIsArchivedInput { get; set; }
+    private ReputationEditorVm? _selectedReputationItem;
+    public ReputationEditorVm? SelectedReputationItem
+    {
+        get => _selectedReputationItem;
+        set
+        {
+            _selectedReputationItem = value;
+            if (value != null)
+            {
+                ReputationScopeTypeInput = value.ScopeType;
+                ReputationTargetTypeInput = value.TargetType;
+                ReputationTargetNameInput = value.TargetName;
+                ReputationValueInput = value.Value;
+                ReputationNotesInput = value.Notes;
+                ReputationIsArchivedInput = value.IsArchived;
+                NotifyReputationEditor();
+                ClientLogService.Instance.Info($"reputation.editor.bind selectedEntry={value.Id}");
+                ClientLogService.Instance.Info("reputation.editor.fields populated=true");
+            }
+            Notify();
+        }
+    }
     public ObservableCollection<string> CompanionRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<CompanionEditorVm> CompanionItems { get; } = new ObservableCollection<CompanionEditorVm>();
+    public string CompanionNameInput { get; set; } = string.Empty;
+    public string CompanionTypeInput { get; set; } = string.Empty;
+    public string CompanionDescriptionInput { get; set; } = string.Empty;
+    public string CompanionNotesInput { get; set; } = string.Empty;
+    public bool CompanionIsArchivedInput { get; set; }
+    public string CompanionOwnerCharacterIdInput { get; set; } = string.Empty;
+    public string CompanionOwnCollectionsPreview { get; set; } = "Inventory: 0 | Holdings: 0 | Reputation: 0";
+    private CompanionEditorVm? _selectedCompanionItem;
+    public CompanionEditorVm? SelectedCompanionItem
+    {
+        get => _selectedCompanionItem;
+        set
+        {
+            _selectedCompanionItem = value;
+            if (value != null)
+            {
+                CompanionNameInput = value.Name;
+                CompanionTypeInput = value.Type;
+                CompanionDescriptionInput = value.Description;
+                CompanionNotesInput = value.Notes;
+                CompanionIsArchivedInput = value.IsArchived;
+                CompanionOwnerCharacterIdInput = value.OwnerCharacterId;
+                CompanionOwnCollectionsPreview = $"Inventory: {value.OwnInventoryCount} | Holdings: {value.OwnHoldingsCount} | Reputation: {value.OwnReputationCount}";
+                NotifyCompanionEditor();
+                ClientLogService.Instance.Info($"companions.editor.bind selectedCompanion={value.Id}");
+                ClientLogService.Instance.Info("companions.editor.fields populated=true");
+            }
+            Notify();
+        }
+    }
     public ObservableCollection<RowVm> PendingRequests { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> RequestHistoryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> DiceFeedRows { get; } = new ObservableCollection<string>();
@@ -1006,6 +1215,18 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand InventoryUpdateItemCommand { get; }
     public ICommand InventoryRemoveItemCommand { get; }
     public ICommand InventoryToggleEquipCommand { get; }
+    public ICommand HoldingsReloadCommand { get; }
+    public ICommand HoldingAddCommand { get; }
+    public ICommand HoldingUpdateCommand { get; }
+    public ICommand HoldingRemoveCommand { get; }
+    public ICommand ReputationReloadCommand { get; }
+    public ICommand ReputationAddCommand { get; }
+    public ICommand ReputationUpdateCommand { get; }
+    public ICommand ReputationRemoveCommand { get; }
+    public ICommand CompanionsReloadCommand { get; }
+    public ICommand CompanionAddCommand { get; }
+    public ICommand CompanionUpdateCommand { get; }
+    public ICommand CompanionRemoveCommand { get; }
     public ICommand ApproveRequestCommand { get; }
     public ICommand RejectRequestCommand { get; }
     public ICommand CombatStartCommand { get; }
@@ -1035,6 +1256,8 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand AcquireClassNodeCommand { get; }
     public ICommand LoadSkillsCommand { get; }
     public ICommand AcquireSkillCommand { get; }
+    public ICommand UpdateSkillLevelCommand { get; }
+    public ICommand RemoveSkillCommand { get; }
     public ICommand ChatSendCommand { get; }
     public ICommand ChatRefreshCommand { get; }
     public ICommand ChatMuteUserCommand { get; }
@@ -1286,6 +1509,9 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(CanManageSelectedLock));
         Notify(nameof(CanManageSelectedCharacter));
         Notify(nameof(CanManageCharacterVisibility));
+        Notify(nameof(CanAcquireSkill));
+        Notify(nameof(CanUpdateCharacterSkillLevel));
+        Notify(nameof(CanRemoveCharacterSkill));
         Notify(nameof(CanRefreshNotes));
         Notify(nameof(CanCreateNote));
         Notify(nameof(CanArchiveNote));
@@ -1294,12 +1520,17 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(CanManageWorkspace));
         Notify(nameof(CanInitiateConnection));
         Notify(nameof(CanControlContent));
+        Notify(nameof(CanCreateSkillDefinition));
+        Notify(nameof(CanRefreshSkillDefinitions));
+        Notify(nameof(CanSaveSkillDefinition));
+        Notify(nameof(CanArchiveSkillDefinition));
         Notify(nameof(CanRefreshContent));
         Notify(nameof(CanAcquireClassNode));
         Notify(nameof(CanAcquireSkill));
         Notify(nameof(CanManageReferenceRecord));
         Notify(nameof(CanManageSelectedBackup));
         Notify(nameof(CanRefreshSystem));
+        TraceSkillDefinitionContentButtons();
     }
 
     public void LoadWorkspaceLayout()
@@ -1842,23 +2073,17 @@ public class AdminMainViewModel : ViewModelBase
 
         ApplyInventoryPayload(r.Payload.ContainsKey("inventory") ? r.Payload["inventory"] : new ArrayList());
 
-        HoldingsRows.Clear();
-        foreach (var item in ToList(r.Payload.ContainsKey("holdings") ? r.Payload["holdings"] : new ArrayList()))
-            if (item is Dictionary<string, object> m)
-                HoldingsRows.Add($"{S(m, "name")} ({S(m, "type")}) - {S(m, "description")}");
-        ClientLogService.Instance.Info($"selectedCharacter.holdings loaded={HoldingsRows.Count}");
+        ApplyHoldingsPayload(r.Payload.ContainsKey("holdings") ? r.Payload["holdings"] : new ArrayList());
 
-        ReputationRows.Clear();
-        foreach (var item in ToList(r.Payload.ContainsKey("reputation") ? r.Payload["reputation"] : new ArrayList()))
-            if (item is Dictionary<string, object> m)
-                ReputationRows.Add($"{FirstNonEmpty(S(m, "targetName"), S(m, "groupKey"))} [{S(m, "targetType")}]: {S(m, "value")}");
-        ClientLogService.Instance.Info($"selectedCharacter.reputation loaded={ReputationRows.Count}");
+        ApplyReputationPayload(r.Payload.ContainsKey("reputation") ? r.Payload["reputation"] : new ArrayList());
 
-        CompanionRows.Clear();
-        foreach (var item in ToList(r.Payload.ContainsKey("companions") ? r.Payload["companions"] : new ArrayList()))
-            if (item is Dictionary<string, object> m)
-                CompanionRows.Add($"{S(m, "name")} ({S(m, "species")})");
-        ClientLogService.Instance.Info($"selectedCharacter.companions loaded={CompanionRows.Count}");
+        ApplyCompanionsPayload(r.Payload.ContainsKey("companions") ? r.Payload["companions"] : new ArrayList());
+        if (SkillDefinitionRows.Count == 0)
+        {
+            RefreshDefinitionSkills();
+        }
+        ClientLogService.Instance.Info($"skillDefinitions.assignment.load count={SkillDefinitionRows.Count}");
+        LoadSkills();
 
         NotifyAllEditor();
     }
@@ -1876,6 +2101,180 @@ public class AdminMainViewModel : ViewModelBase
         {
             SetConnectionError(ex.Message);
         }
+    }
+
+    private void LoadCharacterHoldings()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterHoldingsGet(SelectedCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            ApplyHoldingsPayload(response.Payload.ContainsKey("holdings") ? response.Payload["holdings"] : new ArrayList());
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex.Message);
+        }
+    }
+
+    private void LoadCharacterReputation()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterReputationGet(SelectedCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            ApplyReputationPayload(response.Payload.ContainsKey("reputation") ? response.Payload["reputation"] : new ArrayList());
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex.Message);
+        }
+    }
+
+    private void LoadCharacterCompanions()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            var response = _api.CharacterCompanionsGet(SelectedCharacterId);
+            if (response.Status != ResponseStatus.Ok) return;
+            ApplyCompanionsPayload(response.Payload.ContainsKey("companions") ? response.Payload["companions"] : new ArrayList());
+        }
+        catch (Exception ex)
+        {
+            SetConnectionError(ex.Message);
+        }
+    }
+
+    private void ApplyHoldingsPayload(object? rawHoldings)
+    {
+        HoldingsRows.Clear();
+        HoldingsItems.Clear();
+        foreach (var item in ToList(rawHoldings ?? new ArrayList()))
+        {
+            var map = AsMap(item);
+            if (map == null) continue;
+            var owners = ToList(map.ContainsKey("owners") ? map["owners"] : new ArrayList()).Cast<object>().Select(x => x?.ToString() ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+            var vm = new HoldingEditorVm
+            {
+                Id = S(map, "id"),
+                Name = S(map, "name"),
+                Type = S(map, "type"),
+                Description = S(map, "description"),
+                Notes = S(map, "notes"),
+                IsArchived = string.Equals(FirstNonEmpty(S(map, "isArchived"), S(map, "archived")), "True", StringComparison.OrdinalIgnoreCase),
+                Owners = owners
+            };
+            HoldingsItems.Add(vm);
+            HoldingsRows.Add(vm.Preview);
+        }
+        if (SelectedHoldingItem == null || !HoldingsItems.Contains(SelectedHoldingItem))
+            SelectedHoldingItem = HoldingsItems.FirstOrDefault();
+        if (SelectedHoldingItem == null)
+        {
+            HoldingName = string.Empty;
+            HoldingType = string.Empty;
+            HoldingDescription = string.Empty;
+            HoldingNotes = string.Empty;
+            HoldingIsArchived = false;
+            HoldingOwners = string.Empty;
+            NotifyHoldingEditor();
+        }
+        ClientLogService.Instance.Info($"selectedCharacter.holdings loaded={HoldingsItems.Count}");
+        ClientLogService.Instance.Info($"holdings.list.render count={HoldingsItems.Count}");
+        Notify(nameof(HoldingsItems));
+    }
+
+    private void ApplyReputationPayload(object? rawReputation)
+    {
+        ReputationRows.Clear();
+        ReputationItems.Clear();
+        foreach (var item in ToList(rawReputation ?? new ArrayList()))
+        {
+            var map = AsMap(item);
+            if (map == null) continue;
+            int.TryParse(S(map, "value"), out var value);
+            var vm = new ReputationEditorVm
+            {
+                Id = S(map, "id"),
+                ScopeType = FirstNonEmpty(S(map, "scopeType"), "Character"),
+                TargetType = FirstNonEmpty(S(map, "targetType"), "Other"),
+                TargetName = FirstNonEmpty(S(map, "targetName"), S(map, "groupKey")),
+                Value = value,
+                Notes = S(map, "notes"),
+                IsArchived = string.Equals(FirstNonEmpty(S(map, "isArchived"), S(map, "archived")), "True", StringComparison.OrdinalIgnoreCase)
+            };
+            ReputationItems.Add(vm);
+            ReputationRows.Add(vm.Preview);
+        }
+        if (SelectedReputationItem == null || !ReputationItems.Contains(SelectedReputationItem))
+            SelectedReputationItem = ReputationItems.FirstOrDefault();
+        if (SelectedReputationItem == null)
+        {
+            ReputationScopeTypeInput = "Character";
+            ReputationTargetTypeInput = "Other";
+            ReputationTargetNameInput = string.Empty;
+            ReputationValueInput = 0;
+            ReputationNotesInput = string.Empty;
+            ReputationIsArchivedInput = false;
+            NotifyReputationEditor();
+        }
+        ClientLogService.Instance.Info($"selectedCharacter.reputation loaded={ReputationItems.Count}");
+        ClientLogService.Instance.Info($"reputation.list.render count={ReputationItems.Count}");
+        Notify(nameof(ReputationItems));
+    }
+
+    private void ApplyCompanionsPayload(object? rawCompanions)
+    {
+        CompanionRows.Clear();
+        CompanionItems.Clear();
+        foreach (var item in ToList(rawCompanions ?? new ArrayList()))
+        {
+            var map = AsMap(item);
+            if (map == null) continue;
+            var inventoryCount = ToList(map.ContainsKey("inventory") ? map["inventory"] : new ArrayList()).Count;
+            var holdingsCount = ToList(map.ContainsKey("holdings") ? map["holdings"] : new ArrayList()).Count;
+            var reputationCount = ToList(map.ContainsKey("reputation") ? map["reputation"] : new ArrayList()).Count;
+            var ownInventory = ToList(map.ContainsKey("inventory") ? map["inventory"] : new ArrayList()).Cast<object>().ToArray();
+            var ownHoldings = ToList(map.ContainsKey("holdings") ? map["holdings"] : new ArrayList()).Cast<object>().ToArray();
+            var ownReputation = ToList(map.ContainsKey("reputation") ? map["reputation"] : new ArrayList()).Cast<object>().ToArray();
+            var vm = new CompanionEditorVm
+            {
+                Id = S(map, "id"),
+                Name = S(map, "name"),
+                Type = FirstNonEmpty(S(map, "type"), S(map, "species")),
+                Description = S(map, "description"),
+                Notes = S(map, "notes"),
+                OwnerCharacterId = FirstNonEmpty(S(map, "ownerCharacterId"), SelectedCharacterId),
+                IsArchived = string.Equals(FirstNonEmpty(S(map, "isArchived"), S(map, "archived")), "True", StringComparison.OrdinalIgnoreCase),
+                OwnInventoryCount = inventoryCount,
+                OwnHoldingsCount = holdingsCount,
+                OwnReputationCount = reputationCount,
+                OwnInventoryPayload = ownInventory,
+                OwnHoldingsPayload = ownHoldings,
+                OwnReputationPayload = ownReputation
+            };
+            CompanionItems.Add(vm);
+            CompanionRows.Add(vm.Preview);
+        }
+        if (SelectedCompanionItem == null || !CompanionItems.Contains(SelectedCompanionItem))
+            SelectedCompanionItem = CompanionItems.FirstOrDefault();
+        if (SelectedCompanionItem == null)
+        {
+            CompanionNameInput = string.Empty;
+            CompanionTypeInput = string.Empty;
+            CompanionDescriptionInput = string.Empty;
+            CompanionNotesInput = string.Empty;
+            CompanionIsArchivedInput = false;
+            CompanionOwnerCharacterIdInput = SelectedCharacterId;
+            CompanionOwnCollectionsPreview = "Inventory: 0 | Holdings: 0 | Reputation: 0";
+            NotifyCompanionEditor();
+        }
+        ClientLogService.Instance.Info($"selectedCharacter.companions loaded={CompanionItems.Count}");
+        ClientLogService.Instance.Info($"companions.list.render count={CompanionItems.Count}");
+        Notify(nameof(CompanionItems));
     }
 
     private void ApplyInventoryPayload(object? rawInventory)
@@ -1993,6 +2392,159 @@ public class AdminMainViewModel : ViewModelBase
         catch (Exception ex) { SetConnectionError(ex.Message); }
     }
 
+    private void AddHolding()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            ClientLogService.Instance.Info("holding.add requested");
+            var response = _api.CharacterHoldingAdd(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "holding", BuildHoldingRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("holding.add success");
+            LoadCharacterHoldings();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void UpdateHolding()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedHoldingItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("holding.update requested");
+            var response = _api.CharacterHoldingUpdate(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "holdingId", SelectedHoldingItem.Id },
+                { "holding", BuildHoldingRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("holding.update success");
+            LoadCharacterHoldings();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void RemoveHolding()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedHoldingItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("holding.remove requested");
+            var response = _api.CharacterHoldingRemove(SelectedCharacterId, SelectedHoldingItem.Id);
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("holding.remove success");
+            LoadCharacterHoldings();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void AddReputationEntry()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            ClientLogService.Instance.Info("reputation.add requested");
+            var response = _api.CharacterReputationEntryAdd(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "entry", BuildReputationRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("reputation.add success");
+            LoadCharacterReputation();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void UpdateReputationEntry()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedReputationItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("reputation.update requested");
+            var response = _api.CharacterReputationEntryUpdate(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "entryId", SelectedReputationItem.Id },
+                { "entry", BuildReputationRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("reputation.update success");
+            LoadCharacterReputation();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void RemoveReputationEntry()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedReputationItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("reputation.remove requested");
+            var response = _api.CharacterReputationEntryRemove(SelectedCharacterId, SelectedReputationItem.Id);
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("reputation.remove success");
+            LoadCharacterReputation();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void AddCompanion()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        try
+        {
+            ClientLogService.Instance.Info("companion.add requested");
+            var response = _api.CharacterCompanionAdd(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "companion", BuildCompanionRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("companion.add success");
+            LoadCharacterCompanions();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void UpdateCompanion()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedCompanionItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("companion.update requested");
+            var response = _api.CharacterCompanionUpdate(new Dictionary<string, object>
+            {
+                { "characterId", SelectedCharacterId },
+                { "companionId", SelectedCompanionItem.Id },
+                { "companion", BuildCompanionRequestPayload() }
+            });
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("companion.update success");
+            LoadCharacterCompanions();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
+    private void RemoveCompanion()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || SelectedCompanionItem == null) return;
+        try
+        {
+            ClientLogService.Instance.Info("companion.remove requested");
+            var response = _api.CharacterCompanionRemove(SelectedCharacterId, SelectedCompanionItem.Id);
+            if (response.Status != ResponseStatus.Ok) return;
+            ClientLogService.Instance.Info("companion.remove success");
+            LoadCharacterCompanions();
+        }
+        catch (Exception ex) { SetConnectionError(ex.Message); }
+    }
+
     private Dictionary<string, object> BuildInventoryRequestPayload()
     {
         var payload = new Dictionary<string, object>
@@ -2010,6 +2562,63 @@ public class AdminMainViewModel : ViewModelBase
         return payload;
     }
 
+    private Dictionary<string, object> BuildHoldingRequestPayload()
+    {
+        var ownerValues = HoldingOwners.Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Cast<object>()
+            .ToArray();
+        return new Dictionary<string, object>
+        {
+            { "name", HoldingName },
+            { "type", HoldingType },
+            { "description", HoldingDescription },
+            { "notes", HoldingNotes },
+            { "archived", HoldingIsArchived },
+            { "isArchived", HoldingIsArchived },
+            { "owners", ownerValues }
+        };
+    }
+
+    private Dictionary<string, object> BuildReputationRequestPayload()
+    {
+        return new Dictionary<string, object>
+        {
+            { "scope", ReputationScopeTypeInput == "Group" ? "Group" : "Character" },
+            { "scopeType", ReputationScopeTypeInput },
+            { "groupKey", ReputationScopeTypeInput == "Group" ? ReputationTargetNameInput : string.Empty },
+            { "targetType", ReputationTargetTypeInput },
+            { "targetName", ReputationTargetNameInput },
+            { "value", ReputationValueInput },
+            { "notes", ReputationNotesInput },
+            { "archived", ReputationIsArchivedInput },
+            { "isArchived", ReputationIsArchivedInput },
+            { "isHiddenForOthers", false }
+        };
+    }
+
+    private Dictionary<string, object> BuildCompanionRequestPayload()
+    {
+        var ownInventory = SelectedCompanionItem?.OwnInventoryPayload ?? Array.Empty<object>();
+        var ownHoldings = SelectedCompanionItem?.OwnHoldingsPayload ?? Array.Empty<object>();
+        var ownReputation = SelectedCompanionItem?.OwnReputationPayload ?? Array.Empty<object>();
+        return new Dictionary<string, object>
+        {
+            { "name", CompanionNameInput },
+            { "type", CompanionTypeInput },
+            { "species", CompanionTypeInput },
+            { "description", CompanionDescriptionInput },
+            { "notes", CompanionNotesInput },
+            { "ownerCharacterId", FirstNonEmpty(CompanionOwnerCharacterIdInput, SelectedCharacterId) },
+            { "isArchived", CompanionIsArchivedInput },
+            { "inventory", ownInventory },
+            { "holdings", ownHoldings },
+            { "reputation", ownReputation }
+        };
+    }
+
     private void NotifyInventoryEditor()
     {
         Notify(nameof(InventoryName));
@@ -2021,6 +2630,37 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(InventoryConsumptionPerUse));
         Notify(nameof(InventoryCategory));
         Notify(nameof(InventoryNotes));
+    }
+
+    private void NotifyHoldingEditor()
+    {
+        Notify(nameof(HoldingName));
+        Notify(nameof(HoldingType));
+        Notify(nameof(HoldingDescription));
+        Notify(nameof(HoldingNotes));
+        Notify(nameof(HoldingIsArchived));
+        Notify(nameof(HoldingOwners));
+    }
+
+    private void NotifyReputationEditor()
+    {
+        Notify(nameof(ReputationScopeTypeInput));
+        Notify(nameof(ReputationTargetTypeInput));
+        Notify(nameof(ReputationTargetNameInput));
+        Notify(nameof(ReputationValueInput));
+        Notify(nameof(ReputationNotesInput));
+        Notify(nameof(ReputationIsArchivedInput));
+    }
+
+    private void NotifyCompanionEditor()
+    {
+        Notify(nameof(CompanionNameInput));
+        Notify(nameof(CompanionTypeInput));
+        Notify(nameof(CompanionDescriptionInput));
+        Notify(nameof(CompanionNotesInput));
+        Notify(nameof(CompanionIsArchivedInput));
+        Notify(nameof(CompanionOwnerCharacterIdInput));
+        Notify(nameof(CompanionOwnCollectionsPreview));
     }
 
     private void LoadPendingRequests()
@@ -2235,20 +2875,39 @@ public class AdminMainViewModel : ViewModelBase
     private void RefreshDefinitionSkills()
     {
         SkillDefinitionRows.Clear();
+        ClientLogService.Instance.Info("skillDefinitions.content.load requested");
         var response = EnsureSuccess(_api.DefinitionsSkillsGet(true));
-        foreach (var item in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
+        var payloadKeys = string.Join(",", response.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal));
+        var rawItems = ExtractSkillDefinitionItems(response.Payload, out var rawCollectionKey);
+        var mappedCount = 0;
+        string firstRowCode = string.Empty;
+        foreach (var item in rawItems)
         {
-            if (item is not Dictionary<string, object> map) continue;
+            var map = AsMap(item, CommandNames.DefinitionsSkillsGet);
+            if (map == null) continue;
+            var status = FirstNonEmpty(S(map, "status"), "Draft");
+            var isArchived = string.Equals(status, DefinitionStatus.Archived.ToString(), StringComparison.OrdinalIgnoreCase);
+            var code = S(map, "code");
             SkillDefinitionRows.Add(new RowVm
             {
-                Id = S(map, "code"),
-                Name = FirstNonEmpty(S(map, "name"), S(map, "code")),
-                State = $"tier={S(map, "tier")} • {S(map, "status")}",
-                Extra = $"maxLevel={S(map, "maxLevel")} • category={S(map, "skillCategory")} • active={S(map, "isActive")}"
+                Id = code,
+                Name = FirstNonEmpty(S(map, "name"), code),
+                State = $"тип источника={FirstNonEmpty(S(map, "skillCategory"), "Undefined")} • макс. уровень={S(map, "maxLevel")}",
+                Extra = $"активен={S(map, "isActive")} • архивирован={isArchived}"
             });
+            mappedCount++;
+            if (string.IsNullOrWhiteSpace(firstRowCode)) firstRowCode = code;
         }
+        ClientLogService.Instance.Info($"skillDefinitions.content.response.keys={payloadKeys}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.rawCollectionKey={rawCollectionKey}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.rawCount={rawItems.Count}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.mappedCount={mappedCount}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.firstRow.code={FirstNonEmpty(firstRowCode, "<none>")}");
         ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Навыки loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.load count={SkillDefinitionRows.Count}");
+        ClientLogService.Instance.Info($"skillDefinitions.render count={SkillDefinitionRows.Count}");
         RestoreSelection(SkillDefinitionRows, SelectedSkillDefinitionCode, value => SelectedSkillDefinitionCode = value);
+        TraceSkillDefinitionContentButtons();
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedSkillDefinition));
         Notify(nameof(SelectedSkillSummary));
@@ -2265,43 +2924,61 @@ public class AdminMainViewModel : ViewModelBase
 
     private void NewSkillDefinition()
     {
-        SelectedSkillDefinitionCode = string.Empty;
-        EditSkillCode = string.Empty;
-        EditSkillName = string.Empty;
-        EditSkillDescription = string.Empty;
-        EditSkillTier = 1;
-        EditSkillMaxLevel = 1;
-        EditSkillCategory = SkillCategory.Undefined.ToString();
-        EditSkillIsClassSkill = false;
-        EditSkillRequiredClassCodes = string.Empty;
-        EditSkillRequiredSkillCodes = string.Empty;
-        EditSkillIsActive = true;
-        EditSkillStatus = DefinitionStatus.Draft.ToString();
-        SkillLevelEditorRows.Clear();
-        SkillLevelEditorRows.Add(new SkillLevelEditorRowVm { Level = 1, Description = string.Empty });
-        NotifySkillDefinitionEditor();
-    }
+        var code = FirstNonEmpty(EditSkillCode);
+        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Для создания укажите код навыка.");
+        if (string.IsNullOrWhiteSpace(EditSkillName)) throw new ArgumentException("Для создания укажите название навыка.");
+        ClientLogService.Instance.Info($"skillDefinition.create begin code={code}");
+        var dto = BuildSkillDefinitionPayload();
+        var dtoLevelsCount = ToList(dto.ContainsKey("levels") ? dto["levels"] : new ArrayList()).Count;
+        ClientLogService.Instance.Info($"skillDefinition.create dtoBuilt code={FirstNonEmpty(S(dto, "code"), code)} name={S(dto, "name")} sourceType={S(dto, "skillCategory")} maxLevel={S(dto, "maxLevel")} levels={dtoLevelsCount}");
+        var payload = new Dictionary<string, object> { { "definition", dto } };
+        ClientLogService.Instance.Info($"skillDefinition.create payloadHasDefinition={payload.ContainsKey("definition").ToString().ToLowerInvariant()} payloadKeys={string.Join(",", payload.Keys)}");
 
-    private void SaveSkillDefinition()
-    {
-        var response = EnsureSuccess(_api.DefinitionSkillSave(BuildSkillDefinitionPayload()));
+        SelectedSkillDefinitionCode = string.Empty;
+        var response = EnsureSuccess(_api.DefinitionSkillSavePayload(payload));
+        ClientLogService.Instance.Info($"skillDefinition.create code={code} response={response.Status}");
         if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
         {
             ApplySkillDefinitionEditor(map);
         }
         RefreshDefinitionSkills();
+        TraceSkillDefinitionContentButtons();
+    }
+
+    private void SaveSkillDefinition()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode))
+            throw new InvalidOperationException("Для сохранения выберите существующий definition навыка.");
+        var code = FirstNonEmpty(EditSkillCode, SelectedSkillDefinitionCode);
+        var dto = BuildSkillDefinitionPayload();
+        var dtoLevels = ToList(dto.ContainsKey("levels") ? dto["levels"] : new ArrayList()).OfType<Dictionary<string, object>>().ToList();
+        var firstLevel = dtoLevels.FirstOrDefault();
+        ClientLogService.Instance.Info(
+            $"skillDefinition.save dtoBuilt code={FirstNonEmpty(S(dto, "code"), code)} maxLevel={S(dto, "maxLevel")} levels_count={dtoLevels.Count} levels_item_keys={string.Join(",", firstLevel?.Keys ?? Array.Empty<string>())}");
+        var payload = new Dictionary<string, object> { { "definition", dto } };
+        ClientLogService.Instance.Info($"skillDefinition.save payloadHasDefinition={payload.ContainsKey("definition").ToString().ToLowerInvariant()} payloadKeys={string.Join(",", payload.Keys)}");
+        var response = EnsureSuccess(_api.DefinitionSkillSavePayload(payload));
+        ClientLogService.Instance.Info($"skillDefinition.save code={code} response={response.Status}");
+        if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
+        {
+            ApplySkillDefinitionEditor(map);
+        }
+        RefreshDefinitionSkills();
+        TraceSkillDefinitionContentButtons();
     }
 
     private void ArchiveSkillDefinition()
     {
         var code = FirstNonEmpty(SelectedSkillDefinitionCode, EditSkillCode);
         if (string.IsNullOrWhiteSpace(code)) return;
-        EnsureSuccess(_api.DefinitionSkillArchive(code));
+        var response = EnsureSuccess(_api.DefinitionSkillArchive(code));
+        ClientLogService.Instance.Info($"skillDefinition.archive code={code} response={response.Status}");
         RefreshDefinitionSkills();
         if (string.Equals(EditSkillCode, code, StringComparison.OrdinalIgnoreCase))
         {
             OpenSelectedSkillDefinition();
         }
+        TraceSkillDefinitionContentButtons();
     }
 
     private void AddSkillLevel()
@@ -2320,6 +2997,18 @@ public class AdminMainViewModel : ViewModelBase
         EditSkillMaxLevel = Math.Max(1, SkillLevelEditorRows.Count);
         Notify(nameof(EditSkillMaxLevel));
         Notify(nameof(SkillEditorHintText));
+    }
+
+    private void TraceSkillDefinitionContentButtons()
+    {
+        var signature = $"{CanCreateSkillDefinition}|{CanSaveSkillDefinition}|{CanArchiveSkillDefinition}|{CanRefreshSkillDefinitions}";
+        if (string.Equals(signature, _skillDefinitionsContentButtonsSignature, StringComparison.Ordinal))
+            return;
+        _skillDefinitionsContentButtonsSignature = signature;
+        ClientLogService.Instance.Info($"skillDefinitions.content.new enabled={CanCreateSkillDefinition.ToString().ToLowerInvariant()}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.save enabled={CanSaveSkillDefinition.ToString().ToLowerInvariant()}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.archive enabled={CanArchiveSkillDefinition.ToString().ToLowerInvariant()}");
+        ClientLogService.Instance.Info($"skillDefinitions.content.refresh enabled={CanRefreshSkillDefinitions.ToString().ToLowerInvariant()}");
     }
 
     private void LoadClassTree()
@@ -2368,26 +3057,50 @@ public class AdminMainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
         SkillRows.Clear();
-        var r = _api.SkillsList(SelectedCharacterId);
+        var r = _api.CharacterSkillsGet(SelectedCharacterId);
         if (r.Status != ResponseStatus.Ok || !r.Payload.ContainsKey("items")) return;
         foreach (var item in ToList(r.Payload["items"]))
         {
             if (item is not Dictionary<string, object> m) continue;
             SkillRows.Add(new RowVm
             {
-                Id = S(m, "skillId"),
-                Name = S(m, "name"),
-                State = $"type={S(m, "type")}",
-                Extra = $"acquired={S(m, "acquired")} • available={S(m, "available")} • reason={S(m, "reason")}"
+                Id = S(m, "skillCode"),
+                Name = S(m, "skillCode"),
+                State = $"уровень={S(m, "level")} • ранг={S(m, "tier")}",
+                Extra = $"получен={S(m, "acquired")} • изучен={S(m, "learnedUtc")}"
             });
         }
         RestoreSelection(SkillRows, SelectedSkillId, value => SelectedSkillId = value);
+        ClientLogService.Instance.Info($"selectedCharacter.skills loaded={SkillRows.Count}");
     }
 
     private void AcquireSkill()
     {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedSkillDefinitionCode)) return;
+        ClientLogService.Instance.Info($"character.skill.add selectedSkillCode={SelectedSkillDefinitionCode}");
+        var response = _api.CharacterSkillAdd(SelectedCharacterId, SelectedSkillDefinitionCode, CharacterSkillLevelInput);
+        ClientLogService.Instance.Info($"character.skill.add response={response.Status}");
+        if (response.Status != ResponseStatus.Ok) throw new InvalidOperationException(response.Message);
+        SelectedSkillId = SelectedSkillDefinitionCode;
+        LoadSkills();
+    }
+
+    private void UpdateSkillLevel()
+    {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedSkillId)) return;
-        _api.SkillsAcquire(SelectedCharacterId, SelectedSkillId);
+        var response = _api.CharacterSkillUpdateLevel(SelectedCharacterId, SelectedSkillId, CharacterSkillLevelInput);
+        ClientLogService.Instance.Info($"character.skill.updateLevel response={response.Status}");
+        if (response.Status != ResponseStatus.Ok) throw new InvalidOperationException(response.Message);
+        LoadSkills();
+    }
+
+    private void RemoveSkill()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedSkillId)) return;
+        var response = _api.CharacterSkillRemove(SelectedCharacterId, SelectedSkillId);
+        ClientLogService.Instance.Info($"character.skill.remove response={response.Status}");
+        if (response.Status != ResponseStatus.Ok) throw new InvalidOperationException(response.Message);
+        SelectedSkillId = string.Empty;
         LoadSkills();
     }
 
@@ -2457,24 +3170,39 @@ public class AdminMainViewModel : ViewModelBase
 
     private Dictionary<string, object> BuildSkillDefinitionPayload()
     {
+        var effectiveMaxLevel = Math.Max(1, EditSkillMaxLevel);
+        var configuredByLevel = SkillLevelEditorRows
+            .Where(level => level.Level > 0)
+            .GroupBy(level => level.Level)
+            .ToDictionary(group => group.Key, group => group.Last().Description, EqualityComparer<int>.Default);
+
+        var configuredLevels = new List<Dictionary<string, object>>();
+        for (var level = 1; level <= effectiveMaxLevel; level++)
+        {
+            configuredLevels.Add(new Dictionary<string, object>
+            {
+                { "level", level },
+                { "description", configuredByLevel.TryGetValue(level, out var description) ? description : string.Empty },
+                { "requirements", new object[0] },
+                { "effects", new object[0] }
+            });
+        }
+
+        var firstLevel = configuredLevels.FirstOrDefault();
+        ClientLogService.Instance.Debug($"skillDefinition.payload.levels shape count={configuredLevels.Count} itemKeys={string.Join(",", firstLevel?.Keys ?? Array.Empty<string>())}");
+
         return new Dictionary<string, object>
         {
             { "code", EditSkillCode },
             { "name", EditSkillName },
             { "description", EditSkillDescription },
             { "tier", EditSkillTier },
-            { "maxLevel", EditSkillMaxLevel },
+            { "maxLevel", effectiveMaxLevel },
             { "skillCategory", EditSkillCategory },
             { "isClassSkill", EditSkillIsClassSkill },
             { "requiredClassCodes", SplitCsv(EditSkillRequiredClassCodes).Cast<object>().ToArray() },
             { "requiredSkillCodes", SplitCsv(EditSkillRequiredSkillCodes).Cast<object>().ToArray() },
-            { "levels", SkillLevelEditorRows.Select(level => new Dictionary<string, object>
-                {
-                    { "level", level.Level },
-                    { "description", level.Description },
-                    { "requirements", new object[0] },
-                    { "effects", new object[0] }
-                }).Cast<object>().ToArray() },
+            { "levels", configuredLevels.Cast<object>().ToArray() },
             { "isActive", EditSkillIsActive },
             { "status", EditSkillStatus }
         };
@@ -2491,6 +3219,17 @@ public class AdminMainViewModel : ViewModelBase
     }
 
     private static int ParseInt(string value, int fallback) => int.TryParse(value, out var parsed) ? parsed : fallback;
+    private static int ParseLevelFromSkillState(string state)
+    {
+        if (string.IsNullOrWhiteSpace(state)) return 1;
+        var marker = "level=";
+        var index = state.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (index < 0) return 1;
+        var start = index + marker.Length;
+        var end = state.IndexOf(' ', start);
+        var raw = end > start ? state.Substring(start, end - start) : state.Substring(start);
+        return int.TryParse(raw, out var parsed) && parsed > 0 ? parsed : 1;
+    }
     private static bool ParseBool(string value, bool fallback) => bool.TryParse(value, out var parsed) ? parsed : fallback;
     private static List<string> SplitCsv(string value) => value.Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Select(item => item.Trim()).Where(item => !string.IsNullOrWhiteSpace(item)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     private static List<string> ReadStringList(Dictionary<string, object> map, string key) => ToList(map.ContainsKey(key) ? map[key] : new ArrayList()).Cast<object>().Select(item => Convert.ToString(item) ?? string.Empty).Where(item => !string.IsNullOrWhiteSpace(item)).ToList();
@@ -2966,6 +3705,9 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(Health)); Notify(nameof(PhysicalArmor)); Notify(nameof(MagicalArmor)); Notify(nameof(Morale)); Notify(nameof(Strength)); Notify(nameof(Dexterity)); Notify(nameof(Endurance)); Notify(nameof(Wisdom)); Notify(nameof(Intellect)); Notify(nameof(Charisma));
         Notify(nameof(Iron)); Notify(nameof(Bronze)); Notify(nameof(Silver)); Notify(nameof(Gold)); Notify(nameof(Platinum)); Notify(nameof(Orichalcum)); Notify(nameof(Adamant)); Notify(nameof(Sovereign)); Notify(nameof(ExperienceCoins));
         NotifyInventoryEditor();
+        NotifyHoldingEditor();
+        NotifyReputationEditor();
+        NotifyCompanionEditor();
     }
 
     private static T ReadJson<T>(string path, T fallback) where T : class
@@ -2992,6 +3734,37 @@ public class AdminMainViewModel : ViewModelBase
 
     private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     private static IList ToList(object value) => value as IList ?? new ArrayList();
+    private static IList ExtractSkillDefinitionItems(Dictionary<string, object> payload, out string rawCollectionKey)
+    {
+        foreach (var key in new[] { "items", "definitions", "skills" })
+        {
+            if (!payload.ContainsKey(key))
+            {
+                continue;
+            }
+
+            rawCollectionKey = key;
+            return NormalizePayloadList(payload[key], out _);
+        }
+
+        foreach (var entry in payload)
+        {
+            if (entry.Value is string)
+            {
+                continue;
+            }
+
+            if (entry.Value is IEnumerable)
+            {
+                rawCollectionKey = entry.Key;
+                return NormalizePayloadList(entry.Value, out _);
+            }
+        }
+
+        rawCollectionKey = "<none>";
+        return new ArrayList();
+    }
+
     private static IList ExtractChatItems(Dictionary<string, object> payload, out string sourceKey, out string payloadKeys, out string rawItemsType)
     {
         payloadKeys = string.Join(",", payload.Keys.OrderBy(x => x, StringComparer.Ordinal));
