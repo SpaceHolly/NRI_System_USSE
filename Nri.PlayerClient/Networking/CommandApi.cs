@@ -28,6 +28,7 @@ public class CommandApi
     public ResponseEnvelope CharacterCompanionsGet(string characterId) => Send(CommandNames.CharacterCompanionsGet, new Dictionary<string, object> { { "characterId", characterId } });
     public ResponseEnvelope CharacterHoldingsGet(string characterId) => Send(CommandNames.CharacterHoldingsGet, new Dictionary<string, object> { { "characterId", characterId } });
     public ResponseEnvelope CharacterReputationGet(string characterId) => Send(CommandNames.CharacterReputationGet, new Dictionary<string, object> { { "characterId", characterId } });
+    public ResponseEnvelope CharacterSkillsGet(string characterId) => Send(CommandNames.CharacterSkillsGet, new Dictionary<string, object> { { "characterId", characterId } });
 
     public ResponseEnvelope CreateCharacter(Dictionary<string, object> payload) => Send(CommandNames.CharacterCreate, payload);
     public ResponseEnvelope DiceRollStandard(string formula, string visibility, string description, string? characterId = null)
@@ -54,8 +55,9 @@ public class CommandApi
     public ResponseEnvelope ClassTreeGet(string characterId) => Send(CommandNames.ClassTreeGet, new Dictionary<string, object> { { "characterId", characterId } });
     public ResponseEnvelope ClassTreeAvailable(string characterId) => Send(CommandNames.ClassTreeAvailableGet, new Dictionary<string, object> { { "characterId", characterId } });
     public ResponseEnvelope ClassTreeAcquireNode(string characterId, string nodeId) => Send(CommandNames.ClassTreeAcquireNode, new Dictionary<string, object> { { "characterId", characterId }, { "nodeId", nodeId } });
+    public ResponseEnvelope ProgressionAvailableSkills(string characterId) => Send(CommandNames.ProgressionAvailableSkills, new Dictionary<string, object> { { "characterId", characterId } });
     public ResponseEnvelope SkillsList(string characterId) => Send(CommandNames.SkillsList, new Dictionary<string, object> { { "characterId", characterId } });
-    public ResponseEnvelope SkillsAcquire(string characterId, string skillId) => Send(CommandNames.SkillsAcquire, new Dictionary<string, object> { { "characterId", characterId }, { "skillId", skillId } });
+    public ResponseEnvelope SkillsAcquire(string characterId, string skillId) => Send(CommandNames.SkillsAcquire, new Dictionary<string, object> { { "characterId", characterId }, { "skillCode", skillId } });
 
     public ResponseEnvelope CombatVisibleState(string sessionId) => Send(CommandNames.CombatVisibleState, new Dictionary<string, object> { { "sessionId", sessionId } });
     public ResponseEnvelope CombatTimeline(string sessionId) => Send(CommandNames.CombatTimeline, new Dictionary<string, object> { { "sessionId", sessionId } });
