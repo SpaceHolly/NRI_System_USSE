@@ -37,6 +37,8 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
                     <Button x:Name="ConnectionButton" Content="Сервер" Command="{Binding ToggleConnectionPopupCommand}"/>
                     <Button x:Name="AuthButton" Content="Вход" Command="{Binding ToggleAuthPopupCommand}"/>
+                    <Button x:Name="RegisterButton" Content="Регистрация" Command="{Binding ToggleRegisterPopupCommand}"/>
+                    <Button x:Name="PasswordButton" Content="Пароль" Command="{Binding ToggleChangePasswordPopupCommand}"/>
                     <Button Content="Обновить" Command="{Binding RefreshCommand}"/>
                 </StackPanel>
             </Grid>
@@ -229,6 +231,36 @@
                     <TextBlock Text="Пароль" Margin="0,6,0,0"/>
                     <PasswordBox x:Name="AuthPasswordBox" PasswordChanged="OnAuthPasswordChanged"/>
                     <Button Content="Войти" Command="{Binding LoginCommand}" Margin="0,10,0,0"/>
+                    <WrapPanel Margin="0,8,0,0">
+                        <Button Content="Регистрация" Command="{Binding ToggleRegisterPopupCommand}"/>
+                        <Button Content="Смена пароля" Command="{Binding ToggleChangePasswordPopupCommand}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <Popup IsOpen="{Binding IsRegisterPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=RegisterButton}" StaysOpen="False">
+            <Border Style="{StaticResource CardStyle}" Width="320" Background="{StaticResource PanelAltBrush}">
+                <StackPanel>
+                    <TextBlock Text="Регистрация" FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"/>
+                    <TextBlock Text="Логин"/>
+                    <TextBox Text="{Binding RegisterLoginText, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Пароль" Margin="0,6,0,0"/>
+                    <PasswordBox x:Name="RegisterPasswordBox" PasswordChanged="OnRegisterPasswordChanged"/>
+                    <Button Content="Зарегистрировать" Command="{Binding RegisterCommand}" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <Popup IsOpen="{Binding IsChangePasswordPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=PasswordButton}" StaysOpen="False">
+            <Border Style="{StaticResource CardStyle}" Width="320" Background="{StaticResource PanelAltBrush}">
+                <StackPanel>
+                    <TextBlock Text="Смена пароля" FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"/>
+                    <TextBlock Text="Старый пароль"/>
+                    <TextBox Text="{Binding OldPasswordText, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Новый пароль" Margin="0,6,0,0"/>
+                    <TextBox Text="{Binding NewPasswordText, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button Content="Сменить пароль" Command="{Binding ChangePasswordCommand}" Margin="0,10,0,0"/>
                 </StackPanel>
             </Border>
         </Popup>

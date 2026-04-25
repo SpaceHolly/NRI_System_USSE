@@ -52,11 +52,17 @@ public class ChatClientMainViewModel : ViewModelBase
     private bool _isAuthenticated;
     private bool _isConnectionPopupOpen;
     private bool _isAuthPopupOpen;
+    private bool _isRegisterPopupOpen;
+    private bool _isChangePasswordPopupOpen;
 
     private string _serverHostInput;
     private string _serverPortInput;
     private string _loginText = string.Empty;
     private string _passwordText = string.Empty;
+    private string _registerLoginText = string.Empty;
+    private string _registerPasswordText = string.Empty;
+    private string _oldPasswordText = string.Empty;
+    private string _newPasswordText = string.Empty;
     private string _chatTextInput = string.Empty;
     private string _chatSessionId = "default";
     private string _chatTypeInput = "Общее";
@@ -71,13 +77,18 @@ public class ChatClientMainViewModel : ViewModelBase
     {
         var config = App.ClientConfig ?? new ClientConfig();
         _serverHostInput = config.ServerHost;
-        _serverPortInput = config.ServerPort.ToString(CultureInfo.InvariantCulture);
+        var resolvedPort = config.ServerPort > 0 ? config.ServerPort : 4600;
+        _serverPortInput = resolvedPort.ToString(CultureInfo.InvariantCulture);
         _client = new JsonTcpClient(config, _session);
         _api = new CommandApi(_client);
 
         ToggleConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
         ToggleAuthPopupCommand = new RelayCommand(() => IsAuthPopupOpen = !IsAuthPopupOpen);
+        ToggleRegisterPopupCommand = new RelayCommand(() => IsRegisterPopupOpen = !IsRegisterPopupOpen);
+        ToggleChangePasswordPopupCommand = new RelayCommand(() => IsChangePasswordPopupOpen = !IsChangePasswordPopupOpen);
         ConnectToServerCommand = new RelayCommand(ConnectToServer);
+        RegisterCommand = new RelayCommand(Register);
+        ChangePasswordCommand = new RelayCommand(ChangePassword);
         LoginCommand = new RelayCommand(Login);
         RefreshCommand = new RelayCommand(RefreshAll);
         SendChatCommand = new RelayCommand(SendChat);
@@ -98,7 +109,11 @@ public class ChatClientMainViewModel : ViewModelBase
 
     public ICommand ToggleConnectionPopupCommand { get; }
     public ICommand ToggleAuthPopupCommand { get; }
+    public ICommand ToggleRegisterPopupCommand { get; }
+    public ICommand ToggleChangePasswordPopupCommand { get; }
     public ICommand ConnectToServerCommand { get; }
+    public ICommand RegisterCommand { get; }
+    public ICommand ChangePasswordCommand { get; }
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand SendChatCommand { get; }
@@ -119,11 +134,17 @@ public class ChatClientMainViewModel : ViewModelBase
     public bool IsAuthenticated { get => _isAuthenticated; set { _isAuthenticated = value; Notify(); Notify(nameof(UserSummary)); } }
     public bool IsConnectionPopupOpen { get => _isConnectionPopupOpen; set { _isConnectionPopupOpen = value; Notify(); } }
     public bool IsAuthPopupOpen { get => _isAuthPopupOpen; set { _isAuthPopupOpen = value; Notify(); } }
+    public bool IsRegisterPopupOpen { get => _isRegisterPopupOpen; set { _isRegisterPopupOpen = value; Notify(); } }
+    public bool IsChangePasswordPopupOpen { get => _isChangePasswordPopupOpen; set { _isChangePasswordPopupOpen = value; Notify(); } }
 
     public string ServerHostInput { get => _serverHostInput; set { _serverHostInput = value; Notify(); } }
     public string ServerPortInput { get => _serverPortInput; set { _serverPortInput = value; Notify(); } }
     public string LoginText { get => _loginText; set { _loginText = value; Notify(); Notify(nameof(UserSummary)); } }
     public string PasswordText { get => _passwordText; set { _passwordText = value; Notify(); } }
+    public string RegisterLoginText { get => _registerLoginText; set { _registerLoginText = value; Notify(); } }
+    public string RegisterPasswordText { get => _registerPasswordText; set { _registerPasswordText = value; Notify(); } }
+    public string OldPasswordText { get => _oldPasswordText; set { _oldPasswordText = value; Notify(); } }
+    public string NewPasswordText { get => _newPasswordText; set { _newPasswordText = value; Notify(); } }
     public string ChatTextInput { get => _chatTextInput; set { _chatTextInput = value; Notify(); } }
     public string ChatSessionId { get => _chatSessionId; set { _chatSessionId = value; Notify(); } }
     public string ChatTypeInput { get => _chatTypeInput; set { _chatTypeInput = value; Notify(); } }
@@ -146,6 +167,71 @@ public class ChatClientMainViewModel : ViewModelBase
             StatusText = $"Сервер доступен: {ServerHostInput}:{ServerPortInput}";
             IsConnectionPopupOpen = false;
             ClientLogService.Instance.Info($"connect.manual.success endpoint={ServerHostInput}:{ServerPortInput}");
+        }
+        catch (Exception ex)
+        {
+            HandleConnectionError(ex);
+        }
+    }
+
+
+    private void Register()
+    {
+        if (string.IsNullOrWhiteSpace(RegisterLoginText) || string.IsNullOrWhiteSpace(RegisterPasswordText))
+        {
+            StatusText = "Укажите логин и пароль для регистрации.";
+            return;
+        }
+
+        try
+        {
+            EnsureConnected();
+            var result = _api.Register(RegisterLoginText.Trim(), RegisterPasswordText);
+            StatusText = result.Status == ResponseStatus.Ok
+                ? "Регистрация выполнена. Можно входить."
+                : $"Регистрация не выполнена: {result.Message}";
+            ClientLogService.Instance.Info($"register.result status={result.Status} login={RegisterLoginText}");
+            if (result.Status == ResponseStatus.Ok)
+            {
+                LoginText = RegisterLoginText.Trim();
+                RegisterPasswordText = string.Empty;
+                IsRegisterPopupOpen = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            HandleConnectionError(ex);
+        }
+    }
+
+    private void ChangePassword()
+    {
+        if (!IsAuthenticated)
+        {
+            StatusText = "Сначала выполните вход в аккаунт.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(OldPasswordText) || string.IsNullOrWhiteSpace(NewPasswordText))
+        {
+            StatusText = "Укажите старый и новый пароль.";
+            return;
+        }
+
+        try
+        {
+            EnsureConnected();
+            var result = _api.ChangePassword(OldPasswordText, NewPasswordText);
+            StatusText = result.Status == ResponseStatus.Ok
+                ? "Пароль успешно изменён."
+                : $"Смена пароля не выполнена: {result.Message}";
+            ClientLogService.Instance.Info($"changePassword.result status={result.Status}");
+            if (result.Status == ResponseStatus.Ok)
+            {
+                OldPasswordText = string.Empty;
+                NewPasswordText = string.Empty;
+                IsChangePasswordPopupOpen = false;
+            }
         }
         catch (Exception ex)
         {

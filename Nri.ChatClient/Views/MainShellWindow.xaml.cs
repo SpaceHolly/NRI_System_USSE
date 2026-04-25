@@ -45,6 +45,15 @@ public partial class MainShellWindow : Window
         }
     }
 
+
+    private void OnRegisterPasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is ChatClientMainViewModel vm && sender is PasswordBox box)
+        {
+            vm.RegisterPasswordText = box.Password;
+        }
+    }
+
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ChatClientMainViewModel.IsAuthenticated))
