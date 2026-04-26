@@ -46,6 +46,7 @@ public class TcpJsonServer
     private readonly ConnectionManager _connections = new ConnectionManager();
     private readonly CancellationTokenSource _cts = new CancellationTokenSource();
     private TcpListener? _listener;
+    private volatile bool _isRunning;
 
     public TcpJsonServer(ServerConfig config, IServerLogger logger, CommandDispatcher dispatcher, SessionManager sessionManager)
     {
@@ -55,10 +56,16 @@ public class TcpJsonServer
         _sessionManager = sessionManager;
     }
 
+
+    public bool IsRunning => _isRunning;
+    public int OnlineConnections => _connections.Count;
+    public string ListeningEndpoint => $"{_config.Host}:{_config.Port}";
+
     public void Start()
     {
         _listener = new TcpListener(IPAddress.Parse(_config.Host), _config.Port);
         _listener.Start();
+        _isRunning = true;
         _logger.Debug($"TCP listener started at {_config.Host}:{_config.Port}");
         new Thread(AcceptLoop) { IsBackground = true }.Start();
     }
@@ -67,6 +74,7 @@ public class TcpJsonServer
     {
         _cts.Cancel();
         _listener?.Stop();
+        _isRunning = false;
         _logger.Debug("TCP listener stopped.");
     }
 
