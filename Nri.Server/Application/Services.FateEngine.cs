@@ -33,7 +33,7 @@ public partial class ServiceHub
             Seed = PayloadReader.GetInt(context.Request.Payload, "seed")
         };
 
-        var settings = BuildTestSettings(context.Request.Payload);
+        var settings = BuildRollSettings(context.Request.Payload);
         var result = new FateEnginePipeline().Process(request, settings);
 
         if (!result.Applied)
@@ -45,15 +45,67 @@ public partial class ServiceHub
         return Ok("Fate test roll executed.", FateResultPayload(result));
     }
 
-    private static FateEngineSettings BuildTestSettings(IDictionary<string, object> payload)
+    public ResponseEnvelope FateStatusGet(CommandContext context)
     {
-        var settings = FateEngineSettings.CreateDefault();
+        GetCurrentAccount(context);
+
+        var settings = _fateState.GetSnapshot();
+        var enabledLayers = settings.Layers.Where(x => x.Enabled).Select(x => x.LayerNumber).Cast<object>().ToArray();
+        var flatModifiers = settings.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier).Cast<object>().ToArray();
+
+        _logger.Debug("fate.settings.get");
+        return Ok("Fate status loaded.", new Dictionary<string, object>
+        {
+            { "enabled", settings.Enabled },
+            { "layerCount", settings.Layers.Count },
+            { "enabledLayers", enabledLayers },
+            { "flatModifiers", flatModifiers }
+        });
+    }
+
+    public ResponseEnvelope FateSettingsGet(CommandContext context)
+    {
+        GetCurrentAccount(context);
+        var settings = _fateState.GetSnapshot();
+        _logger.Debug("fate.settings.get");
+        return Ok("Fate settings loaded.", FateSettingsPayload(settings));
+    }
+
+    public ResponseEnvelope FateSettingsUpdate(CommandContext context)
+    {
+        GetCurrentAccount(context);
+
+        var current = _fateState.GetSnapshot();
+        var settings = ParseSettingsFromPayload(context.Request.Payload, current);
+        var updated = _fateState.Update(settings);
+
+        if (current.Enabled != updated.Enabled)
+        {
+            _logger.Debug($"fate.engine.enabled value={updated.Enabled}");
+        }
+
+        foreach (var layer in updated.Layers.OrderBy(x => x.LayerNumber))
+        {
+            var before = current.Layers[layer.LayerNumber - 1];
+            if (before.Enabled != layer.Enabled || before.FlatModifier != layer.FlatModifier)
+            {
+                _logger.Debug($"fate.layer.update layer={layer.LayerNumber} enabled={layer.Enabled} modifier={layer.FlatModifier}");
+            }
+        }
+
+        _logger.Debug($"fate.settings.update enabled={updated.Enabled} layers={updated.Layers.Count}");
+        return Ok("Fate settings updated.", FateSettingsPayload(updated));
+    }
+
+    private FateEngineSettings BuildRollSettings(IDictionary<string, object> payload)
+    {
         var flatModifiers = PayloadReader.GetList(payload, "flatModifiers");
         if (flatModifiers == null)
         {
-            return settings.Normalize();
+            return _fateState.GetSnapshot();
         }
 
+        var settings = FateEngineSettings.CreateDefault();
         if (flatModifiers.Count > FateEngineSettings.LayerCount)
         {
             throw new ArgumentException($"flatModifiers supports up to {FateEngineSettings.LayerCount} values.");
@@ -70,6 +122,105 @@ public partial class ServiceHub
         }
 
         return settings.Normalize();
+    }
+
+    private static FateEngineSettings ParseSettingsFromPayload(IDictionary<string, object> payload, FateEngineSettings fallback)
+    {
+        var result = new FateEngineSettings
+        {
+            Enabled = fallback.Enabled,
+            Layers = fallback.Layers
+                .Select(layer => new FateLayerSettings
+                {
+                    LayerNumber = layer.LayerNumber,
+                    DisplayName = layer.DisplayName,
+                    Enabled = layer.Enabled,
+                    Intensity = layer.Intensity,
+                    Mode = layer.Mode,
+                    FlatModifier = layer.FlatModifier
+                })
+                .ToList()
+        };
+
+        var enabled = PayloadReader.GetBool(payload, "enabled");
+        if (payload.ContainsKey("enabled"))
+        {
+            result.Enabled = enabled;
+        }
+
+        var layers = PayloadReader.GetList(payload, "layers");
+        if (layers != null)
+        {
+            foreach (var item in layers)
+            {
+                if (item is not IDictionary<string, object> rawLayer)
+                {
+                    continue;
+                }
+
+                var layerNumber = PayloadReader.GetInt(rawLayer, "layerNumber")
+                    ?? throw new ArgumentException("Each layer must include layerNumber.");
+                if (layerNumber < 1 || layerNumber > FateEngineSettings.LayerCount)
+                {
+                    throw new ArgumentException($"layerNumber must be 1..{FateEngineSettings.LayerCount}.");
+                }
+
+                var layer = result.Layers[layerNumber - 1];
+
+                if (rawLayer.ContainsKey("enabled"))
+                {
+                    layer.Enabled = PayloadReader.GetBool(rawLayer, "enabled");
+                }
+
+                if (rawLayer.ContainsKey("flatModifier"))
+                {
+                    layer.FlatModifier = PayloadReader.GetInt(rawLayer, "flatModifier")
+                        ?? throw new ArgumentException($"layers[{layerNumber}].flatModifier must be integer.");
+                }
+
+                if (rawLayer.ContainsKey("intensity"))
+                {
+                    layer.Intensity = PayloadReader.GetInt(rawLayer, "intensity")
+                        ?? throw new ArgumentException($"layers[{layerNumber}].intensity must be integer.");
+                }
+
+                if (rawLayer.ContainsKey("mode"))
+                {
+                    layer.Mode = PayloadReader.GetString(rawLayer, "mode") ?? layer.Mode;
+                }
+
+                if (rawLayer.ContainsKey("displayName"))
+                {
+                    layer.DisplayName = PayloadReader.GetString(rawLayer, "displayName") ?? layer.DisplayName;
+                }
+            }
+        }
+
+        return result.Normalize();
+    }
+
+    private static Dictionary<string, object> FateSettingsPayload(FateEngineSettings settings)
+    {
+        return new Dictionary<string, object>
+        {
+            { "enabled", settings.Enabled },
+            {
+                "layers",
+                settings.Layers
+                    .OrderBy(x => x.LayerNumber)
+                    .Select(layer => new Dictionary<string, object>
+                    {
+                        { "layerNumber", layer.LayerNumber },
+                        { "displayName", layer.DisplayName },
+                        { "enabled", layer.Enabled },
+                        { "flatModifier", layer.FlatModifier },
+                        { "intensity", layer.Intensity },
+                        { "mode", layer.Mode }
+                    })
+                    .Cast<object>()
+                    .ToArray()
+            }
+        };
     }
 
     private static Dictionary<string, object> FateResultPayload(FateEngineResult result)

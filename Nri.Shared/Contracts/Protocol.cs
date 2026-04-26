@@ -149,6 +149,9 @@ public static class CommandNames
     public const string DiceRollTest = "dice.roll.test";
     public const string DiceTestGetCurrent = "dice.test.getCurrent";
     public const string FateTestRoll = "fate.test.roll";
+    public const string FateStatusGet = "fate.status.get";
+    public const string FateSettingsGet = "fate.settings.get";
+    public const string FateSettingsUpdate = "fate.settings.update";
     public const string DiceHistory = "dice.history";
     public const string DiceVisibleFeed = "dice.visibleFeed";
     public const string DiceGetDetails = "dice.get.details";

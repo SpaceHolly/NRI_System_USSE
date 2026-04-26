@@ -33,7 +33,7 @@ public sealed class ServerConsoleShell
         Console.WriteLine($"Version: {version}");
         Console.WriteLine($"TCP: listening on {_bootstrap.ListeningEndpoint}");
         Console.WriteLine("MongoDB: connected");
-        Console.WriteLine("Commands: help, status, sessions, fate-test, clear, stop");
+        Console.WriteLine("Commands: help, status, sessions, fate-test, fate-status, fate-get, fate-enable, fate-disable, fate-layer, fate-reset, clear, stop");
         Console.Write("> ");
     }
 
@@ -64,6 +64,7 @@ public sealed class ServerConsoleShell
             {
                 Console.WriteLine($"Command error: {ex.Message}");
             }
+
             if (token.IsCancellationRequested)
             {
                 return;
@@ -96,6 +97,24 @@ public sealed class ServerConsoleShell
             case "fate-test":
                 RunFateTest(parts.Skip(1).ToArray());
                 break;
+            case "fate-status":
+                PrintFateStatus();
+                break;
+            case "fate-get":
+                PrintFateSettings();
+                break;
+            case "fate-enable":
+                SetFateEnabled(true);
+                break;
+            case "fate-disable":
+                SetFateEnabled(false);
+                break;
+            case "fate-layer":
+                UpdateFateLayer(parts.Skip(1).ToArray());
+                break;
+            case "fate-reset":
+                ResetFateSettings();
+                break;
             case "clear":
                 Console.Clear();
                 break;
@@ -112,12 +131,17 @@ public sealed class ServerConsoleShell
     private void PrintHelp()
     {
         Console.WriteLine("Available commands:");
-        Console.WriteLine("  help                      Show command list.");
-        Console.WriteLine("  status                    Show server diagnostics summary.");
-        Console.WriteLine("  sessions                  Show active sessions diagnostics.");
-        Console.WriteLine("  fate-test d100 67 1..5    Run Fate Engine test with optional layer modifiers.");
-        Console.WriteLine("  clear                     Clear console.");
-        Console.WriteLine("  stop                      Gracefully stop server.");
+        Console.WriteLine("  help                              Show command list.");
+        Console.WriteLine("  status                            Show server diagnostics summary.");
+        Console.WriteLine("  sessions                          Show active sessions diagnostics.");
+        Console.WriteLine("  fate-test d100 67 [m1..m5]        Run Fate Engine test.");
+        Console.WriteLine("  fate-status                       Show short Fate Engine status.");
+        Console.WriteLine("  fate-get                          Show full Fate Engine settings.");
+        Console.WriteLine("  fate-enable / fate-disable        Toggle Fate Engine.");
+        Console.WriteLine("  fate-layer 1 on|off|mod 10        Update Fate layer settings.");
+        Console.WriteLine("  fate-reset                        Reset Fate settings to default.");
+        Console.WriteLine("  clear                             Clear console.");
+        Console.WriteLine("  stop                              Gracefully stop server.");
     }
 
     private void PrintStatus()
@@ -149,7 +173,84 @@ public sealed class ServerConsoleShell
         }
     }
 
-    private static void RunFateTest(IReadOnlyList<string> args)
+    private void PrintFateStatus()
+    {
+        var settings = _bootstrap.Runtime.FateState.GetSnapshot();
+        var enabled = settings.Layers.Where(x => x.Enabled).Select(x => x.LayerNumber);
+        Console.WriteLine($"Fate enabled: {settings.Enabled}");
+        Console.WriteLine($"Layers: {settings.Layers.Count}");
+        Console.WriteLine($"Enabled layers: {string.Join(", ", enabled)}");
+        Console.WriteLine($"Flat modifiers: {string.Join(", ", settings.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier))}");
+    }
+
+    private void PrintFateSettings()
+    {
+        var settings = _bootstrap.Runtime.FateState.GetSnapshot();
+        Console.WriteLine($"Fate enabled: {settings.Enabled}");
+        foreach (var layer in settings.Layers.OrderBy(x => x.LayerNumber))
+        {
+            Console.WriteLine($"Layer {layer.LayerNumber}: enabled={layer.Enabled} mod={layer.FlatModifier} mode={layer.Mode} intensity={layer.Intensity}");
+        }
+    }
+
+    private void SetFateEnabled(bool enabled)
+    {
+        var settings = _bootstrap.Runtime.FateState.SetEngineEnabled(enabled);
+        Console.WriteLine($"Fate engine enabled={settings.Enabled}");
+    }
+
+    private void ResetFateSettings()
+    {
+        var settings = _bootstrap.Runtime.FateState.ResetToDefault();
+        Console.WriteLine($"Fate settings reset. enabled={settings.Enabled}, layers={settings.Layers.Count}");
+    }
+
+    private void UpdateFateLayer(IReadOnlyList<string> args)
+    {
+        if (args.Count < 2)
+        {
+            Console.WriteLine("Usage: fate-layer <1..5> on|off|mod <value>");
+            return;
+        }
+
+        if (!int.TryParse(args[0], out var layerNumber))
+        {
+            Console.WriteLine("Layer number must be integer.");
+            return;
+        }
+
+        var action = args[1].ToLowerInvariant();
+        if (action == "on")
+        {
+            _bootstrap.Runtime.FateState.SetLayerEnabled(layerNumber, true);
+            Console.WriteLine($"Layer {layerNumber} enabled.");
+            return;
+        }
+
+        if (action == "off")
+        {
+            _bootstrap.Runtime.FateState.SetLayerEnabled(layerNumber, false);
+            Console.WriteLine($"Layer {layerNumber} disabled.");
+            return;
+        }
+
+        if (action == "mod")
+        {
+            if (args.Count < 3 || !int.TryParse(args[2], out var modifier))
+            {
+                Console.WriteLine("Usage: fate-layer <1..5> mod <integer>");
+                return;
+            }
+
+            _bootstrap.Runtime.FateState.SetLayerFlatModifier(layerNumber, modifier);
+            Console.WriteLine($"Layer {layerNumber} modifier set to {modifier}.");
+            return;
+        }
+
+        Console.WriteLine("Usage: fate-layer <1..5> on|off|mod <value>");
+    }
+
+    private void RunFateTest(IReadOnlyList<string> args)
     {
         if (args.Count < 2)
         {
@@ -169,26 +270,35 @@ public sealed class ServerConsoleShell
             return;
         }
 
-        if (args.Count - 2 > FateEngineSettings.LayerCount)
+        FateEngineSettings settings;
+        if (args.Count == 2)
         {
-            Console.WriteLine($"Too many modifiers. Maximum is {FateEngineSettings.LayerCount}.");
-            return;
+            settings = _bootstrap.Runtime.FateState.GetSnapshot();
         }
-
-        var settings = FateEngineSettings.CreateDefault();
-        var modifierCount = Math.Max(args.Count - 2, 0);
-        for (var i = 0; i < modifierCount; i++)
+        else
         {
-            if (!int.TryParse(args[i + 2], out var modifier))
+            if (args.Count - 2 > FateEngineSettings.LayerCount)
             {
-                Console.WriteLine($"Invalid modifier at position {i + 1}.");
+                Console.WriteLine($"Too many modifiers. Maximum is {FateEngineSettings.LayerCount}.");
                 return;
             }
 
-            settings.Layers[i].FlatModifier = modifier;
+            settings = FateEngineSettings.CreateDefault();
+            var modifierCount = args.Count - 2;
+            for (var i = 0; i < modifierCount; i++)
+            {
+                if (!int.TryParse(args[i + 2], out var modifier))
+                {
+                    Console.WriteLine($"Invalid modifier at position {i + 1}.");
+                    return;
+                }
+
+                settings.Layers[i].FlatModifier = modifier;
+            }
+
+            settings.Normalize();
         }
 
-        settings.Normalize();
         var request = new FateEngineRequest
         {
             BaseRoll = baseRoll,
