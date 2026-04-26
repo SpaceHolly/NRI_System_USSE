@@ -84,12 +84,14 @@ public sealed class FateApiClient
             return rows;
         }
 
-        if (response.Payload.TryGetValue("enabled", out var enabledRaw))
+        var payload = UnwrapSettingsRoot(response.Payload);
+
+        if (TryReadValue(payload, "enabled", out var enabledRaw))
         {
             engineEnabled = ConvertToBool(enabledRaw);
         }
 
-        if (!response.Payload.TryGetValue("layers", out var layersRaw))
+        if (!TryReadValue(payload, "layers", out var layersRaw))
         {
             return rows;
         }
@@ -99,6 +101,7 @@ public sealed class FateApiClient
         {
             var map = ToDictionary(item);
             if (map.Count == 0) continue;
+
             var layerNumber = ConvertToInt(ReadValue(map, "layerNumber"));
             if (layerNumber < 1 || layerNumber > 5) continue;
 
@@ -106,7 +109,7 @@ public sealed class FateApiClient
             row.DisplayName = Convert.ToString(ReadValue(map, "displayName")) ?? row.DisplayName;
             row.Enabled = ConvertToBool(ReadValue(map, "enabled"));
             row.FlatModifier = ConvertToInt(ReadValue(map, "flatModifier"));
-            row.Intensity = ConvertToInt(ReadValue(map, "intensity"));
+            row.Intensity = ConvertToDouble(ReadValue(map, "intensity"));
             row.Mode = Convert.ToString(ReadValue(map, "mode")) ?? row.Mode;
         }
 
@@ -125,6 +128,7 @@ public sealed class FateApiClient
         {
             var map = ToDictionary(item);
             if (map.Count == 0) continue;
+
             trace.Add(new FateLayerTraceRow
             {
                 LayerNumber = ConvertToInt(ReadValue(map, "layerNumber")),
@@ -149,7 +153,26 @@ public sealed class FateApiClient
             Payload = payload,
             AuthToken = includeAuth ? AuthToken : null
         };
+
         return _client.Send(request);
+    }
+
+    private static Dictionary<string, object> UnwrapSettingsRoot(Dictionary<string, object> payload)
+    {
+        var root = ToDictionary(payload);
+        foreach (var key in new[] { "settings", "fateSettings", "state" })
+        {
+            if (TryReadValue(root, key, out var nested))
+            {
+                var nestedMap = ToDictionary(nested);
+                if (nestedMap.Count > 0)
+                {
+                    return nestedMap;
+                }
+            }
+        }
+
+        return root;
     }
 
     private static List<FateLayerRow> CreateDefaultLayers()
@@ -161,7 +184,7 @@ public sealed class FateApiClient
                 DisplayName = $"Layer {x}",
                 Enabled = true,
                 FlatModifier = 0,
-                Intensity = 0,
+                Intensity = 1.0,
                 Mode = "flat"
             })
             .ToList();
@@ -169,12 +192,36 @@ public sealed class FateApiClient
 
     private static object? ReadValue(IDictionary<string, object> map, string key)
     {
-        return map.TryGetValue(key, out var value) ? value : null;
+        TryReadValue(map, key, out var value);
+        return value;
+    }
+
+    private static bool TryReadValue(IDictionary<string, object> map, string key, out object? value)
+    {
+        if (map.TryGetValue(key, out value))
+        {
+            return true;
+        }
+
+        var found = map.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(found.Key))
+        {
+            value = found.Value;
+            return true;
+        }
+
+        value = null;
+        return false;
     }
 
     private static int ConvertToInt(object? raw)
     {
         return int.TryParse(Convert.ToString(raw), out var value) ? value : 0;
+    }
+
+    private static double ConvertToDouble(object? raw)
+    {
+        return double.TryParse(Convert.ToString(raw), out var value) ? value : 1.0;
     }
 
     private static bool ConvertToBool(object? raw)
@@ -186,6 +233,7 @@ public sealed class FateApiClient
     {
         var result = new List<object>();
         if (raw is null) return result;
+
         if (raw is object[] array)
         {
             result.AddRange(array);
@@ -208,14 +256,24 @@ public sealed class FateApiClient
 
     private static Dictionary<string, object> ToDictionary(object? raw)
     {
+        if (raw is null)
+        {
+            return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        }
+
         if (raw is Dictionary<string, object> typed)
         {
-            return typed;
+            return new Dictionary<string, object>(typed, StringComparer.OrdinalIgnoreCase);
+        }
+
+        if (raw is IDictionary<string, object> generic)
+        {
+            return new Dictionary<string, object>(generic, StringComparer.OrdinalIgnoreCase);
         }
 
         if (raw is IDictionary dictionary)
         {
-            var result = new Dictionary<string, object>(StringComparer.Ordinal);
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             foreach (DictionaryEntry item in dictionary)
             {
                 var key = Convert.ToString(item.Key);
@@ -226,6 +284,33 @@ public sealed class FateApiClient
             return result;
         }
 
-        return new Dictionary<string, object>(StringComparer.Ordinal);
+        if (raw is IEnumerable enumerable && raw is not string)
+        {
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in enumerable)
+            {
+                if (item == null) continue;
+                if (item is DictionaryEntry pair)
+                {
+                    var key = Convert.ToString(pair.Key);
+                    if (string.IsNullOrWhiteSpace(key)) continue;
+                    result[key] = pair.Value!;
+                    continue;
+                }
+
+                var itemType = item.GetType();
+                var keyProperty = itemType.GetProperty("Key");
+                var valueProperty = itemType.GetProperty("Value");
+                if (keyProperty == null || valueProperty == null) continue;
+
+                var keyValue = Convert.ToString(keyProperty.GetValue(item));
+                if (string.IsNullOrWhiteSpace(keyValue)) continue;
+                result[keyValue] = valueProperty.GetValue(item)!;
+            }
+
+            return result;
+        }
+
+        return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
     }
 }

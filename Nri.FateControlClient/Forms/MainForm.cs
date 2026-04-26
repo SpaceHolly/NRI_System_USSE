@@ -253,12 +253,16 @@ public sealed class MainForm : Form
         var parsedLayers = _api.ParseSettings(response, out var enabled);
         ApplyLayers(parsedLayers);
         _engineEnabled.Checked = enabled;
-        UpdateStatus("Settings loaded.");
+        var mods = string.Join("/", parsedLayers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
+        UpdateStatus($"Settings loaded: enabled={enabled} layers={parsedLayers.Count} mods={mods}");
     }
 
     private void SaveSettings()
     {
         if (!EnsureAuthorized()) return;
+
+        _layersGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+        _layersGrid.EndEdit();
 
         var response = _api.UpdateFateSettings(_engineEnabled.Checked, _layers.ToList());
         if (response.Status != ResponseStatus.Ok)
@@ -267,10 +271,17 @@ public sealed class MainForm : Form
             return;
         }
 
-        var parsed = _api.ParseSettings(response, out var enabled);
-        ApplyLayers(parsed);
+        var loadResponse = _api.GetFateSettings();
+        if (loadResponse.Status != ResponseStatus.Ok)
+        {
+            ShowError($"fate.settings.get after save failed: {loadResponse.Message}");
+            return;
+        }
+
+        var parsedLayers = _api.ParseSettings(loadResponse, out var enabled);
+        ApplyLayers(parsedLayers);
         _engineEnabled.Checked = enabled;
-        UpdateStatus("Settings saved.");
+        UpdateStatus($"Settings saved, reloaded: enabled={enabled} layers={parsedLayers.Count}");
     }
 
     private void ResetAndSaveDefaults()
@@ -343,7 +354,7 @@ public sealed class MainForm : Form
             DisplayName = $"Layer {i}",
             Enabled = true,
             FlatModifier = 0,
-            Intensity = 0,
+            Intensity = 1.0,
             Mode = "flat"
         }).ToList());
     }
@@ -357,7 +368,7 @@ public sealed class MainForm : Form
                 DisplayName = $"Layer {i}",
                 Enabled = true,
                 FlatModifier = 0,
-                Intensity = 0,
+                Intensity = 1.0,
                 Mode = "flat"
             })
             .ToList();
