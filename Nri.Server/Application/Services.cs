@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Driver;
+using Nri.Server.FateEngine;
 using Nri.Server.Infrastructure;
 using Nri.Server.Logging;
 using Nri.Shared.Contracts;
@@ -16,13 +17,15 @@ public partial class ServiceHub
     private readonly INriRepositoryFactory _repositories;
     private readonly SessionManager _sessionManager;
     private readonly IServerLogger _logger;
+    private readonly FateEngineStateService _fateState;
     private readonly string _audioFolderPath;
 
-    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, string audioFolderPath)
+    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, string audioFolderPath)
     {
         _repositories = repositories;
         _sessionManager = sessionManager;
         _logger = logger;
+        _fateState = fateState;
         _audioFolderPath = string.IsNullOrWhiteSpace(audioFolderPath) ? "./audio" : audioFolderPath;
     }
 
