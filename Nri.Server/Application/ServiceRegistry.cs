@@ -212,6 +212,7 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.DiceRollStandard, new DelegateCommandHandler(hub.DiceRollStandard));
         dispatcher.Register(CommandNames.DiceRollTest, new DelegateCommandHandler(hub.DiceRollTest));
         dispatcher.Register(CommandNames.DiceTestGetCurrent, new DelegateCommandHandler(hub.DiceTestGetCurrent));
+        dispatcher.Register(CommandNames.FateTestRoll, new DelegateCommandHandler(hub.FateTestRoll));
         dispatcher.Register(CommandNames.DiceHistory, new DelegateCommandHandler(hub.DiceHistory));
         dispatcher.Register(CommandNames.DiceVisibleFeed, new DelegateCommandHandler(hub.DiceVisibleFeed));
         dispatcher.Register(CommandNames.DiceGetDetails, new DelegateCommandHandler(hub.DiceGetDetails));
