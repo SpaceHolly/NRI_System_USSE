@@ -263,25 +263,19 @@ public sealed class MainForm : Form
 
         _layersGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
         _layersGrid.EndEdit();
+        Validate();
+
+        var modifiers = string.Join("/", _layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
+        UpdateStatus($"Saving: enabled={_engineEnabled.Checked} layers={_layers.Count} mods={modifiers}");
 
         var response = _api.UpdateFateSettings(_engineEnabled.Checked, _layers.ToList());
         if (response.Status != ResponseStatus.Ok)
         {
-            ShowError($"fate.settings.update failed: {response.Message}");
+            ShowError($"fate.settings.update failed: status={response.Status} message={response.Message}");
             return;
         }
 
-        var loadResponse = _api.GetFateSettings();
-        if (loadResponse.Status != ResponseStatus.Ok)
-        {
-            ShowError($"fate.settings.get after save failed: {loadResponse.Message}");
-            return;
-        }
-
-        var parsedLayers = _api.ParseSettings(loadResponse, out var enabled);
-        ApplyLayers(parsedLayers);
-        _engineEnabled.Checked = enabled;
-        UpdateStatus($"Settings saved, reloaded: enabled={enabled} layers={parsedLayers.Count}");
+        UpdateStatus($"Settings saved. status={response.Status} message={response.Message}. Use 'Загрузить' to verify server state.");
     }
 
     private void ResetAndSaveDefaults()

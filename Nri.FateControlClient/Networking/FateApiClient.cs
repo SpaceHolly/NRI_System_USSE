@@ -58,10 +58,17 @@ public sealed class FateApiClient
             .Cast<object>()
             .ToArray();
 
-        return Send(CommandNames.FateSettingsUpdate, new Dictionary<string, object>
+        var settings = new Dictionary<string, object>
         {
             { "enabled", enabled },
             { "layers", payloadLayers }
+        };
+
+        return Send(CommandNames.FateSettingsUpdate, new Dictionary<string, object>
+        {
+            { "enabled", enabled },
+            { "layers", payloadLayers },
+            { "settings", settings }
         });
     }
 
