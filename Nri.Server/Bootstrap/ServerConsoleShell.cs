@@ -76,7 +76,11 @@ public sealed class ServerConsoleShell
 
     private void Execute(string line)
     {
-        var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var parts = line
+            .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => x.Length > 0)
+    .ToArray();
         if (parts.Length == 0)
         {
             return;
