@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Nri.Server.FateEngine;
@@ -75,9 +76,18 @@ public partial class ServiceHub
     {
         GetCurrentAccount(context);
 
+        var payloadKeys = string.Join(",", context.Request.Payload.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+        _logger.Debug($"fate.settings.update payload.keys={payloadKeys}");
+
         var current = _fateState.GetSnapshot();
-        var settings = ParseSettingsFromPayload(context.Request.Payload, current);
+        var settings = ParseSettingsFromPayload(context.Request.Payload, current, out var parsedLayersCount, out var parsedMods, out var unwrapSource, out var rawLayersType, out var rawLayersCount);
         var updated = _fateState.Update(settings);
+
+        _logger.Debug($"fate.settings.update settings.unwrap={unwrapSource}");
+        _logger.Debug($"fate.settings.update rawLayersType={rawLayersType}");
+        _logger.Debug($"fate.settings.update rawLayersCount={rawLayersCount}");
+        _logger.Debug($"fate.settings.update parsedLayersCount={parsedLayersCount}");
+        _logger.Debug($"fate.settings.update parsedMods={parsedMods}");
 
         if (current.Enabled != updated.Enabled)
         {
@@ -93,6 +103,8 @@ public partial class ServiceHub
             }
         }
 
+        var savedMods = string.Join("/", updated.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
+        _logger.Debug($"fate.settings.update savedMods={savedMods}");
         _logger.Debug($"fate.settings.update enabled={updated.Enabled} layers={updated.Layers.Count}");
         return Ok("Fate settings updated.", FateSettingsPayload(updated));
     }
@@ -124,8 +136,21 @@ public partial class ServiceHub
         return settings.Normalize();
     }
 
-    private static FateEngineSettings ParseSettingsFromPayload(IDictionary<string, object> payload, FateEngineSettings fallback)
+    private FateEngineSettings ParseSettingsFromPayload(
+        IDictionary<string, object> payload,
+        FateEngineSettings fallback,
+        out int parsedLayersCount,
+        out string parsedMods,
+        out string unwrapSource,
+        out string rawLayersType,
+        out int rawLayersCount)
     {
+        parsedLayersCount = 0;
+        parsedMods = string.Empty;
+        unwrapSource = "root";
+        rawLayersType = "null";
+        rawLayersCount = 0;
+
         var result = new FateEngineSettings
         {
             Enabled = fallback.Enabled,
@@ -142,61 +167,254 @@ public partial class ServiceHub
                 .ToList()
         };
 
-        var enabled = PayloadReader.GetBool(payload, "enabled");
-        if (payload.ContainsKey("enabled"))
+        var source = ToObjectDictionary(payload);
+        if (TryReadValue(source, "settings", out var settingsRaw))
         {
-            result.Enabled = enabled;
+            var settingsMap = ToObjectDictionary(settingsRaw);
+            if (settingsMap.Count > 0)
+            {
+                source = settingsMap;
+                unwrapSource = "settings";
+            }
         }
 
-        var layers = PayloadReader.GetList(payload, "layers");
-        if (layers != null)
+        if (TryReadValue(source, "enabled", out var enabledRaw))
         {
-            foreach (var item in layers)
+            result.Enabled = ConvertToBool(enabledRaw);
+        }
+
+        TryReadValue(source, "layers", out var layersRaw);
+        rawLayersType = layersRaw?.GetType().FullName ?? "null";
+
+        var layers = ToObjectList(layersRaw);
+        rawLayersCount = layers.Count;
+
+        foreach (var item in layers)
+        {
+            var rawLayer = ToObjectDictionary(item);
+            if (rawLayer.Count == 0)
             {
-                if (item is not IDictionary<string, object> rawLayer)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                var layerNumber = PayloadReader.GetInt(rawLayer, "layerNumber")
-                    ?? throw new ArgumentException("Each layer must include layerNumber.");
-                if (layerNumber < 1 || layerNumber > FateEngineSettings.LayerCount)
-                {
-                    throw new ArgumentException($"layerNumber must be 1..{FateEngineSettings.LayerCount}.");
-                }
+            var layerNumber = ConvertToInt(ReadValue(rawLayer, "layerNumber"));
+            if (layerNumber < 1 || layerNumber > FateEngineSettings.LayerCount)
+            {
+                continue;
+            }
 
-                var layer = result.Layers[layerNumber - 1];
+            var layer = result.Layers[layerNumber - 1];
 
-                if (rawLayer.ContainsKey("enabled"))
-                {
-                    layer.Enabled = PayloadReader.GetBool(rawLayer, "enabled");
-                }
+            if (ContainsKey(rawLayer, "enabled"))
+            {
+                layer.Enabled = ConvertToBool(ReadValue(rawLayer, "enabled"));
+            }
 
-                if (rawLayer.ContainsKey("flatModifier"))
-                {
-                    layer.FlatModifier = PayloadReader.GetInt(rawLayer, "flatModifier")
-                        ?? throw new ArgumentException($"layers[{layerNumber}].flatModifier must be integer.");
-                }
+            if (ContainsKey(rawLayer, "flatModifier"))
+            {
+                layer.FlatModifier = ConvertToInt(ReadValue(rawLayer, "flatModifier"));
+            }
 
-                if (rawLayer.ContainsKey("intensity"))
-                {
-                    layer.Intensity = PayloadReader.GetInt(rawLayer, "intensity")
-                        ?? throw new ArgumentException($"layers[{layerNumber}].intensity must be integer.");
-                }
+            if (ContainsKey(rawLayer, "intensity"))
+            {
+                layer.Intensity = ConvertToInt(ReadValue(rawLayer, "intensity"));
+            }
 
-                if (rawLayer.ContainsKey("mode"))
-                {
-                    layer.Mode = PayloadReader.GetString(rawLayer, "mode") ?? layer.Mode;
-                }
+            if (ContainsKey(rawLayer, "mode"))
+            {
+                layer.Mode = Convert.ToString(ReadValue(rawLayer, "mode")) ?? layer.Mode;
+            }
 
-                if (rawLayer.ContainsKey("displayName"))
+            if (ContainsKey(rawLayer, "displayName"))
+            {
+                layer.DisplayName = Convert.ToString(ReadValue(rawLayer, "displayName")) ?? layer.DisplayName;
+            }
+
+            parsedLayersCount++;
+        }
+
+        parsedMods = string.Join("/", result.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
+        return result.Normalize();
+    }
+
+    private static bool ContainsKey(IDictionary<string, object> map, string key)
+    {
+        return map.ContainsKey(key) || map.Keys.Any(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool TryReadValue(IDictionary<string, object> map, string key, out object? value)
+    {
+        if (map.TryGetValue(key, out value))
+        {
+            return true;
+        }
+
+        var found = map.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(found.Key))
+        {
+            value = found.Value;
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    private static object? ReadValue(IDictionary<string, object> map, string key)
+    {
+        TryReadValue(map, key, out var value);
+        return value;
+    }
+
+    private static int ConvertToInt(object? raw)
+    {
+        if (raw is null)
+        {
+            return 0;
+        }
+
+        if (raw is int i)
+        {
+            return i;
+        }
+
+        if (raw is long l)
+        {
+            return (int)l;
+        }
+
+        if (raw is double d)
+        {
+            return (int)Math.Round(d);
+        }
+
+        if (raw is decimal dc)
+        {
+            return (int)Math.Round(dc);
+        }
+
+        if (double.TryParse(Convert.ToString(raw), out var parsedDouble))
+        {
+            return (int)Math.Round(parsedDouble);
+        }
+
+        return 0;
+    }
+
+    private static bool ConvertToBool(object? raw)
+    {
+        return bool.TryParse(Convert.ToString(raw), out var value) && value;
+    }
+
+    private static List<object> ToObjectList(object? raw)
+    {
+        var result = new List<object>();
+        if (raw is null)
+        {
+            return result;
+        }
+
+        if (raw is IList<object> typedList)
+        {
+            result.AddRange(typedList);
+            return result;
+        }
+
+        if (raw is object[] array)
+        {
+            result.AddRange(array);
+            return result;
+        }
+
+        if (raw is IEnumerable enumerable && raw is not string)
+        {
+            foreach (var item in enumerable)
+            {
+                if (item != null)
                 {
-                    layer.DisplayName = PayloadReader.GetString(rawLayer, "displayName") ?? layer.DisplayName;
+                    result.Add(item);
                 }
             }
         }
 
-        return result.Normalize();
+        return result;
+    }
+
+    private static Dictionary<string, object> ToObjectDictionary(object? raw)
+    {
+        if (raw is null)
+        {
+            return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        if (raw is Dictionary<string, object> direct)
+        {
+            return new Dictionary<string, object>(direct, StringComparer.OrdinalIgnoreCase);
+        }
+
+        if (raw is IDictionary<string, object> generic)
+        {
+            return new Dictionary<string, object>(generic, StringComparer.OrdinalIgnoreCase);
+        }
+
+        if (raw is IDictionary dictionary)
+        {
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                var key = Convert.ToString(entry.Key);
+                if (string.IsNullOrWhiteSpace(key)) continue;
+                result[key] = entry.Value!;
+            }
+
+            return result;
+        }
+
+        if (raw is IEnumerable enumerable && raw is not string)
+        {
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in enumerable)
+            {
+                if (item == null) continue;
+
+                if (item is DictionaryEntry entry)
+                {
+                    var key = Convert.ToString(entry.Key);
+                    if (string.IsNullOrWhiteSpace(key)) continue;
+                    result[key] = entry.Value!;
+                    continue;
+                }
+
+                if (item is object[] arrayPair && arrayPair.Length == 2)
+                {
+                    var key = Convert.ToString(arrayPair[0]);
+                    if (string.IsNullOrWhiteSpace(key)) continue;
+                    result[key] = arrayPair[1]!;
+                    continue;
+                }
+
+                if (item is IList listPair && listPair.Count == 2)
+                {
+                    var key = Convert.ToString(listPair[0]);
+                    if (string.IsNullOrWhiteSpace(key)) continue;
+                    result[key] = listPair[1]!;
+                    continue;
+                }
+
+                var itemType = item.GetType();
+                var keyProperty = itemType.GetProperty("Key");
+                var valueProperty = itemType.GetProperty("Value");
+                if (keyProperty == null || valueProperty == null) continue;
+
+                var reflectedKey = Convert.ToString(keyProperty.GetValue(item));
+                if (string.IsNullOrWhiteSpace(reflectedKey)) continue;
+                result[reflectedKey] = valueProperty.GetValue(item)!;
+            }
+
+            return result;
+        }
+
+        return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
     }
 
     private static Dictionary<string, object> FateSettingsPayload(FateEngineSettings settings)
