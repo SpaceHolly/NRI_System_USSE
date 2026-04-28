@@ -3,6 +3,7 @@ using Nri.Server.Application.Services;
 using Nri.Server.Application.Validation;
 using Nri.Server.Audit;
 using Nri.Server.Bootstrap;
+using Nri.Server.FateEngine;
 using Nri.Server.Handlers.Admin;
 using Nri.Server.Infrastructure;
 using Nri.Server.Logging;
@@ -14,14 +15,16 @@ namespace Nri.Server.Application;
 
 public sealed class ServerRuntime
 {
-    public ServerRuntime(CommandDispatcher dispatcher, SessionManager sessions)
+    public ServerRuntime(CommandDispatcher dispatcher, SessionManager sessions, FateEngineStateService fateState)
     {
         Dispatcher = dispatcher;
         Sessions = sessions;
+        FateState = fateState;
     }
 
     public CommandDispatcher Dispatcher { get; }
     public SessionManager Sessions { get; }
+    public FateEngineStateService FateState { get; }
 }
 
 public static class ServiceRegistry
@@ -32,7 +35,8 @@ public static class ServiceRegistry
         var repositories = new MongoRepositoryFactory(mongo);
         BootstrapAdminInitializer.Ensure(config, repositories, logger);
         var sessions = new SessionManager(config.Tokens, repositories);
-        var hub = new ServiceHub(repositories, sessions, logger, config.AudioFolderPath);
+        var fateState = new FateEngineStateService();
+        var hub = new ServiceHub(repositories, sessions, logger, fateState, config.AudioFolderPath);
         var auditLogService = new AuditLogService(repositories, logger);
         var validationService = new DefinitionValidationService(
             new ClassDefinitionValidator(),
@@ -212,6 +216,12 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.DiceRollStandard, new DelegateCommandHandler(hub.DiceRollStandard));
         dispatcher.Register(CommandNames.DiceRollTest, new DelegateCommandHandler(hub.DiceRollTest));
         dispatcher.Register(CommandNames.DiceTestGetCurrent, new DelegateCommandHandler(hub.DiceTestGetCurrent));
+        dispatcher.Register(CommandNames.FateTestRoll, new DelegateCommandHandler(hub.FateTestRoll));
+        dispatcher.Register(CommandNames.FateStatusGet, new DelegateCommandHandler(hub.FateStatusGet));
+        dispatcher.Register(CommandNames.FateSettingsGet, new DelegateCommandHandler(hub.FateSettingsGet));
+        dispatcher.Register(CommandNames.FateSettingsUpdate, new DelegateCommandHandler(hub.FateSettingsUpdate));
+        dispatcher.Register(CommandNames.FateEffectsList, new DelegateCommandHandler(hub.FateEffectsList));
+        dispatcher.Register(CommandNames.FateEffectsByLayer, new DelegateCommandHandler(hub.FateEffectsByLayer));
         dispatcher.Register(CommandNames.DiceHistory, new DelegateCommandHandler(hub.DiceHistory));
         dispatcher.Register(CommandNames.DiceVisibleFeed, new DelegateCommandHandler(hub.DiceVisibleFeed));
         dispatcher.Register(CommandNames.DiceGetDetails, new DelegateCommandHandler(hub.DiceGetDetails));
@@ -297,6 +307,6 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CharacterLockForceRelease, new DelegateCommandHandler(hub.CharacterLockForceRelease));
         dispatcher.Register(CommandNames.CharacterLockGet, new DelegateCommandHandler(hub.CharacterLockGet));
 
-        return new ServerRuntime(dispatcher, sessions);
+        return new ServerRuntime(dispatcher, sessions, fateState);
     }
 }
