@@ -80,7 +80,7 @@ public sealed class ServerConsoleShell
             .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
             .Select(x => x.Trim())
             .Where(x => x.Length > 0)
-    .ToArray();
+            .ToArray();
         if (parts.Length == 0)
         {
             return;
