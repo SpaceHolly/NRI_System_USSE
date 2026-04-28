@@ -152,6 +152,8 @@ public static class CommandNames
     public const string FateStatusGet = "fate.status.get";
     public const string FateSettingsGet = "fate.settings.get";
     public const string FateSettingsUpdate = "fate.settings.update";
+    public const string FateEffectsList = "fate.effects.list";
+    public const string FateEffectsByLayer = "fate.effects.byLayer";
     public const string DiceHistory = "dice.history";
     public const string DiceVisibleFeed = "dice.visibleFeed";
     public const string DiceGetDetails = "dice.get.details";

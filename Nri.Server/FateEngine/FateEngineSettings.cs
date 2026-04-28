@@ -60,11 +60,24 @@ public sealed class FateEngineSettings
         return new FateLayerSettings
         {
             LayerNumber = layerNumber,
-            DisplayName = $"Layer {layerNumber}",
+            DisplayName = GetDefaultLayerName(layerNumber),
             Enabled = true,
             Intensity = 0,
             Mode = "flat",
             FlatModifier = 0
+        };
+    }
+
+    private static string GetDefaultLayerName(int layerNumber)
+    {
+        return layerNumber switch
+        {
+            1 => "Местность",
+            2 => "Эффекты персонажа",
+            3 => "Предметы",
+            4 => "Психология",
+            5 => "Шкала уверенности",
+            _ => $"Layer {layerNumber}"
         };
     }
 
@@ -73,7 +86,7 @@ public sealed class FateEngineSettings
         return new FateLayerSettings
         {
             LayerNumber = layer.LayerNumber,
-            DisplayName = string.IsNullOrWhiteSpace(layer.DisplayName) ? $"Layer {layer.LayerNumber}" : layer.DisplayName,
+            DisplayName = string.IsNullOrWhiteSpace(layer.DisplayName) ? GetDefaultLayerName(layer.LayerNumber) : layer.DisplayName,
             Enabled = layer.Enabled,
             Intensity = layer.Intensity,
             Mode = string.IsNullOrWhiteSpace(layer.Mode) ? "flat" : layer.Mode,

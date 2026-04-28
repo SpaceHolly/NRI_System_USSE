@@ -10,6 +10,8 @@ namespace Nri.Server.Application;
 
 public partial class ServiceHub
 {
+    private static readonly FateEffectCatalog EffectCatalog = new FateEffectCatalog();
+
     public ResponseEnvelope FateTestRoll(CommandContext context)
     {
         GetCurrentAccount(context);
@@ -44,6 +46,38 @@ public partial class ServiceHub
 
         _logger.Debug($"fate.test.roll baseRoll={result.BaseRoll} dieSides={result.DieSides} applied={result.Applied} fateValue={result.FateValue} layers={result.Layers.Count}");
         return Ok("Fate test roll executed.", FateResultPayload(result));
+    }
+
+    public ResponseEnvelope FateEffectsList(CommandContext context)
+    {
+        GetCurrentAccount(context);
+
+        var items = EffectCatalog.GetAll()
+            .Select(EffectPayload)
+            .Cast<object>()
+            .ToArray();
+
+        return Ok("Fate effects loaded.", new Dictionary<string, object> { { "items", items } });
+    }
+
+    public ResponseEnvelope FateEffectsByLayer(CommandContext context)
+    {
+        GetCurrentAccount(context);
+
+        var layerNumber = PayloadReader.GetInt(context.Request.Payload, "layerNumber")
+            ?? throw new ArgumentException("layerNumber is required.");
+
+        if (layerNumber < 1 || layerNumber > FateEngineSettings.LayerCount)
+        {
+            throw new ArgumentException($"layerNumber must be 1..{FateEngineSettings.LayerCount}.");
+        }
+
+        var items = EffectCatalog.GetByLayer(layerNumber)
+            .Select(EffectPayload)
+            .Cast<object>()
+            .ToArray();
+
+        return Ok("Fate layer effects loaded.", new Dictionary<string, object> { { "items", items } });
     }
 
     public ResponseEnvelope FateStatusGet(CommandContext context)
@@ -415,6 +449,22 @@ public partial class ServiceHub
         }
 
         return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static Dictionary<string, object> EffectPayload(FateLayerEffectDefinition effect)
+    {
+        return new Dictionary<string, object>
+        {
+            { "layerNumber", effect.LayerNumber },
+            { "layerName", effect.LayerName },
+            { "effectCode", effect.EffectCode },
+            { "displayName", effect.DisplayName },
+            { "influenceType", effect.InfluenceType },
+            { "strength", effect.Strength },
+            { "canUseChaos", effect.CanUseChaos },
+            { "canUseAnomaly", effect.CanUseAnomaly },
+            { "description", effect.Description }
+        };
     }
 
     private static Dictionary<string, object> FateSettingsPayload(FateEngineSettings settings)

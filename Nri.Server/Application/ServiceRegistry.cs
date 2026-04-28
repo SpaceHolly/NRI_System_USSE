@@ -220,6 +220,8 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.FateStatusGet, new DelegateCommandHandler(hub.FateStatusGet));
         dispatcher.Register(CommandNames.FateSettingsGet, new DelegateCommandHandler(hub.FateSettingsGet));
         dispatcher.Register(CommandNames.FateSettingsUpdate, new DelegateCommandHandler(hub.FateSettingsUpdate));
+        dispatcher.Register(CommandNames.FateEffectsList, new DelegateCommandHandler(hub.FateEffectsList));
+        dispatcher.Register(CommandNames.FateEffectsByLayer, new DelegateCommandHandler(hub.FateEffectsByLayer));
         dispatcher.Register(CommandNames.DiceHistory, new DelegateCommandHandler(hub.DiceHistory));
         dispatcher.Register(CommandNames.DiceVisibleFeed, new DelegateCommandHandler(hub.DiceVisibleFeed));
         dispatcher.Register(CommandNames.DiceGetDetails, new DelegateCommandHandler(hub.DiceGetDetails));
