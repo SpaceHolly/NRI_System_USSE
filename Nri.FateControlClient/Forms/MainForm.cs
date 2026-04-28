@@ -215,14 +215,18 @@ public sealed class MainForm : Form
         _traceGrid.RowHeadersVisible = false;
         _traceGrid.DataSource = _trace;
 
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Layer", DataPropertyName = "LayerNumber", Width = 60 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", DataPropertyName = "LayerName", Width = 140 });
-        _traceGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Applied", DataPropertyName = "Applied", Width = 70 });
-        _traceGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Allowed", DataPropertyName = "AllowedForDie", Width = 70 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Input", DataPropertyName = "InputValue", Width = 80 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Modifier", DataPropertyName = "Modifier", Width = 90 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Output", DataPropertyName = "OutputValue", Width = 80 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Reason", DataPropertyName = "Reason", Width = 430 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Layer", DataPropertyName = "LayerNumber", Width = 45 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", DataPropertyName = "LayerName", Width = 110 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "EffectCode", DataPropertyName = "EffectCode", Width = 95 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Effect", DataPropertyName = "EffectDisplayName", Width = 120 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "InfluenceType", DataPropertyName = "InfluenceType", Width = 95 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Strength", DataPropertyName = "Strength", Width = 75 });
+        _traceGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Applied", DataPropertyName = "Applied", Width = 55 });
+        _traceGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Allowed", DataPropertyName = "AllowedForDie", Width = 55 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Input", DataPropertyName = "InputValue", Width = 58 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Modifier", DataPropertyName = "Modifier", Width = 62 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Output", DataPropertyName = "OutputValue", Width = 58 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Reason", DataPropertyName = "Reason", Width = 210 });
 
         panel.Controls.Add(dieLabel);
         panel.Controls.Add(_dieSides);
@@ -379,7 +383,7 @@ public sealed class MainForm : Form
             FlatModifier = 0,
             Intensity = 1.0,
             Mode = "flat",
-            EffectCode = "None"
+            EffectCode = i == 1 ? "CalmArea" : i == 5 ? "Empty" : "None"
         }).ToList());
     }
 
@@ -394,7 +398,7 @@ public sealed class MainForm : Form
                 FlatModifier = 0,
                 Intensity = 1.0,
                 Mode = "flat",
-                EffectCode = "None"
+                EffectCode = i == 1 ? "CalmArea" : i == 5 ? "Empty" : "None"
             })
             .ToList();
 

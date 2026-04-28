@@ -57,6 +57,13 @@ public sealed class FateEngineSettings
 
     private static FateLayerSettings CreateDefaultLayer(int layerNumber)
     {
+        var defaultEffectCode = layerNumber switch
+        {
+            1 => "CalmArea",
+            5 => "Empty",
+            _ => "None"
+        };
+
         return new FateLayerSettings
         {
             LayerNumber = layerNumber,
@@ -65,7 +72,7 @@ public sealed class FateEngineSettings
             Intensity = 0,
             Mode = "flat",
             FlatModifier = 0,
-            EffectCode = "None"
+            EffectCode = defaultEffectCode
         };
     }
 

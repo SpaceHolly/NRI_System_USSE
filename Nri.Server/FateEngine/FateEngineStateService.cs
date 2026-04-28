@@ -101,7 +101,8 @@ public sealed class FateEngineStateService
             Enabled = layer.Enabled,
             Intensity = layer.Intensity,
             Mode = layer.Mode,
-            FlatModifier = layer.FlatModifier
+            FlatModifier = layer.FlatModifier,
+            EffectCode = layer.EffectCode
         };
     }
 }

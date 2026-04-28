@@ -514,6 +514,10 @@ public partial class ServiceHub
                     {
                         { "layerNumber", layer.LayerNumber },
                         { "layerName", layer.LayerName },
+                        { "effectCode", layer.EffectCode },
+                        { "effectDisplayName", layer.EffectDisplayName },
+                        { "influenceType", layer.InfluenceType },
+                        { "strength", layer.Strength },
                         { "enabled", layer.Enabled },
                         { "allowedForDie", layer.AllowedForDie },
                         { "applied", layer.Applied },

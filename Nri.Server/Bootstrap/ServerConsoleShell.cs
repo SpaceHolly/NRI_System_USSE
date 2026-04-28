@@ -331,7 +331,14 @@ public sealed class ServerConsoleShell
         foreach (var layer in result.Layers.OrderBy(x => x.LayerNumber))
         {
             var state = layer.Applied ? "applied" : "skipped";
-            Console.WriteLine($"Layer {layer.LayerNumber}: {state} modifier={layer.Modifier} input={layer.InputValue} output={layer.OutputValue} reason={layer.Reason}");
+            Console.WriteLine($"Layer {layer.LayerNumber} — {layer.LayerName}");
+            Console.WriteLine($"  Effect: {layer.EffectCode} / {layer.EffectDisplayName} [{layer.InfluenceType}/{layer.Strength}]");
+            Console.WriteLine($"  Applied: {layer.Applied}");
+            Console.WriteLine($"  Input: {layer.InputValue}");
+            Console.WriteLine($"  Modifier: {layer.Modifier}");
+            Console.WriteLine($"  Output: {layer.OutputValue}");
+            Console.WriteLine($"  Reason: {layer.Reason}");
+            Console.WriteLine($"  State: {state}");
         }
     }
 

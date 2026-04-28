@@ -4,6 +4,8 @@ namespace Nri.Server.FateEngine;
 
 public sealed class FateEnginePipeline
 {
+    private static readonly FateEffectCatalog EffectCatalog = new FateEffectCatalog();
+
     public FateEngineResult Process(FateEngineRequest request, FateEngineSettings? settings)
     {
         if (request is null)
@@ -42,6 +44,7 @@ public sealed class FateEnginePipeline
             {
                 LayerNumber = layer.LayerNumber,
                 LayerName = string.IsNullOrWhiteSpace(layer.DisplayName) ? $"Layer {layer.LayerNumber}" : layer.DisplayName,
+                EffectCode = string.IsNullOrWhiteSpace(layer.EffectCode) ? "None" : layer.EffectCode,
                 Enabled = layer.Enabled,
                 AllowedForDie = allowedForDie,
                 InputValue = currentValue,
@@ -49,10 +52,26 @@ public sealed class FateEnginePipeline
                 Modifier = 0
             };
 
+            var effectDefinition = EffectCatalog.Find(layer.LayerNumber, layerResult.EffectCode);
+            if (effectDefinition != null)
+            {
+                layerResult.EffectDisplayName = effectDefinition.DisplayName;
+                layerResult.InfluenceType = effectDefinition.InfluenceType;
+                layerResult.Strength = effectDefinition.Strength;
+            }
+            else
+            {
+                layerResult.EffectDisplayName = "not found";
+                layerResult.InfluenceType = "Unknown";
+                layerResult.Strength = "Unknown";
+            }
+
             if (!layer.Enabled)
             {
                 layerResult.Applied = false;
-                layerResult.Reason = "Layer disabled in settings.";
+                layerResult.Reason = effectDefinition == null
+                    ? "Layer disabled in settings; effect definition not found."
+                    : "Layer disabled in settings.";
                 result.Layers.Add(layerResult);
                 continue;
             }
@@ -60,7 +79,9 @@ public sealed class FateEnginePipeline
             if (!allowedForDie)
             {
                 layerResult.Applied = false;
-                layerResult.Reason = "Layer is not allowed for current die size.";
+                layerResult.Reason = effectDefinition == null
+                    ? "Layer is not allowed for current die size; effect definition not found."
+                    : "Layer is not allowed for current die size.";
                 result.Layers.Add(layerResult);
                 continue;
             }
@@ -71,7 +92,9 @@ public sealed class FateEnginePipeline
             layerResult.Applied = true;
             layerResult.Modifier = modifier;
             layerResult.OutputValue = currentValue;
-            layerResult.Reason = "Applied flat modifier.";
+            layerResult.Reason = effectDefinition == null
+                ? "Applied flat modifier; effect definition not found."
+                : "Applied flat modifier.";
 
             result.Layers.Add(layerResult);
         }

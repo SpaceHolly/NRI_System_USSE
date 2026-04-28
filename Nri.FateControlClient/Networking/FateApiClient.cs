@@ -180,6 +180,10 @@ public sealed class FateApiClient
             {
                 LayerNumber = ConvertToInt(ReadValue(map, "layerNumber")),
                 LayerName = Convert.ToString(ReadValue(map, "layerName")) ?? string.Empty,
+                EffectCode = Convert.ToString(ReadValue(map, "effectCode")) ?? string.Empty,
+                EffectDisplayName = Convert.ToString(ReadValue(map, "effectDisplayName")) ?? string.Empty,
+                InfluenceType = Convert.ToString(ReadValue(map, "influenceType")) ?? string.Empty,
+                Strength = Convert.ToString(ReadValue(map, "strength")) ?? string.Empty,
                 Applied = ConvertToBool(ReadValue(map, "applied")),
                 AllowedForDie = ConvertToBool(ReadValue(map, "allowedForDie")),
                 InputValue = ConvertToInt(ReadValue(map, "inputValue")),
@@ -233,7 +237,7 @@ public sealed class FateApiClient
                 FlatModifier = 0,
                 Intensity = 1.0,
                 Mode = "flat",
-                EffectCode = "None"
+                EffectCode = x == 1 ? "CalmArea" : x == 5 ? "Empty" : "None"
             })
             .ToList();
     }
