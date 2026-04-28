@@ -8,4 +8,5 @@ public sealed class FateLayerRow
     public int FlatModifier { get; set; }
     public double Intensity { get; set; }
     public string Mode { get; set; } = "flat";
+    public string EffectCode { get; set; } = "None";
 }

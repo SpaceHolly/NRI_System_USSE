@@ -64,7 +64,8 @@ public sealed class FateEngineSettings
             Enabled = true,
             Intensity = 0,
             Mode = "flat",
-            FlatModifier = 0
+            FlatModifier = 0,
+            EffectCode = "None"
         };
     }
 
@@ -90,7 +91,8 @@ public sealed class FateEngineSettings
             Enabled = layer.Enabled,
             Intensity = layer.Intensity,
             Mode = string.IsNullOrWhiteSpace(layer.Mode) ? "flat" : layer.Mode,
-            FlatModifier = layer.FlatModifier
+            FlatModifier = layer.FlatModifier,
+            EffectCode = string.IsNullOrWhiteSpace(layer.EffectCode) ? "None" : layer.EffectCode
         };
     }
 }

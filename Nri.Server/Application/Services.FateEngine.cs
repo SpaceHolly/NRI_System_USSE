@@ -196,7 +196,8 @@ public partial class ServiceHub
                     Enabled = layer.Enabled,
                     Intensity = layer.Intensity,
                     Mode = layer.Mode,
-                    FlatModifier = layer.FlatModifier
+                    FlatModifier = layer.FlatModifier,
+                    EffectCode = layer.EffectCode
                 })
                 .ToList()
         };
@@ -262,6 +263,11 @@ public partial class ServiceHub
             if (ContainsKey(rawLayer, "displayName"))
             {
                 layer.DisplayName = Convert.ToString(ReadValue(rawLayer, "displayName")) ?? layer.DisplayName;
+            }
+
+            if (ContainsKey(rawLayer, "effectCode"))
+            {
+                layer.EffectCode = Convert.ToString(ReadValue(rawLayer, "effectCode")) ?? layer.EffectCode;
             }
 
             parsedLayersCount++;
@@ -483,7 +489,8 @@ public partial class ServiceHub
                         { "enabled", layer.Enabled },
                         { "flatModifier", layer.FlatModifier },
                         { "intensity", layer.Intensity },
-                        { "mode", layer.Mode }
+                        { "mode", layer.Mode },
+                        { "effectCode", layer.EffectCode }
                     })
                     .Cast<object>()
                     .ToArray()

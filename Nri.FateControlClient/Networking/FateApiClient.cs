@@ -41,6 +41,8 @@ public sealed class FateApiClient
 
     public ResponseEnvelope GetFateStatus() => Send(CommandNames.FateStatusGet, new Dictionary<string, object>());
     public ResponseEnvelope GetFateSettings() => Send(CommandNames.FateSettingsGet, new Dictionary<string, object>());
+    public ResponseEnvelope GetFateEffects() => Send(CommandNames.FateEffectsList, new Dictionary<string, object>());
+    public ResponseEnvelope GetFateEffectsByLayer(int layerNumber) => Send(CommandNames.FateEffectsByLayer, new Dictionary<string, object> { { "layerNumber", layerNumber } });
 
     public ResponseEnvelope UpdateFateSettings(bool enabled, IEnumerable<FateLayerRow> layers)
     {
@@ -53,7 +55,8 @@ public sealed class FateApiClient
                 { "enabled", x.Enabled },
                 { "flatModifier", x.FlatModifier },
                 { "intensity", x.Intensity },
-                { "mode", x.Mode }
+                { "mode", x.Mode },
+                { "effectCode", x.EffectCode }
             })
             .Cast<object>()
             .ToArray();
@@ -118,9 +121,46 @@ public sealed class FateApiClient
             row.FlatModifier = ConvertToInt(ReadValue(map, "flatModifier"));
             row.Intensity = ConvertToDouble(ReadValue(map, "intensity"));
             row.Mode = Convert.ToString(ReadValue(map, "mode")) ?? row.Mode;
+            row.EffectCode = Convert.ToString(ReadValue(map, "effectCode")) ?? row.EffectCode;
         }
 
         return rows;
+    }
+
+
+    public List<FateEffectRow> ParseEffects(ResponseEnvelope response)
+    {
+        var effects = new List<FateEffectRow>();
+        if (response.Status != ResponseStatus.Ok)
+        {
+            return effects;
+        }
+
+        if (!TryReadValue(response.Payload, "items", out var itemsRaw))
+        {
+            return effects;
+        }
+
+        foreach (var item in ToObjectList(itemsRaw))
+        {
+            var map = ToDictionary(item);
+            if (map.Count == 0) continue;
+
+            effects.Add(new FateEffectRow
+            {
+                LayerNumber = ConvertToInt(ReadValue(map, "layerNumber")),
+                LayerName = Convert.ToString(ReadValue(map, "layerName")) ?? string.Empty,
+                EffectCode = Convert.ToString(ReadValue(map, "effectCode")) ?? string.Empty,
+                DisplayName = Convert.ToString(ReadValue(map, "displayName")) ?? string.Empty,
+                InfluenceType = Convert.ToString(ReadValue(map, "influenceType")) ?? string.Empty,
+                Strength = Convert.ToString(ReadValue(map, "strength")) ?? string.Empty,
+                CanUseChaos = ConvertToBool(ReadValue(map, "canUseChaos")),
+                CanUseAnomaly = ConvertToBool(ReadValue(map, "canUseAnomaly")),
+                Description = Convert.ToString(ReadValue(map, "description")) ?? string.Empty
+            });
+        }
+
+        return effects.OrderBy(x => x.LayerNumber).ThenBy(x => x.EffectCode).ToList();
     }
 
     public List<FateLayerTraceRow> ParseTrace(ResponseEnvelope response, out int fateValue, out bool applied, out string skippedReason)
@@ -192,7 +232,8 @@ public sealed class FateApiClient
                 Enabled = true,
                 FlatModifier = 0,
                 Intensity = 1.0,
-                Mode = "flat"
+                Mode = "flat",
+                EffectCode = "None"
             })
             .ToList();
     }

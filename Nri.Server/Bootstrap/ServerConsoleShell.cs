@@ -13,6 +13,7 @@ public sealed class ServerConsoleShell
     private readonly ServerBootstrap _bootstrap;
     private readonly DateTime _startedUtc;
     private readonly Action _requestStop;
+    private static readonly FateEffectCatalog EffectCatalog = new FateEffectCatalog();
 
     public ServerConsoleShell(ServerBootstrap bootstrap, DateTime startedUtc, Action requestStop)
     {
@@ -33,7 +34,7 @@ public sealed class ServerConsoleShell
         Console.WriteLine($"Version: {version}");
         Console.WriteLine($"TCP: listening on {_bootstrap.ListeningEndpoint}");
         Console.WriteLine("MongoDB: connected");
-        Console.WriteLine("Commands: help, status, sessions, fate-test, fate-status, fate-get, fate-enable, fate-disable, fate-layer, fate-reset, clear, stop");
+        Console.WriteLine("Commands: help, status, sessions, fate-test, fate-status, fate-get, fate-enable, fate-disable, fate-layer, fate-reset, fate-effects, clear, stop");
         Console.Write("> ");
     }
 
@@ -119,6 +120,9 @@ public sealed class ServerConsoleShell
             case "fate-reset":
                 ResetFateSettings();
                 break;
+            case "fate-effects":
+                PrintFateEffects(parts.Skip(1).ToArray());
+                break;
             case "clear":
                 Console.Clear();
                 break;
@@ -144,6 +148,8 @@ public sealed class ServerConsoleShell
         Console.WriteLine("  fate-enable / fate-disable        Toggle Fate Engine.");
         Console.WriteLine("  fate-layer 1 on|off|mod 10        Update Fate layer settings.");
         Console.WriteLine("  fate-reset                        Reset Fate settings to default.");
+        Console.WriteLine("  fate-effects                      Show all Fate Engine effects.");
+        Console.WriteLine("  fate-effects <1-5>                Show effects for one Fate Engine layer.");
         Console.WriteLine("  clear                             Clear console.");
         Console.WriteLine("  stop                              Gracefully stop server.");
     }
@@ -326,6 +332,45 @@ public sealed class ServerConsoleShell
         {
             var state = layer.Applied ? "applied" : "skipped";
             Console.WriteLine($"Layer {layer.LayerNumber}: {state} modifier={layer.Modifier} input={layer.InputValue} output={layer.OutputValue} reason={layer.Reason}");
+        }
+    }
+
+
+    private void PrintFateEffects(IReadOnlyList<string> args)
+    {
+        if (args.Count == 0)
+        {
+            foreach (var group in EffectCatalog.GetAll().OrderBy(x => x.LayerNumber).GroupBy(x => new { x.LayerNumber, x.LayerName }))
+            {
+                Console.WriteLine($"Layer {group.Key.LayerNumber} — {group.Key.LayerName}");
+                foreach (var effect in group.OrderBy(x => x.EffectCode))
+                {
+                    Console.WriteLine($"  {effect.EffectCode} — {effect.DisplayName} [{effect.InfluenceType}/{effect.Strength}]");
+                }
+
+                Console.WriteLine();
+            }
+
+            return;
+        }
+
+        if (!int.TryParse(args[0], out var layerNumber) || layerNumber < 1 || layerNumber > FateEngineSettings.LayerCount)
+        {
+            Console.WriteLine("Layer number must be between 1 and 5.");
+            return;
+        }
+
+        var items = EffectCatalog.GetByLayer(layerNumber);
+        if (items.Count == 0)
+        {
+            Console.WriteLine($"No effects found for layer {layerNumber}.");
+            return;
+        }
+
+        Console.WriteLine($"Layer {layerNumber} — {items[0].LayerName}");
+        foreach (var effect in items.OrderBy(x => x.EffectCode))
+        {
+            Console.WriteLine($"  {effect.EffectCode} — {effect.DisplayName} [{effect.InfluenceType}/{effect.Strength}]");
         }
     }
 

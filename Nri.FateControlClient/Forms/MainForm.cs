@@ -15,6 +15,7 @@ public sealed class MainForm : Form
 
     private readonly BindingList<FateLayerRow> _layers = new BindingList<FateLayerRow>();
     private readonly BindingList<FateLayerTraceRow> _trace = new BindingList<FateLayerTraceRow>();
+    private readonly BindingList<FateEffectRow> _effects = new BindingList<FateEffectRow>();
 
     private readonly Label _connectionStatus = new Label();
     private readonly Label _loginStatus = new Label();
@@ -22,6 +23,7 @@ public sealed class MainForm : Form
     private readonly CheckBox _engineEnabled = new CheckBox();
     private readonly DataGridView _layersGrid = new DataGridView();
     private readonly DataGridView _traceGrid = new DataGridView();
+    private readonly DataGridView _effectsGrid = new DataGridView();
     private readonly NumericUpDown _dieSides = new NumericUpDown();
     private readonly NumericUpDown _baseRoll = new NumericUpDown();
     private readonly Label _fateResultLabel = new Label();
@@ -101,6 +103,9 @@ public sealed class MainForm : Form
         var saveButton = new Button { Text = "Сохранить", Width = 100 };
         saveButton.Click += (_, __) => SaveSettings();
 
+        var loadEffectsButton = new Button { Text = "Загрузить эффекты", Width = 140 };
+        loadEffectsButton.Click += (_, __) => LoadEffects();
+
         var resetButton = new Button { Text = "Сбросить", Width = 100 };
         resetButton.Click += (_, __) => ResetAndSaveDefaults();
 
@@ -112,6 +117,7 @@ public sealed class MainForm : Form
 
         bottomPanel.Controls.Add(loadButton);
         bottomPanel.Controls.Add(saveButton);
+        bottomPanel.Controls.Add(loadEffectsButton);
         bottomPanel.Controls.Add(resetButton);
         bottomPanel.Controls.Add(closeButton);
         bottomPanel.Controls.Add(_stateStatus);
@@ -130,7 +136,7 @@ public sealed class MainForm : Form
         _layersGrid.Top = 36;
         _layersGrid.Left = 8;
         _layersGrid.Width = 1048;
-        _layersGrid.Height = 290;
+        _layersGrid.Height = 190;
         _layersGrid.AutoGenerateColumns = false;
         _layersGrid.AllowUserToAddRows = false;
         _layersGrid.AllowUserToDeleteRows = false;
@@ -143,9 +149,31 @@ public sealed class MainForm : Form
         _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "FlatModifier", DataPropertyName = "FlatModifier", Width = 110 });
         _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Intensity", DataPropertyName = "Intensity", Width = 100 });
         _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Mode", DataPropertyName = "Mode", Width = 140 });
+        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "EffectCode", DataPropertyName = "EffectCode", Width = 160 });
+
+        _effectsGrid.Top = 234;
+        _effectsGrid.Left = 8;
+        _effectsGrid.Width = 1048;
+        _effectsGrid.Height = 95;
+        _effectsGrid.AutoGenerateColumns = false;
+        _effectsGrid.AllowUserToAddRows = false;
+        _effectsGrid.AllowUserToDeleteRows = false;
+        _effectsGrid.ReadOnly = true;
+        _effectsGrid.RowHeadersVisible = false;
+        _effectsGrid.DataSource = _effects;
+        _effectsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Layer", DataPropertyName = "LayerNumber", Width = 50 });
+        _effectsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "LayerName", DataPropertyName = "LayerName", Width = 130 });
+        _effectsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "EffectCode", DataPropertyName = "EffectCode", Width = 130 });
+        _effectsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "DisplayName", DataPropertyName = "DisplayName", Width = 150 });
+        _effectsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "InfluenceType", DataPropertyName = "InfluenceType", Width = 120 });
+        _effectsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Strength", DataPropertyName = "Strength", Width = 80 });
+        _effectsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Chaos", DataPropertyName = "CanUseChaos", Width = 55 });
+        _effectsGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Anomaly", DataPropertyName = "CanUseAnomaly", Width = 65 });
+        _effectsGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Description", DataPropertyName = "Description", Width = 260 });
 
         panel.Controls.Add(_engineEnabled);
         panel.Controls.Add(_layersGrid);
+        panel.Controls.Add(_effectsGrid);
         return panel;
     }
 
@@ -233,6 +261,7 @@ public sealed class MainForm : Form
         {
             _loginStatus.Text = "Login: authorized";
             UpdateStatus("Login successful.");
+            LoadEffects();
             return;
         }
 
@@ -349,7 +378,8 @@ public sealed class MainForm : Form
             Enabled = true,
             FlatModifier = 0,
             Intensity = 1.0,
-            Mode = "flat"
+            Mode = "flat",
+            EffectCode = "None"
         }).ToList());
     }
 
@@ -363,7 +393,8 @@ public sealed class MainForm : Form
                 Enabled = true,
                 FlatModifier = 0,
                 Intensity = 1.0,
-                Mode = "flat"
+                Mode = "flat",
+                EffectCode = "None"
             })
             .ToList();
 
@@ -376,6 +407,36 @@ public sealed class MainForm : Form
 
         _layers.RaiseListChangedEvents = true;
         _layers.ResetBindings();
+    }
+
+
+    private void LoadEffects()
+    {
+        if (!EnsureAuthorized()) return;
+
+        var response = _api.GetFateEffects();
+        if (response.Status != ResponseStatus.Ok)
+        {
+            ShowError($"fate.effects.list failed: {response.Message}");
+            return;
+        }
+
+        var effects = _api.ParseEffects(response);
+        ApplyEffects(effects);
+        UpdateStatus($"Effects loaded: total={effects.Count}");
+    }
+
+    private void ApplyEffects(System.Collections.Generic.List<FateEffectRow> source)
+    {
+        _effects.RaiseListChangedEvents = false;
+        _effects.Clear();
+        foreach (var effect in source)
+        {
+            _effects.Add(effect);
+        }
+
+        _effects.RaiseListChangedEvents = true;
+        _effects.ResetBindings();
     }
 
     private void ApplyTrace(System.Collections.Generic.List<FateLayerTraceRow> source)
