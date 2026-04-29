@@ -524,6 +524,12 @@ public partial class ServiceHub
                         { "inputValue", layer.InputValue },
                         { "modifier", layer.Modifier },
                         { "outputValue", layer.OutputValue },
+                        { "candidateRolls", layer.CandidateRolls.Cast<object>().ToArray() },
+                        { "selectedValue", layer.SelectedValue },
+                        { "distributionShift", layer.DistributionShift },
+                        { "anomalyShift", layer.AnomalyShift },
+                        { "chaosShift", layer.ChaosShift },
+                        { "calculationDetails", layer.CalculationDetails },
                         { "reason", layer.Reason }
                     })
                     .Cast<object>()

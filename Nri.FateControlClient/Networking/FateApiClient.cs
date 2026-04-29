@@ -187,8 +187,14 @@ public sealed class FateApiClient
                 Applied = ConvertToBool(ReadValue(map, "applied")),
                 AllowedForDie = ConvertToBool(ReadValue(map, "allowedForDie")),
                 InputValue = ConvertToInt(ReadValue(map, "inputValue")),
+                CandidateRolls = string.Join(", ", ToObjectList(ReadValue(map, "candidateRolls")).Select(ConvertToInt)),
+                SelectedValue = ConvertToInt(ReadValue(map, "selectedValue")),
+                DistributionShift = ConvertToInt(ReadValue(map, "distributionShift")),
+                AnomalyShift = ConvertToInt(ReadValue(map, "anomalyShift")),
+                ChaosShift = ConvertToInt(ReadValue(map, "chaosShift")),
                 Modifier = ConvertToInt(ReadValue(map, "modifier")),
                 OutputValue = ConvertToInt(ReadValue(map, "outputValue")),
+                CalculationDetails = Convert.ToString(ReadValue(map, "calculationDetails")) ?? string.Empty,
                 Reason = Convert.ToString(ReadValue(map, "reason")) ?? string.Empty
             });
         }

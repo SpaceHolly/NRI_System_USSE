@@ -216,17 +216,23 @@ public sealed class MainForm : Form
         _traceGrid.DataSource = _trace;
 
         _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Layer", DataPropertyName = "LayerNumber", Width = 45 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", DataPropertyName = "LayerName", Width = 110 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "EffectCode", DataPropertyName = "EffectCode", Width = 95 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Effect", DataPropertyName = "EffectDisplayName", Width = 120 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "InfluenceType", DataPropertyName = "InfluenceType", Width = 95 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Strength", DataPropertyName = "Strength", Width = 75 });
-        _traceGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Applied", DataPropertyName = "Applied", Width = 55 });
-        _traceGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Allowed", DataPropertyName = "AllowedForDie", Width = 55 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Input", DataPropertyName = "InputValue", Width = 58 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Modifier", DataPropertyName = "Modifier", Width = 62 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Output", DataPropertyName = "OutputValue", Width = 58 });
-        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Reason", DataPropertyName = "Reason", Width = 210 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", DataPropertyName = "LayerName", Width = 100 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "EffectCode", DataPropertyName = "EffectCode", Width = 85 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Effect", DataPropertyName = "EffectDisplayName", Width = 110 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "InfluenceType", DataPropertyName = "InfluenceType", Width = 85 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Strength", DataPropertyName = "Strength", Width = 60 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Candidates", DataPropertyName = "CandidateRolls", Width = 120 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Selected", DataPropertyName = "SelectedValue", Width = 60 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "DistShift", DataPropertyName = "DistributionShift", Width = 60 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Anomaly", DataPropertyName = "AnomalyShift", Width = 60 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Chaos", DataPropertyName = "ChaosShift", Width = 60 });
+        _traceGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Applied", DataPropertyName = "Applied", Width = 50 });
+        _traceGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Allowed", DataPropertyName = "AllowedForDie", Width = 50 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Input", DataPropertyName = "InputValue", Width = 55 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Modifier", DataPropertyName = "Modifier", Width = 55 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Output", DataPropertyName = "OutputValue", Width = 55 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Details", DataPropertyName = "CalculationDetails", Width = 220 });
+        _traceGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Reason", DataPropertyName = "Reason", Width = 180 });
 
         panel.Controls.Add(dieLabel);
         panel.Controls.Add(_dieSides);

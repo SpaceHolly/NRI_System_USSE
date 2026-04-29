@@ -335,8 +335,20 @@ public sealed class ServerConsoleShell
             Console.WriteLine($"  Effect: {layer.EffectCode} / {layer.EffectDisplayName} [{layer.InfluenceType}/{layer.Strength}]");
             Console.WriteLine($"  Applied: {layer.Applied}");
             Console.WriteLine($"  Input: {layer.InputValue}");
+            if (layer.CandidateRolls.Count > 1)
+            {
+                Console.WriteLine($"  Candidates: {string.Join(", ", layer.CandidateRolls)}");
+            }
+            Console.WriteLine($"  Selected: {layer.SelectedValue}");
+            Console.WriteLine($"  DistributionShift: {layer.DistributionShift}");
+            Console.WriteLine($"  AnomalyShift: {layer.AnomalyShift}");
+            Console.WriteLine($"  ChaosShift: {layer.ChaosShift}");
             Console.WriteLine($"  Modifier: {layer.Modifier}");
             Console.WriteLine($"  Output: {layer.OutputValue}");
+            if (!string.IsNullOrWhiteSpace(layer.CalculationDetails))
+            {
+                Console.WriteLine($"  Details: {layer.CalculationDetails}");
+            }
             Console.WriteLine($"  Reason: {layer.Reason}");
             Console.WriteLine($"  State: {state}");
         }
