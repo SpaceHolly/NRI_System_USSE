@@ -199,6 +199,26 @@ public sealed class FateEnginePipeline
                 case "chaos":
                     valueAfterInfluence = ApplyChaos(currentValue, request.DieSides, strength, layerResult, seededRandom, calcDetails);
                     break;
+                case "worstoftwo":
+                    valueAfterInfluence = ApplyWorstOfTwo(currentValue, request.DieSides, strength, layerResult, seededRandom, calcDetails);
+                    break;
+                case "removecriticals":
+                    valueAfterInfluence = ApplyRemoveCriticals(currentValue, request.DieSides, layerResult, calcDetails);
+                    break;
+                case "amplifydirection":
+                    valueAfterInfluence = ApplyAmplifyDirection(currentValue, request.DieSides, strength, layerResult, calcDetails);
+                    break;
+                case "suppresschaosandbiasup":
+                    valueAfterInfluence = ApplySuppressChaosAndBiasUp(currentValue, request.DieSides, strength, layerResult, calcDetails);
+                    break;
+                case "amplifychaosandbiasdown":
+                    valueAfterInfluence = ApplyAmplifyChaosAndBiasDown(currentValue, request.DieSides, strength, layerResult, seededRandom, calcDetails);
+                    break;
+                case "confidencecorrectionup":
+                case "confidencecorrectiondown":
+                    specialFallback = true;
+                    calcDetails.Add("Confidence correction requires roll history and is not implemented in test pipeline yet.");
+                    break;
                 default:
                     specialFallback = true;
                     calcDetails.Add("Special influence type is not implemented yet; flat modifier only.");
@@ -234,7 +254,7 @@ public sealed class FateEnginePipeline
             layerResult.SelectedValue = valueAfterInfluence;
             layerResult.CalculationDetails = string.Join(" ", calcDetails);
             layerResult.Reason = specialFallback
-                ? "Special influence type is not implemented yet; flat modifier only."
+                ? calcDetails.LastOrDefault() ?? "Special influence type is not implemented yet; flat modifier only."
                 : effectDefinition == null
                     ? "Applied effect math + flat modifier; effect definition not found."
                     : "Applied effect math + flat modifier.";
@@ -354,6 +374,119 @@ public sealed class FateEnginePipeline
         return currentValue + shift;
     }
 
+    private static int ApplyWorstOfTwo(
+        int currentValue,
+        int dieSides,
+        string strength,
+        FateLayerResult layerResult,
+        Random? seededRandom,
+        List<string> calcDetails)
+    {
+        var extraRolls = StrengthToExtraCandidates(strength);
+        for (var i = 0; i < extraRolls; i++)
+        {
+            layerResult.CandidateRolls.Add(NextInt(1, dieSides + 1, seededRandom));
+        }
+
+        var selected = layerResult.CandidateRolls.Min();
+        calcDetails.Add($"WorstOfTwo {strength}: candidates {string.Join(", ", layerResult.CandidateRolls)} -> selected {selected}.");
+        return selected;
+    }
+
+    private static int ApplyRemoveCriticals(
+        int currentValue,
+        int dieSides,
+        FateLayerResult layerResult,
+        List<string> calcDetails)
+    {
+        if (dieSides <= 2)
+        {
+            calcDetails.Add("RemoveCriticals skipped: dieSides <= 2.");
+            return currentValue;
+        }
+
+        var original = currentValue;
+        var value = currentValue;
+        if (value <= 1)
+        {
+            value = 2;
+        }
+
+        if (value >= dieSides)
+        {
+            value = dieSides - 1;
+        }
+
+        layerResult.DistributionShift += value - original;
+        if (value != original)
+        {
+            calcDetails.Add($"RemoveCriticals applied: value {original} clamped to {value} to suppress critical/anomalous boundary crossing.");
+        }
+        else
+        {
+            calcDetails.Add("RemoveCriticals checked: value is inside non-critical range.");
+        }
+
+        return value;
+    }
+
+    private static int ApplyAmplifyDirection(
+        int currentValue,
+        int dieSides,
+        string strength,
+        FateLayerResult layerResult,
+        List<string> calcDetails)
+    {
+        var percent = StrengthPercentAmplify(strength);
+        var midpoint = (dieSides + 1) / 2.0;
+        var distance = currentValue - midpoint;
+        var shift = (int)Math.Round(distance * percent);
+        layerResult.DistributionShift += shift;
+        if (shift > 0)
+        {
+            calcDetails.Add($"AmplifyDirection {strength}: value above midpoint, amplified upward.");
+        }
+        else if (shift < 0)
+        {
+            calcDetails.Add($"AmplifyDirection {strength}: value below midpoint, amplified downward.");
+        }
+        else
+        {
+            calcDetails.Add($"AmplifyDirection {strength}: value near midpoint, minimal change.");
+        }
+
+        return currentValue + shift;
+    }
+
+    private static int ApplySuppressChaosAndBiasUp(
+        int currentValue,
+        int dieSides,
+        string strength,
+        FateLayerResult layerResult,
+        List<string> calcDetails)
+    {
+        var stabilized = ApplyPullToMiddle(currentValue, dieSides, StrengthPercentStabilize(strength), layerResult, calcDetails, "SuppressChaosAndBiasUp->StabilizeUp");
+        var softened = stabilized + ComputeTowardTopShift(stabilized, dieSides, StrengthPercentSuppressUp(strength));
+        layerResult.DistributionShift += softened - stabilized;
+        calcDetails.Add("SuppressChaosAndBiasUp: modeled as stabilization plus upward bias.");
+        return softened;
+    }
+
+    private static int ApplyAmplifyChaosAndBiasDown(
+        int currentValue,
+        int dieSides,
+        string strength,
+        FateLayerResult layerResult,
+        Random? seededRandom,
+        List<string> calcDetails)
+    {
+        var chaotic = ApplyChaos(currentValue, dieSides, strength, layerResult, seededRandom, calcDetails);
+        var downShift = ComputeTowardBottomShift(chaotic, dieSides, StrengthPercentSuppressUp(strength));
+        layerResult.DistributionShift += downShift;
+        calcDetails.Add("AmplifyChaosAndBiasDown: modeled as chaos influence plus downward bias.");
+        return chaotic + downShift;
+    }
+
     private static int StrengthToExtraCandidates(string strength)
     {
         return strength.ToLowerInvariant() switch
@@ -383,6 +516,30 @@ public sealed class FateEnginePipeline
             "weak" => 0.10,
             "medium" => 0.20,
             "strong" => 0.30,
+            _ => 0.10
+        };
+    }
+
+    private static double StrengthPercentAmplify(string strength)
+    {
+        return strength.ToLowerInvariant() switch
+        {
+            "weak" => 0.15,
+            "medium" => 0.30,
+            "strong" => 0.45,
+            "special" => 0.60,
+            _ => 0.15
+        };
+    }
+
+    private static double StrengthPercentSuppressUp(string strength)
+    {
+        return strength.ToLowerInvariant() switch
+        {
+            "weak" => 0.10,
+            "medium" => 0.20,
+            "strong" => 0.30,
+            "special" => 0.30,
             _ => 0.10
         };
     }
