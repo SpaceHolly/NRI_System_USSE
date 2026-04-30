@@ -25,10 +25,12 @@ public sealed class MainForm : Form
     private readonly DataGridView _layersGrid = new DataGridView();
     private readonly DataGridView _traceGrid = new DataGridView();
     private readonly DataGridView _effectsGrid = new DataGridView();
+    private readonly ComboBox _selectedLayerEffectCombo = new ComboBox();
+    private readonly TextBox _selectedLayerEffectDescription = new TextBox();
     private readonly NumericUpDown _dieSides = new NumericUpDown();
     private readonly NumericUpDown _baseRoll = new NumericUpDown();
     private readonly Label _fateResultLabel = new Label();
-    private DataGridViewComboBoxColumn? _effectCodeColumn;
+    private bool _updatingLayerEffectUi;
 
     public MainForm()
     {
@@ -163,20 +165,15 @@ public sealed class MainForm : Form
             Width = 140,
             DataSource = ModeOptions
         });
-        _effectCodeColumn = new DataGridViewComboBoxColumn
+        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "EffectCode",
             HeaderText = "EffectCode",
             DataPropertyName = "EffectCode",
-            Width = 160,
-            FlatStyle = FlatStyle.Flat,
-            DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton,
-            DataSource = new BindingList<string>(new[] { "None", "CalmArea", "Empty" })
-        };
-        _layersGrid.Columns.Add(_effectCodeColumn);
-        _layersGrid.EditingControlShowing += LayersGrid_EditingControlShowing;
-        _layersGrid.CellValueChanged += LayersGrid_CellValueChanged;
-        _layersGrid.CellEndEdit += (_, __) => SyncLayerGridValuesToModel();
+            ReadOnly = true,
+            Width = 160
+        });
+        _layersGrid.SelectionChanged += (_, __) => UpdateSelectedLayerEffectEditor();
         _layersGrid.CurrentCellDirtyStateChanged += (_, __) =>
         {
             if (_layersGrid.IsCurrentCellDirty)
@@ -184,6 +181,27 @@ public sealed class MainForm : Form
                 _layersGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
             }
         };
+
+        var selectedLayerLabel = new Label
+        {
+            Left = 8,
+            Top = 332,
+            Width = 220,
+            Text = "Эффект выбранного слоя"
+        };
+
+        _selectedLayerEffectCombo.Left = 230;
+        _selectedLayerEffectCombo.Top = 328;
+        _selectedLayerEffectCombo.Width = 260;
+        _selectedLayerEffectCombo.DropDownStyle = ComboBoxStyle.DropDownList;
+        _selectedLayerEffectCombo.DisplayMember = "Display";
+        _selectedLayerEffectCombo.ValueMember = "Code";
+        _selectedLayerEffectCombo.SelectedValueChanged += SelectedLayerEffectComboOnSelectedValueChanged;
+
+        _selectedLayerEffectDescription.Left = 500;
+        _selectedLayerEffectDescription.Top = 328;
+        _selectedLayerEffectDescription.Width = 556;
+        _selectedLayerEffectDescription.ReadOnly = true;
 
         _effectsGrid.Top = 234;
         _effectsGrid.Left = 8;
@@ -208,6 +226,9 @@ public sealed class MainForm : Form
         panel.Controls.Add(_engineEnabled);
         panel.Controls.Add(_layersGrid);
         panel.Controls.Add(_effectsGrid);
+        panel.Controls.Add(selectedLayerLabel);
+        panel.Controls.Add(_selectedLayerEffectCombo);
+        panel.Controls.Add(_selectedLayerEffectDescription);
         return panel;
     }
 
@@ -455,7 +476,7 @@ public sealed class MainForm : Form
 
         _layers.RaiseListChangedEvents = true;
         _layers.ResetBindings();
-        RefreshEffectComboForAllRows();
+        UpdateSelectedLayerEffectEditor();
     }
 
 
@@ -472,138 +493,138 @@ public sealed class MainForm : Form
 
         var effects = _api.ParseEffects(response);
         ApplyEffects(effects);
-        RefreshEffectComboForAllRows();
+        UpdateSelectedLayerEffectEditor();
         UpdateStatus($"Effects loaded: total={effects.Count}");
     }
 
-    private void LayersGrid_EditingControlShowing(object? sender, DataGridViewEditingControlShowingEventArgs e)
+    private sealed class EffectOption
     {
-        if (_layersGrid.CurrentCell == null || _effectCodeColumn == null)
-        {
-            return;
-        }
-
-        if (_layersGrid.CurrentCell.OwningColumn != _effectCodeColumn)
-        {
-            return;
-        }
-
-        if (e.Control is not ComboBox combo)
-        {
-            return;
-        }
-
-        var row = _layersGrid.Rows[_layersGrid.CurrentCell.RowIndex];
-        var rowData = row.DataBoundItem as FateLayerRow;
-        if (rowData == null)
-        {
-            return;
-        }
-
-        var layerNumber = rowData.LayerNumber;
-        var codes = BuildEffectCodesForLayer(layerNumber);
-
-        combo.DataSource = null;
-        combo.DropDownStyle = ComboBoxStyle.DropDownList;
-        combo.DataSource = codes;
-
-        var current = Convert.ToString(row.Cells[_effectCodeColumn.Index].Value) ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(current) && codes.Contains(current, StringComparer.OrdinalIgnoreCase))
-        {
-            combo.SelectedItem = current;
-        }
+        public string Code { get; set; } = string.Empty;
+        public string Display { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
     }
 
-    private BindingList<string> BuildEffectCodesForLayer(int layerNumber)
+    private BindingList<EffectOption> BuildEffectOptionsForLayer(int layerNumber)
     {
-        var codes = _effects
+        var options = _effects
             .Where(x => x.LayerNumber == layerNumber)
-            .Select(x => x.EffectCode)
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .Select(x => new EffectOption
+            {
+                Code = x.EffectCode,
+                Display = $"{x.EffectCode} — {x.DisplayName}",
+                Description = x.Description
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x.Code))
+            .GroupBy(x => x.Code, StringComparer.OrdinalIgnoreCase)
+            .Select(x => x.First())
+            .OrderBy(x => x.Code, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         foreach (var fallback in GetFallbackEffectCodesForLayer(layerNumber))
         {
-            if (!codes.Contains(fallback, StringComparer.OrdinalIgnoreCase))
+            if (options.All(x => !string.Equals(x.Code, fallback, StringComparison.OrdinalIgnoreCase)))
             {
-                codes.Insert(0, fallback);
+                options.Insert(0, new EffectOption
+                {
+                    Code = fallback,
+                    Display = fallback,
+                    Description = "Fallback value."
+                });
             }
         }
 
-        if (!codes.Contains("None", StringComparer.OrdinalIgnoreCase))
+        if (options.All(x => !string.Equals(x.Code, "None", StringComparison.OrdinalIgnoreCase)))
         {
-            codes.Insert(0, "None");
+            options.Insert(0, new EffectOption
+            {
+                Code = "None",
+                Display = "None",
+                Description = "Fallback value."
+            });
         }
 
-        if (layerNumber == 5 && !codes.Contains("Empty", StringComparer.OrdinalIgnoreCase))
+        if (layerNumber == 5 && options.All(x => !string.Equals(x.Code, "Empty", StringComparison.OrdinalIgnoreCase)))
         {
-            codes.Insert(1, "Empty");
+            options.Insert(1, new EffectOption
+            {
+                Code = "Empty",
+                Display = "Empty",
+                Description = "Fallback value."
+            });
         }
 
+        return new BindingList<EffectOption>(options);
+    }
+
+    private BindingList<string> BuildEffectCodesForLayer(int layerNumber)
+    {
+        var codes = BuildEffectOptionsForLayer(layerNumber)
+            .Select(x => x.Code)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToList();
         return new BindingList<string>(codes);
     }
 
-    private void RefreshEffectComboForAllRows()
+    private void UpdateSelectedLayerEffectEditor()
     {
-        if (_effectCodeColumn == null)
+        if (_layersGrid.CurrentRow?.DataBoundItem is not FateLayerRow layer)
         {
+            _updatingLayerEffectUi = true;
+            _selectedLayerEffectCombo.DataSource = new BindingList<EffectOption>();
+            _selectedLayerEffectDescription.Text = string.Empty;
+            _updatingLayerEffectUi = false;
             return;
         }
 
-        foreach (DataGridViewRow row in _layersGrid.Rows)
+        var options = BuildEffectOptionsForLayer(layer.LayerNumber);
+        if (!string.IsNullOrWhiteSpace(layer.EffectCode) &&
+            options.All(x => !string.Equals(x.Code, layer.EffectCode, StringComparison.OrdinalIgnoreCase)))
         {
-            if (row.DataBoundItem is not FateLayerRow layer)
+            options.Add(new EffectOption
             {
-                continue;
-            }
-
-            var codes = BuildEffectCodesForLayer(layer.LayerNumber);
-            var cell = row.Cells[_effectCodeColumn.Index] as DataGridViewComboBoxCell;
-            if (cell == null)
-            {
-                continue;
-            }
-
-            cell.DataSource = codes;
-            if (!string.IsNullOrWhiteSpace(layer.EffectCode) &&
-                !codes.Contains(layer.EffectCode, StringComparer.OrdinalIgnoreCase))
-            {
-                codes.Add(layer.EffectCode);
-                cell.DataSource = codes;
-            }
-
-            if (string.IsNullOrWhiteSpace(layer.EffectCode))
-            {
-                layer.EffectCode = GetDefaultEffectCodeForLayer(layer.LayerNumber);
-            }
-
-            cell.Value = layer.EffectCode;
+                Code = layer.EffectCode,
+                Display = layer.EffectCode,
+                Description = "Value from current settings."
+            });
         }
+
+        _updatingLayerEffectUi = true;
+        _selectedLayerEffectCombo.DataSource = options;
+        var current = options.FirstOrDefault(x => string.Equals(x.Code, layer.EffectCode, StringComparison.OrdinalIgnoreCase));
+        _selectedLayerEffectCombo.SelectedItem = current ?? options.FirstOrDefault();
+        _selectedLayerEffectDescription.Text = (current ?? options.FirstOrDefault())?.Description ?? string.Empty;
+        _updatingLayerEffectUi = false;
     }
 
-    private void LayersGrid_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
+    private void SelectedLayerEffectComboOnSelectedValueChanged(object? sender, EventArgs e)
     {
-        if (e.RowIndex < 0 || _effectCodeColumn == null)
+        if (_updatingLayerEffectUi)
         {
             return;
         }
 
-        if (_layersGrid.Rows[e.RowIndex].DataBoundItem is not FateLayerRow layer)
+        if (_layersGrid.CurrentRow?.DataBoundItem is not FateLayerRow layer)
         {
             return;
         }
 
-        if (e.ColumnIndex == _effectCodeColumn.Index)
+        var selectedCode = (_selectedLayerEffectCombo.SelectedItem as EffectOption)?.Code
+            ?? Convert.ToString(_selectedLayerEffectCombo.SelectedValue)
+            ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(selectedCode))
         {
-            var value = Convert.ToString(_layersGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value);
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                layer.EffectCode = value;
-                UpdateStatus($"Effect selected: layer={layer.LayerNumber} effect={layer.EffectCode}");
-            }
+            return;
         }
+
+        layer.EffectCode = selectedCode;
+        NormalizeLayerRow(layer);
+        _layers.ResetBindings();
+        _layersGrid.Refresh();
+        _selectedLayerEffectDescription.Text = (_selectedLayerEffectCombo.SelectedItem as EffectOption)?.Description ?? string.Empty;
+        UpdateStatus($"Effect selected: layer={layer.LayerNumber} effect={layer.EffectCode}");
     }
 
     private static string GetDefaultEffectCodeForLayer(int layerNumber)
