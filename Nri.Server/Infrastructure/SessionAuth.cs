@@ -117,6 +117,31 @@ public class SessionManager
         }
     }
 
+
+    public int GetActiveSessionCount()
+    {
+        lock (_sync)
+        {
+            return _sessions.Count;
+        }
+    }
+
+    public IReadOnlyList<AuthSession> GetActiveSessionsSnapshot()
+    {
+        lock (_sync)
+        {
+            return _sessions.Values
+                .Select(x => new AuthSession
+                {
+                    Token = x.Token,
+                    UserId = x.UserId,
+                    ConnectionId = x.ConnectionId,
+                    CreatedUtc = x.CreatedUtc,
+                    ExpiresUtc = x.ExpiresUtc
+                })
+                .ToList();
+        }
+    }
     private void UpsertPresence(AuthSession session, bool online)
     {
         var existing = _repositories.Presence.Find(Builders<SessionUserState>.Filter.Eq(x => x.UserId, session.UserId)).FirstOrDefault();
