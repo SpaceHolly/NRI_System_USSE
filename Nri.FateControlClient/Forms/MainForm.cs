@@ -10,7 +10,7 @@ namespace Nri.FateControlClient.Forms;
 
 public sealed class MainForm : Form
 {
-    private static readonly string[] ModeOptions = { "Normal", "Test", "Disabled", "Debug" };
+    private static readonly string[] ModeOptions = { "flat", "Normal", "Test", "Disabled", "Debug" };
     private readonly JsonTcpClient _tcpClient = new JsonTcpClient();
     private readonly FateApiClient _api;
 
@@ -144,6 +144,11 @@ public sealed class MainForm : Form
         _layersGrid.AllowUserToDeleteRows = false;
         _layersGrid.RowHeadersVisible = false;
         _layersGrid.DataSource = _layers;
+        _layersGrid.DataError += (_, e) =>
+        {
+            e.ThrowException = false;
+            UpdateStatus($"Grid value error: row={e.RowIndex} column={e.ColumnIndex}");
+        };
 
         _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "LayerNumber", DataPropertyName = "LayerNumber", ReadOnly = true, Width = 100 });
         _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "DisplayName", DataPropertyName = "DisplayName", Width = 180 });
@@ -163,7 +168,8 @@ public sealed class MainForm : Form
             DataPropertyName = "EffectCode",
             Width = 160,
             FlatStyle = FlatStyle.Flat,
-            DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton
+            DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton,
+            DataSource = new BindingList<string>(new[] { "None", "CalmArea", "Empty" })
         };
         _layersGrid.Columns.Add(_effectCodeColumn);
         _layersGrid.EditingControlShowing += LayersGrid_EditingControlShowing;
@@ -432,6 +438,11 @@ public sealed class MainForm : Form
             })
             .ToList();
 
+        foreach (var row in normalized)
+        {
+            NormalizeLayerRow(row);
+        }
+
         _layers.RaiseListChangedEvents = false;
         _layers.Clear();
         foreach (var row in normalized)
@@ -494,7 +505,7 @@ public sealed class MainForm : Form
         combo.DataSource = codes;
 
         var current = Convert.ToString(row.Cells[_effectCodeColumn.Index].Value) ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(current) && codes.Contains(current))
+        if (!string.IsNullOrWhiteSpace(current) && codes.Contains(current, StringComparer.OrdinalIgnoreCase))
         {
             combo.SelectedItem = current;
         }
@@ -509,6 +520,14 @@ public sealed class MainForm : Form
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+        foreach (var fallback in GetFallbackEffectCodesForLayer(layerNumber))
+        {
+            if (!codes.Contains(fallback, StringComparer.OrdinalIgnoreCase))
+            {
+                codes.Insert(0, fallback);
+            }
+        }
 
         if (!codes.Contains("None", StringComparer.OrdinalIgnoreCase))
         {
@@ -545,10 +564,56 @@ public sealed class MainForm : Form
             }
 
             cell.DataSource = codes;
-            if (!codes.Contains(layer.EffectCode))
+            if (!codes.Contains(layer.EffectCode, StringComparer.OrdinalIgnoreCase))
             {
-                cell.Value = codes[0];
+                layer.EffectCode = GetDefaultEffectCodeForLayer(layer.LayerNumber);
+                cell.Value = layer.EffectCode;
             }
+        }
+    }
+
+    private static string GetDefaultEffectCodeForLayer(int layerNumber)
+    {
+        return layerNumber switch
+        {
+            1 => "CalmArea",
+            5 => "Empty",
+            _ => "None"
+        };
+    }
+
+    private static string[] GetFallbackEffectCodesForLayer(int layerNumber)
+    {
+        var defaultCode = GetDefaultEffectCodeForLayer(layerNumber);
+        return defaultCode == "None"
+            ? new[] { "None" }
+            : new[] { defaultCode, "None" };
+    }
+
+    private static string NormalizeMode(string mode)
+    {
+        if (string.IsNullOrWhiteSpace(mode))
+        {
+            return "Normal";
+        }
+
+        return ModeOptions.Contains(mode, StringComparer.OrdinalIgnoreCase) ? mode : "Normal";
+    }
+
+    private void NormalizeLayerRow(FateLayerRow row)
+    {
+        row.Mode = NormalizeMode(row.Mode);
+
+        if (string.IsNullOrWhiteSpace(row.EffectCode))
+        {
+            row.EffectCode = GetDefaultEffectCodeForLayer(row.LayerNumber);
+            return;
+        }
+
+        var allowed = BuildEffectCodesForLayer(row.LayerNumber);
+        if (!allowed.Contains(row.EffectCode, StringComparer.OrdinalIgnoreCase))
+        {
+            row.EffectCode = GetDefaultEffectCodeForLayer(row.LayerNumber);
         }
     }
 
