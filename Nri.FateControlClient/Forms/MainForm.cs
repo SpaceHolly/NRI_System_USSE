@@ -150,13 +150,14 @@ public sealed class MainForm : Form
             UpdateStatus($"Grid value error: row={e.RowIndex} column={e.ColumnIndex}");
         };
 
-        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "LayerNumber", DataPropertyName = "LayerNumber", ReadOnly = true, Width = 100 });
-        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "DisplayName", DataPropertyName = "DisplayName", Width = 180 });
-        _layersGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Enabled", DataPropertyName = "Enabled", Width = 90 });
-        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "FlatModifier", DataPropertyName = "FlatModifier", Width = 110 });
-        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Intensity", DataPropertyName = "Intensity", Width = 100 });
+        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "LayerNumber", HeaderText = "LayerNumber", DataPropertyName = "LayerNumber", ReadOnly = true, Width = 100 });
+        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "DisplayName", HeaderText = "DisplayName", DataPropertyName = "DisplayName", Width = 180 });
+        _layersGrid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Enabled", HeaderText = "Enabled", DataPropertyName = "Enabled", Width = 90 });
+        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "FlatModifier", HeaderText = "FlatModifier", DataPropertyName = "FlatModifier", Width = 110 });
+        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Intensity", HeaderText = "Intensity", DataPropertyName = "Intensity", Width = 100 });
         _layersGrid.Columns.Add(new DataGridViewComboBoxColumn
         {
+            Name = "Mode",
             HeaderText = "Mode",
             DataPropertyName = "Mode",
             Width = 140,
@@ -164,6 +165,7 @@ public sealed class MainForm : Form
         });
         _effectCodeColumn = new DataGridViewComboBoxColumn
         {
+            Name = "EffectCode",
             HeaderText = "EffectCode",
             DataPropertyName = "EffectCode",
             Width = 160,
@@ -173,6 +175,8 @@ public sealed class MainForm : Form
         };
         _layersGrid.Columns.Add(_effectCodeColumn);
         _layersGrid.EditingControlShowing += LayersGrid_EditingControlShowing;
+        _layersGrid.CellValueChanged += LayersGrid_CellValueChanged;
+        _layersGrid.CellEndEdit += (_, __) => SyncLayerGridValuesToModel();
         _layersGrid.CurrentCellDirtyStateChanged += (_, __) =>
         {
             if (_layersGrid.IsCurrentCellDirty)
@@ -323,7 +327,7 @@ public sealed class MainForm : Form
         ApplyLayers(parsedLayers);
         _engineEnabled.Checked = enabled;
         var mods = string.Join("/", parsedLayers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
-        UpdateStatus($"Settings loaded: enabled={enabled} layers={parsedLayers.Count} mods={mods}");
+        UpdateStatus($"Settings loaded: enabled={enabled} layers={parsedLayers.Count} mods={mods}. Loaded effects: {BuildEffectSummary(parsedLayers)}");
     }
 
     private void SaveSettings()
@@ -333,9 +337,11 @@ public sealed class MainForm : Form
         _layersGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
         _layersGrid.EndEdit();
         Validate();
+        SyncLayerGridValuesToModel();
 
         var modifiers = string.Join("/", _layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
-        UpdateStatus($"Saving: enabled={_engineEnabled.Checked} layers={_layers.Count} mods={modifiers}");
+        var effectSummary = BuildEffectSummary(_layers);
+        UpdateStatus($"Saving: enabled={_engineEnabled.Checked} layers={_layers.Count} mods={modifiers}. Saving effects: {effectSummary}");
 
         var response = _api.UpdateFateSettings(_engineEnabled.Checked, _layers.ToList());
         if (response.Status != ResponseStatus.Ok)
@@ -344,7 +350,7 @@ public sealed class MainForm : Form
             return;
         }
 
-        UpdateStatus($"Settings saved. status={response.Status} message={response.Message}. Use 'Загрузить' to verify server state.");
+        UpdateStatus($"Settings saved: status={response.Status} message={response.Message}. Sent effects: {effectSummary}");
     }
 
     private void ResetAndSaveDefaults()
@@ -564,10 +570,40 @@ public sealed class MainForm : Form
             }
 
             cell.DataSource = codes;
-            if (!codes.Contains(layer.EffectCode, StringComparer.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(layer.EffectCode) &&
+                !codes.Contains(layer.EffectCode, StringComparer.OrdinalIgnoreCase))
+            {
+                codes.Add(layer.EffectCode);
+                cell.DataSource = codes;
+            }
+
+            if (string.IsNullOrWhiteSpace(layer.EffectCode))
             {
                 layer.EffectCode = GetDefaultEffectCodeForLayer(layer.LayerNumber);
                 cell.Value = layer.EffectCode;
+            }
+        }
+    }
+
+    private void LayersGrid_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex < 0 || _effectCodeColumn == null)
+        {
+            return;
+        }
+
+        if (_layersGrid.Rows[e.RowIndex].DataBoundItem is not FateLayerRow layer)
+        {
+            return;
+        }
+
+        if (e.ColumnIndex == _effectCodeColumn.Index)
+        {
+            var value = Convert.ToString(_layersGrid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                layer.EffectCode = value;
+                UpdateStatus($"Effect selected: layer={layer.LayerNumber} effect={layer.EffectCode}");
             }
         }
     }
@@ -615,6 +651,48 @@ public sealed class MainForm : Form
         {
             row.EffectCode = GetDefaultEffectCodeForLayer(row.LayerNumber);
         }
+    }
+
+    private void SyncLayerGridValuesToModel()
+    {
+        _layersGrid.EndEdit();
+        Validate();
+
+        foreach (DataGridViewRow gridRow in _layersGrid.Rows)
+        {
+            if (gridRow.DataBoundItem is not FateLayerRow layer)
+            {
+                continue;
+            }
+
+            layer.DisplayName = Convert.ToString(gridRow.Cells["DisplayName"].Value) ?? layer.DisplayName;
+            layer.Enabled = ConvertToBool(gridRow.Cells["Enabled"].Value, layer.Enabled);
+            layer.FlatModifier = ConvertToInt(gridRow.Cells["FlatModifier"].Value, layer.FlatModifier);
+            layer.Intensity = ConvertToDouble(gridRow.Cells["Intensity"].Value, layer.Intensity);
+            layer.Mode = Convert.ToString(gridRow.Cells["Mode"].Value) ?? layer.Mode;
+            layer.EffectCode = Convert.ToString(gridRow.Cells["EffectCode"].Value) ?? layer.EffectCode;
+            NormalizeLayerRow(layer);
+        }
+    }
+
+    private static int ConvertToInt(object? value, int fallback)
+    {
+        return int.TryParse(Convert.ToString(value), out var parsed) ? parsed : fallback;
+    }
+
+    private static double ConvertToDouble(object? value, double fallback)
+    {
+        return double.TryParse(Convert.ToString(value), out var parsed) ? parsed : fallback;
+    }
+
+    private static bool ConvertToBool(object? value, bool fallback)
+    {
+        return bool.TryParse(Convert.ToString(value), out var parsed) ? parsed : fallback;
+    }
+
+    private static string BuildEffectSummary(System.Collections.Generic.IEnumerable<FateLayerRow> rows)
+    {
+        return string.Join(" ", rows.OrderBy(x => x.LayerNumber).Select(x => $"layer{x.LayerNumber}={x.EffectCode}"));
     }
 
     private void ApplyEffects(System.Collections.Generic.List<FateEffectRow> source)
