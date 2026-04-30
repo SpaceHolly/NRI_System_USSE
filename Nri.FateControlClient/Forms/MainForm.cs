@@ -10,6 +10,7 @@ namespace Nri.FateControlClient.Forms;
 
 public sealed class MainForm : Form
 {
+    private static readonly string[] ModeOptions = { "Normal", "Test", "Disabled", "Debug" };
     private readonly JsonTcpClient _tcpClient = new JsonTcpClient();
     private readonly FateApiClient _api;
 
@@ -27,6 +28,7 @@ public sealed class MainForm : Form
     private readonly NumericUpDown _dieSides = new NumericUpDown();
     private readonly NumericUpDown _baseRoll = new NumericUpDown();
     private readonly Label _fateResultLabel = new Label();
+    private DataGridViewComboBoxColumn? _effectCodeColumn;
 
     public MainForm()
     {
@@ -148,8 +150,30 @@ public sealed class MainForm : Form
         _layersGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Enabled", DataPropertyName = "Enabled", Width = 90 });
         _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "FlatModifier", DataPropertyName = "FlatModifier", Width = 110 });
         _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Intensity", DataPropertyName = "Intensity", Width = 100 });
-        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Mode", DataPropertyName = "Mode", Width = 140 });
-        _layersGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "EffectCode", DataPropertyName = "EffectCode", Width = 160 });
+        _layersGrid.Columns.Add(new DataGridViewComboBoxColumn
+        {
+            HeaderText = "Mode",
+            DataPropertyName = "Mode",
+            Width = 140,
+            DataSource = ModeOptions
+        });
+        _effectCodeColumn = new DataGridViewComboBoxColumn
+        {
+            HeaderText = "EffectCode",
+            DataPropertyName = "EffectCode",
+            Width = 160,
+            FlatStyle = FlatStyle.Flat,
+            DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton
+        };
+        _layersGrid.Columns.Add(_effectCodeColumn);
+        _layersGrid.EditingControlShowing += LayersGrid_EditingControlShowing;
+        _layersGrid.CurrentCellDirtyStateChanged += (_, __) =>
+        {
+            if (_layersGrid.IsCurrentCellDirty)
+            {
+                _layersGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            }
+        };
 
         _effectsGrid.Top = 234;
         _effectsGrid.Left = 8;
@@ -417,6 +441,7 @@ public sealed class MainForm : Form
 
         _layers.RaiseListChangedEvents = true;
         _layers.ResetBindings();
+        RefreshEffectComboForAllRows();
     }
 
 
@@ -433,7 +458,98 @@ public sealed class MainForm : Form
 
         var effects = _api.ParseEffects(response);
         ApplyEffects(effects);
+        RefreshEffectComboForAllRows();
         UpdateStatus($"Effects loaded: total={effects.Count}");
+    }
+
+    private void LayersGrid_EditingControlShowing(object? sender, DataGridViewEditingControlShowingEventArgs e)
+    {
+        if (_layersGrid.CurrentCell == null || _effectCodeColumn == null)
+        {
+            return;
+        }
+
+        if (_layersGrid.CurrentCell.OwningColumn != _effectCodeColumn)
+        {
+            return;
+        }
+
+        if (e.Control is not ComboBox combo)
+        {
+            return;
+        }
+
+        var row = _layersGrid.Rows[_layersGrid.CurrentCell.RowIndex];
+        var rowData = row.DataBoundItem as FateLayerRow;
+        if (rowData == null)
+        {
+            return;
+        }
+
+        var layerNumber = rowData.LayerNumber;
+        var codes = BuildEffectCodesForLayer(layerNumber);
+
+        combo.DataSource = null;
+        combo.DropDownStyle = ComboBoxStyle.DropDownList;
+        combo.DataSource = codes;
+
+        var current = Convert.ToString(row.Cells[_effectCodeColumn.Index].Value) ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(current) && codes.Contains(current))
+        {
+            combo.SelectedItem = current;
+        }
+    }
+
+    private BindingList<string> BuildEffectCodesForLayer(int layerNumber)
+    {
+        var codes = _effects
+            .Where(x => x.LayerNumber == layerNumber)
+            .Select(x => x.EffectCode)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (!codes.Contains("None", StringComparer.OrdinalIgnoreCase))
+        {
+            codes.Insert(0, "None");
+        }
+
+        if (layerNumber == 5 && !codes.Contains("Empty", StringComparer.OrdinalIgnoreCase))
+        {
+            codes.Insert(1, "Empty");
+        }
+
+        return new BindingList<string>(codes);
+    }
+
+    private void RefreshEffectComboForAllRows()
+    {
+        if (_effectCodeColumn == null)
+        {
+            return;
+        }
+
+        foreach (DataGridViewRow row in _layersGrid.Rows)
+        {
+            if (row.DataBoundItem is not FateLayerRow layer)
+            {
+                continue;
+            }
+
+            var codes = BuildEffectCodesForLayer(layer.LayerNumber);
+            var cell = row.Cells[_effectCodeColumn.Index] as DataGridViewComboBoxCell;
+            if (cell == null)
+            {
+                continue;
+            }
+
+            cell.DataSource = codes;
+            if (!codes.Contains(layer.EffectCode))
+            {
+                cell.Value = codes[0];
+            }
+        }
     }
 
     private void ApplyEffects(System.Collections.Generic.List<FateEffectRow> source)
