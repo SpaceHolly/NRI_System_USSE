@@ -334,22 +334,19 @@ public sealed class MainForm : Form
     {
         if (!EnsureAuthorized()) return;
 
-        _layersGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
-        _layersGrid.EndEdit();
-        Validate();
-        SyncLayerGridValuesToModel();
+        var rowsToSave = ReadLayerRowsFromGrid();
+        var modifiers = string.Join("/", rowsToSave.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
+        var effectSummary = BuildEffectSummary(rowsToSave);
+        UpdateStatus($"Saving: enabled={_engineEnabled.Checked} layers={rowsToSave.Count} mods={modifiers}. Saving effects: {effectSummary}");
 
-        var modifiers = string.Join("/", _layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
-        var effectSummary = BuildEffectSummary(_layers);
-        UpdateStatus($"Saving: enabled={_engineEnabled.Checked} layers={_layers.Count} mods={modifiers}. Saving effects: {effectSummary}");
-
-        var response = _api.UpdateFateSettings(_engineEnabled.Checked, _layers.ToList());
+        var response = _api.UpdateFateSettings(_engineEnabled.Checked, rowsToSave);
         if (response.Status != ResponseStatus.Ok)
         {
             ShowError($"fate.settings.update failed: status={response.Status} message={response.Message}");
             return;
         }
 
+        ApplyLayers(rowsToSave);
         UpdateStatus($"Settings saved: status={response.Status} message={response.Message}. Sent effects: {effectSummary}");
     }
 
@@ -580,8 +577,9 @@ public sealed class MainForm : Form
             if (string.IsNullOrWhiteSpace(layer.EffectCode))
             {
                 layer.EffectCode = GetDefaultEffectCodeForLayer(layer.LayerNumber);
-                cell.Value = layer.EffectCode;
             }
+
+            cell.Value = layer.EffectCode;
         }
     }
 
@@ -646,6 +644,11 @@ public sealed class MainForm : Form
             return;
         }
 
+        if (_effects.Count == 0)
+        {
+            return;
+        }
+
         var allowed = BuildEffectCodesForLayer(row.LayerNumber);
         if (!allowed.Contains(row.EffectCode, StringComparer.OrdinalIgnoreCase))
         {
@@ -653,11 +656,25 @@ public sealed class MainForm : Form
         }
     }
 
-    private void SyncLayerGridValuesToModel()
+    private void CommitGridEdits()
     {
+        if (_layersGrid.IsCurrentCellDirty)
+        {
+            _layersGrid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+        }
+
+        if (_layersGrid.EditingControl is ComboBox combo && _layersGrid.CurrentCell != null)
+        {
+            _layersGrid.CurrentCell.Value = combo.SelectedValue ?? combo.SelectedItem ?? combo.Text;
+        }
+
         _layersGrid.EndEdit();
         Validate();
+    }
 
+    private void SyncLayerGridValuesToModel()
+    {
+        CommitGridEdits();
         foreach (DataGridViewRow gridRow in _layersGrid.Rows)
         {
             if (gridRow.DataBoundItem is not FateLayerRow layer)
@@ -673,6 +690,49 @@ public sealed class MainForm : Form
             layer.EffectCode = Convert.ToString(gridRow.Cells["EffectCode"].Value) ?? layer.EffectCode;
             NormalizeLayerRow(layer);
         }
+    }
+
+    private System.Collections.Generic.List<FateLayerRow> ReadLayerRowsFromGrid()
+    {
+        CommitGridEdits();
+        var result = new System.Collections.Generic.List<FateLayerRow>();
+
+        foreach (DataGridViewRow row in _layersGrid.Rows)
+        {
+            if (row.IsNewRow) continue;
+
+            var layerNumber = ConvertToInt(row.Cells["LayerNumber"].Value, 0);
+            if (layerNumber < 1 || layerNumber > 5) continue;
+
+            var effectCode = Convert.ToString(row.Cells["EffectCode"].Value);
+            if (string.IsNullOrWhiteSpace(effectCode))
+            {
+                effectCode = row.DataBoundItem is FateLayerRow existing
+                    ? existing.EffectCode
+                    : GetDefaultEffectCodeForLayer(layerNumber);
+            }
+
+            var item = new FateLayerRow
+            {
+                LayerNumber = layerNumber,
+                DisplayName = Convert.ToString(row.Cells["DisplayName"].Value) ?? GetDefaultLayerName(layerNumber),
+                Enabled = ConvertToBool(row.Cells["Enabled"].Value, true),
+                FlatModifier = ConvertToInt(row.Cells["FlatModifier"].Value, 0),
+                Intensity = ConvertToDouble(row.Cells["Intensity"].Value, 1.0),
+                Mode = Convert.ToString(row.Cells["Mode"].Value) ?? "Normal",
+                EffectCode = effectCode
+            };
+
+            NormalizeLayerRow(item);
+            result.Add(item);
+        }
+
+        return result.OrderBy(x => x.LayerNumber).ToList();
+    }
+
+    private static string GetDefaultLayerName(int layerNumber)
+    {
+        return $"Layer {layerNumber}";
     }
 
     private static int ConvertToInt(object? value, int fallback)
