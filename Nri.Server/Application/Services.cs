@@ -2416,6 +2416,7 @@ public partial class ServiceHub
         if (!Enum.TryParse(visibilityRaw, true, out RequestVisibility visibility)) visibility = RequestVisibility.Public;
         var formula = DiceFormulaParser.Parse(formulaInput);
         var result = DiceRollExecutor.Execute(formula, visibility, actor.Id);
+        ApplyFateToRealDiceRoll(formula, result);
         var audio = DiceSoundResolver.Resolve(formula, result.Rolls);
         result.SoundKey = audio.SoundKey;
         result.SoundEasterTriggered = audio.EasterTriggered;
@@ -2528,7 +2529,8 @@ public partial class ServiceHub
         var dice = _repositories.DiceRequests.GetById(requestId) ?? throw new KeyNotFoundException("Request not found.");
         if (dice.Status != RequestStatus.Pending) throw new InvalidOperationException("Request is not pending.");
         dice.Status = RequestStatus.Approved;
-        dice.Result = DiceRollExecutor.Execute(dice.Formula, dice.Visibility, actor.Id);
+            dice.Result = DiceRollExecutor.Execute(dice.Formula, dice.Visibility, actor.Id);
+            ApplyFateToRealDiceRoll(dice.Formula, dice.Result);
         dice.Decision = new RequestDecision { DecidedByUserId = actor.Id, DecidedAtUtc = DateTime.UtcNow, AdminComment = adminComment };
         dice.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "Approved", Comment = adminComment });
         _repositories.DiceRequests.Replace(dice);
@@ -2662,6 +2664,51 @@ public partial class ServiceHub
         if (request.Visibility == RequestVisibility.HiddenToAdmins || request.Visibility == RequestVisibility.PlayerShadow) return !isAdmin;
         if (request.Visibility == RequestVisibility.AdminOnly || request.Visibility == RequestVisibility.AdminOnlyShadow) return isAdmin;
         return false;
+    }
+
+    private void ApplyFateToRealDiceRoll(DiceFormulaSpec formula, DiceRollResult result)
+    {
+        if (result == null || formula == null || result.Rolls.Count == 0)
+        {
+            return;
+        }
+
+        var settings = _fateState.GetSnapshot();
+        if (!settings.Enabled)
+        {
+            _logger.Admin($"dice.roll.fate applied=false reason=Fate Engine is disabled. formula={formula.Normalized}");
+            return;
+        }
+
+        if (formula.DiceCount != 1 || formula.Modifier != 0)
+        {
+            _logger.Admin($"dice.roll.fate skipped reason=complex formula not supported yet formula={formula.Normalized}");
+            return;
+        }
+
+        var baseRoll = result.Rolls[0];
+        var fateRequest = new FateEngineRequest
+        {
+            BaseRoll = baseRoll,
+            DieSides = formula.DiceSides,
+            RollType = "real-dice-roll"
+        };
+
+        var fateResult = new FateEnginePipeline().Process(fateRequest, settings);
+        if (!fateResult.Applied)
+        {
+            _logger.Admin($"dice.roll.fate applied=false reason={fateResult.SkippedReason} formula={formula.Normalized} base={baseRoll} dieSides={formula.DiceSides}");
+            return;
+        }
+
+        result.Rolls[0] = fateResult.FateValue;
+        result.Total = fateResult.FateValue;
+
+        _logger.Admin($"dice.roll.fate applied=true formula={formula.Normalized} base={baseRoll} fate={fateResult.FateValue} dieSides={formula.DiceSides} layers={fateResult.Layers.Count}");
+        foreach (var layer in fateResult.Layers.OrderBy(x => x.LayerNumber))
+        {
+            _logger.Debug($"dice.roll.fate.trace layer={layer.LayerNumber} effect={layer.EffectCode} input={layer.InputValue} output={layer.OutputValue} reason={layer.Reason}");
+        }
     }
 
     private void EnsureCanViewDice(UserAccount actor, DiceRollRequest request)
