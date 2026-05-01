@@ -2680,35 +2680,33 @@ public partial class ServiceHub
             return;
         }
 
-        if (formula.DiceCount != 1 || formula.Modifier != 0)
+        var fatePipeline = new FateEnginePipeline();
+        for (var i = 0; i < result.Rolls.Count; i++)
         {
-            _logger.Admin($"dice.roll.fate skipped reason=complex formula not supported yet formula={formula.Normalized}");
-            return;
+            var baseRoll = result.Rolls[i];
+            var fateRequest = new FateEngineRequest
+            {
+                BaseRoll = baseRoll,
+                DieSides = formula.DiceSides,
+                RollType = "real-dice-roll"
+            };
+
+            var fateResult = fatePipeline.Process(fateRequest, settings);
+            if (!fateResult.Applied)
+            {
+                _logger.Admin($"dice.roll.fate applied=false formula={formula.Normalized} dieIndex={i} base={baseRoll} dieSides={formula.DiceSides} reason={fateResult.SkippedReason}");
+                continue;
+            }
+
+            result.Rolls[i] = fateResult.FateValue;
+            _logger.Admin($"dice.roll.fate applied=true formula={formula.Normalized} dieIndex={i} base={baseRoll} fate={fateResult.FateValue} dieSides={formula.DiceSides} layers={fateResult.Layers.Count}");
+            foreach (var layer in fateResult.Layers.OrderBy(x => x.LayerNumber))
+            {
+                _logger.Debug($"dice.roll.fate.trace dieIndex={i} layer={layer.LayerNumber} effect={layer.EffectCode} input={layer.InputValue} output={layer.OutputValue} reason={layer.Reason}");
+            }
         }
 
-        var baseRoll = result.Rolls[0];
-        var fateRequest = new FateEngineRequest
-        {
-            BaseRoll = baseRoll,
-            DieSides = formula.DiceSides,
-            RollType = "real-dice-roll"
-        };
-
-        var fateResult = new FateEnginePipeline().Process(fateRequest, settings);
-        if (!fateResult.Applied)
-        {
-            _logger.Admin($"dice.roll.fate applied=false reason={fateResult.SkippedReason} formula={formula.Normalized} base={baseRoll} dieSides={formula.DiceSides}");
-            return;
-        }
-
-        result.Rolls[0] = fateResult.FateValue;
-        result.Total = fateResult.FateValue;
-
-        _logger.Admin($"dice.roll.fate applied=true formula={formula.Normalized} base={baseRoll} fate={fateResult.FateValue} dieSides={formula.DiceSides} layers={fateResult.Layers.Count}");
-        foreach (var layer in fateResult.Layers.OrderBy(x => x.LayerNumber))
-        {
-            _logger.Debug($"dice.roll.fate.trace layer={layer.LayerNumber} effect={layer.EffectCode} input={layer.InputValue} output={layer.OutputValue} reason={layer.Reason}");
-        }
+        result.Total = result.Rolls.Sum() + formula.Modifier;
     }
 
     private void EnsureCanViewDice(UserAccount actor, DiceRollRequest request)
