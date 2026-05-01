@@ -103,6 +103,7 @@ public partial class ServiceHub
         GetCurrentAccount(context);
         var settings = _fateState.GetSnapshot();
         _logger.Debug("fate.settings.get");
+        _logger.Debug($"fate.settings.get effects={BuildEffectSummary(settings.Layers)}");
         return Ok("Fate settings loaded.", FateSettingsPayload(settings));
     }
 
@@ -115,13 +116,16 @@ public partial class ServiceHub
 
         var current = _fateState.GetSnapshot();
         var settings = ParseSettingsFromPayload(context.Request.Payload, current, out var parsedLayersCount, out var parsedMods, out var unwrapSource, out var rawLayersType, out var rawLayersCount);
+        var parsedEffects = BuildEffectSummary(settings.Layers);
         var updated = _fateState.Update(settings);
+        var savedEffects = BuildEffectSummary(updated.Layers);
 
         _logger.Debug($"fate.settings.update settings.unwrap={unwrapSource}");
         _logger.Debug($"fate.settings.update rawLayersType={rawLayersType}");
         _logger.Debug($"fate.settings.update rawLayersCount={rawLayersCount}");
         _logger.Debug($"fate.settings.update parsedLayersCount={parsedLayersCount}");
         _logger.Debug($"fate.settings.update parsedMods={parsedMods}");
+        _logger.Debug($"fate.settings.update parsedEffects={parsedEffects}");
 
         if (current.Enabled != updated.Enabled)
         {
@@ -139,6 +143,7 @@ public partial class ServiceHub
 
         var savedMods = string.Join("/", updated.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
         _logger.Debug($"fate.settings.update savedMods={savedMods}");
+        _logger.Debug($"fate.settings.update savedEffects={savedEffects}");
         _logger.Debug($"fate.settings.update enabled={updated.Enabled} layers={updated.Layers.Count}");
         return Ok("Fate settings updated.", FateSettingsPayload(updated));
     }
@@ -536,5 +541,10 @@ public partial class ServiceHub
                     .ToArray()
             }
         };
+    }
+
+    private static string BuildEffectSummary(IEnumerable<FateLayerSettings> layers)
+    {
+        return string.Join(" ", layers.OrderBy(x => x.LayerNumber).Select(x => $"layer{x.LayerNumber}={x.EffectCode}"));
     }
 }

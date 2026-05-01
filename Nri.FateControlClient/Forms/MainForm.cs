@@ -112,6 +112,8 @@ public sealed class MainForm : Form
 
         var resetButton = new Button { Text = "Сбросить", Width = 100 };
         resetButton.Click += (_, __) => ResetAndSaveDefaults();
+        var debugSaveButton = new Button { Text = "Debug Save EffectCode Test", Width = 210 };
+        debugSaveButton.Click += (_, __) => DebugSaveEffectCodeTest();
 
         var closeButton = new Button { Text = "Закрыть", Width = 100 };
         closeButton.Click += (_, __) => Close();
@@ -123,6 +125,7 @@ public sealed class MainForm : Form
         bottomPanel.Controls.Add(saveButton);
         bottomPanel.Controls.Add(loadEffectsButton);
         bottomPanel.Controls.Add(resetButton);
+        bottomPanel.Controls.Add(debugSaveButton);
         bottomPanel.Controls.Add(closeButton);
         bottomPanel.Controls.Add(_stateStatus);
         Controls.Add(bottomPanel);
@@ -361,6 +364,7 @@ public sealed class MainForm : Form
         UpdateStatus($"Saving: enabled={_engineEnabled.Checked} layers={rowsToSave.Count} mods={modifiers}. Saving effects: {effectSummary}");
 
         var response = _api.UpdateFateSettings(_engineEnabled.Checked, rowsToSave);
+        UpdateStatus($"CLIENT payload effects: {_api.LastUpdatePayloadEffectsSummary}");
         if (response.Status != ResponseStatus.Ok)
         {
             ShowError($"fate.settings.update failed: status={response.Status} message={response.Message}");
@@ -376,6 +380,40 @@ public sealed class MainForm : Form
         ResetLayersToDefault();
         _engineEnabled.Checked = true;
         SaveSettings();
+    }
+
+    private void DebugSaveEffectCodeTest()
+    {
+        if (!EnsureAuthorized()) return;
+
+        var rows = new System.Collections.Generic.List<FateLayerRow>
+        {
+            new FateLayerRow { LayerNumber = 1, DisplayName = "Местность", Enabled = true, FlatModifier = 0, Intensity = 1.0, Mode = "flat", EffectCode = "CalmArea" },
+            new FateLayerRow { LayerNumber = 2, DisplayName = "Эффекты персонажа", Enabled = true, FlatModifier = 0, Intensity = 1.0, Mode = "flat", EffectCode = "Blessing" },
+            new FateLayerRow { LayerNumber = 3, DisplayName = "Предметы", Enabled = true, FlatModifier = 0, Intensity = 1.0, Mode = "flat", EffectCode = "CursedItem" },
+            new FateLayerRow { LayerNumber = 4, DisplayName = "Психология", Enabled = true, FlatModifier = 0, Intensity = 1.0, Mode = "flat", EffectCode = "Rage" },
+            new FateLayerRow { LayerNumber = 5, DisplayName = "Шкала уверенности", Enabled = true, FlatModifier = 0, Intensity = 1.0, Mode = "flat", EffectCode = "Empty" }
+        };
+
+        var expected = BuildEffectSummary(rows);
+        var saveResponse = _api.UpdateFateSettings(_engineEnabled.Checked, rows);
+        if (saveResponse.Status != ResponseStatus.Ok)
+        {
+            ShowError($"DEBUG save failed: {saveResponse.Message}");
+            return;
+        }
+
+        var getResponse = _api.GetFateSettings();
+        if (getResponse.Status != ResponseStatus.Ok)
+        {
+            ShowError($"DEBUG get failed: {getResponse.Message}");
+            return;
+        }
+
+        var loaded = _api.ParseSettings(getResponse, out _);
+        var actual = BuildEffectSummary(loaded);
+        UpdateStatus($"DEBUG expected: {expected} | DEBUG actual: {actual}");
+        ApplyLayers(loaded);
     }
 
     private void RunTestRoll()
