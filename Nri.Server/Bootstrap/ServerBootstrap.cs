@@ -24,6 +24,10 @@ public sealed class ServerBootstrap : IDisposable
     public ServerConfig Config { get; }
     public ServerRuntime Runtime { get; }
 
+    public bool IsTcpRunning => _listener.IsRunning;
+    public int OnlineConnections => _listener.OnlineConnections;
+    public string ListeningEndpoint => _listener.ListeningEndpoint;
+
     public static ServerBootstrap Initialize(string configPath)
     {
         var config = ServerConfigProvider.Load(configPath);
