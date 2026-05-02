@@ -18,6 +18,8 @@ public sealed class FateApiClient
 
     public string? AuthToken { get; private set; }
     public string LastUpdatePayloadEffectsSummary { get; private set; } = string.Empty;
+    public bool LastUpdatePayloadRootEnabled { get; private set; }
+    public bool LastUpdatePayloadNestedEnabled { get; private set; }
 
     public void SetEndpoint(string host, int port) => _client.SetEndpoint(host, port);
     public bool IsConnected => _client.IsConnected;
@@ -49,6 +51,8 @@ public sealed class FateApiClient
     {
         var orderedLayers = layers.OrderBy(x => x.LayerNumber).ToList();
         LastUpdatePayloadEffectsSummary = string.Join(" ", orderedLayers.Select(x => $"layer{x.LayerNumber}={x.EffectCode}"));
+        LastUpdatePayloadRootEnabled = enabled;
+        LastUpdatePayloadNestedEnabled = enabled;
 
         var payloadLayers = orderedLayers
             .Select(x => new Dictionary<string, object>
@@ -90,7 +94,7 @@ public sealed class FateApiClient
 
     public List<FateLayerRow> ParseSettings(ResponseEnvelope response, out bool engineEnabled)
     {
-        engineEnabled = false;
+        engineEnabled = true;
         var rows = CreateDefaultLayers();
         if (response.Status != ResponseStatus.Ok)
         {

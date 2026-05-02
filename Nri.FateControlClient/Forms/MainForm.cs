@@ -31,6 +31,7 @@ public sealed class MainForm : Form
     private readonly NumericUpDown _baseRoll = new NumericUpDown();
     private readonly Label _fateResultLabel = new Label();
     private bool _updatingLayerEffectUi;
+    private bool _currentServerEngineEnabled = true;
 
     public MainForm()
     {
@@ -139,6 +140,8 @@ public sealed class MainForm : Form
         _engineEnabled.Top = 8;
         _engineEnabled.Left = 8;
         _engineEnabled.Width = 180;
+        _engineEnabled.Checked = _currentServerEngineEnabled;
+        _engineEnabled.CheckedChanged += (_, __) => _currentServerEngineEnabled = _engineEnabled.Checked;
 
         _layersGrid.Top = 36;
         _layersGrid.Left = 8;
@@ -349,6 +352,7 @@ public sealed class MainForm : Form
 
         var parsedLayers = _api.ParseSettings(response, out var enabled);
         ApplyLayers(parsedLayers);
+        _currentServerEngineEnabled = enabled;
         _engineEnabled.Checked = enabled;
         var mods = string.Join("/", parsedLayers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
         UpdateStatus($"Settings loaded: enabled={enabled} layers={parsedLayers.Count} mods={mods}. Loaded effects: {BuildEffectSummary(parsedLayers)}");
@@ -359,11 +363,14 @@ public sealed class MainForm : Form
         if (!EnsureAuthorized()) return;
 
         var rowsToSave = ReadLayerRowsFromGrid();
+        var enabledToSave = _currentServerEngineEnabled;
+        _engineEnabled.Checked = enabledToSave;
         var modifiers = string.Join("/", rowsToSave.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
         var effectSummary = BuildEffectSummary(rowsToSave);
-        UpdateStatus($"Saving: enabled={_engineEnabled.Checked} layers={rowsToSave.Count} mods={modifiers}. Saving effects: {effectSummary}");
+        UpdateStatus($"Saving: enabled={enabledToSave} layers={rowsToSave.Count} mods={modifiers}. Saving effects: {effectSummary}");
 
-        var response = _api.UpdateFateSettings(_engineEnabled.Checked, rowsToSave);
+        var response = _api.UpdateFateSettings(enabledToSave, rowsToSave);
+        UpdateStatus($"CLIENT fate.settings.update root.enabled={_api.LastUpdatePayloadRootEnabled} nested.settings.enabled={_api.LastUpdatePayloadNestedEnabled}");
         UpdateStatus($"CLIENT payload effects: {_api.LastUpdatePayloadEffectsSummary}");
         if (response.Status != ResponseStatus.Ok)
         {
@@ -372,12 +379,14 @@ public sealed class MainForm : Form
         }
 
         ApplyLayers(rowsToSave);
+        _currentServerEngineEnabled = enabledToSave;
         UpdateStatus($"Settings saved: status={response.Status} message={response.Message}. Sent effects: {effectSummary}");
     }
 
     private void ResetAndSaveDefaults()
     {
         ResetLayersToDefault();
+        _currentServerEngineEnabled = true;
         _engineEnabled.Checked = true;
         SaveSettings();
     }
@@ -396,7 +405,7 @@ public sealed class MainForm : Form
         };
 
         var expected = BuildEffectSummary(rows);
-        var saveResponse = _api.UpdateFateSettings(_engineEnabled.Checked, rows);
+        var saveResponse = _api.UpdateFateSettings(_currentServerEngineEnabled, rows);
         if (saveResponse.Status != ResponseStatus.Ok)
         {
             ShowError($"DEBUG save failed: {saveResponse.Message}");

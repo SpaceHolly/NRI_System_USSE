@@ -127,6 +127,7 @@ public partial class ServiceHub
         _logger.Debug($"fate.settings.update rawLayersCount={rawLayersCount}");
         _logger.Debug($"fate.settings.update parsedLayersCount={parsedLayersCount}");
         _logger.Debug($"fate.settings.update parsedMods={parsedMods}");
+        _logger.Debug($"fate.settings.update parsed.enabled={settings.Enabled}");
         _logger.Debug($"fate.settings.update parsedEffects={parsedEffects}");
 
         if (current.Enabled != updated.Enabled)
@@ -224,6 +225,10 @@ public partial class ServiceHub
         if (TryReadValue(source, "enabled", out var enabledRaw))
         {
             result.Enabled = ConvertToBool(enabledRaw);
+        }
+        else
+        {
+            result.Enabled = fallback.Enabled;
         }
 
         TryReadValue(source, "layers", out var layersRaw);
