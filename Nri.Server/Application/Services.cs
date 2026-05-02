@@ -2674,7 +2674,7 @@ public partial class ServiceHub
         }
 
         var settings = _fateState.GetSnapshot();
-        _logger.Admin($"dice.roll.fate.state instance={_fateState.InstanceId} enabled={settings.Enabled} formula={formula.Normalized}");
+        _logger.Admin($"dice.roll.fate.state instance={_fateState.InstanceId} enabled={settings.Enabled} effects={BuildEffectSummary(settings.Layers)} formula={formula.Normalized}");
         if (!settings.Enabled)
         {
             _logger.Admin($"dice.roll.fate.disabled reason=settings.Enabled=false instance={_fateState.InstanceId} formula={formula.Normalized}");

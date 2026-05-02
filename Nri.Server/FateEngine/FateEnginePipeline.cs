@@ -98,7 +98,6 @@ public sealed class FateEnginePipeline
             var strength = (layerResult.Strength ?? string.Empty).Trim();
             var calcDetails = new List<string>();
             var valueAfterInfluence = currentValue;
-            var allowOutOfBounds = false;
             var specialFallback = false;
 
             switch (influenceType.ToLowerInvariant())
@@ -192,7 +191,6 @@ public sealed class FateEnginePipeline
                         var anomalyShift = NextInt(-maxShift, maxShift + 1, seededRandom);
                         valueAfterInfluence += anomalyShift;
                         layerResult.AnomalyShift = anomalyShift;
-                        allowOutOfBounds = true;
                         calcDetails.Add($"Anomaly shift={anomalyShift} range=[{-maxShift};{maxShift}] (no clamp).");
                     }
                     break;
@@ -225,27 +223,8 @@ public sealed class FateEnginePipeline
                     break;
             }
 
-            if (!allowOutOfBounds)
-            {
-                var clamped = ClampToDie(valueAfterInfluence, request.DieSides);
-                if (clamped != valueAfterInfluence)
-                {
-                    calcDetails.Add($"Clamp after influence: {valueAfterInfluence} -> {clamped}.");
-                }
-                valueAfterInfluence = clamped;
-            }
-
             var modifier = layer.FlatModifier;
             var output = valueAfterInfluence + modifier;
-            if (!allowOutOfBounds)
-            {
-                var clampedOutput = ClampToDie(output, request.DieSides);
-                if (clampedOutput != output)
-                {
-                    calcDetails.Add($"Clamp after flat modifier: {output} -> {clampedOutput}.");
-                }
-                output = clampedOutput;
-            }
             currentValue = output;
 
             layerResult.Applied = true;
@@ -253,11 +232,21 @@ public sealed class FateEnginePipeline
             layerResult.OutputValue = currentValue;
             layerResult.SelectedValue = valueAfterInfluence;
             layerResult.CalculationDetails = string.Join(" ", calcDetails);
-            layerResult.Reason = specialFallback
-                ? calcDetails.LastOrDefault() ?? "Special influence type is not implemented yet; flat modifier only."
-                : effectDefinition == null
-                    ? "Applied effect math + flat modifier; effect definition not found."
-                    : "Applied effect math + flat modifier.";
+            var effectCode = (layerResult.EffectCode ?? string.Empty).Trim();
+            if (string.Equals(influenceType, "none", StringComparison.OrdinalIgnoreCase))
+            {
+                layerResult.Reason = string.Equals(effectCode, "Empty", StringComparison.OrdinalIgnoreCase)
+                    ? "No confidence influence; value preserved."
+                    : "No influence; value preserved.";
+            }
+            else
+            {
+                layerResult.Reason = specialFallback
+                    ? calcDetails.LastOrDefault() ?? "Special influence type is not implemented yet; flat modifier only."
+                    : effectDefinition == null
+                        ? "Applied effect math + flat modifier; effect definition not found."
+                        : "Applied effect math + flat modifier.";
+            }
 
             result.Layers.Add(layerResult);
         }
@@ -561,11 +550,6 @@ public sealed class FateEnginePipeline
 
         var towardBottom = (int)Math.Round((value - 1) * percent);
         return -Math.Max(0, towardBottom);
-    }
-
-    private static int ClampToDie(int value, int dieSides)
-    {
-        return Math.Max(1, Math.Min(dieSides, value));
     }
 
     private static int NextInt(int minInclusive, int maxExclusive, Random? seededRandom)
