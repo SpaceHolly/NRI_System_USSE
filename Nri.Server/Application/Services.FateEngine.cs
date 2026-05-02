@@ -44,6 +44,7 @@ public partial class ServiceHub
             _logger.Debug($"fate.test.roll bypass reason={result.SkippedReason}");
         }
 
+        _logger.Debug($"fate.state.instance id={_fateState.InstanceId} source=fate-test");
         _logger.Debug($"fate.test.roll baseRoll={result.BaseRoll} dieSides={result.DieSides} applied={result.Applied} fateValue={result.FateValue} layers={result.Layers.Count}");
         return Ok("Fate test roll executed.", FateResultPayload(result));
     }
@@ -88,7 +89,8 @@ public partial class ServiceHub
         var enabledLayers = settings.Layers.Where(x => x.Enabled).Select(x => x.LayerNumber).Cast<object>().ToArray();
         var flatModifiers = settings.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier).Cast<object>().ToArray();
 
-        _logger.Debug("fate.settings.get");
+        _logger.Debug($"fate.state.instance id={_fateState.InstanceId} source=fate-status-get");
+        _logger.Debug($"fate.settings.get enabled={settings.Enabled} effects={BuildEffectSummary(settings.Layers)} mods={string.Join(\"/\", settings.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier))} instance={_fateState.InstanceId}");
         return Ok("Fate status loaded.", new Dictionary<string, object>
         {
             { "enabled", settings.Enabled },
@@ -102,8 +104,8 @@ public partial class ServiceHub
     {
         GetCurrentAccount(context);
         var settings = _fateState.GetSnapshot();
-        _logger.Debug("fate.settings.get");
-        _logger.Debug($"fate.settings.get effects={BuildEffectSummary(settings.Layers)}");
+        _logger.Debug($"fate.state.instance id={_fateState.InstanceId} source=fate-settings-get");
+        _logger.Debug($"fate.settings.get enabled={settings.Enabled} effects={BuildEffectSummary(settings.Layers)} mods={string.Join(\"/\", settings.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier))} instance={_fateState.InstanceId}");
         return Ok("Fate settings loaded.", FateSettingsPayload(settings));
     }
 
@@ -144,7 +146,8 @@ public partial class ServiceHub
         var savedMods = string.Join("/", updated.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
         _logger.Debug($"fate.settings.update savedMods={savedMods}");
         _logger.Debug($"fate.settings.update savedEffects={savedEffects}");
-        _logger.Debug($"fate.settings.update enabled={updated.Enabled} layers={updated.Layers.Count}");
+        _logger.Debug($"fate.state.instance id={_fateState.InstanceId} source=fate-settings-update");
+        _logger.Debug($"fate.settings.update enabled={updated.Enabled} effects={savedEffects} mods={savedMods} instance={_fateState.InstanceId}");
         return Ok("Fate settings updated.", FateSettingsPayload(updated));
     }
 

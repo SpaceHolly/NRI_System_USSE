@@ -2674,16 +2674,22 @@ public partial class ServiceHub
         }
 
         var settings = _fateState.GetSnapshot();
+        _logger.Admin($"dice.roll.fate.state instance={_fateState.InstanceId} enabled={settings.Enabled} formula={formula.Normalized}");
         if (!settings.Enabled)
         {
-            _logger.Admin($"dice.roll.fate applied=false reason=Fate Engine is disabled. formula={formula.Normalized}");
+            _logger.Admin($"dice.roll.fate.disabled reason=settings.Enabled=false instance={_fateState.InstanceId} formula={formula.Normalized}");
             return;
         }
+
+        result.BaseRolls = new List<int>(result.Rolls);
+        result.FateRolls = result.Rolls.Select(_ => (int?)null).ToList();
+        result.FateAppliedByDie = result.Rolls.Select(_ => false).ToList();
 
         var fatePipeline = new FateEnginePipeline();
         for (var i = 0; i < result.Rolls.Count; i++)
         {
             var baseRoll = result.Rolls[i];
+            _logger.Admin($"dice.roll.fate.before dieIndex={i} dieSides={formula.DiceSides} base={baseRoll}");
             var fateRequest = new FateEngineRequest
             {
                 BaseRoll = baseRoll,
@@ -2694,12 +2700,18 @@ public partial class ServiceHub
             var fateResult = fatePipeline.Process(fateRequest, settings);
             if (!fateResult.Applied)
             {
-                _logger.Admin($"dice.roll.fate applied=false formula={formula.Normalized} dieIndex={i} base={baseRoll} dieSides={formula.DiceSides} reason={fateResult.SkippedReason}");
+                _logger.Admin($"dice.roll.fate.after dieIndex={i} applied=false fateValue={baseRoll} skippedReason={fateResult.SkippedReason}");
+                if (string.Equals(fateResult.SkippedReason, "d4 or lower", StringComparison.OrdinalIgnoreCase))
+                    _logger.Admin("dice.roll.fate.bypass reason=d4 or lower");
                 continue;
             }
 
             result.Rolls[i] = fateResult.FateValue;
+            result.FateRolls[i] = fateResult.FateValue;
+            result.FateAppliedByDie[i] = true;
             _logger.Admin($"dice.roll.fate applied=true formula={formula.Normalized} dieIndex={i} base={baseRoll} fate={fateResult.FateValue} dieSides={formula.DiceSides} layers={fateResult.Layers.Count}");
+            _logger.Admin($"dice.roll.fate.after dieIndex={i} applied=true fateValue={fateResult.FateValue} skippedReason=");
+            _logger.Admin($"dice.roll.public dieIndex={i} base={result.BaseRolls[i]} fate={fateResult.FateValue} public={result.Rolls[i]}");
             foreach (var layer in fateResult.Layers.OrderBy(x => x.LayerNumber))
             {
                 _logger.Debug($"dice.roll.fate.trace dieIndex={i} layer={layer.LayerNumber} effect={layer.EffectCode} input={layer.InputValue} output={layer.OutputValue} reason={layer.Reason}");
@@ -2707,6 +2719,8 @@ public partial class ServiceHub
         }
 
         result.Total = result.Rolls.Sum() + formula.Modifier;
+        _logger.Admin($"dice.roll.total publicTotal={result.Total}");
+        _logger.Admin($"dice.roll.payload values=[{string.Join(",", result.Rolls)}]");
     }
 
     private void EnsureCanViewDice(UserAccount actor, DiceRollRequest request)
@@ -2764,6 +2778,9 @@ public partial class ServiceHub
             {
                 { "normalizedFormula", request.Result.NormalizedFormula },
                 { "rolls", request.Result.Rolls.Cast<object>().ToArray() },
+                { "baseRolls", request.Result.BaseRolls.Cast<object>().ToArray() },
+                { "fateRolls", request.Result.FateRolls.Select(x => x.HasValue ? (object)x.Value : string.Empty).ToArray() },
+                { "fateAppliedByDie", request.Result.FateAppliedByDie.Cast<object>().ToArray() },
                 { "modifier", request.Result.Modifier },
                 { "total", request.Result.Total },
                 { "visibility", request.Result.Visibility.ToString() },

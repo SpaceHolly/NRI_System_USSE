@@ -7,7 +7,9 @@ namespace Nri.Server.FateEngine;
 public sealed class FateEngineStateService
 {
     private readonly object _sync = new object();
+    private readonly Guid _instanceId = Guid.NewGuid();
     private FateEngineSettings _current = FateEngineSettings.CreateDefault().Normalize();
+    public Guid InstanceId => _instanceId;
 
     public FateEngineSettings GetSnapshot()
     {
