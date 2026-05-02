@@ -69,6 +69,9 @@ public class DiceRollResult
 {
     public string NormalizedFormula { get; set; } = "1d20";
     public List<int> Rolls { get; set; } = new List<int>();
+    public List<int> BaseRolls { get; set; } = new List<int>();
+    public List<int?> FateRolls { get; set; } = new List<int?>();
+    public List<bool> FateAppliedByDie { get; set; } = new List<bool>();
     public int Modifier { get; set; }
     public int Total { get; set; }
     public RequestVisibility Visibility { get; set; } = RequestVisibility.Public;
