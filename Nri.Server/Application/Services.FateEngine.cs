@@ -90,7 +90,7 @@ public partial class ServiceHub
         var flatModifiers = settings.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier).Cast<object>().ToArray();
 
         _logger.Debug($"fate.state.instance id={_fateState.InstanceId} source=fate-status-get");
-        _logger.Debug($"fate.settings.get enabled={settings.Enabled} effects={BuildEffectSummary(settings.Layers)} mods={string.Join(\"/\", settings.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier))} instance={_fateState.InstanceId}");
+        _logger.Debug($"fate.settings.get enabled={settings.Enabled} effects={BuildEffectSummary(settings.Layers)} mods={string.Join("/", settings.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier))} instance={_fateState.InstanceId}");
         return Ok("Fate status loaded.", new Dictionary<string, object>
         {
             { "enabled", settings.Enabled },
@@ -105,7 +105,7 @@ public partial class ServiceHub
         GetCurrentAccount(context);
         var settings = _fateState.GetSnapshot();
         _logger.Debug($"fate.state.instance id={_fateState.InstanceId} source=fate-settings-get");
-        _logger.Debug($"fate.settings.get enabled={settings.Enabled} effects={BuildEffectSummary(settings.Layers)} mods={string.Join(\"/\", settings.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier))} instance={_fateState.InstanceId}");
+        _logger.Debug($"fate.settings.get enabled={settings.Enabled} effects={BuildEffectSummary(settings.Layers)} mods={string.Join("/", settings.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier))} instance={_fateState.InstanceId}");
         return Ok("Fate settings loaded.", FateSettingsPayload(settings));
     }
 
