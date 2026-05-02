@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Driver;
+using Nri.Server.FateEngine;
 using Nri.Server.Infrastructure;
 using Nri.Server.Logging;
 using Nri.Shared.Contracts;
@@ -16,13 +17,15 @@ public partial class ServiceHub
     private readonly INriRepositoryFactory _repositories;
     private readonly SessionManager _sessionManager;
     private readonly IServerLogger _logger;
+    private readonly FateEngineStateService _fateState;
     private readonly string _audioFolderPath;
 
-    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, string audioFolderPath)
+    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, string audioFolderPath)
     {
         _repositories = repositories;
         _sessionManager = sessionManager;
         _logger = logger;
+        _fateState = fateState;
         _audioFolderPath = string.IsNullOrWhiteSpace(audioFolderPath) ? "./audio" : audioFolderPath;
     }
 
@@ -2413,6 +2416,7 @@ public partial class ServiceHub
         if (!Enum.TryParse(visibilityRaw, true, out RequestVisibility visibility)) visibility = RequestVisibility.Public;
         var formula = DiceFormulaParser.Parse(formulaInput);
         var result = DiceRollExecutor.Execute(formula, visibility, actor.Id);
+        ApplyFateToRealDiceRoll(formula, result);
         var audio = DiceSoundResolver.Resolve(formula, result.Rolls);
         result.SoundKey = audio.SoundKey;
         result.SoundEasterTriggered = audio.EasterTriggered;
@@ -2525,7 +2529,8 @@ public partial class ServiceHub
         var dice = _repositories.DiceRequests.GetById(requestId) ?? throw new KeyNotFoundException("Request not found.");
         if (dice.Status != RequestStatus.Pending) throw new InvalidOperationException("Request is not pending.");
         dice.Status = RequestStatus.Approved;
-        dice.Result = DiceRollExecutor.Execute(dice.Formula, dice.Visibility, actor.Id);
+            dice.Result = DiceRollExecutor.Execute(dice.Formula, dice.Visibility, actor.Id);
+            ApplyFateToRealDiceRoll(dice.Formula, dice.Result);
         dice.Decision = new RequestDecision { DecidedByUserId = actor.Id, DecidedAtUtc = DateTime.UtcNow, AdminComment = adminComment };
         dice.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "Approved", Comment = adminComment });
         _repositories.DiceRequests.Replace(dice);
@@ -2661,6 +2666,63 @@ public partial class ServiceHub
         return false;
     }
 
+    private void ApplyFateToRealDiceRoll(DiceFormulaSpec formula, DiceRollResult result)
+    {
+        if (result == null || formula == null || result.Rolls.Count == 0)
+        {
+            return;
+        }
+
+        var settings = _fateState.GetSnapshot();
+        _logger.Admin($"dice.roll.fate.state instance={_fateState.InstanceId} enabled={settings.Enabled} effects={BuildEffectSummary(settings.Layers)} formula={formula.Normalized}");
+        if (!settings.Enabled)
+        {
+            _logger.Admin($"dice.roll.fate.disabled reason=settings.Enabled=false instance={_fateState.InstanceId} formula={formula.Normalized}");
+            return;
+        }
+
+        result.BaseRolls = new List<int>(result.Rolls);
+        result.FateRolls = result.Rolls.Select(_ => (int?)null).ToList();
+        result.FateAppliedByDie = result.Rolls.Select(_ => false).ToList();
+
+        var fatePipeline = new FateEnginePipeline();
+        for (var i = 0; i < result.Rolls.Count; i++)
+        {
+            var baseRoll = result.Rolls[i];
+            _logger.Admin($"dice.roll.fate.before dieIndex={i} dieSides={formula.DiceSides} base={baseRoll}");
+            var fateRequest = new FateEngineRequest
+            {
+                BaseRoll = baseRoll,
+                DieSides = formula.DiceSides,
+                RollType = "real-dice-roll"
+            };
+
+            var fateResult = fatePipeline.Process(fateRequest, settings);
+            if (!fateResult.Applied)
+            {
+                _logger.Admin($"dice.roll.fate.after dieIndex={i} applied=false fateValue={baseRoll} skippedReason={fateResult.SkippedReason}");
+                if (string.Equals(fateResult.SkippedReason, "d4 or lower", StringComparison.OrdinalIgnoreCase))
+                    _logger.Admin("dice.roll.fate.bypass reason=d4 or lower");
+                continue;
+            }
+
+            result.Rolls[i] = fateResult.FateValue;
+            result.FateRolls[i] = fateResult.FateValue;
+            result.FateAppliedByDie[i] = true;
+            _logger.Admin($"dice.roll.fate applied=true formula={formula.Normalized} dieIndex={i} base={baseRoll} fate={fateResult.FateValue} dieSides={formula.DiceSides} layers={fateResult.Layers.Count}");
+            _logger.Admin($"dice.roll.fate.after dieIndex={i} applied=true fateValue={fateResult.FateValue} skippedReason=");
+            _logger.Admin($"dice.roll.public dieIndex={i} base={result.BaseRolls[i]} fate={fateResult.FateValue} public={result.Rolls[i]}");
+            foreach (var layer in fateResult.Layers.OrderBy(x => x.LayerNumber))
+            {
+                _logger.Debug($"dice.roll.fate.trace dieIndex={i} layer={layer.LayerNumber} effect={layer.EffectCode} input={layer.InputValue} output={layer.OutputValue} reason={layer.Reason}");
+            }
+        }
+
+        result.Total = result.Rolls.Sum() + formula.Modifier;
+        _logger.Admin($"dice.roll.total publicTotal={result.Total}");
+        _logger.Admin($"dice.roll.payload values=[{string.Join(",", result.Rolls)}]");
+    }
+
     private void EnsureCanViewDice(UserAccount actor, DiceRollRequest request)
     {
         if (!CanViewDice(actor, request)) throw new UnauthorizedAccessException("Dice request not visible.");
@@ -2716,6 +2778,9 @@ public partial class ServiceHub
             {
                 { "normalizedFormula", request.Result.NormalizedFormula },
                 { "rolls", request.Result.Rolls.Cast<object>().ToArray() },
+                { "baseRolls", request.Result.BaseRolls.Cast<object>().ToArray() },
+                { "fateRolls", request.Result.FateRolls.Select(x => x.HasValue ? (object)x.Value : string.Empty).ToArray() },
+                { "fateAppliedByDie", request.Result.FateAppliedByDie.Cast<object>().ToArray() },
                 { "modifier", request.Result.Modifier },
                 { "total", request.Result.Total },
                 { "visibility", request.Result.Visibility.ToString() },

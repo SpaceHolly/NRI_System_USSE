@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Nri.Shared.Domain;
 
@@ -66,6 +67,9 @@ public static class DiceRollExecutor
         {
             NormalizedFormula = spec.Normalized,
             Rolls = rolls,
+            BaseRolls = new List<int>(rolls),
+            FateRolls = rolls.Select(_ => (int?)null).ToList(),
+            FateAppliedByDie = rolls.Select(_ => false).ToList(),
             Modifier = spec.Modifier,
             Total = sum + spec.Modifier,
             Visibility = visibility,
