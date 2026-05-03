@@ -18,14 +18,16 @@ public partial class ServiceHub
     private readonly SessionManager _sessionManager;
     private readonly IServerLogger _logger;
     private readonly FateEngineStateService _fateState;
+    private readonly FateEngineSettingsStore _fateSettingsStore;
     private readonly string _audioFolderPath;
 
-    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, string audioFolderPath)
+    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, string audioFolderPath)
     {
         _repositories = repositories;
         _sessionManager = sessionManager;
         _logger = logger;
         _fateState = fateState;
+        _fateSettingsStore = fateSettingsStore;
         _audioFolderPath = string.IsNullOrWhiteSpace(audioFolderPath) ? "./audio" : audioFolderPath;
     }
 

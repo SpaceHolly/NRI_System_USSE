@@ -15,16 +15,18 @@ namespace Nri.Server.Application;
 
 public sealed class ServerRuntime
 {
-    public ServerRuntime(CommandDispatcher dispatcher, SessionManager sessions, FateEngineStateService fateState)
+    public ServerRuntime(CommandDispatcher dispatcher, SessionManager sessions, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore)
     {
         Dispatcher = dispatcher;
         Sessions = sessions;
         FateState = fateState;
+        FateSettingsStore = fateSettingsStore;
     }
 
     public CommandDispatcher Dispatcher { get; }
     public SessionManager Sessions { get; }
     public FateEngineStateService FateState { get; }
+    public FateEngineSettingsStore FateSettingsStore { get; }
 }
 
 public static class ServiceRegistry
@@ -35,8 +37,12 @@ public static class ServiceRegistry
         var repositories = new MongoRepositoryFactory(mongo);
         BootstrapAdminInitializer.Ensure(config, repositories, logger);
         var sessions = new SessionManager(config.Tokens, repositories);
+        var fateSettingsStore = new FateEngineSettingsStore(logger);
+        var loadResult = fateSettingsStore.LoadOrCreateDefault();
         var fateState = new FateEngineStateService();
-        var hub = new ServiceHub(repositories, sessions, logger, fateState, config.AudioFolderPath);
+        fateState.Update(loadResult.Settings);
+        logger.Debug($"fate.settings.init source={loadResult.Source}");
+        var hub = new ServiceHub(repositories, sessions, logger, fateState, fateSettingsStore, config.AudioFolderPath);
         var auditLogService = new AuditLogService(repositories, logger);
         var validationService = new DefinitionValidationService(
             new ClassDefinitionValidator(),
@@ -307,6 +313,6 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CharacterLockForceRelease, new DelegateCommandHandler(hub.CharacterLockForceRelease));
         dispatcher.Register(CommandNames.CharacterLockGet, new DelegateCommandHandler(hub.CharacterLockGet));
 
-        return new ServerRuntime(dispatcher, sessions, fateState);
+        return new ServerRuntime(dispatcher, sessions, fateState, fateSettingsStore);
     }
 }
