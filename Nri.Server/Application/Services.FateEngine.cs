@@ -145,11 +145,18 @@ public partial class ServiceHub
         }
 
         var savedMods = string.Join("/", updated.Layers.OrderBy(x => x.LayerNumber).Select(x => x.FlatModifier));
+        var savedToFile = _fateSettingsStore.Save(updated);
+        if (!savedToFile)
+        {
+            _logger.Debug("fate.settings.update persistence=failed");
+        }
+
         _logger.Debug($"fate.settings.update savedMods={savedMods}");
         _logger.Debug($"fate.settings.update savedEffects={savedEffects}");
         _logger.Debug($"fate.state.instance id={_fateState.InstanceId} source=fate-settings-update");
         _logger.Debug($"fate.settings.update enabled={updated.Enabled} effects={savedEffects} mods={savedMods} instance={_fateState.InstanceId}");
-        return Ok("Fate settings updated.", FateSettingsPayload(updated));
+        var message = savedToFile ? "Fate settings updated." : "Fate settings updated (warning: save failed, see server log).";
+        return Ok(message, FateSettingsPayload(updated));
     }
 
     private FateEngineSettings BuildRollSettings(IDictionary<string, object> payload)
