@@ -841,6 +841,31 @@ public class AdminMainViewModel : ViewModelBase
         }
     }
     public string DefinitionVersionText { get; set; } = string.Empty;
+
+    public string SelectedRaceDefinitionCode
+    {
+        get => _selectedRaceDefinitionCode;
+        set
+        {
+            _selectedRaceDefinitionCode = value;
+            Notify();
+            Notify(nameof(SelectedRaceDefinition));
+            Notify(nameof(SelectedContentSummary));
+        }
+    }
+
+    public string SelectedItemDefinitionCode
+    {
+        get => _selectedItemDefinitionCode;
+        set
+        {
+            _selectedItemDefinitionCode = value;
+            Notify();
+            Notify(nameof(SelectedItemDefinition));
+            Notify(nameof(SelectedContentSummary));
+        }
+    }
+
     public string EditClassCode { get; set; } = string.Empty;
     public string EditClassName { get; set; } = string.Empty;
     public string EditClassDescription { get; set; } = string.Empty;

@@ -128,9 +128,9 @@ public partial class ServiceHub
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var description = GetFieldString(item, "description");
-                if (!item.Code.Contains(search, StringComparison.OrdinalIgnoreCase)
-                    && !item.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase)
-                    && !description.Contains(search, StringComparison.OrdinalIgnoreCase))
+                if (IndexOfIgnoreCase(item.Code, search) < 0
+                    && IndexOfIgnoreCase(item.DisplayName, search) < 0
+                    && IndexOfIgnoreCase(description, search) < 0)
                 {
                     continue;
                 }
