@@ -19,37 +19,6 @@ public partial class ServiceHub
     private Dictionary<string, ClassDirectionDefinition> _directionsById = new Dictionary<string, ClassDirectionDefinition>();
     private Dictionary<string, SkillDefinitionRecord> _skillsById = new Dictionary<string, SkillDefinitionRecord>();
 
-    public ResponseEnvelope DefinitionsClassesGet(CommandContext context)
-    {
-        GetCurrentAccount(context);
-        EnsureDefinitionsLoaded(false);
-        var items = _directionsById.Values.Select(d => new Dictionary<string, object>
-        {
-            { "directionId", d.DirectionId },
-            { "name", d.Name },
-            { "branches", d.Branches.Select(b => new Dictionary<string, object>
-                {
-                    { "branchId", b.BranchId },
-                    { "name", b.Name },
-                    { "nodeIds", b.NodeIds.Cast<object>().ToArray() }
-                }).Cast<object>().ToArray() }
-        }).Cast<object>().ToArray();
-
-        var nodes = _nodesById.Values.Select(NodePayload).Cast<object>().ToArray();
-        return Ok("Class definitions loaded.", new Dictionary<string, object> { { "directions", items }, { "nodes", nodes }, { "version", _definitionVersion } });
-    }
-
-    public ResponseEnvelope DefinitionsSkillsGet(CommandContext context)
-    {
-        GetCurrentAccount(context);
-        EnsureDefinitionsLoaded(false);
-        return Ok("Skill definitions loaded.", new Dictionary<string, object>
-        {
-            { "items", _skillsById.Values.Select(SkillDefinitionPayload).Cast<object>().ToArray() },
-            { "version", _definitionVersion }
-        });
-    }
-
     public ResponseEnvelope DefinitionsVersionGet(CommandContext context)
     {
         GetCurrentAccount(context);
