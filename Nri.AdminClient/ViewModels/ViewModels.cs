@@ -426,6 +426,7 @@ public class AdminMainViewModel : ViewModelBase
         RefreshDefinitionRacesCommand = new RelayCommand(() => RunUiAction("Загрузка definitions рас", RefreshDefinitionRaces));
         RefreshDefinitionItemsCommand = new RelayCommand(() => RunUiAction("Загрузка definitions предметов", RefreshDefinitionItems));
         RefreshContentStatusCommand = new RelayCommand(() => RunUiAction("Загрузка статуса контента", RefreshDefinitionsContentStatus));
+        AssignCharacterClassCommand = new RelayCommand(() => RunUiAction("Назначение класса", AssignCharacterClass));
         NewSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Создание definitions навыка", NewSkillDefinition));
         OpenSelectedSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Открытие definitions навыка", OpenSelectedSkillDefinition));
         SaveSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Сохранение definitions навыка", SaveSkillDefinition));
@@ -1313,6 +1314,7 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand RefreshDefinitionRacesCommand { get; }
     public ICommand RefreshDefinitionItemsCommand { get; }
     public ICommand RefreshContentStatusCommand { get; }
+    public ICommand AssignCharacterClassCommand { get; }
     public ICommand NewSkillDefinitionCommand { get; }
     public ICommand OpenSelectedSkillDefinitionCommand { get; }
     public ICommand SaveSkillDefinitionCommand { get; }
@@ -2026,6 +2028,8 @@ public class AdminMainViewModel : ViewModelBase
                 ClientLogService.Instance.Debug("ui-refresh section=Персонажи step=LoadClassTree+LoadSkills");
                 LoadClassTree();
                 LoadSkills();
+        RefreshCharacterClasses();
+                RefreshCharacterClasses();
             }
             ClientLogService.Instance.Debug("ui-refresh section=Сессия step=ChatRefresh");
             ChatRefresh();
@@ -4406,22 +4410,63 @@ ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Кла
         {
             RefreshDefinitionClasses();
         }
+
+        ClientLogService.Instance.Info($"character.classes.get requested characterId={SelectedCharacterId}");
         var response = EnsureSuccess(_api.CharacterClassesGet(SelectedCharacterId));
-        CharacterClassRows.Clear();
-        foreach (var item in ToList(response.Payload.ContainsKey("classes") ? response.Payload["classes"] : new ArrayList()))
+        var payloadKeys = string.Join(",", response.Payload.Keys.OrderBy(x => x, StringComparer.Ordinal));
+        ClientLogService.Instance.Info($"character.classes.get payload.keys={payloadKeys}");
+        IList rawItems;
+        string rawCollectionKey;
+        if (response.Payload.ContainsKey("classes"))
         {
-            if (item is not Dictionary<string, object> map) continue;
+            rawItems = NormalizePayloadList(response.Payload["classes"], out _);
+            rawCollectionKey = "classes";
+        }
+        else
+        {
+            rawItems = ExtractSkillDefinitionItems(response.Payload, out rawCollectionKey);
+        }
+        ClientLogService.Instance.Info($"character.classes.get rawCollectionKey={rawCollectionKey}");
+        ClientLogService.Instance.Info($"character.classes.get rawCount={rawItems.Count}");
+
+        CharacterClassRows.Clear();
+        var mappedCount = 0;
+        foreach (var item in rawItems)
+        {
+            var map = AsMap(item, CommandNames.CharacterClassesGet);
+            if (map == null) continue;
             CharacterClassRows.Add(new RowVm { Id = S(map, "classCode"), Name = S(map, "displayName"), State = $"ветка={S(map, "branchCode")}", Extra = $"уровень={S(map, "level")}" });
+            mappedCount++;
+        }
+
+        ClientLogService.Instance.Info($"character.classes.get mappedCount={mappedCount}");
+
+        if (string.IsNullOrWhiteSpace(AssignClassCode) && ClassDefinitionRows.Count > 0)
+        {
+            AssignClassCode = ClassDefinitionRows[0].Id;
+            ClientLogService.Instance.Info($"character.class.assign defaultClassCode={AssignClassCode}");
         }
     }
 
     private void AssignCharacterClass()
     {
-        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) throw new ArgumentException("Не выбран персонаж.");
-        if (string.IsNullOrWhiteSpace(AssignClassCode)) throw new ArgumentException("Не выбран класс.");
-        if (!int.TryParse(AssignClassLevel, out var level) || level < 1) throw new ArgumentException("Уровень должен быть числом >= 1.");
-        EnsureSuccess(_api.CharacterClassAssign(SelectedCharacterId, AssignClassCode, level));
+        ClientLogService.Instance.Info($"character.class.assign requested characterId={SelectedCharacterId} classCode={AssignClassCode} levelText={AssignClassLevel}");
+
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId))
+            throw new ArgumentException("Не выбран персонаж.");
+
+        if (string.IsNullOrWhiteSpace(AssignClassCode))
+            throw new ArgumentException("Не выбран класс.");
+
+        if (!int.TryParse(AssignClassLevel, out var level) || level < 1)
+            throw new ArgumentException("Уровень должен быть числом >= 1.");
+
+        var response = EnsureSuccess(_api.CharacterClassAssign(SelectedCharacterId, AssignClassCode, level));
+
+        ClientLogService.Instance.Info($"character.class.assign response status={response.Status} message={response.Message}");
+
         RefreshCharacterClasses();
+
         StatusMessage = "Класс назначен";
     }
 

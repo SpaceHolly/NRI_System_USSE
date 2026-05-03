@@ -512,9 +512,9 @@
                                             <TextBlock Text="Классы персонажа" Style="{StaticResource SectionTitleTextStyle}"/>
                                             <WrapPanel Margin="0,6,0,6">
                                                 <Button Content="Обновить" Command="{Binding CharacterClassesRefreshCommand}"/>
-                                                <ComboBox Width="220" Margin="8,0,0,0" ItemsSource="{Binding ClassDefinitionRows}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding AssignClassCode, UpdateSourceTrigger=PropertyChanged}"/>
-                                                <TextBox Width="70" Margin="8,0,0,0" Text="{Binding AssignClassLevel, UpdateSourceTrigger=PropertyChanged}"/>
-                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Назначить класс" Command="{Binding CharacterClassAssignCommand}"/>
+                                                <ComboBox Width="220" Margin="8,0,0,0" ItemsSource="{Binding ClassDefinitionRows}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding AssignClassCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBox Width="70" Margin="8,0,0,0" Text="{Binding AssignClassLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Назначить класс" Command="{Binding AssignCharacterClassCommand}"/>
                                             </WrapPanel>
                                             <DataGrid ItemsSource="{Binding CharacterClassRows}" MinHeight="110" AutoGenerateColumns="False">
                                                 <DataGrid.Columns>
