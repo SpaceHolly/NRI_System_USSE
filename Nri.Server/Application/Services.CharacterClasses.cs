@@ -12,14 +12,15 @@ public partial class ServiceHub
 {
     public ResponseEnvelope CharacterClassAssign(CommandContext context)
     {
-        var actor = GetCurrentAccount(context);
+        var actor = RequireAdmin(context);
         var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 1, 128, "characterId");
         var classCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "classCode"), 1, 128, "classCode");
         var level = PayloadReader.GetInt(context.Request.Payload, "level") ?? 1;
         if (level < 1) throw new ArgumentException("level must be >= 1.");
 
         var character = GetCharacter(characterId);
-        EnsureCharacterAccess(actor, character);
+        EnsureCharacterEditAllowed(actor, character.Id);
+        EnsureCharacterDefaults(character);
 
         var classDef = _contentService.GetSnapshot().Classes.Values.FirstOrDefault(x => string.Equals(x.Code, classCode, StringComparison.OrdinalIgnoreCase));
         if (classDef == null) throw new KeyNotFoundException("Класс не найден в справочнике.");
@@ -50,7 +51,12 @@ public partial class ServiceHub
         var actor = GetCurrentAccount(context);
         var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 1, 128, "characterId");
         var character = GetCharacter(characterId);
-        EnsureCharacterAccess(actor, character);
+        var owner = GetAccount(character.OwnerUserId);
+        if (!CanViewCharacter(actor, owner, character))
+        {
+            throw new UnauthorizedAccessException("Character classes unavailable.");
+        }
+        EnsureCharacterDefaults(character);
 
         var classes = character.CharacterClasses ?? new List<CharacterClassState>();
         var defs = _contentService.GetSnapshot().Classes.Values.ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);

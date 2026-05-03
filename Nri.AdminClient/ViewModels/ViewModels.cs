@@ -1804,9 +1804,11 @@ public class AdminMainViewModel : ViewModelBase
     {
         RunUiAction("Обновление контента", () =>
         {
-            DefinitionsReload();
             RefreshDefinitionClasses();
             RefreshDefinitionSkills();
+            RefreshDefinitionRaces();
+            RefreshDefinitionItems();
+            RefreshDefinitionsContentStatus();
             ClientLogService.Instance.Debug($"ui-refresh section=Контент final classes={ClassDefinitionRows.Count} skills={SkillDefinitionRows.Count}");
         });
     }
@@ -2003,6 +2005,9 @@ public class AdminMainViewModel : ViewModelBase
             ClientLogService.Instance.Debug("ui-refresh section=Контент step=RefreshDefinitionClasses");
             RefreshDefinitionClasses();
             RefreshDefinitionSkills();
+            RefreshDefinitionRaces();
+            RefreshDefinitionItems();
+            RefreshDefinitionsContentStatus();
             if (!string.IsNullOrWhiteSpace(SelectedCharacterId))
             {
                 ClientLogService.Instance.Debug("ui-refresh section=Персонажи step=LoadClassTree+LoadSkills");
@@ -2858,10 +2863,27 @@ public class AdminMainViewModel : ViewModelBase
     private void RefreshDefinitionClasses()
     {
         ClassDefinitionRows.Clear();
-        var response = EnsureSuccess(_api.DefinitionsClassesGetContent(ClassBranchFilter, "", ClassSearchText, true));
-        foreach (var item in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
+        ClientLogService.Instance.Info($"definitions.classes.get requested branch={ClassBranchFilter} search={ClassSearchText} includeArchived=true");
+        var response = _api.DefinitionsClassesGetContent(ClassBranchFilter, "", ClassSearchText, true);
+        ClientLogService.Instance.Info($"definitions.classes.get response status={response.Status} message={response.Message}");
+        var payloadKeys = string.Join(",", response.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal));
+        ClientLogService.Instance.Info($"definitions.classes.get payload.keys={payloadKeys}");
+        EnsureSuccess(response);
+
+        object rawItemsObject = response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList();
+        var rawItemsType = rawItemsObject == null ? "null" : rawItemsObject.GetType().FullName;
+        ClientLogService.Instance.Info($"definitions.classes.get payload.items.type={rawItemsType}");
+
+        var skippedTypes = new HashSet<string>(StringComparer.Ordinal);
+        var added = 0;
+        foreach (var item in ToList(rawItemsObject))
         {
-            if (item is not Dictionary<string, object> map) continue;
+            if (item is not Dictionary<string, object> map)
+            {
+                skippedTypes.Add(item == null ? "null" : item.GetType().FullName ?? "unknown");
+                continue;
+            }
+
             ClassDefinitionRows.Add(new RowVm
             {
                 Id = S(map, "code"),
@@ -2869,7 +2891,12 @@ public class AdminMainViewModel : ViewModelBase
                 State = $"branch={S(map, "branchCode")} • parent={S(map, "parentClassCode")}",
                 Extra = S(map, "description")
             });
+            added++;
         }
+
+        var skipped = skippedTypes.Count == 0 ? "<none>" : string.Join("|", skippedTypes.OrderBy(x => x, StringComparer.Ordinal));
+        ClientLogService.Instance.Info($"definitions.classes.get added={added} skippedTypes={skipped}");
+
         ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Классы loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}");
         RestoreSelection(ClassDefinitionRows, SelectedClassDefinitionCode, value => SelectedClassDefinitionCode = value);
         Notify(nameof(ContentSummary));
@@ -4350,6 +4377,10 @@ public class AdminMainViewModel : ViewModelBase
     private void RefreshCharacterClasses()
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        if (ClassDefinitionRows.Count == 0)
+        {
+            RefreshDefinitionClasses();
+        }
         var response = EnsureSuccess(_api.CharacterClassesGet(SelectedCharacterId));
         CharacterClassRows.Clear();
         foreach (var item in ToList(response.Payload.ContainsKey("classes") ? response.Payload["classes"] : new ArrayList()))
