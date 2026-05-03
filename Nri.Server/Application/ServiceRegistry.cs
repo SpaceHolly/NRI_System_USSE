@@ -49,7 +49,7 @@ public static class ServiceRegistry
         contentService.EnsureFolders();
         var contentReport = contentService.Reload();
         logger.Debug($"content.init success={contentReport.Success} filesFound={contentReport.FilesFound} filesRead={contentReport.FilesRead} errors={contentReport.ErrorCount}");
-        var hub = new ServiceHub(repositories, sessions, logger, fateState, fateSettingsStore, config.AudioFolderPath);
+        var hub = new ServiceHub(repositories, sessions, logger, fateState, fateSettingsStore, contentService, config.AudioFolderPath);
         var auditLogService = new AuditLogService(repositories, logger);
         var validationService = new DefinitionValidationService(
             new ClassDefinitionValidator(),
@@ -171,21 +171,23 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CombatParticipants, new DelegateCommandHandler(hub.CombatParticipants));
         dispatcher.Register(CommandNames.CombatTimeline, new DelegateCommandHandler(hub.CombatTimeline));
 
-        dispatcher.Register(CommandNames.DefinitionsRacesGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsRacesGet, new DelegateCommandHandler(hub.DefinitionsRacesGet));
         dispatcher.Register(CommandNames.DefinitionsRaceGet, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsRaceSave, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsRaceArchive, new RoutedCommandHandler(adminDefinitionRouter));
-        dispatcher.Register(CommandNames.DefinitionsClassesGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsClassesGet, new DelegateCommandHandler(hub.DefinitionsClassesGet));
         dispatcher.Register(CommandNames.DefinitionsClassGet, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsClassSave, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsClassArchive, new RoutedCommandHandler(adminDefinitionRouter));
-        dispatcher.Register(CommandNames.DefinitionsSkillsGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsSkillsGet, new DelegateCommandHandler(hub.DefinitionsSkillsGet));
         dispatcher.Register(CommandNames.DefinitionsSkillGet, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsSkillSave, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsSkillArchive, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.SkillsSave, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.SkillsArchive, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsReload, new DelegateCommandHandler(hub.DefinitionsReload));
+        dispatcher.Register(CommandNames.DefinitionsItemsGet, new DelegateCommandHandler(hub.DefinitionsItemsGet));
+        dispatcher.Register(CommandNames.DefinitionsContentStatus, new DelegateCommandHandler(hub.DefinitionsContentStatus));
         dispatcher.Register(CommandNames.DefinitionsVersionGet, new DelegateCommandHandler(hub.DefinitionsVersionGet));
 
         dispatcher.Register(CommandNames.ClassTreeGet, new DelegateCommandHandler(hub.ClassTreeGet));

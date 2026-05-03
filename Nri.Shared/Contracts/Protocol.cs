@@ -194,6 +194,7 @@ public static class CommandNames
     public const string SkillsArchive = "skills.archive";
     public const string DefinitionsReload = "definitions.reload";
     public const string DefinitionsVersionGet = "definitions.version.get";
+    public const string DefinitionsContentStatus = "definitions.content.status";
 
     public const string ClassTreeGet = "classTree.get";
     public const string ClassTreeNodeGet = "classTree.node.get";
