@@ -2887,28 +2887,20 @@ public class AdminMainViewModel : ViewModelBase
         var rawItemsType = rawItemsObject == null ? "null" : rawItemsObject.GetType().FullName;
         ClientLogService.Instance.Info($"definitions.classes.get payload.items.type={rawItemsType}");
 
-        var skippedTypes = new HashSet<string>(StringComparer.Ordinal);
         var added = 0;
-        foreach (var item in ToList(rawItemsObject))
+        foreach (var map in PayloadItemsAsMaps(response.Payload))
         {
-            if (item is not Dictionary<string, object> map)
-            {
-                skippedTypes.Add(item == null ? "null" : item.GetType().FullName ?? "unknown");
-                continue;
-            }
-
             ClassDefinitionRows.Add(new RowVm
             {
                 Id = S(map, "code"),
                 Name = FirstNonEmpty(S(map, "displayName"), S(map, "name"), S(map, "code")),
-                State = $"branch={S(map, "branchCode")} • parent={S(map, "parentClassCode")}",
-                Extra = S(map, "description")
+                State = $"ветка={S(map, "branchCode")} • родитель={S(map, "parentClassCode")}",
+                Extra = $"лимит={S(map, "levelCap")} • требуется={S(map, "requiredLevel")} • {S(map, "description")}" 
             });
             added++;
         }
 
-        var skipped = skippedTypes.Count == 0 ? "<none>" : string.Join("|", skippedTypes.OrderBy(x => x, StringComparer.Ordinal));
-        ClientLogService.Instance.Info($"definitions.classes.get added={added} skippedTypes={skipped}");
+        ClientLogService.Instance.Info($"definitions.classes.get added={added}");
 
         ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Классы loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}");
         RestoreSelection(ClassDefinitionRows, SelectedClassDefinitionCode, value => SelectedClassDefinitionCode = value);
@@ -4351,10 +4343,9 @@ public class AdminMainViewModel : ViewModelBase
         ClientLogService.Instance.Info("definitions.races.get requested");
         var response = EnsureSuccess(_api.DefinitionsRacesGetContent(RaceSearchText, true));
         RaceDefinitionRows.Clear();
-        foreach (var item in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
+        foreach (var map in PayloadItemsAsMaps(response.Payload))
         {
-            if (item is not Dictionary<string, object> map) continue;
-            RaceDefinitionRows.Add(new RowVm { Id = S(map, "code"), Name = S(map, "displayName"), State = FirstNonEmpty(S(map, "subtypeCode"), S(map, "hybridCode")), Extra = S(map, "description") });
+            RaceDefinitionRows.Add(new RowVm { Id = S(map, "code"), Name = FirstNonEmpty(S(map, "displayName"), S(map, "name"), S(map, "code")), State = FirstNonEmpty(S(map, "subtypeCode"), S(map, "hybridCode")), Extra = S(map, "description") });
         }
         ClientLogService.Instance.Info($"definitions.races.get count={RaceDefinitionRows.Count}");
     }
@@ -4364,10 +4355,9 @@ public class AdminMainViewModel : ViewModelBase
         ClientLogService.Instance.Info("definitions.items.get requested");
         var response = EnsureSuccess(_api.DefinitionsItemsGetContent(ItemTypeFilter, ItemSearchText, true));
         ItemDefinitionRows.Clear();
-        foreach (var item in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
+        foreach (var map in PayloadItemsAsMaps(response.Payload))
         {
-            if (item is not Dictionary<string, object> map) continue;
-            ItemDefinitionRows.Add(new RowVm { Id = S(map, "code"), Name = S(map, "displayName"), State = S(map, "itemType"), Extra = S(map, "description") });
+            ItemDefinitionRows.Add(new RowVm { Id = S(map, "code"), Name = FirstNonEmpty(S(map, "displayName"), S(map, "name"), S(map, "code")), State = S(map, "itemType"), Extra = S(map, "description") });
         }
         ClientLogService.Instance.Info($"definitions.items.get count={ItemDefinitionRows.Count}");
     }
