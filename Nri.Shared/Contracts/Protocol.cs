@@ -187,6 +187,7 @@ public static class CommandNames
     public const string DefinitionsClassSave = "definitions.class.save";
     public const string DefinitionsClassArchive = "definitions.class.archive";
     public const string DefinitionsSkillsGet = "definitions.skills.get";
+    public const string DefinitionsItemsGet = "definitions.items.get";
     public const string DefinitionsSkillGet = "definitions.skill.get";
     public const string DefinitionsSkillSave = "definitions.skill.save";
     public const string DefinitionsSkillArchive = "definitions.skill.archive";
@@ -194,6 +195,7 @@ public static class CommandNames
     public const string SkillsArchive = "skills.archive";
     public const string DefinitionsReload = "definitions.reload";
     public const string DefinitionsVersionGet = "definitions.version.get";
+    public const string DefinitionsContentStatus = "definitions.content.status";
 
     public const string ClassTreeGet = "classTree.get";
     public const string ClassTreeNodeGet = "classTree.node.get";

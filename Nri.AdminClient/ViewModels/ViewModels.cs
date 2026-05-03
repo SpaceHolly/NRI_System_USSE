@@ -303,6 +303,8 @@ public class AdminMainViewModel : ViewModelBase
     private string _selectedReferenceId = string.Empty;
     private string _selectedClassDefinitionCode = string.Empty;
     private string _selectedSkillDefinitionCode = string.Empty;
+    private string _selectedRaceDefinitionCode = string.Empty;
+    private string _selectedItemDefinitionCode = string.Empty;
     private string _selectedBackupId = string.Empty;
     private string _selectedDiagnosticsId = string.Empty;
     private string _editSkillCode = string.Empty;
@@ -314,6 +316,11 @@ public class AdminMainViewModel : ViewModelBase
     private string _locksSearchText = string.Empty;
     private string _classSearchText = string.Empty;
     private string _skillSearchText = string.Empty;
+    private string _raceSearchText = string.Empty;
+    private string _itemSearchText = string.Empty;
+    private string _skillCategoryFilter = string.Empty;
+    private string _classBranchFilter = string.Empty;
+    private string _itemTypeFilter = string.Empty;
     private int _diceCount = 1;
     private int _diceFaces = 20;
     private int _diceModifier;
@@ -413,6 +420,9 @@ public class AdminMainViewModel : ViewModelBase
         SaveClassDefinitionCommand = new RelayCommand(() => RunUiAction("Сохранение definitions класса", SaveClassDefinition));
         ArchiveClassDefinitionCommand = new RelayCommand(() => RunUiAction("Архивация definitions класса", ArchiveClassDefinition));
         RefreshDefinitionSkillsCommand = new RelayCommand(() => RunUiAction("Загрузка definitions навыков", RefreshDefinitionSkills));
+        RefreshDefinitionRacesCommand = new RelayCommand(() => RunUiAction("Загрузка definitions рас", RefreshDefinitionRaces));
+        RefreshDefinitionItemsCommand = new RelayCommand(() => RunUiAction("Загрузка definitions предметов", RefreshDefinitionItems));
+        RefreshContentStatusCommand = new RelayCommand(() => RunUiAction("Загрузка статуса контента", RefreshDefinitionsContentStatus));
         NewSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Создание definitions навыка", NewSkillDefinition));
         OpenSelectedSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Открытие definitions навыка", OpenSelectedSkillDefinition));
         SaveSkillDefinitionCommand = new RelayCommand(() => RunUiAction("Сохранение definitions навыка", SaveSkillDefinition));
@@ -522,6 +532,11 @@ public class AdminMainViewModel : ViewModelBase
     public string SelectedCharacterWorkspaceTab { get => _selectedCharacterWorkspaceTab; set { _selectedCharacterWorkspaceTab = value; Notify(); } }
     public string ClassSearchText { get => _classSearchText; set { _classSearchText = value; Notify(); Notify(nameof(FilteredClassDefinitionRows)); ClientLogService.Instance.Info($"ui-filter section=Контент block=Классы query={_classSearchText} loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}"); } }
     public string SkillSearchText { get => _skillSearchText; set { _skillSearchText = value; Notify(); Notify(nameof(FilteredSkillDefinitionRows)); ClientLogService.Instance.Info($"ui-filter section=Контент block=Навыки query={_skillSearchText} loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}"); } }
+    public string RaceSearchText { get => _raceSearchText; set { _raceSearchText = value; Notify(); } }
+    public string ItemSearchText { get => _itemSearchText; set { _itemSearchText = value; Notify(); } }
+    public string SkillCategoryFilter { get => _skillCategoryFilter; set { _skillCategoryFilter = value; Notify(); } }
+    public string ClassBranchFilter { get => _classBranchFilter; set { _classBranchFilter = value; Notify(); } }
+    public string ItemTypeFilter { get => _itemTypeFilter; set { _itemTypeFilter = value; Notify(); } }
     public string CurrentEndpoint => $"{_client.ServerHost}:{_client.ServerPort}";
     public string LoginSummary => string.IsNullOrWhiteSpace(LoginText) ? "Не авторизован" : LoginText;
     public int PendingAccountsCount => PendingAccounts.Count;
@@ -583,6 +598,8 @@ public class AdminMainViewModel : ViewModelBase
     public RowVm? SelectedRequest => PendingRequests.FirstOrDefault(row => row.Id == SelectedPendingRequestId);
     public RowVm? SelectedClassDefinition => ClassDefinitionRows.FirstOrDefault(row => row.Id == SelectedClassDefinitionCode);
     public RowVm? SelectedSkillDefinition => SkillDefinitionRows.FirstOrDefault(row => row.Id == SelectedSkillDefinitionCode);
+    public RowVm? SelectedRaceDefinition => RaceDefinitionRows.FirstOrDefault(row => row.Id == SelectedRaceDefinitionCode);
+    public RowVm? SelectedItemDefinition => ItemDefinitionRows.FirstOrDefault(row => row.Id == SelectedItemDefinitionCode);
     public RowVm? SelectedClassNode => ClassTreeItems.FirstOrDefault(row => row.Id == SelectedClassNodeId);
     public RowVm? SelectedSkill => SkillRows.FirstOrDefault(row => row.Id == SelectedSkillId);
     public RowVm? SelectedReference => ReferenceItems.FirstOrDefault(row => row.Id == ReferenceId);
@@ -824,6 +841,31 @@ public class AdminMainViewModel : ViewModelBase
         }
     }
     public string DefinitionVersionText { get; set; } = string.Empty;
+
+    public string SelectedRaceDefinitionCode
+    {
+        get => _selectedRaceDefinitionCode;
+        set
+        {
+            _selectedRaceDefinitionCode = value;
+            Notify();
+            Notify(nameof(SelectedRaceDefinition));
+            Notify(nameof(SelectedContentSummary));
+        }
+    }
+
+    public string SelectedItemDefinitionCode
+    {
+        get => _selectedItemDefinitionCode;
+        set
+        {
+            _selectedItemDefinitionCode = value;
+            Notify();
+            Notify(nameof(SelectedItemDefinition));
+            Notify(nameof(SelectedContentSummary));
+        }
+    }
+
     public string EditClassCode { get; set; } = string.Empty;
     public string EditClassName { get; set; } = string.Empty;
     public string EditClassDescription { get; set; } = string.Empty;
@@ -1127,6 +1169,10 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<string> CombatHistoryRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<RowVm> ClassDefinitionRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> SkillDefinitionRows { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<RowVm> RaceDefinitionRows { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<RowVm> ItemDefinitionRows { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<RowVm> ContentStatusRows { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<RowVm> ContentErrorRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<SkillLevelEditorRowVm> SkillLevelEditorRows { get; } = new ObservableCollection<SkillLevelEditorRowVm>();
     public ObservableCollection<RowVm> ClassTreeItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> SkillRows { get; } = new ObservableCollection<RowVm>();
@@ -1246,6 +1292,9 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand SaveClassDefinitionCommand { get; }
     public ICommand ArchiveClassDefinitionCommand { get; }
     public ICommand RefreshDefinitionSkillsCommand { get; }
+    public ICommand RefreshDefinitionRacesCommand { get; }
+    public ICommand RefreshDefinitionItemsCommand { get; }
+    public ICommand RefreshContentStatusCommand { get; }
     public ICommand NewSkillDefinitionCommand { get; }
     public ICommand OpenSelectedSkillDefinitionCommand { get; }
     public ICommand SaveSkillDefinitionCommand { get; }
@@ -2804,16 +2853,16 @@ public class AdminMainViewModel : ViewModelBase
     private void RefreshDefinitionClasses()
     {
         ClassDefinitionRows.Clear();
-        var response = EnsureSuccess(_api.DefinitionsClassesGet(true));
+        var response = EnsureSuccess(_api.DefinitionsClassesGetContent(ClassBranchFilter, "", ClassSearchText, true));
         foreach (var item in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
         {
             if (item is not Dictionary<string, object> map) continue;
             ClassDefinitionRows.Add(new RowVm
             {
                 Id = S(map, "code"),
-                Name = FirstNonEmpty(S(map, "name"), S(map, "code")),
-                State = $"lvl={S(map, "level")} • {S(map, "status")}",
-                Extra = $"branch={S(map, "branchCode")} • direction={S(map, "directionCode")} • active={S(map, "isActive")}"
+                Name = FirstNonEmpty(S(map, "displayName"), S(map, "name"), S(map, "code")),
+                State = $"branch={S(map, "branchCode")} • parent={S(map, "parentClassCode")}",
+                Extra = S(map, "description")
             });
         }
         ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Классы loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}");
@@ -2876,7 +2925,7 @@ public class AdminMainViewModel : ViewModelBase
     {
         SkillDefinitionRows.Clear();
         ClientLogService.Instance.Info("skillDefinitions.content.load requested");
-        var response = EnsureSuccess(_api.DefinitionsSkillsGet(true));
+        var response = EnsureSuccess(_api.DefinitionsSkillsGetContent(SkillCategoryFilter, SkillSearchText, true));
         var payloadKeys = string.Join(",", response.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal));
         var rawItems = ExtractSkillDefinitionItems(response.Payload, out var rawCollectionKey);
         var mappedCount = 0;
@@ -2891,9 +2940,9 @@ public class AdminMainViewModel : ViewModelBase
             SkillDefinitionRows.Add(new RowVm
             {
                 Id = code,
-                Name = FirstNonEmpty(S(map, "name"), code),
-                State = $"тип источника={FirstNonEmpty(S(map, "skillCategory"), "Undefined")} • макс. уровень={S(map, "maxLevel")}",
-                Extra = $"активен={S(map, "isActive")} • архивирован={isArchived}"
+                Name = FirstNonEmpty(S(map, "displayName"), S(map, "name"), code),
+                State = FirstNonEmpty(S(map, "category"), S(map, "displayGroup")),
+                Extra = S(map, "description")
             });
             mappedCount++;
             if (string.IsNullOrWhiteSpace(firstRowCode)) firstRowCode = code;
@@ -4250,6 +4299,47 @@ public class AdminMainViewModel : ViewModelBase
             _ => "Public"
         };
     }
+
+
+    private void RefreshDefinitionRaces()
+    {
+        ClientLogService.Instance.Info("definitions.races.get requested");
+        var response = EnsureSuccess(_api.DefinitionsRacesGetContent(RaceSearchText, true));
+        RaceDefinitionRows.Clear();
+        foreach (var item in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
+        {
+            if (item is not Dictionary<string, object> map) continue;
+            RaceDefinitionRows.Add(new RowVm { Id = S(map, "code"), Name = S(map, "displayName"), State = FirstNonEmpty(S(map, "subtypeCode"), S(map, "hybridCode")), Extra = S(map, "description") });
+        }
+        ClientLogService.Instance.Info($"definitions.races.get count={RaceDefinitionRows.Count}");
+    }
+
+    private void RefreshDefinitionItems()
+    {
+        ClientLogService.Instance.Info("definitions.items.get requested");
+        var response = EnsureSuccess(_api.DefinitionsItemsGetContent(ItemTypeFilter, ItemSearchText, true));
+        ItemDefinitionRows.Clear();
+        foreach (var item in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
+        {
+            if (item is not Dictionary<string, object> map) continue;
+            ItemDefinitionRows.Add(new RowVm { Id = S(map, "code"), Name = S(map, "displayName"), State = S(map, "itemType"), Extra = S(map, "description") });
+        }
+        ClientLogService.Instance.Info($"definitions.items.get count={ItemDefinitionRows.Count}");
+    }
+
+    private void RefreshDefinitionsContentStatus()
+    {
+        var response = EnsureSuccess(_api.DefinitionsContentStatusGet());
+        ContentStatusRows.Clear();
+        ContentErrorRows.Clear();
+        ContentStatusRows.Add(new RowVm { Id = "loadedAt", Name = "Время загрузки", State = S(response.Payload, "loadedAtUtc"), Extra = string.Empty });
+        ContentStatusRows.Add(new RowVm { Id = "summary", Name = "Статус", State = $"success={S(response.Payload, "success")}", Extra = $"files={S(response.Payload, "filesRead")}/{S(response.Payload, "filesFound")}, errors={S(response.Payload, "errorCount")}" });
+        if (response.Payload.TryGetValue("errors", out var errs))
+        {
+            foreach (var e in ToList(errs)) ContentErrorRows.Add(new RowVm { Id = Guid.NewGuid().ToString("N"), Name = "Ошибка", State = Convert.ToString(e) ?? string.Empty, Extra = string.Empty });
+        }
+    }
+
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
 
