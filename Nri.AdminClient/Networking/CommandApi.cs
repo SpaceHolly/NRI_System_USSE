@@ -120,6 +120,15 @@ public class CommandApi
     public ResponseEnvelope SkillsArchive(string code) => Send(CommandNames.SkillsArchive, new Dictionary<string, object> { { "code", code } });
     public ResponseEnvelope DefinitionsReload() => Send(CommandNames.DefinitionsReload);
     public ResponseEnvelope DefinitionsVersionGet() => Send(CommandNames.DefinitionsVersionGet);
+    public ResponseEnvelope DefinitionsSkillsGetContent(string category = "", string search = "", bool includeArchived = false)
+        => Send(CommandNames.DefinitionsSkillsGet, new Dictionary<string, object> { { "includeArchived", includeArchived }, { "category", category }, { "search", search } });
+    public ResponseEnvelope DefinitionsClassesGetContent(string branchCode = "", string parentClassCode = "", string search = "", bool includeArchived = false)
+        => Send(CommandNames.DefinitionsClassesGet, new Dictionary<string, object> { { "includeArchived", includeArchived }, { "branchCode", branchCode }, { "parentClassCode", parentClassCode }, { "search", search } });
+    public ResponseEnvelope DefinitionsRacesGetContent(string search = "", bool includeArchived = false)
+        => Send(CommandNames.DefinitionsRacesGet, new Dictionary<string, object> { { "includeArchived", includeArchived }, { "search", search } });
+    public ResponseEnvelope DefinitionsItemsGetContent(string itemType = "", string search = "", bool includeArchived = false)
+        => Send(CommandNames.DefinitionsItemsGet, new Dictionary<string, object> { { "includeArchived", includeArchived }, { "itemType", itemType }, { "search", search } });
+    public ResponseEnvelope DefinitionsContentStatusGet() => Send(CommandNames.DefinitionsContentStatus);
 
     public ResponseEnvelope ClassTreeGet(string characterId) => Send(CommandNames.ClassTreeGet, new Dictionary<string, object> { { "characterId", characterId } });
     public ResponseEnvelope ClassTreeAvailable(string characterId) => Send(CommandNames.ClassTreeAvailableGet, new Dictionary<string, object> { { "characterId", characterId } });

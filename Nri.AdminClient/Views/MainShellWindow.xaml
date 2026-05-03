@@ -868,60 +868,41 @@
 
                     <TabItem Header="Контент" Tag="Контент">
                         <Grid Margin="8" IsEnabled="{Binding ArePrivilegedSectionsEnabled}">
-                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                            <Border Style="{StaticResource CardStyle}"><DockPanel><TextBlock Text="Классы и навыки" Style="{StaticResource SectionTitleTextStyle}"/><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Style="{StaticResource GhostButtonStyle}" Content="Обновить классы" Command="{Binding RefreshDefinitionClassesCommand}" IsEnabled="{Binding CanControlContent}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Обновить навыки" Command="{Binding RefreshDefinitionSkillsCommand}" IsEnabled="{Binding CanControlContent}"/></StackPanel></DockPanel></Border>
-                            <Grid Grid.Row="1" Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0"><StackPanel><TextBlock Text="Классы" Style="{StaticResource TitleTextStyle}"/><TextBox Margin="0,6,0,6" Text="{Binding ClassSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по коду, названию, ветке"/><DataGrid ItemsSource="{Binding FilteredClassDefinitionRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedClassDefinitionCode, UpdateSourceTrigger=PropertyChanged}" MinHeight="250"/><TextBlock Text="Редактор класса" Style="{StaticResource TitleTextStyle}" Margin="0,8,0,0"/><TextBlock Text="Код"/><TextBox Text="{Binding EditClassCode, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Родительский класс" Margin="0,6,0,0"/><TextBox Text="{Binding EditClassParentClassCode, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Корневой класс" Margin="0,6,0,0"/><TextBox Text="{Binding EditClassRootClassCode, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Уровень" Margin="0,6,0,0"/><TextBox Text="{Binding EditClassLevel, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="Описание" Margin="0,6,0,0"/><TextBox Height="80" TextWrapping="Wrap" Text="{Binding EditClassDescription, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Text="{Binding DefinitionHintText}" Margin="0,6,0,0" Opacity="0.8" TextWrapping="Wrap"/><WrapPanel Margin="0,8,0,0"><Button Content="Сохранить" Command="{Binding SaveClassDefinitionCommand}" IsEnabled="{Binding CanManageClassDefinition}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Архивировать" Command="{Binding ArchiveClassDefinitionCommand}" IsEnabled="{Binding CanManageClassDefinition}"/></WrapPanel></StackPanel></Border>
-                                <Border Grid.Column="1" Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <DockPanel>
-                                            <TextBlock Text="Навыки (определения)" Style="{StaticResource TitleTextStyle}"/>
-                                            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding RefreshDefinitionSkillsCommand}" IsEnabled="{Binding CanRefreshSkillDefinitions}"/>
-                                        </DockPanel>
-                                        <TextBox Margin="0,6,0,6" Text="{Binding SkillSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по коду / названию / типу источника"/>
-                                        <DataGrid ItemsSource="{Binding FilteredSkillDefinitionRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedSkillDefinitionCode, UpdateSourceTrigger=PropertyChanged}" MinHeight="240">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="1.3*"/>
-                                                <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.5*"/>
-                                                <DataGridTextColumn Header="Тип источника / Макс. уровень" Binding="{Binding State}" Width="1.5*"/>
-                                                <DataGridTextColumn Header="Активен / Архивирован" Binding="{Binding Extra}" Width="1.3*"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-
-                                        <TextBlock Text="Редактор определения навыка" Style="{StaticResource TitleTextStyle}" Margin="0,8,0,0"/>
-                                        <WrapPanel Margin="0,6,0,0">
-                                            <Button Content="Создать" Command="{Binding NewSkillDefinitionCommand}" IsEnabled="{Binding CanCreateSkillDefinition}"/>
-                                            <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Открыть" Command="{Binding OpenSelectedSkillDefinitionCommand}" IsEnabled="{Binding CanRefreshSkillDefinitions}"/>
-                                            <Button Margin="8,0,0,0" Content="Сохранить" Command="{Binding SaveSkillDefinitionCommand}" IsEnabled="{Binding CanSaveSkillDefinition}"/>
-                                            <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Архивировать" Command="{Binding ArchiveSkillDefinitionCommand}" IsEnabled="{Binding CanArchiveSkillDefinition}"/>
-                                        </WrapPanel>
-
-                                        <TextBlock Text="Код" Margin="0,8,0,0"/>
-                                        <TextBox Text="{Binding EditSkillCode, UpdateSourceTrigger=PropertyChanged}"/>
-                                        <TextBlock Text="Название" Margin="0,6,0,0"/>
-                                        <TextBox Text="{Binding EditSkillName, UpdateSourceTrigger=PropertyChanged}"/>
-                                        <TextBlock Text="Описание" Margin="0,6,0,0"/>
-                                        <TextBox Height="70" TextWrapping="Wrap" Text="{Binding EditSkillDescription, UpdateSourceTrigger=PropertyChanged}"/>
-                                        <WrapPanel Margin="0,6,0,0">
-                                            <StackPanel>
-                                                <TextBlock Text="Тип источника навыка"/>
-                                                <TextBox Width="170" Text="{Binding EditSkillCategory, UpdateSourceTrigger=PropertyChanged}"/>
-                                            </StackPanel>
-                                            <StackPanel Margin="8,0,0,0">
-                                                <TextBlock Text="Макс. уровень"/>
-                                                <TextBox Width="90" Text="{Binding EditSkillMaxLevel, UpdateSourceTrigger=PropertyChanged}"/>
-                                            </StackPanel>
-                                        </WrapPanel>
-                                        <WrapPanel Margin="0,8,0,0">
-                                            <CheckBox Content="Активен" IsChecked="{Binding EditSkillIsActive, UpdateSourceTrigger=PropertyChanged}"/>
-                                            <StackPanel Margin="12,0,0,0">
-                                                <TextBlock Text="Статус"/>
-                                                <TextBox Width="150" Text="{Binding EditSkillStatus, UpdateSourceTrigger=PropertyChanged}" ToolTip="Черновик / Активный / Архив"/>
-                                            </StackPanel>
-                                        </WrapPanel>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
+                            <TabControl>
+                                <TabItem Header="Навыки">
+                                    <Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                        <WrapPanel><TextBox Width="220" Text="{Binding SkillSearchText, UpdateSourceTrigger=PropertyChanged}"/><TextBox Width="180" Text="{Binding SkillCategoryFilter, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding RefreshDefinitionSkillsCommand}"/></WrapPanel>
+                                        <DataGrid Grid.Row="1" ItemsSource="{Binding SkillDefinitionRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedSkillDefinitionCode}"><DataGrid.Columns><DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="1.2*"/><DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.4*"/><DataGridTextColumn Header="Категория" Binding="{Binding State}" Width="1*"/><DataGridTextColumn Header="Описание" Binding="{Binding Extra}" Width="2*"/></DataGrid.Columns></DataGrid>
+                                        <TextBlock Grid.Row="2" Text="{Binding SelectedSkillSummary}" TextWrapping="Wrap"/>
+                                    </Grid>
+                                </TabItem>
+                                <TabItem Header="Классы">
+                                    <Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                        <WrapPanel><TextBox Width="220" Text="{Binding ClassSearchText, UpdateSourceTrigger=PropertyChanged}"/><TextBox Width="180" Text="{Binding ClassBranchFilter, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding RefreshDefinitionClassesCommand}"/></WrapPanel>
+                                        <DataGrid Grid.Row="1" ItemsSource="{Binding ClassDefinitionRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedClassDefinitionCode}"><DataGrid.Columns><DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="1.1*"/><DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.2*"/><DataGridTextColumn Header="Ветка/Родитель" Binding="{Binding State}" Width="1.4*"/><DataGridTextColumn Header="Описание" Binding="{Binding Extra}" Width="2*"/></DataGrid.Columns></DataGrid>
+                                        <TextBlock Grid.Row="2" Text="{Binding SelectedClassSummary}" TextWrapping="Wrap"/>
+                                    </Grid>
+                                </TabItem>
+                                <TabItem Header="Расы">
+                                    <Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <WrapPanel><TextBox Width="220" Text="{Binding RaceSearchText, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding RefreshDefinitionRacesCommand}"/></WrapPanel>
+                                        <DataGrid Grid.Row="1" ItemsSource="{Binding RaceDefinitionRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedRaceDefinitionCode}"><DataGrid.Columns><DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="1.1*"/><DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.4*"/><DataGridTextColumn Header="Подвид/Гибрид" Binding="{Binding State}" Width="1.2*"/><DataGridTextColumn Header="Описание" Binding="{Binding Extra}" Width="2*"/></DataGrid.Columns></DataGrid>
+                                    </Grid>
+                                </TabItem>
+                                <TabItem Header="Предметы">
+                                    <Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <WrapPanel><TextBox Width="220" Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}"/><TextBox Width="160" Text="{Binding ItemTypeFilter, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding RefreshDefinitionItemsCommand}"/></WrapPanel>
+                                        <DataGrid Grid.Row="1" ItemsSource="{Binding ItemDefinitionRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedItemDefinitionCode}"><DataGrid.Columns><DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="1.1*"/><DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.3*"/><DataGridTextColumn Header="Тип" Binding="{Binding State}" Width="1*"/><DataGridTextColumn Header="Описание" Binding="{Binding Extra}" Width="2*"/></DataGrid.Columns></DataGrid>
+                                    </Grid>
+                                </TabItem>
+                                <TabItem Header="Статус загрузки">
+                                    <Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <WrapPanel><Button Style="{StaticResource GhostButtonStyle}" Content="Обновить статус" Command="{Binding RefreshContentStatusCommand}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Перечитать контент" IsEnabled="False" ToolTip="Пока доступно только из консоли сервера"/></WrapPanel>
+                                        <DataGrid Grid.Row="1" ItemsSource="{Binding ContentStatusRows}" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="Параметр" Binding="{Binding Name}" Width="1.2*"/><DataGridTextColumn Header="Значение" Binding="{Binding State}" Width="1.3*"/><DataGridTextColumn Header="Дополнительно" Binding="{Binding Extra}" Width="2*"/></DataGrid.Columns></DataGrid>
+                                        <DataGrid Grid.Row="2" ItemsSource="{Binding ContentErrorRows}" AutoGenerateColumns="False" Margin="0,8,0,0"><DataGrid.Columns><DataGridTextColumn Header="Ошибка" Binding="{Binding State}" Width="*"/></DataGrid.Columns></DataGrid>
+                                    </Grid>
+                                </TabItem>
+                            </TabControl>
                         </Grid>
                     </TabItem>
 
