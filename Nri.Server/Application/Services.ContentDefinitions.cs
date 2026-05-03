@@ -38,7 +38,7 @@ public partial class ServiceHub
         var items = FilterRecords(_contentService.GetSnapshot().Classes.Values, search, includeArchived,
             x => (string.IsNullOrWhiteSpace(branchCode) || FieldEquals(x, "branchCode", branchCode))
                  && (string.IsNullOrWhiteSpace(parentClassCode) || FieldEquals(x, "parentClassCode", parentClassCode)))
-            .OrderBy(x => GetFieldString(x, "branchCode"), StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => GetContentFieldString(x, "branchCode"), StringComparer.OrdinalIgnoreCase)
             .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
             .Select(ToDefinitionPayload)
             .Cast<object>()
@@ -73,7 +73,7 @@ public partial class ServiceHub
 
         var items = FilterRecords(_contentService.GetSnapshot().Items.Values, search, includeArchived,
             x => string.IsNullOrWhiteSpace(itemType) || FieldEquals(x, "itemType", itemType))
-            .OrderBy(x => GetFieldString(x, "itemType"), StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => GetContentFieldString(x, "itemType"), StringComparer.OrdinalIgnoreCase)
             .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
             .Select(ToDefinitionPayload)
             .Cast<object>()
@@ -127,7 +127,7 @@ public partial class ServiceHub
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var description = GetFieldString(item, "description");
+                var description = GetContentFieldString(item, "description");
                 if (IndexOfIgnoreCase(item.Code, search) < 0
                     && IndexOfIgnoreCase(item.DisplayName, search) < 0
                     && IndexOfIgnoreCase(description, search) < 0)
@@ -153,9 +153,9 @@ public partial class ServiceHub
     }
 
     private static bool FieldEquals(GameContentRecord record, string field, string expected)
-        => string.Equals(GetFieldString(record, field), expected, StringComparison.OrdinalIgnoreCase);
+        => string.Equals(GetContentFieldString(record, field), expected, StringComparison.OrdinalIgnoreCase);
 
-    private static string GetFieldString(GameContentRecord record, string field)
+    private static string GetContentFieldString(GameContentRecord record, string field)
     {
         if (!record.ExtraFields.TryGetValue(field, out var value)) return string.Empty;
         return value.ValueKind switch
@@ -172,12 +172,12 @@ public partial class ServiceHub
         {
             { "code", record.Code },
             { "displayName", record.DisplayName },
-            { "description", GetFieldString(record, "description") }
+            { "description", GetContentFieldString(record, "description") }
         };
 
         foreach (var key in new[] { "category", "itemType", "branchCode", "parentClassCode" })
         {
-            var value = GetFieldString(record, key);
+            var value = GetContentFieldString(record, key);
             if (!string.IsNullOrWhiteSpace(value)) payload[key] = value;
         }
 
