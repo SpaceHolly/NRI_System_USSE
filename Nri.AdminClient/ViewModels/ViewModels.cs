@@ -321,6 +321,8 @@ public class AdminMainViewModel : ViewModelBase
     private string _skillCategoryFilter = string.Empty;
     private string _classBranchFilter = string.Empty;
     private string _itemTypeFilter = string.Empty;
+    private string _assignClassCode = string.Empty;
+    private string _assignClassLevel = "1";
     private int _diceCount = 1;
     private int _diceFaces = 20;
     private int _diceModifier;
@@ -537,6 +539,8 @@ public class AdminMainViewModel : ViewModelBase
     public string SkillCategoryFilter { get => _skillCategoryFilter; set { _skillCategoryFilter = value; Notify(); } }
     public string ClassBranchFilter { get => _classBranchFilter; set { _classBranchFilter = value; Notify(); } }
     public string ItemTypeFilter { get => _itemTypeFilter; set { _itemTypeFilter = value; Notify(); } }
+    public string AssignClassCode { get => _assignClassCode; set { _assignClassCode = value; Notify(); } }
+    public string AssignClassLevel { get => _assignClassLevel; set { _assignClassLevel = value; Notify(); } }
     public string CurrentEndpoint => $"{_client.ServerHost}:{_client.ServerPort}";
     public string LoginSummary => string.IsNullOrWhiteSpace(LoginText) ? "Не авторизован" : LoginText;
     public int PendingAccountsCount => PendingAccounts.Count;
@@ -1176,6 +1180,7 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<SkillLevelEditorRowVm> SkillLevelEditorRows { get; } = new ObservableCollection<SkillLevelEditorRowVm>();
     public ObservableCollection<RowVm> ClassTreeItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> SkillRows { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<RowVm> CharacterClassRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<string> ChatRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<ChatMessageRowVm> ChatMessageRows { get; } = new ObservableCollection<ChatMessageRowVm>();
     public ObservableCollection<ChatMessageRowVm> MergedSessionFeedRows { get; } = new ObservableCollection<ChatMessageRowVm>();
@@ -4340,6 +4345,29 @@ public class AdminMainViewModel : ViewModelBase
         }
     }
 
+
+
+    private void RefreshCharacterClasses()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        var response = EnsureSuccess(_api.CharacterClassesGet(SelectedCharacterId));
+        CharacterClassRows.Clear();
+        foreach (var item in ToList(response.Payload.ContainsKey("classes") ? response.Payload["classes"] : new ArrayList()))
+        {
+            if (item is not Dictionary<string, object> map) continue;
+            CharacterClassRows.Add(new RowVm { Id = S(map, "classCode"), Name = S(map, "displayName"), State = $"ветка={S(map, "branchCode")}", Extra = $"уровень={S(map, "level")}" });
+        }
+    }
+
+    private void AssignCharacterClass()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) throw new ArgumentException("Не выбран персонаж.");
+        if (string.IsNullOrWhiteSpace(AssignClassCode)) throw new ArgumentException("Не выбран класс.");
+        if (!int.TryParse(AssignClassLevel, out var level) || level < 1) throw new ArgumentException("Уровень должен быть числом >= 1.");
+        EnsureSuccess(_api.CharacterClassAssign(SelectedCharacterId, AssignClassCode, level));
+        RefreshCharacterClasses();
+        StatusMessage = "Класс назначен"; Notify(nameof(StatusMessage));
+    }
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
 

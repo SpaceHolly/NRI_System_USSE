@@ -140,6 +140,12 @@ public partial class ServiceHub
         }
     }
 
+
+    private static int IndexOfIgnoreCase(string value, string search)
+    {
+        return (value ?? string.Empty).IndexOf(search ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsArchived(GameContentRecord record)
     {
         if (!record.ExtraFields.TryGetValue("archived", out var value)) return false;

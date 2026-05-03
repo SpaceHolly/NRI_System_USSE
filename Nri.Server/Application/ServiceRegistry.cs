@@ -113,6 +113,8 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CharacterReputationEntryUpdate, new DelegateCommandHandler(hub.CharacterReputationEntryUpdate));
         dispatcher.Register(CommandNames.CharacterReputationEntryRemove, new DelegateCommandHandler(hub.CharacterReputationEntryRemove));
         dispatcher.Register(CommandNames.CharacterSkillsGet, new DelegateCommandHandler(hub.CharacterSkillsGet));
+        dispatcher.Register(CommandNames.CharacterClassesGet, new DelegateCommandHandler(hub.CharacterClassesGet));
+        dispatcher.Register(CommandNames.CharacterClassAssign, new DelegateCommandHandler(hub.CharacterClassAssign));
         dispatcher.Register(CommandNames.CharacterSkillAdd, new DelegateCommandHandler(hub.CharacterSkillAdd));
         dispatcher.Register(CommandNames.CharacterSkillUpdateLevel, new DelegateCommandHandler(hub.CharacterSkillUpdateLevel));
         dispatcher.Register(CommandNames.CharacterSkillRemove, new DelegateCommandHandler(hub.CharacterSkillRemove));

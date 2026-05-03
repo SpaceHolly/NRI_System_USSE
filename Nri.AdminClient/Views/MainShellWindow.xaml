@@ -507,6 +507,25 @@
                                             </Grid>
                                         </Border>
                                     </Grid>
+                                    <Border Style="{StaticResource CardStyle}" Margin="0,8,0,0" MinHeight="180">
+                                        <StackPanel>
+                                            <TextBlock Text="Классы персонажа" Style="{StaticResource SectionTitleTextStyle}"/>
+                                            <WrapPanel Margin="0,6,0,6">
+                                                <Button Content="Обновить" Command="{Binding CharacterClassesRefreshCommand}"/>
+                                                <ComboBox Width="220" Margin="8,0,0,0" ItemsSource="{Binding ClassDefinitionRows}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding AssignClassCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBox Width="70" Margin="8,0,0,0" Text="{Binding AssignClassLevel, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <Button Style="{StaticResource GhostButtonStyle}" Content="Назначить класс" Command="{Binding CharacterClassAssignCommand}"/>
+                                            </WrapPanel>
+                                            <DataGrid ItemsSource="{Binding CharacterClassRows}" MinHeight="110" AutoGenerateColumns="False">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="1.1*"/>
+                                                    <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.4*"/>
+                                                    <DataGridTextColumn Header="Ветка" Binding="{Binding State}" Width="1.2*"/>
+                                                    <DataGridTextColumn Header="Уровень" Binding="{Binding Extra}" Width="1*"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </StackPanel>
+                                    </Border>
                                     <Border Style="{StaticResource CardStyle}" Margin="0,8,0,0" MinHeight="260">
                                         <Grid>
                                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
