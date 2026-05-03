@@ -286,6 +286,7 @@ public class AdminMainViewModel : ViewModelBase
     private bool _isAuthenticated;
     private string _lastErrorMessage = string.Empty;
     private string _lastStatusMessage = "Ожидание подключения";
+    private string _statusMessage = string.Empty;
     private int _locksCount;
     private bool _isBusy;
     private string _busyMessage = string.Empty;
@@ -513,6 +514,18 @@ public class AdminMainViewModel : ViewModelBase
     public bool IsAuthenticated { get => _isAuthenticated; set { _isAuthenticated = value; Notify(); Notify(nameof(ConnectionStage)); Notify(nameof(LoginState)); Notify(nameof(ArePrivilegedSectionsEnabled)); Notify(nameof(SectionAccessHint)); Notify(nameof(CanRollCharacterDice)); Notify(nameof(DiceRollAvailabilityHint)); TraceDiceAvailability(); } }
     public string LastErrorMessage { get => _lastErrorMessage; set { _lastErrorMessage = value; Notify(); Notify(nameof(HasConnectionError)); Notify(nameof(ConnectionStage)); } }
     public string LastStatusMessage { get => _lastStatusMessage; set { _lastStatusMessage = value; Notify(); } }
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set
+        {
+            if (_statusMessage != value)
+            {
+                _statusMessage = value;
+                Notify();
+            }
+        }
+    }
     public int LocksCount { get => _locksCount; set { _locksCount = value; Notify(); } }
     public bool HasConnectionError => !string.IsNullOrWhiteSpace(LastErrorMessage);
     public bool ArePrivilegedSectionsEnabled => IsConnectedToServer && IsAuthenticated;
@@ -4397,7 +4410,7 @@ public class AdminMainViewModel : ViewModelBase
         if (!int.TryParse(AssignClassLevel, out var level) || level < 1) throw new ArgumentException("Уровень должен быть числом >= 1.");
         EnsureSuccess(_api.CharacterClassAssign(SelectedCharacterId, AssignClassCode, level));
         RefreshCharacterClasses();
-        StatusMessage = "Класс назначен"; Notify(nameof(StatusMessage));
+        StatusMessage = "Класс назначен";
     }
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
