@@ -3,6 +3,7 @@ using Nri.Server.Application.Services;
 using Nri.Server.Application.Validation;
 using Nri.Server.Audit;
 using Nri.Server.Bootstrap;
+using Nri.Server.Content;
 using Nri.Server.FateEngine;
 using Nri.Server.Handlers.Admin;
 using Nri.Server.Infrastructure;
@@ -15,16 +16,20 @@ namespace Nri.Server.Application;
 
 public sealed class ServerRuntime
 {
-    public ServerRuntime(CommandDispatcher dispatcher, SessionManager sessions, FateEngineStateService fateState)
+    public ServerRuntime(CommandDispatcher dispatcher, SessionManager sessions, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, GameContentService contentService)
     {
         Dispatcher = dispatcher;
         Sessions = sessions;
         FateState = fateState;
+        FateSettingsStore = fateSettingsStore;
+        ContentService = contentService;
     }
 
     public CommandDispatcher Dispatcher { get; }
     public SessionManager Sessions { get; }
     public FateEngineStateService FateState { get; }
+    public FateEngineSettingsStore FateSettingsStore { get; }
+    public GameContentService ContentService { get; }
 }
 
 public static class ServiceRegistry
@@ -35,8 +40,16 @@ public static class ServiceRegistry
         var repositories = new MongoRepositoryFactory(mongo);
         BootstrapAdminInitializer.Ensure(config, repositories, logger);
         var sessions = new SessionManager(config.Tokens, repositories);
+        var fateSettingsStore = new FateEngineSettingsStore(logger);
+        var loadResult = fateSettingsStore.LoadOrCreateDefault();
         var fateState = new FateEngineStateService();
-        var hub = new ServiceHub(repositories, sessions, logger, fateState, config.AudioFolderPath);
+        fateState.Update(loadResult.Settings);
+        logger.Debug($"fate.settings.init source={loadResult.Source}");
+        var contentService = new GameContentService(logger);
+        contentService.EnsureFolders();
+        var contentReport = contentService.Reload();
+        logger.Debug($"content.init success={contentReport.Success} filesFound={contentReport.FilesFound} filesRead={contentReport.FilesRead} errors={contentReport.ErrorCount}");
+        var hub = new ServiceHub(repositories, sessions, logger, fateState, fateSettingsStore, contentService, config.AudioFolderPath);
         var auditLogService = new AuditLogService(repositories, logger);
         var validationService = new DefinitionValidationService(
             new ClassDefinitionValidator(),
@@ -158,21 +171,23 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CombatParticipants, new DelegateCommandHandler(hub.CombatParticipants));
         dispatcher.Register(CommandNames.CombatTimeline, new DelegateCommandHandler(hub.CombatTimeline));
 
-        dispatcher.Register(CommandNames.DefinitionsRacesGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsRacesGet, new DelegateCommandHandler(hub.DefinitionsRacesGet));
         dispatcher.Register(CommandNames.DefinitionsRaceGet, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsRaceSave, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsRaceArchive, new RoutedCommandHandler(adminDefinitionRouter));
-        dispatcher.Register(CommandNames.DefinitionsClassesGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsClassesGet, new DelegateCommandHandler(hub.DefinitionsClassesGet));
         dispatcher.Register(CommandNames.DefinitionsClassGet, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsClassSave, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsClassArchive, new RoutedCommandHandler(adminDefinitionRouter));
-        dispatcher.Register(CommandNames.DefinitionsSkillsGet, new RoutedCommandHandler(adminDefinitionRouter));
+        dispatcher.Register(CommandNames.DefinitionsSkillsGet, new DelegateCommandHandler(hub.DefinitionsSkillsGet));
         dispatcher.Register(CommandNames.DefinitionsSkillGet, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsSkillSave, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsSkillArchive, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.SkillsSave, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.SkillsArchive, new RoutedCommandHandler(adminDefinitionRouter));
         dispatcher.Register(CommandNames.DefinitionsReload, new DelegateCommandHandler(hub.DefinitionsReload));
+        dispatcher.Register(CommandNames.DefinitionsItemsGet, new DelegateCommandHandler(hub.DefinitionsItemsGet));
+        dispatcher.Register(CommandNames.DefinitionsContentStatus, new DelegateCommandHandler(hub.DefinitionsContentStatus));
         dispatcher.Register(CommandNames.DefinitionsVersionGet, new DelegateCommandHandler(hub.DefinitionsVersionGet));
 
         dispatcher.Register(CommandNames.ClassTreeGet, new DelegateCommandHandler(hub.ClassTreeGet));
@@ -307,6 +322,6 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CharacterLockForceRelease, new DelegateCommandHandler(hub.CharacterLockForceRelease));
         dispatcher.Register(CommandNames.CharacterLockGet, new DelegateCommandHandler(hub.CharacterLockGet));
 
-        return new ServerRuntime(dispatcher, sessions, fateState);
+        return new ServerRuntime(dispatcher, sessions, fateState, fateSettingsStore, contentService);
     }
 }
