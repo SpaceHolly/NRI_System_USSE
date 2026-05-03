@@ -4402,6 +4402,97 @@ public class AdminMainViewModel : ViewModelBase
         RefreshCharacterClasses();
         StatusMessage = "Класс назначен";
     }
+
+
+    private static IEnumerable<Dictionary<string, object>> PayloadItemsAsMaps(
+        Dictionary<string, object> payload,
+        string key = "items")
+    {
+        if (payload == null || !payload.TryGetValue(key, out var raw) || raw == null)
+        {
+            yield break;
+        }
+
+        foreach (var item in FlattenPayloadItems(raw))
+        {
+            if (item is Dictionary<string, object> direct)
+            {
+                yield return direct;
+                continue;
+            }
+
+            if (item is IDictionary<string, object> generic)
+            {
+                yield return generic.ToDictionary(x => x.Key, x => x.Value);
+                continue;
+            }
+
+            if (item is IDictionary dictionary)
+            {
+                var map = new Dictionary<string, object>();
+
+                foreach (DictionaryEntry entry in dictionary)
+                {
+                    if (entry.Key == null)
+                    {
+                        continue;
+                    }
+
+                    var mapKey = Convert.ToString(entry.Key) ?? string.Empty;
+                    map[mapKey] = entry.Value;
+                }
+
+                yield return map;
+            }
+        }
+    }
+
+    private static IEnumerable<object> FlattenPayloadItems(object raw)
+    {
+        if (raw == null)
+        {
+            yield break;
+        }
+
+        if (raw is string)
+        {
+            yield return raw;
+            yield break;
+        }
+
+        if (raw is IDictionary)
+        {
+            yield return raw;
+            yield break;
+        }
+
+        if (raw is IEnumerable enumerable)
+        {
+            foreach (var item in enumerable)
+            {
+                if (item == null)
+                {
+                    continue;
+                }
+
+                if (!(item is string) && !(item is IDictionary) && item is IEnumerable)
+                {
+                    foreach (var nestedItem in FlattenPayloadItems(item))
+                    {
+                        yield return nestedItem;
+                    }
+                }
+                else
+                {
+                    yield return item;
+                }
+            }
+
+            yield break;
+        }
+
+        yield return raw;
+    }
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
 
