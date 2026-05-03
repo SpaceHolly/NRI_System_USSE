@@ -2883,13 +2883,22 @@ public class AdminMainViewModel : ViewModelBase
         ClientLogService.Instance.Info($"definitions.classes.get payload.keys={payloadKeys}");
         EnsureSuccess(response);
 
-        object rawItemsObject = response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList();
+                object rawItemsObject = response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList();
         var rawItemsType = rawItemsObject == null ? "null" : rawItemsObject.GetType().FullName;
         ClientLogService.Instance.Info($"definitions.classes.get payload.items.type={rawItemsType}");
 
+        var rawItems = ExtractSkillDefinitionItems(response.Payload, out var rawCollectionKey);
         var added = 0;
-        foreach (var map in PayloadItemsAsMaps(response.Payload))
+
+        foreach (var item in rawItems)
         {
+            var map = AsMap(item, CommandNames.DefinitionsClassesGet);
+            if (map == null)
+            {
+                ClientLogService.Instance.Warn($"definitions.classes.get skipped item type={item?.GetType().FullName ?? "null"}");
+                continue;
+            }
+
             ClassDefinitionRows.Add(new RowVm
             {
                 Id = S(map, "code"),
@@ -2897,12 +2906,15 @@ public class AdminMainViewModel : ViewModelBase
                 State = $"ветка={S(map, "branchCode")} • родитель={S(map, "parentClassCode")}",
                 Extra = $"лимит={S(map, "levelCap")} • требуется={S(map, "requiredLevel")} • {S(map, "description")}" 
             });
+
             added++;
         }
 
+        ClientLogService.Instance.Info($"definitions.classes.get rawCollectionKey={rawCollectionKey}");
+        ClientLogService.Instance.Info($"definitions.classes.get rawCount={rawItems.Count}");
         ClientLogService.Instance.Info($"definitions.classes.get added={added}");
 
-        ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Классы loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}");
+ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Классы loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}");
         RestoreSelection(ClassDefinitionRows, SelectedClassDefinitionCode, value => SelectedClassDefinitionCode = value);
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedClassDefinition));
@@ -4343,10 +4355,15 @@ public class AdminMainViewModel : ViewModelBase
         ClientLogService.Instance.Info("definitions.races.get requested");
         var response = EnsureSuccess(_api.DefinitionsRacesGetContent(RaceSearchText, true));
         RaceDefinitionRows.Clear();
-        foreach (var map in PayloadItemsAsMaps(response.Payload))
+        var rawItems = ExtractSkillDefinitionItems(response.Payload, out var rawCollectionKey);
+        foreach (var item in rawItems)
         {
+            var map = AsMap(item, CommandNames.DefinitionsRacesGet);
+            if (map == null) continue;
             RaceDefinitionRows.Add(new RowVm { Id = S(map, "code"), Name = FirstNonEmpty(S(map, "displayName"), S(map, "name"), S(map, "code")), State = FirstNonEmpty(S(map, "subtypeCode"), S(map, "hybridCode")), Extra = S(map, "description") });
         }
+        ClientLogService.Instance.Info($"definitions.races.get rawCollectionKey={rawCollectionKey}");
+        ClientLogService.Instance.Info($"definitions.races.get rawCount={rawItems.Count}");
         ClientLogService.Instance.Info($"definitions.races.get count={RaceDefinitionRows.Count}");
     }
 
@@ -4355,10 +4372,15 @@ public class AdminMainViewModel : ViewModelBase
         ClientLogService.Instance.Info("definitions.items.get requested");
         var response = EnsureSuccess(_api.DefinitionsItemsGetContent(ItemTypeFilter, ItemSearchText, true));
         ItemDefinitionRows.Clear();
-        foreach (var map in PayloadItemsAsMaps(response.Payload))
+        var rawItems = ExtractSkillDefinitionItems(response.Payload, out var rawCollectionKey);
+        foreach (var item in rawItems)
         {
+            var map = AsMap(item, CommandNames.DefinitionsItemsGet);
+            if (map == null) continue;
             ItemDefinitionRows.Add(new RowVm { Id = S(map, "code"), Name = FirstNonEmpty(S(map, "displayName"), S(map, "name"), S(map, "code")), State = S(map, "itemType"), Extra = S(map, "description") });
         }
+        ClientLogService.Instance.Info($"definitions.items.get rawCollectionKey={rawCollectionKey}");
+        ClientLogService.Instance.Info($"definitions.items.get rawCount={rawItems.Count}");
         ClientLogService.Instance.Info($"definitions.items.get count={ItemDefinitionRows.Count}");
     }
 
