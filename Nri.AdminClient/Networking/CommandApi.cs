@@ -55,6 +55,8 @@ public class CommandApi
     public ResponseEnvelope CharacterReputationEntryUpdate(Dictionary<string, object> payload) => Send(CommandNames.CharacterReputationEntryUpdate, payload);
     public ResponseEnvelope CharacterReputationEntryRemove(string characterId, string entryId) => Send(CommandNames.CharacterReputationEntryRemove, new Dictionary<string, object> { { "characterId", characterId }, { "entryId", entryId } });
     public ResponseEnvelope CharacterSkillsGet(string characterId) => Send(CommandNames.CharacterSkillsGet, new Dictionary<string, object> { { "characterId", characterId } });
+    public ResponseEnvelope CharacterClassesGet(string characterId) => Send(CommandNames.CharacterClassesGet, new Dictionary<string, object> { { "characterId", characterId } });
+    public ResponseEnvelope CharacterClassAssign(string characterId, string classCode, int level) => Send(CommandNames.CharacterClassAssign, new Dictionary<string, object> { { "characterId", characterId }, { "classCode", classCode }, { "level", level } });
     public ResponseEnvelope CharacterSkillAdd(string characterId, string skillCode, int level) => Send(CommandNames.CharacterSkillAdd, new Dictionary<string, object> { { "characterId", characterId }, { "skillCode", skillCode }, { "level", level } });
     public ResponseEnvelope CharacterSkillUpdateLevel(string characterId, string skillCode, int level) => Send(CommandNames.CharacterSkillUpdateLevel, new Dictionary<string, object> { { "characterId", characterId }, { "skillCode", skillCode }, { "level", level } });
     public ResponseEnvelope CharacterSkillRemove(string characterId, string skillCode) => Send(CommandNames.CharacterSkillRemove, new Dictionary<string, object> { { "characterId", characterId }, { "skillCode", skillCode } });
@@ -120,6 +122,15 @@ public class CommandApi
     public ResponseEnvelope SkillsArchive(string code) => Send(CommandNames.SkillsArchive, new Dictionary<string, object> { { "code", code } });
     public ResponseEnvelope DefinitionsReload() => Send(CommandNames.DefinitionsReload);
     public ResponseEnvelope DefinitionsVersionGet() => Send(CommandNames.DefinitionsVersionGet);
+    public ResponseEnvelope DefinitionsSkillsGetContent(string category = "", string search = "", bool includeArchived = false)
+        => Send(CommandNames.DefinitionsSkillsGet, new Dictionary<string, object> { { "includeArchived", includeArchived }, { "category", category }, { "search", search } });
+    public ResponseEnvelope DefinitionsClassesGetContent(string branchCode = "", string parentClassCode = "", string search = "", bool includeArchived = false)
+        => Send(CommandNames.DefinitionsClassesGet, new Dictionary<string, object> { { "includeArchived", includeArchived }, { "branchCode", branchCode }, { "parentClassCode", parentClassCode }, { "search", search } });
+    public ResponseEnvelope DefinitionsRacesGetContent(string search = "", bool includeArchived = false)
+        => Send(CommandNames.DefinitionsRacesGet, new Dictionary<string, object> { { "includeArchived", includeArchived }, { "search", search } });
+    public ResponseEnvelope DefinitionsItemsGetContent(string itemType = "", string search = "", bool includeArchived = false)
+        => Send(CommandNames.DefinitionsItemsGet, new Dictionary<string, object> { { "includeArchived", includeArchived }, { "itemType", itemType }, { "search", search } });
+    public ResponseEnvelope DefinitionsContentStatusGet() => Send(CommandNames.DefinitionsContentStatus);
 
     public ResponseEnvelope ClassTreeGet(string characterId) => Send(CommandNames.ClassTreeGet, new Dictionary<string, object> { { "characterId", characterId } });
     public ResponseEnvelope ClassTreeAvailable(string characterId) => Send(CommandNames.ClassTreeAvailableGet, new Dictionary<string, object> { { "characterId", characterId } });

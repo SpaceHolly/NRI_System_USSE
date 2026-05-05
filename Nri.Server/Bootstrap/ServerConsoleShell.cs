@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Nri.Server.Content;
 using Nri.Server.FateEngine;
 
 namespace Nri.Server.Bootstrap;
@@ -34,7 +35,7 @@ public sealed class ServerConsoleShell
         Console.WriteLine($"Version: {version}");
         Console.WriteLine($"TCP: listening on {_bootstrap.ListeningEndpoint}");
         Console.WriteLine("MongoDB: connected");
-        Console.WriteLine("Commands: help, status, sessions, fate-test, fate-status, fate-get, fate-enable, fate-disable, fate-layer, fate-reset, fate-effects, clear, stop");
+        Console.WriteLine("Commands: help, status, sessions, content-status, reload-content, fate-test, fate-status, fate-get, fate-enable, fate-disable, fate-layer, fate-reset, fate-save, fate-load, fate-effects, clear, stop");
         Console.Write("> ");
     }
 
@@ -99,6 +100,12 @@ public sealed class ServerConsoleShell
             case "sessions":
                 PrintSessions();
                 break;
+            case "content-status":
+                PrintContentStatus();
+                break;
+            case "reload-content":
+                ReloadContent();
+                break;
             case "fate-test":
                 RunFateTest(parts.Skip(1).ToArray());
                 break;
@@ -119,6 +126,12 @@ public sealed class ServerConsoleShell
                 break;
             case "fate-reset":
                 ResetFateSettings();
+                break;
+            case "fate-save":
+                SaveFateSettings();
+                break;
+            case "fate-load":
+                LoadFateSettings();
                 break;
             case "fate-effects":
                 PrintFateEffects(parts.Skip(1).ToArray());
@@ -142,12 +155,16 @@ public sealed class ServerConsoleShell
         Console.WriteLine("  help                              Show command list.");
         Console.WriteLine("  status                            Show server diagnostics summary.");
         Console.WriteLine("  sessions                          Show active sessions diagnostics.");
+        Console.WriteLine("  content-status                    Show latest ServerContent load status.");
+        Console.WriteLine("  reload-content                    Reload JSON content from ServerContent.");
         Console.WriteLine("  fate-test d100 67 [m1..m5]        Run Fate Engine test.");
         Console.WriteLine("  fate-status                       Show short Fate Engine status.");
         Console.WriteLine("  fate-get                          Show full Fate Engine settings.");
         Console.WriteLine("  fate-enable / fate-disable        Toggle Fate Engine.");
         Console.WriteLine("  fate-layer 1 on|off|mod 10        Update Fate layer settings.");
         Console.WriteLine("  fate-reset                        Reset Fate settings to default.");
+        Console.WriteLine("  fate-save                         Save current Fate settings to file.");
+        Console.WriteLine("  fate-load                         Reload Fate settings from file.");
         Console.WriteLine("  fate-effects                      Show all Fate Engine effects.");
         Console.WriteLine("  fate-effects <1-5>                Show effects for one Fate Engine layer.");
         Console.WriteLine("  clear                             Clear console.");
@@ -183,6 +200,36 @@ public sealed class ServerConsoleShell
         }
     }
 
+
+    private void ReloadContent()
+    {
+        var report = _bootstrap.Runtime.ContentService.Reload();
+        Console.WriteLine($"Content reload: success={report.Success} filesFound={report.FilesFound} filesRead={report.FilesRead} errors={report.ErrorCount}");
+        Console.WriteLine($"Records: skills={GetCount(report, "skills")}, class_skills={GetCount(report, "class_skills")}, classes={GetCount(report, "classes")}, races={GetCount(report, "races")}, items={GetCount(report, "items")}, item_templates={GetCount(report, "item_templates")}, holdings={GetCount(report, "holdings")}, magic={GetCount(report, "magic")}");
+    }
+
+    private void PrintContentStatus()
+    {
+        var report = _bootstrap.Runtime.ContentService.GetLastReport();
+        if (report == null)
+        {
+            Console.WriteLine("Content status: no loads yet.");
+            return;
+        }
+
+        Console.WriteLine($"Content status at {report.LoadedAtUtc:O}: success={report.Success} filesFound={report.FilesFound} filesRead={report.FilesRead} errors={report.ErrorCount}");
+        Console.WriteLine($"Records: skills={GetCount(report, "skills")}, class_skills={GetCount(report, "class_skills")}, classes={GetCount(report, "classes")}, races={GetCount(report, "races")}, items={GetCount(report, "items")}, item_templates={GetCount(report, "item_templates")}, holdings={GetCount(report, "holdings")}, magic={GetCount(report, "magic")}");
+
+        foreach (var error in report.Errors.Take(5))
+        {
+            Console.WriteLine($"Error: {error}");
+        }
+    }
+
+    private static int GetCount(ContentLoadReport report, string key)
+    {
+        return report.RecordsByCategory.TryGetValue(key, out var value) ? value : 0;
+    }
     private void PrintFateStatus()
     {
         var settings = _bootstrap.Runtime.FateState.GetSnapshot();
@@ -212,7 +259,26 @@ public sealed class ServerConsoleShell
     private void ResetFateSettings()
     {
         var settings = _bootstrap.Runtime.FateState.ResetToDefault();
-        Console.WriteLine($"Fate settings reset. enabled={settings.Enabled}, layers={settings.Layers.Count}");
+        var saved = _bootstrap.Runtime.FateSettingsStore.Save(settings);
+        Console.WriteLine(saved
+            ? $"Fate settings reset and saved. enabled={settings.Enabled}, layers={settings.Layers.Count}"
+            : $"Fate settings reset. save failed, check server log. enabled={settings.Enabled}, layers={settings.Layers.Count}");
+    }
+
+    private void SaveFateSettings()
+    {
+        var settings = _bootstrap.Runtime.FateState.GetSnapshot();
+        var saved = _bootstrap.Runtime.FateSettingsStore.Save(settings);
+        Console.WriteLine(saved
+            ? "Fate settings saved."
+            : "Fate settings save failed. See server log.");
+    }
+
+    private void LoadFateSettings()
+    {
+        var loadResult = _bootstrap.Runtime.FateSettingsStore.LoadOrCreateDefault();
+        var updated = _bootstrap.Runtime.FateState.Update(loadResult.Settings);
+        Console.WriteLine($"Fate settings loaded from {loadResult.Source}. enabled={updated.Enabled}");
     }
 
     private void UpdateFateLayer(IReadOnlyList<string> args)
