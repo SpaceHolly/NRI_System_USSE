@@ -56,6 +56,11 @@ public partial class ServiceHub
         {
             throw new UnauthorizedAccessException("Character classes unavailable.");
         }
+<<<<<<< codex/implement-fateenginesettings-persistence-71zkki
+=======
+        EnsureCharacterDefaults(character);
+
+>>>>>>> main
         var classes = character.CharacterClasses ?? new List<CharacterClassState>();
         var defs = _contentService.GetSnapshot().Classes.Values.ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);
 
@@ -68,12 +73,20 @@ public partial class ServiceHub
                 { "displayName", def?.DisplayName ?? c.ClassCode },
                 { "level", c.Level },
                 { "branchCode", GetFieldString(def, "branchCode") },
+<<<<<<< codex/implement-fateenginesettings-persistence-71zkki
                 { "description", GetFieldString(def, "description") },
                 { "learnedUtc", c.LearnedUtc }
             };
         }).Cast<object>().ToArray();
 
         return Ok("Character classes loaded.", new Dictionary<string, object> { { "items", items }, { "total", items.Length } });
+=======
+                { "description", GetFieldString(def, "description") }
+            };
+        }).Cast<object>().ToArray();
+
+        return Ok("Классы персонажа загружены.", new Dictionary<string, object> { { "classes", items } });
+>>>>>>> main
     }
 
     private static int ParseIntField(GameContentRecord record, string field)
