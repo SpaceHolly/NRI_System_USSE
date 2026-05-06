@@ -4448,6 +4448,27 @@ ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Кла
         }
     }
 
+
+
+    private void EnsureSelectedCharacterLockForEdit()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId))
+        {
+            throw new ArgumentException("Не выбран персонаж.");
+        }
+
+        ClientLogService.Instance.Info($"character.lock.acquire before-edit characterId={SelectedCharacterId}");
+
+        var response = EnsureSuccess(_api.AcquireCharacterLock(SelectedCharacterId));
+
+        LockStateText = response.Message;
+        Notify(nameof(LockStateText));
+
+        ClientLogService.Instance.Info(
+            $"character.lock.acquire before-edit response status={response.Status} message={response.Message}");
+
+        LoadLocksSummary();
+    }
     private void AssignCharacterClass()
     {
         ClientLogService.Instance.Info($"character.class.assign requested characterId={SelectedCharacterId} classCode={AssignClassCode} levelText={AssignClassLevel}");
@@ -4460,6 +4481,8 @@ ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Кла
 
         if (!int.TryParse(AssignClassLevel, out var level) || level < 1)
             throw new ArgumentException("Уровень должен быть числом >= 1.");
+
+        EnsureSelectedCharacterLockForEdit();
 
         var response = EnsureSuccess(_api.CharacterClassAssign(SelectedCharacterId, AssignClassCode, level));
 

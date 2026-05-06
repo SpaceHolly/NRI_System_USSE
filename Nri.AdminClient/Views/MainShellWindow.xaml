@@ -515,7 +515,10 @@
                                                 <ComboBox Width="220" Margin="8,0,0,0" ItemsSource="{Binding ClassDefinitionRows}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding AssignClassCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                                 <TextBox Width="70" Margin="8,0,0,0" Text="{Binding AssignClassLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                                 <Button Style="{StaticResource GhostButtonStyle}" Content="Назначить класс" Command="{Binding AssignCharacterClassCommand}"/>
+                                                <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Получить lock" Command="{Binding AcquireLockCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
+                                                <Button Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Content="Снять lock" Command="{Binding ReleaseLockCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
                                             </WrapPanel>
+                                            <TextBlock Margin="0,4,0,0" Text="{Binding LockStateText}" TextWrapping="Wrap"/>
                                             <DataGrid ItemsSource="{Binding CharacterClassRows}" MinHeight="110" AutoGenerateColumns="False">
                                                 <DataGrid.Columns>
                                                     <DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="1.1*"/>

@@ -47,35 +47,34 @@ public partial class ServiceHub
     }
 
     public ResponseEnvelope CharacterClassesGet(CommandContext context)
-{
-    var actor = GetCurrentAccount(context);
-    var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 1, 128, "characterId");
-    var character = GetCharacter(characterId);
-    var owner = GetAccount(character.OwnerUserId);
-    if (!CanViewCharacter(actor, owner, character))
     {
-        throw new UnauthorizedAccessException("Character classes unavailable.");
-    }
-
-    var classes = character.CharacterClasses ?? new List<CharacterClassState>();
-    var defs = _contentService.GetSnapshot().Classes.Values.ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);
-
-    var items = classes.Select(c =>
-    {
-        defs.TryGetValue(c.ClassCode, out var def);
-        return new Dictionary<string, object>
+        var actor = GetCurrentAccount(context);
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 1, 128, "characterId");
+        var character = GetCharacter(characterId);
+        var owner = GetAccount(character.OwnerUserId);
+        if (!CanViewCharacter(actor, owner, character))
         {
-            { "classCode", c.ClassCode },
-            { "displayName", def?.DisplayName ?? c.ClassCode },
-            { "level", c.Level },
-            { "branchCode", GetFieldString(def, "branchCode") },
-            { "description", GetFieldString(def, "description") },
-            { "learnedUtc", c.LearnedUtc }
-        };
-    }).Cast<object>().ToArray();
+            throw new UnauthorizedAccessException("Character classes unavailable.");
+        }
+        var classes = character.CharacterClasses ?? new List<CharacterClassState>();
+        var defs = _contentService.GetSnapshot().Classes.Values.ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);
 
-    return Ok("Character classes loaded.", new Dictionary<string, object> { { "items", items }, { "total", items.Length } });
-}
+        var items = classes.Select(c =>
+        {
+            defs.TryGetValue(c.ClassCode, out var def);
+            return new Dictionary<string, object>
+            {
+                { "classCode", c.ClassCode },
+                { "displayName", def?.DisplayName ?? c.ClassCode },
+                { "level", c.Level },
+                { "branchCode", GetFieldString(def, "branchCode") },
+                { "description", GetFieldString(def, "description") },
+                { "learnedUtc", c.LearnedUtc }
+            };
+        }).Cast<object>().ToArray();
+
+        return Ok("Character classes loaded.", new Dictionary<string, object> { { "items", items }, { "total", items.Length } });
+    }
 
     private static int ParseIntField(GameContentRecord record, string field)
     {
