@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Nri.PlayerClient.Diagnostics;
 using Nri.Shared.Contracts;
 
@@ -89,16 +90,20 @@ public class CommandApi
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
         var body = payload ?? new Dictionary<string, object>();
-        ClientLogService.Instance.Debug($"Command send: {command}; payloadKeys={body.Count}");
+        var requestId = Guid.NewGuid().ToString("N");
+        var startedUtc = DateTime.UtcNow;
+        var stopwatch = Stopwatch.StartNew();
+        ClientLogService.Instance.Debug($"request.start command={command}; requestId={requestId}; startedUtc={startedUtc:O}; payloadKeys={body.Count}");
         try
         {
-            var response = _client.Send(new RequestEnvelope { Command = command, Payload = body });
-            ClientLogService.Instance.Debug($"Command response: {command}; status={response.Status}; message={response.Message}");
+            var response = _client.Send(new RequestEnvelope { Command = command, RequestId = requestId, Payload = body });
+            var responseRequestId = string.IsNullOrWhiteSpace(response.RequestId) ? requestId : response.RequestId;
+            ClientLogService.Instance.Debug($"request.end command={command}; requestId={responseRequestId}; status={response.Status}; success={(response.Status == ResponseStatus.Ok)}; elapsedMs={stopwatch.ElapsedMilliseconds}; message={response.Message}");
             return response;
         }
         catch (Exception ex)
         {
-            ClientLogService.Instance.Error($"Command failed: {command}", ex);
+            ClientLogService.Instance.Error($"request.error command={command}; requestId={requestId}; elapsedMs={stopwatch.ElapsedMilliseconds}", ex);
             throw;
         }
     }
