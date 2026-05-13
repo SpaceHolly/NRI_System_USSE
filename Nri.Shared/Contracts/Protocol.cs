@@ -301,6 +301,8 @@ public static class CommandNames
     public const string LockRelease = "lock.release";
     public const string LockForceRelease = "lock.forceRelease";
     public const string LockStatus = "lock.status";
+    public const string SyncSnapshotGet = "sync.snapshot.get";
+    public const string SyncChangesGet = "sync.changes.get";
 }
 
 public class RequestEnvelope
