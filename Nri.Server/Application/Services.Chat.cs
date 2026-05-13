@@ -41,6 +41,20 @@ public partial class ServiceHub
         };
 
         _repositories.ChatMessages.Insert(msg);
+        _syncEvents.Publish(
+            type: "chat.message.created",
+            scope: SyncScopes.Chat(sessionId),
+            entityType: "chatMessage",
+            entityId: msg.Id,
+            operation: "created",
+            actorUserId: actor.Id,
+            payload: new Dictionary<string, object>
+            {
+                { "sessionId", sessionId },
+                { "messageId", msg.Id },
+                { "createdUtc", msg.CreatedUtc }
+            },
+            requestId: context.Request.RequestId ?? string.Empty);
         TouchThrottle(sessionId, actor.Id, type);
         _logger.Session($"chat.send session={sessionId} actor={actor.Id} type={type}");
         WriteAudit("chat", actor.Id, "send", msg.Id);
