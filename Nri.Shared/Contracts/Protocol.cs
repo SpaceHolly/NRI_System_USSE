@@ -306,7 +306,7 @@ public static class CommandNames
 public class RequestEnvelope
 {
     public string Command { get; set; } = string.Empty;
-    public string RequestId { get; set; } = Guid.NewGuid().ToString("N");
+    public string? RequestId { get; set; }
     public string? AuthToken { get; set; }
     public string? SessionId { get; set; }
     public DateTime TimestampUtc { get; set; } = DateTime.UtcNow;
@@ -316,11 +316,12 @@ public class RequestEnvelope
 
 public class ResponseEnvelope
 {
-    public string RequestId { get; set; } = string.Empty;
+    public string? RequestId { get; set; }
     public ResponseStatus Status { get; set; } = ResponseStatus.Ok;
     public ErrorCode ErrorCode { get; set; } = ErrorCode.None;
     public string Message { get; set; } = string.Empty;
     public DateTime TimestampUtc { get; set; } = DateTime.UtcNow;
+    public DateTime ServerUtc { get; set; } = DateTime.UtcNow;
     public int Version { get; set; } = 1;
     public Dictionary<string, object> Payload { get; set; } = new Dictionary<string, object>();
 }
