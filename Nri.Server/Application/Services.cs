@@ -22,8 +22,9 @@ public partial class ServiceHub
     private readonly FateEngineSettingsStore _fateSettingsStore;
     private readonly GameContentService _contentService;
     private readonly string _audioFolderPath;
+    private readonly SyncEventService _syncEvents;
 
-    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, GameContentService contentService, string audioFolderPath)
+    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, GameContentService contentService, string audioFolderPath, SyncEventService syncEvents)
     {
         _repositories = repositories;
         _sessionManager = sessionManager;
@@ -32,6 +33,7 @@ public partial class ServiceHub
         _fateSettingsStore = fateSettingsStore;
         _contentService = contentService;
         _audioFolderPath = string.IsNullOrWhiteSpace(audioFolderPath) ? "./audio" : audioFolderPath;
+        _syncEvents = syncEvents;
     }
 
     public ResponseEnvelope Register(CommandContext context)
