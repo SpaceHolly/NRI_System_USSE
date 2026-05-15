@@ -42,6 +42,8 @@ public interface INriRepositoryFactory
     IRepository<ReferenceEntry> References { get; }
     IRepository<UpdateVersionInfo> UpdateVersions { get; }
     IRepository<BackupSnapshot> Backups { get; }
+    IRepository<SyncEvent> SyncEvents { get; }
+    IRepository<SyncCounter> SyncCounters { get; }
     IClassDefinitionRepository ClassDefinitions { get; }
     IRaceDefinitionRepository RaceDefinitions { get; }
     ISkillDefinitionRepository DefinitionSkills { get; }
@@ -73,6 +75,8 @@ public class MongoContext
     public IMongoCollection<ReferenceEntry> References { get; }
     public IMongoCollection<UpdateVersionInfo> UpdateVersions { get; }
     public IMongoCollection<BackupSnapshot> Backups { get; }
+    public IMongoCollection<SyncEvent> SyncEvents { get; }
+    public IMongoCollection<SyncCounter> SyncCounters { get; }
     public IMongoCollection<ClassDefinition> ClassDefinitions { get; }
     public IMongoCollection<RaceDefinition> RaceDefinitions { get; }
     public IMongoCollection<SkillDefinition> DefinitionSkills { get; }
@@ -108,6 +112,8 @@ public class MongoContext
         References = db.GetCollection<ReferenceEntry>("references");
         UpdateVersions = db.GetCollection<UpdateVersionInfo>("update_versions");
         Backups = db.GetCollection<BackupSnapshot>("backups");
+        SyncEvents = db.GetCollection<SyncEvent>("sync_events");
+        SyncCounters = db.GetCollection<SyncCounter>("sync_counters");
         ClassDefinitions = db.GetCollection<ClassDefinition>("class_definitions");
         RaceDefinitions = db.GetCollection<RaceDefinition>("race_definitions");
         DefinitionSkills = db.GetCollection<SkillDefinition>("skill_definition_documents");
@@ -139,6 +145,10 @@ public class MongoContext
         References.Indexes.CreateOne(new CreateIndexModel<ReferenceEntry>(Builders<ReferenceEntry>.IndexKeys.Ascending(x => x.WorldId).Ascending(x => x.ReferenceType).Ascending(x => x.Key), new CreateIndexOptions { Unique = true }));
         UpdateVersions.Indexes.CreateOne(new CreateIndexModel<UpdateVersionInfo>(Builders<UpdateVersionInfo>.IndexKeys.Ascending(x => x.ClientChannel), new CreateIndexOptions { Unique = true }));
         Backups.Indexes.CreateOne(new CreateIndexModel<BackupSnapshot>(Builders<BackupSnapshot>.IndexKeys.Descending(x => x.CreatedUtc)));
+        SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Ascending(x => x.Revision), new CreateIndexOptions { Unique = true }));
+        SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Ascending(x => x.Scope).Ascending(x => x.Revision)));
+        SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Descending(x => x.CreatedUtc)));
+        SyncCounters.Indexes.CreateOne(new CreateIndexModel<SyncCounter>(Builders<SyncCounter>.IndexKeys.Ascending(x => x.CounterKey), new CreateIndexOptions { Unique = true }));
         ClassDefinitions.Indexes.CreateOne(new CreateIndexModel<ClassDefinition>(Builders<ClassDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
         RaceDefinitions.Indexes.CreateOne(new CreateIndexModel<RaceDefinition>(Builders<RaceDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
         DefinitionSkills.Indexes.CreateOne(new CreateIndexModel<SkillDefinition>(Builders<SkillDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
@@ -206,6 +216,8 @@ public class MongoRepositoryFactory : INriRepositoryFactory
         References = new MongoRepository<ReferenceEntry>(context.References);
         UpdateVersions = new MongoRepository<UpdateVersionInfo>(context.UpdateVersions);
         Backups = new MongoRepository<BackupSnapshot>(context.Backups);
+        SyncEvents = new MongoRepository<SyncEvent>(context.SyncEvents);
+        SyncCounters = new MongoRepository<SyncCounter>(context.SyncCounters);
         ClassDefinitions = new ClassDefinitionRepository(context.ClassDefinitions);
         RaceDefinitions = new RaceDefinitionRepository(context.RaceDefinitions);
         DefinitionSkills = new SkillDefinitionRepository(context.DefinitionSkills);
@@ -235,6 +247,8 @@ public class MongoRepositoryFactory : INriRepositoryFactory
     public IRepository<ReferenceEntry> References { get; }
     public IRepository<UpdateVersionInfo> UpdateVersions { get; }
     public IRepository<BackupSnapshot> Backups { get; }
+    public IRepository<SyncEvent> SyncEvents { get; }
+    public IRepository<SyncCounter> SyncCounters { get; }
     public IClassDefinitionRepository ClassDefinitions { get; }
     public IRaceDefinitionRepository RaceDefinitions { get; }
     public ISkillDefinitionRepository DefinitionSkills { get; }
