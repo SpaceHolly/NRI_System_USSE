@@ -34,10 +34,24 @@ public sealed class SkillDefinitionValidator
 {
     public void Validate(SkillDefinition definition)
     {
+        SkillDefinitionV2Defaults.Normalize(definition);
         if (string.IsNullOrWhiteSpace(definition.Code)) throw new ArgumentException("Skill code is required.");
+        if (string.IsNullOrWhiteSpace(definition.Name)) throw new ArgumentException("Skill name is required.");
         if (definition.Tier <= 0) throw new ArgumentException("Tier must be greater than zero.");
         if (definition.MaxLevel < 1) throw new ArgumentException("MaxLevel must be at least 1.");
         if (definition.XpCoinCost < 0) throw new ArgumentException("XpCoinCost must be non-negative.");
+        if (definition.RankMin < 0) throw new ArgumentException("RankMin must be non-negative.");
+        if (definition.RankMax < definition.RankMin) throw new ArgumentException("RankMax must be greater than or equal to RankMin.");
+        if (definition.IsRollable && string.IsNullOrWhiteSpace(definition.DefaultAttribute)) throw new ArgumentException("DefaultAttribute is required for rollable skills.");
+        if (!string.IsNullOrWhiteSpace(definition.DefaultAttribute) &&
+            definition.AllowedAttributes.All(x => !string.Equals(x, definition.DefaultAttribute, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ArgumentException("DefaultAttribute must be present in AllowedAttributes.");
+        }
+        if (definition.AllowedAttributes.Any(x => string.IsNullOrWhiteSpace(x)))
+        {
+            throw new ArgumentException("AllowedAttributes must not contain empty values.");
+        }
         if (definition.Levels == null || definition.Levels.Count == 0) throw new ArgumentException("Skill levels are required.");
 
         var ordered = definition.Levels.OrderBy(x => x.Level).ToList();

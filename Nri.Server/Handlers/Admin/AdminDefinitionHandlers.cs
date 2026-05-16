@@ -15,19 +15,24 @@ namespace Nri.Server.Handlers.Admin;
 
 public sealed class AdminDefinitionHandlers
 {
+    // TODO(F0.4.7): add explicit admin forced-save flow (opt-in command only, with audit + sync event publish). Do not enable by default.
     private readonly ClassDefinitionService _classService;
     private readonly RaceDefinitionService _raceService;
     private readonly SkillDefinitionService _skillService;
     private readonly INriRepositoryFactory _repositories;
     private readonly IServerLogger _logger;
+    private readonly SyncEventService _syncEvents;
+    private readonly IEntityRevisionService _entityRevisions;
 
-    public AdminDefinitionHandlers(INriRepositoryFactory repositories, RaceDefinitionService raceService, ClassDefinitionService classService, SkillDefinitionService skillService, IServerLogger logger)
+    public AdminDefinitionHandlers(INriRepositoryFactory repositories, RaceDefinitionService raceService, ClassDefinitionService classService, SkillDefinitionService skillService, IServerLogger logger, SyncEventService syncEvents, IEntityRevisionService entityRevisions)
     {
         _repositories = repositories;
         _raceService = raceService;
         _classService = classService;
         _skillService = skillService;
         _logger = logger;
+        _syncEvents = syncEvents;
+        _entityRevisions = entityRevisions;
     }
 
     public IEnumerable<IRequestHandler> CreateHandlers()
@@ -86,8 +91,13 @@ public sealed class AdminDefinitionHandlers
     {
         var request = new SaveRaceRequest { Definition = ReadRaceDefinition(context.Request.Payload) };
         var actor = RequireActor(context);
+        var expectedRevision = _entityRevisions.TryGetExpectedRevision(context.Request.Payload);
+        try { _entityRevisions.EnsureExpectedRevisionAsync("definition:race", request.Definition.Code, expectedRevision); }
+        catch (EntityRevisionConflictException ex) { return Conflict(ex.EntityType, ex.EntityId, ex.ExpectedRevision, ex.CurrentRevision); }
         var response = _raceService.Save(request.Definition, actor.Id);
+        _entityRevisions.BumpRevisionAsync("definition:race", response.Item.Code, actor.Id, context.Request.RequestId ?? string.Empty);
         _logger.Admin($"definitions.races.save actor={actor.Login} code={response.Item.Code} created={response.Created}");
+        PublishDefinitionUpdated("race", response.Item.Code, response.Created ? "created" : "updated", actor.Id, context.Request.RequestId ?? string.Empty);
         return Ok(response.Created ? "Race definition created." : "Race definition updated.", new Dictionary<string, object>
         {
             { "created", response.Created },
@@ -99,8 +109,13 @@ public sealed class AdminDefinitionHandlers
     {
         var request = new ArchiveRaceRequest { Code = RequireString(context.Request.Payload, "code") };
         var actor = RequireActor(context);
+        var expectedRevision = _entityRevisions.TryGetExpectedRevision(context.Request.Payload);
+        try { _entityRevisions.EnsureExpectedRevisionAsync("definition:race", request.Code, expectedRevision); }
+        catch (EntityRevisionConflictException ex) { return Conflict(ex.EntityType, ex.EntityId, ex.ExpectedRevision, ex.CurrentRevision); }
         var archived = _raceService.Archive(request.Code, actor.Id);
+        if (archived) _entityRevisions.BumpRevisionAsync("definition:race", request.Code, actor.Id, context.Request.RequestId ?? string.Empty);
         _logger.Admin($"definitions.races.archive actor={actor.Login} code={request.Code} archived={archived}");
+        if (archived) PublishDefinitionUpdated("race", request.Code, "archived", actor.Id, context.Request.RequestId ?? string.Empty);
         var response = new ArchiveRaceResponse { Code = request.Code, Archived = archived };
         return Ok(archived ? "Race definition archived." : "Race definition already archived.", new Dictionary<string, object>
         {
@@ -120,7 +135,12 @@ public sealed class AdminDefinitionHandlers
     {
         var request = new SaveClassRequest { Definition = ReadClassDefinition(context.Request.Payload) };
         var actor = RequireActor(context);
+        var expectedRevision = _entityRevisions.TryGetExpectedRevision(context.Request.Payload);
+        try { _entityRevisions.EnsureExpectedRevisionAsync("definition:class", request.Definition.Code, expectedRevision); }
+        catch (EntityRevisionConflictException ex) { return Conflict(ex.EntityType, ex.EntityId, ex.ExpectedRevision, ex.CurrentRevision); }
         var response = _classService.Save(request.Definition, actor.Id);
+        _entityRevisions.BumpRevisionAsync("definition:class", response.Item.Code, actor.Id, context.Request.RequestId ?? string.Empty);
+        PublishDefinitionUpdated("class", response.Item.Code, response.Created ? "created" : "updated", actor.Id, context.Request.RequestId ?? string.Empty);
         return Ok(response.Created ? "Class definition created." : "Class definition updated.", new Dictionary<string, object>
         {
             { "created", response.Created },
@@ -133,7 +153,12 @@ public sealed class AdminDefinitionHandlers
     {
         var request = new ArchiveClassRequest { Code = RequireString(context.Request.Payload, "code") };
         var actor = RequireActor(context);
+        var expectedRevision = _entityRevisions.TryGetExpectedRevision(context.Request.Payload);
+        try { _entityRevisions.EnsureExpectedRevisionAsync("definition:class", request.Code, expectedRevision); }
+        catch (EntityRevisionConflictException ex) { return Conflict(ex.EntityType, ex.EntityId, ex.ExpectedRevision, ex.CurrentRevision); }
         var archived = _classService.Archive(request.Code, actor.Id);
+        if (archived) _entityRevisions.BumpRevisionAsync("definition:class", request.Code, actor.Id, context.Request.RequestId ?? string.Empty);
+        if (archived) PublishDefinitionUpdated("class", request.Code, "archived", actor.Id, context.Request.RequestId ?? string.Empty);
         var response = new ArchiveClassResponse { Code = request.Code, Archived = archived };
         return Ok(archived ? "Class definition archived." : "Class definition already archived.", new Dictionary<string, object>
         {
@@ -180,8 +205,13 @@ public sealed class AdminDefinitionHandlers
         _logger.Admin($"skills.save payloadKeys={string.Join(",", payloadKeys)} definition_key_present={hasDefinition} definition_type={definitionType} definition_parse_success={(definitionParsed != null)} levels_count={levelsCount} levels_item_keys={levelsItemKeys}");
         var request = new SaveSkillRequest { Definition = ReadSkillDefinition(context.Request.Payload) };
         var actor = RequireActor(context);
+        var expectedRevision = _entityRevisions.TryGetExpectedRevision(context.Request.Payload);
+        try { _entityRevisions.EnsureExpectedRevisionAsync("definition:skill", request.Definition.Code, expectedRevision); }
+        catch (EntityRevisionConflictException ex) { return Conflict(ex.EntityType, ex.EntityId, ex.ExpectedRevision, ex.CurrentRevision); }
         var response = _skillService.Save(request.Definition, actor.Id);
+        _entityRevisions.BumpRevisionAsync("definition:skill", response.Item.Code, actor.Id, context.Request.RequestId ?? string.Empty);
         _logger.Admin($"skills.save response=ok code={response.Item.Code} actor={actor.Login}");
+        PublishDefinitionUpdated("skill", response.Item.Code, response.Created ? "created" : "updated", actor.Id, context.Request.RequestId ?? string.Empty);
         return Ok(response.Created ? "Skill definition created." : "Skill definition updated.", new Dictionary<string, object>
         {
             { "created", response.Created },
@@ -194,8 +224,13 @@ public sealed class AdminDefinitionHandlers
     {
         var request = new ArchiveSkillRequest { Code = RequireString(context.Request.Payload, "code") };
         var actor = RequireActor(context);
+        var expectedRevision = _entityRevisions.TryGetExpectedRevision(context.Request.Payload);
+        try { _entityRevisions.EnsureExpectedRevisionAsync("definition:skill", request.Code, expectedRevision); }
+        catch (EntityRevisionConflictException ex) { return Conflict(ex.EntityType, ex.EntityId, ex.ExpectedRevision, ex.CurrentRevision); }
         var archived = _skillService.Archive(request.Code, actor.Id);
         _logger.Admin($"skills.archive response=ok code={request.Code} archived={archived} actor={actor.Login}");
+        if (archived) _entityRevisions.BumpRevisionAsync("definition:skill", request.Code, actor.Id, context.Request.RequestId ?? string.Empty);
+        if (archived) PublishDefinitionUpdated("skill", request.Code, "archived", actor.Id, context.Request.RequestId ?? string.Empty);
         var response = new ArchiveSkillResponse { Code = request.Code, Archived = archived };
         return Ok(archived ? "Skill definition archived." : "Skill definition already archived.", new Dictionary<string, object>
         {
@@ -246,6 +281,14 @@ public sealed class AdminDefinitionHandlers
             Code = RequireString(map, "code"),
             Name = GetString(map, "name"),
             Description = GetString(map, "description"),
+            DisplayGroup = GetString(map, "displayGroup"),
+            DefaultAttribute = GetString(map, "defaultAttribute"),
+            AllowedAttributes = GetStringList(map, "allowedAttributes"),
+            RankMin = TryGetInt(map, "rankMin") ?? 0,
+            RankMax = TryGetInt(map, "rankMax") ?? 20,
+            IsRollable = GetBool(map, "isRollable", true),
+            VisibilityRule = FirstNonEmpty(GetString(map, "visibilityRule"), "default"),
+            IsArchived = GetBool(map, "isArchived", false),
             Tier = GetInt(map, "tier"),
             MaxLevel = GetInt(map, "maxLevel"),
             SkillCategory = ParseEnum<SkillCategory>(GetString(map, "skillCategory"), SkillCategory.Undefined),
@@ -445,6 +488,15 @@ public sealed class AdminDefinitionHandlers
         return new Dictionary<string, object>
         {
             { "code", dto.Code }, { "name", dto.Name }, { "description", dto.Description },
+            { "displayGroup", dto.DisplayGroup },
+            { "defaultAttribute", dto.DefaultAttribute },
+            { "allowedAttributes", dto.AllowedAttributes.Cast<object>().ToArray() },
+            { "rankMin", dto.RankMin },
+            { "rankMax", dto.RankMax },
+            { "isRollable", dto.IsRollable },
+            { "visibilityRule", dto.VisibilityRule },
+            { "schemaVersion", 1 },
+            { "isArchived", dto.IsArchived },
             { "tier", dto.Tier }, { "maxLevel", dto.MaxLevel }, { "skillCategory", dto.SkillCategory.ToString() },
             { "isClassSkill", dto.IsClassSkill },
             { "requiredRaceCodes", dto.RequiredRaceCodes.Cast<object>().ToArray() },
@@ -497,6 +549,22 @@ public sealed class AdminDefinitionHandlers
         return new ResponseEnvelope { Status = ResponseStatus.Ok, Message = message, Payload = payload };
     }
 
+    private static ResponseEnvelope Conflict(string entityType, string entityId, long expectedRevision, long currentRevision)
+    {
+        return new ResponseEnvelope
+        {
+            Status = ResponseStatus.Conflict,
+            Message = "Revision conflict.",
+            Payload = new Dictionary<string, object>
+            {
+                { "entityType", entityType },
+                { "entityId", entityId },
+                { "expectedRevision", expectedRevision },
+                { "currentRevision", currentRevision }
+            }
+        };
+    }
+
     private static IDictionary<string, object> RequireMap(IDictionary<string, object> payload, string key)
     {
         var map = PayloadReader.GetDictionary(payload, key);
@@ -511,9 +579,46 @@ public sealed class AdminDefinitionHandlers
         return value;
     }
 
+    private static string FirstNonEmpty(params string[] values)
+    {
+        if (values == null || values.Length == 0) return string.Empty;
+        foreach (var value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value)) return value;
+        }
+
+        return string.Empty;
+    }
+
     private static string GetString(IDictionary<string, object> map, string key)
     {
         return map.TryGetValue(key, out var value) ? Convert.ToString(value) ?? string.Empty : string.Empty;
+    }
+
+    private void PublishDefinitionUpdated(string category, string definitionId, string operation, string actorUserId, string requestId)
+    {
+        try
+        {
+            _syncEvents.Publish(
+                type: "definitions.updated",
+                scope: SyncScopes.Definitions,
+                entityType: "definition",
+                entityId: definitionId,
+                operation: operation,
+                actorUserId: actorUserId,
+                payload: new Dictionary<string, object>
+                {
+                    { "category", string.IsNullOrWhiteSpace(category) ? "definition" : category },
+                    { "definitionId", definitionId },
+                    { "operation", operation },
+                    { "updatedUtc", DateTime.UtcNow }
+                },
+                requestId: requestId);
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug($"sync.publish.error requestId={requestId} type=definitions.updated entityId={definitionId} message={ex.Message}");
+        }
     }
 
     private static int GetInt(IDictionary<string, object> map, string key)
