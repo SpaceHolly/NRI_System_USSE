@@ -2882,7 +2882,7 @@ public partial class ServiceHub
         }
         catch (Exception ex)
         {
-            _logger.Error($"sync.publish.error requestId={requestId} type={type} entityId={entityId} message={ex.Message}", ex);
+            _logger.Debug($"sync.publish.error requestId={requestId} type={type} entityId={entityId} message={ex.Message}");
         }
     }
 

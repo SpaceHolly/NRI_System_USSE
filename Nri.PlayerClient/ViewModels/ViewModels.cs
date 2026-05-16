@@ -2720,13 +2720,11 @@ public class PlayerMainViewModel : ViewModelBase
     }
 
     private static IList ToObjectList(object payload) => payload as IList ?? new ArrayList();
-}
 
-public class CombatViewModel : PlayerMainViewModel { 
     internal void ChatVisibleFeedRefreshFromSync() => RefreshChat();
     internal void DiceFeedRefreshFromSync() => RefreshDiceAndRequests();
     internal void SetDefinitionsDirty(long revision) { _definitionsDirty = true; ClientLogService.Instance.Warn($"sync.definitions.dirty revision={revision}"); }
-
+}
 
 public static class SyncFeatureFlags
 {
@@ -2762,5 +2760,3 @@ public sealed class ClientSyncEventDispatcher : IClientSyncEventDispatcher
 }
 
 public sealed class ClientSyncEvent { public string EventId=""; public long Revision; public string Type=""; public string Scope=""; public static ClientSyncEvent FromMap(Dictionary<string,object>? map){ map ??= new Dictionary<string,object>(); return new ClientSyncEvent{ EventId=map.ContainsKey("eventId")?Convert.ToString(map["eventId"])??"":"", Revision=map.ContainsKey("revision")?Convert.ToInt64(map["revision"]):0, Type=map.ContainsKey("type")?Convert.ToString(map["type"])??"":"", Scope=map.ContainsKey("scope")?Convert.ToString(map["scope"])??"":""}; } }
-
-}

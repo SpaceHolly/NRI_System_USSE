@@ -3407,7 +3407,10 @@ ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Кла
     private ResponseEnvelope SendDefinitionArchiveWithRevision(string command, string code)
     {
         var payload = new Dictionary<string, object> { { "code", code } };
-        AttachExpectedRevision(payload, command.Contains("skill", StringComparison.OrdinalIgnoreCase) ? "definition:skill" : "definition:class", code, command);
+        var entityType = command.IndexOf("skill", StringComparison.OrdinalIgnoreCase) >= 0
+            ? "definition:skill"
+            : "definition:class";
+        AttachExpectedRevision(payload, entityType, code, command);
         return command == CommandNames.DefinitionsSkillArchive ? _api.DefinitionSkillArchivePayload(payload) : _api.DefinitionClassArchivePayload(payload);
     }
 
@@ -4661,12 +4664,11 @@ ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Кла
         yield return raw;
     }
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
-}
 
-public class CombatTrackerViewModel : AdminMainViewModel {     internal void ChatRefreshFromSync() => ChatRefresh();
+    internal void ChatRefreshFromSync() => ChatRefresh();
     internal void RefreshDiceFromSync() => RefreshDiceFeedForChat();
     internal void SetDefinitionsDirty(long revision) { _definitionsDirty = true; ClientLogService.Instance.Warn($"sync.definitions.dirty revision={revision}"); }
-
+}
 
 public static class SyncFeatureFlags
 {
@@ -4681,5 +4683,3 @@ public sealed class ClientSyncEventDispatcher : IClientSyncEventDispatcher
     public System.Threading.Tasks.Task DispatchAsync(ClientSyncEvent evt){ ClientLogService.Instance.Info($"sync.dispatch.start eventId={evt.EventId} revision={evt.Revision} type={evt.Type}"); switch(evt.Type){ case "chat.message.created": if(_chatRefreshInProgress){ClientLogService.Instance.Warn($"sync.dispatch.deferred eventId={evt.EventId} type={evt.Type} reason=chat_refresh_in_progress"); break;} _chatRefreshInProgress=true; _vm.ChatRefreshFromSync(); _chatRefreshInProgress=false; ClientLogService.Instance.Info($"sync.dispatch.done eventId={evt.EventId} type={evt.Type} action=chat.refresh"); break; case "dice.roll.created": _vm.RefreshDiceFromSync(); ClientLogService.Instance.Info($"sync.dispatch.done eventId={evt.EventId} type={evt.Type} action=dice.refresh"); break; case "fate.settings.updated": ClientLogService.Instance.Warn($"sync.dispatch.deferred eventId={evt.EventId} type={evt.Type} reason=fate_refresh_todo"); break; case "definitions.updated": _vm.SetDefinitionsDirty(evt.Revision); ClientLogService.Instance.Info($"sync.dispatch.done eventId={evt.EventId} type={evt.Type} action=definitions.dirty"); break; default: ClientLogService.Instance.Warn($"sync.event.unhandled type={evt.Type} scope={evt.Scope} revision={evt.Revision}"); break;} return System.Threading.Tasks.Task.CompletedTask; }
 }
 public sealed class ClientSyncEvent { public string EventId=""; public long Revision; public string Type=""; public string Scope=""; public static ClientSyncEvent FromMap(IDictionary<string,object>? map){ map ??= new Dictionary<string,object>(); return new ClientSyncEvent{ EventId=map.ContainsKey("eventId")?Convert.ToString(map["eventId"])??"":"", Revision=map.ContainsKey("revision")?Convert.ToInt64(map["revision"]):0, Type=map.ContainsKey("type")?Convert.ToString(map["type"])??"":"", Scope=map.ContainsKey("scope")?Convert.ToString(map["scope"])??"":""}; } }
-
-}
