@@ -617,7 +617,7 @@ public sealed class AdminDefinitionHandlers
         }
         catch (Exception ex)
         {
-            _logger.Error($"sync.publish.error requestId={requestId} type=definitions.updated entityId={definitionId} message={ex.Message}", ex);
+            _logger.Debug($"sync.publish.error requestId={requestId} type=definitions.updated entityId={definitionId} message={ex.Message}");
         }
     }
 

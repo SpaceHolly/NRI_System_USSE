@@ -88,7 +88,7 @@ public sealed class VisibilityService : IVisibilityService
                 removed.Add("ServerOnlyData");
             }
         }
-        if (removed.Count > 0) _logger.Debug($"visibility.filtered entityType={entityType} entityId={entityId} removed={string.Join(',', removed)}");
+        if (removed.Count > 0) _logger.Debug($"visibility.filtered entityType={entityType} entityId={entityId} removed={string.Join(",", removed.ToArray())}");
         return result;
     }
 
@@ -99,7 +99,8 @@ public sealed class VisibilityService : IVisibilityService
         {
             UserId = actor.Id,
             Role = role,
-            ActiveCharacterId = actor.ActiveCharacterId ?? string.Empty,
+            // TODO Foundation 0.5: resolve active character from UserProfile/session when profile-based character context is introduced.
+            ActiveCharacterId = string.Empty,
             CampaignId = string.Empty,
             SessionId = context.ConnectionId ?? string.Empty,
             IsSuperAdmin = actor.Roles.Contains(UserRole.SuperAdmin),

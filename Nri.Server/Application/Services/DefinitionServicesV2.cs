@@ -156,7 +156,7 @@ public sealed class DefinitionServiceV2 : IDefinitionServiceV2
         }
         catch (Exception ex)
         {
-            _logger.Error($"definition.v2.sync.publish.error category={category} id={id} message={ex.Message}", ex);
+            _logger.Debug($"definition.v2.sync.publish.error category={category} id={id} message={ex.Message}");
         }
     }
 }
