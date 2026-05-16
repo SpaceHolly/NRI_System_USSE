@@ -75,6 +75,14 @@ public class MongoContext
     public IMongoCollection<ReferenceEntry> References { get; }
     public IMongoCollection<UpdateVersionInfo> UpdateVersions { get; }
     public IMongoCollection<BackupSnapshot> Backups { get; }
+    public IMongoCollection<CharacterModuleStateDocument> CharacterModuleStates { get; }
+    public IMongoCollection<CharacterAttributeProfileDocument> CharacterAttributeProfiles { get; }
+    public IMongoCollection<CharacterSkillProfileDocument> CharacterSkillProfiles { get; }
+    public IMongoCollection<CharacterDevelopmentProfileDocument> CharacterDevelopmentProfiles { get; }
+    public IMongoCollection<CharacterWalletProfileDocument> CharacterWalletProfiles { get; }
+    public IMongoCollection<CharacterBodyProfileDocument> CharacterBodyProfiles { get; }
+    public IMongoCollection<CharacterKnowledgeProfileDocument> CharacterKnowledgeProfiles { get; }
+    public IMongoCollection<CharacterConditionProfileDocument> CharacterConditionProfiles { get; }
     public IMongoCollection<SyncEvent> SyncEvents { get; }
     public IMongoCollection<SyncCounter> SyncCounters { get; }
     public IMongoCollection<ClassDefinition> ClassDefinitions { get; }
@@ -112,6 +120,14 @@ public class MongoContext
         References = db.GetCollection<ReferenceEntry>("references");
         UpdateVersions = db.GetCollection<UpdateVersionInfo>("update_versions");
         Backups = db.GetCollection<BackupSnapshot>("backups");
+        CharacterModuleStates = db.GetCollection<CharacterModuleStateDocument>("character_module_states");
+        CharacterAttributeProfiles = db.GetCollection<CharacterAttributeProfileDocument>("character_attribute_profiles");
+        CharacterSkillProfiles = db.GetCollection<CharacterSkillProfileDocument>("character_skill_profiles");
+        CharacterDevelopmentProfiles = db.GetCollection<CharacterDevelopmentProfileDocument>("character_development_profiles");
+        CharacterWalletProfiles = db.GetCollection<CharacterWalletProfileDocument>("character_wallet_profiles");
+        CharacterBodyProfiles = db.GetCollection<CharacterBodyProfileDocument>("character_body_profiles");
+        CharacterKnowledgeProfiles = db.GetCollection<CharacterKnowledgeProfileDocument>("character_knowledge_profiles");
+        CharacterConditionProfiles = db.GetCollection<CharacterConditionProfileDocument>("character_condition_profiles");
         SyncEvents = db.GetCollection<SyncEvent>("sync_events");
         SyncCounters = db.GetCollection<SyncCounter>("sync_counters");
         ClassDefinitions = db.GetCollection<ClassDefinition>("class_definitions");
@@ -145,6 +161,14 @@ public class MongoContext
         References.Indexes.CreateOne(new CreateIndexModel<ReferenceEntry>(Builders<ReferenceEntry>.IndexKeys.Ascending(x => x.WorldId).Ascending(x => x.ReferenceType).Ascending(x => x.Key), new CreateIndexOptions { Unique = true }));
         UpdateVersions.Indexes.CreateOne(new CreateIndexModel<UpdateVersionInfo>(Builders<UpdateVersionInfo>.IndexKeys.Ascending(x => x.ClientChannel), new CreateIndexOptions { Unique = true }));
         Backups.Indexes.CreateOne(new CreateIndexModel<BackupSnapshot>(Builders<BackupSnapshot>.IndexKeys.Descending(x => x.CreatedUtc)));
+        CharacterModuleStates.Indexes.CreateOne(new CreateIndexModel<CharacterModuleStateDocument>(Builders<CharacterModuleStateDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterAttributeProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterAttributeProfileDocument>(Builders<CharacterAttributeProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterSkillProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterSkillProfileDocument>(Builders<CharacterSkillProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterDevelopmentProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterDevelopmentProfileDocument>(Builders<CharacterDevelopmentProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterWalletProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterWalletProfileDocument>(Builders<CharacterWalletProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterBodyProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterBodyProfileDocument>(Builders<CharacterBodyProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterKnowledgeProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterKnowledgeProfileDocument>(Builders<CharacterKnowledgeProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterConditionProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterConditionProfileDocument>(Builders<CharacterConditionProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
         SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Ascending(x => x.Revision), new CreateIndexOptions { Unique = true }));
         SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Ascending(x => x.Scope).Ascending(x => x.Revision)));
         SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Descending(x => x.CreatedUtc)));
