@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Nri.AdminClient.Diagnostics;
 using Nri.Shared.Contracts;
 
@@ -113,11 +114,13 @@ public class CommandApi
     public ResponseEnvelope DefinitionClassGet(string code) => Send(CommandNames.DefinitionsClassGet, new Dictionary<string, object> { { "code", code } });
     public ResponseEnvelope DefinitionClassSave(Dictionary<string, object> definition) => Send(CommandNames.DefinitionsClassSave, new Dictionary<string, object> { { "definition", definition } });
     public ResponseEnvelope DefinitionClassArchive(string code) => Send(CommandNames.DefinitionsClassArchive, new Dictionary<string, object> { { "code", code } });
+    public ResponseEnvelope DefinitionClassArchivePayload(Dictionary<string, object> payload) => Send(CommandNames.DefinitionsClassArchive, payload);
     public ResponseEnvelope DefinitionsSkillsGet(bool includeArchived = false) => Send(CommandNames.DefinitionsSkillsGet, new Dictionary<string, object> { { "includeArchived", includeArchived } });
     public ResponseEnvelope DefinitionSkillGet(string code) => Send(CommandNames.DefinitionsSkillGet, new Dictionary<string, object> { { "code", code } });
     public ResponseEnvelope DefinitionSkillSave(Dictionary<string, object> definition) => Send(CommandNames.DefinitionsSkillSave, new Dictionary<string, object> { { "definition", definition } });
     public ResponseEnvelope DefinitionSkillSavePayload(Dictionary<string, object> payload) => Send(CommandNames.DefinitionsSkillSave, payload);
     public ResponseEnvelope DefinitionSkillArchive(string code) => Send(CommandNames.DefinitionsSkillArchive, new Dictionary<string, object> { { "code", code } });
+    public ResponseEnvelope DefinitionSkillArchivePayload(Dictionary<string, object> payload) => Send(CommandNames.DefinitionsSkillArchive, payload);
     public ResponseEnvelope SkillsSave(Dictionary<string, object> definition) => Send(CommandNames.SkillsSave, new Dictionary<string, object> { { "definition", definition } });
     public ResponseEnvelope SkillsArchive(string code) => Send(CommandNames.SkillsArchive, new Dictionary<string, object> { { "code", code } });
     public ResponseEnvelope DefinitionsReload() => Send(CommandNames.DefinitionsReload);
@@ -200,20 +203,29 @@ public class CommandApi
     public ResponseEnvelope AdminServerStatus() => Send(CommandNames.AdminServerStatus);
     public ResponseEnvelope AdminSessionsList() => Send(CommandNames.AdminSessionsList);
     public ResponseEnvelope AdminDiagnosticsGet() => Send(CommandNames.AdminDiagnosticsGet);
+    public ResponseEnvelope SyncChangesGet(long afterRevision, string[] scopes, int limit = 100) => Send(CommandNames.SyncChangesGet, new Dictionary<string, object> { { "afterRevision", afterRevision }, { "scopes", scopes }, { "limit", limit } });
 
     private ResponseEnvelope Send(string command, Dictionary<string, object>? payload = null)
     {
         var body = payload ?? new Dictionary<string, object>();
-        ClientLogService.Instance.Debug($"Command send: {command}; payloadKeys={body.Count}");
+        var requestId = Guid.NewGuid().ToString("N");
+        var startedUtc = DateTime.UtcNow;
+        var stopwatch = Stopwatch.StartNew();
+        ClientLogService.Instance.Debug($"request.start command={command}; requestId={requestId}; startedUtc={startedUtc:O}; payloadKeys={body.Count}");
         try
         {
-            var response = _client.Send(new RequestEnvelope { Command = command, Payload = body });
-            ClientLogService.Instance.Debug($"Command response: {command}; status={response.Status}; message={response.Message}");
+            var response = _client.Send(new RequestEnvelope { Command = command, RequestId = requestId, Payload = body });
+            var responseRequestId = string.IsNullOrWhiteSpace(response.RequestId) ? requestId : response.RequestId;
+            if (ConflictResponseParser.TryParseConflict(response, out var conflict))
+            {
+                ClientLogService.Instance.Warn($"conflict.received command={command} entityType={conflict.EntityType} entityId={conflict.EntityId} expected={conflict.ExpectedRevision} current={conflict.CurrentRevision} requestId={responseRequestId}");
+            }
+            ClientLogService.Instance.Debug($"request.end command={command}; requestId={responseRequestId}; status={response.Status}; success={(response.Status == ResponseStatus.Ok)}; elapsedMs={stopwatch.ElapsedMilliseconds}; message={response.Message}");
             return response;
         }
         catch (Exception ex)
         {
-            ClientLogService.Instance.Error($"Command failed: {command}", ex);
+            ClientLogService.Instance.Error($"request.error command={command}; requestId={requestId}; elapsedMs={stopwatch.ElapsedMilliseconds}", ex);
             throw;
         }
     }

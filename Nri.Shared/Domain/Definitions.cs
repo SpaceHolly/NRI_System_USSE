@@ -76,6 +76,24 @@ public class ClassDefinition : DefinitionDocumentBase
 
 public class SkillDefinition : DefinitionDocumentBase
 {
+    // v2: display grouping for client presentation.
+    public string DisplayGroup { get; set; } = string.Empty;
+    // v2: primary attribute for roll calculations.
+    public string DefaultAttribute { get; set; } = string.Empty;
+    // v2: allowed alternative attributes for this skill.
+    public List<string> AllowedAttributes { get; set; } = new List<string>();
+    // v2: supported rank range for profile-based progression.
+    public int RankMin { get; set; }
+    public int RankMax { get; set; } = 20;
+    // v2: whether this skill can be rolled.
+    public bool IsRollable { get; set; } = true;
+    // internal compatibility marker: true when value explicitly set via v2 payload.
+    public bool IsRollableExplicitlySet { get; set; }
+    // v2: visibility hint used by future RuleSet/profile adapters.
+    public string VisibilityRule { get; set; } = "default";
+    // v2: explicit archive marker for future profile-first contracts.
+    public bool IsArchived { get; set; }
+
     public int Tier { get; set; }
     public int MaxLevel { get; set; }
     public SkillCategory SkillCategory { get; set; } = SkillCategory.Undefined;
