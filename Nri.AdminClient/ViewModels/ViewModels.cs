@@ -4670,7 +4670,7 @@ public class CombatTrackerViewModel : AdminMainViewModel {     internal void Cha
 
 public static class SyncFeatureFlags
 {
-    public const bool UsePassiveSyncPoller = true;
+    public const bool UsePassiveSyncPoller = false;
     public const bool UseEventDispatcher = false;
 }
 public interface IClientSyncEventDispatcher { System.Threading.Tasks.Task DispatchAsync(ClientSyncEvent evt); }

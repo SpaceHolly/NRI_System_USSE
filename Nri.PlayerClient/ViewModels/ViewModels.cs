@@ -2730,7 +2730,7 @@ public class CombatViewModel : PlayerMainViewModel {
 
 public static class SyncFeatureFlags
 {
-    public const bool UsePassiveSyncPoller = true;
+    public const bool UsePassiveSyncPoller = false;
     public const bool UseEventDispatcher = false;
 }
 
