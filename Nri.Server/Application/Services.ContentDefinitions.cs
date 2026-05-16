@@ -11,7 +11,8 @@ public partial class ServiceHub
 {
     public ResponseEnvelope DefinitionsSkillsGet(CommandContext context)
     {
-        GetCurrentAccount(context);
+        var actor = GetCurrentAccount(context);
+        var visibilityContext = _visibilityService.BuildContextFromCommand(context, actor);
         var category = PayloadReader.GetString(context.Request.Payload, "category");
         var search = PayloadReader.GetString(context.Request.Payload, "search");
         var includeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived");
@@ -20,6 +21,8 @@ public partial class ServiceHub
             x => string.IsNullOrWhiteSpace(category) || FieldEquals(x, "category", category))
             .OrderBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
             .Select(ToDefinitionPayload)
+            .Select(x => VisibilityFeatureFlags.UseDefinitionVisibilityFilter ? _visibilityService.FilterDefinitionPayload(x, visibilityContext, "skill", Convert.ToString(x.ContainsKey("code") ? x["code"] : string.Empty) ?? string.Empty) : x)
+            .Where(x => x != null)
             .Cast<object>()
             .ToArray();
 
@@ -29,7 +32,8 @@ public partial class ServiceHub
 
     public ResponseEnvelope DefinitionsClassesGet(CommandContext context)
     {
-        GetCurrentAccount(context);
+        var actor = GetCurrentAccount(context);
+        var visibilityContext = _visibilityService.BuildContextFromCommand(context, actor);
         var branchCode = PayloadReader.GetString(context.Request.Payload, "branchCode");
         var parentClassCode = PayloadReader.GetString(context.Request.Payload, "parentClassCode");
         var search = PayloadReader.GetString(context.Request.Payload, "search");
@@ -41,6 +45,8 @@ public partial class ServiceHub
             .OrderBy(x => GetContentFieldString(x, "branchCode"), StringComparer.OrdinalIgnoreCase)
             .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
             .Select(ToDefinitionPayload)
+            .Select(x => VisibilityFeatureFlags.UseDefinitionVisibilityFilter ? _visibilityService.FilterDefinitionPayload(x, visibilityContext, "class", Convert.ToString(x.ContainsKey("code") ? x["code"] : string.Empty) ?? string.Empty) : x)
+            .Where(x => x != null)
             .Cast<object>()
             .ToArray();
 
@@ -50,13 +56,16 @@ public partial class ServiceHub
 
     public ResponseEnvelope DefinitionsRacesGet(CommandContext context)
     {
-        GetCurrentAccount(context);
+        var actor = GetCurrentAccount(context);
+        var visibilityContext = _visibilityService.BuildContextFromCommand(context, actor);
         var search = PayloadReader.GetString(context.Request.Payload, "search");
         var includeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived");
 
         var items = FilterRecords(_contentService.GetSnapshot().Races.Values, search, includeArchived, _ => true)
             .OrderBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
             .Select(ToDefinitionPayload)
+            .Select(x => VisibilityFeatureFlags.UseDefinitionVisibilityFilter ? _visibilityService.FilterDefinitionPayload(x, visibilityContext, "race", Convert.ToString(x.ContainsKey("code") ? x["code"] : string.Empty) ?? string.Empty) : x)
+            .Where(x => x != null)
             .Cast<object>()
             .ToArray();
 

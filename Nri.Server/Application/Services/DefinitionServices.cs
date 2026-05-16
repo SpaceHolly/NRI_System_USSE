@@ -193,31 +193,40 @@ public sealed class SkillDefinitionService
 
     private static SkillDefinitionDto Map(SkillDefinition definition)
     {
+        var normalized = SkillDefinitionV2Defaults.Normalize(definition);
         return new SkillDefinitionDto
         {
-            Code = definition.Code,
-            Name = definition.Name,
-            Description = definition.Description,
-            Tier = definition.Tier,
-            MaxLevel = definition.MaxLevel,
-            SkillCategory = definition.SkillCategory,
-            IsClassSkill = definition.IsClassSkill,
-            RequiredRaceCodes = definition.RequiredRaceCodes.ToList(),
-            RequiredClassCodes = definition.RequiredClassCodes.ToList(),
-            RequiredSkillCodes = definition.RequiredSkillCodes.ToList(),
-            RequiredCharacterLevel = definition.RequiredCharacterLevel,
-            XpCoinCost = definition.XpCoinCost,
-            Levels = definition.Levels.Select(level => new SkillLevelDefinition
+            Code = normalized.Code,
+            Name = normalized.Name,
+            Description = normalized.Description,
+            DisplayGroup = normalized.DisplayGroup,
+            DefaultAttribute = normalized.DefaultAttribute,
+            AllowedAttributes = normalized.AllowedAttributes.ToList(),
+            RankMin = normalized.RankMin,
+            RankMax = normalized.RankMax,
+            IsRollable = normalized.IsRollable,
+            VisibilityRule = normalized.VisibilityRule,
+            IsArchived = normalized.IsArchived || normalized.Archived || normalized.Status == DefinitionStatus.Archived,
+            Tier = normalized.Tier,
+            MaxLevel = normalized.MaxLevel,
+            SkillCategory = normalized.SkillCategory,
+            IsClassSkill = normalized.IsClassSkill,
+            RequiredRaceCodes = normalized.RequiredRaceCodes.ToList(),
+            RequiredClassCodes = normalized.RequiredClassCodes.ToList(),
+            RequiredSkillCodes = normalized.RequiredSkillCodes.ToList(),
+            RequiredCharacterLevel = normalized.RequiredCharacterLevel,
+            XpCoinCost = normalized.XpCoinCost,
+            Levels = normalized.Levels.Select(level => new SkillLevelDefinition
             {
                 Level = level.Level,
                 Description = level.Description,
                 Requirements = level.Requirements.ToList(),
                 Effects = level.Effects.ToList()
             }).ToList(),
-            IsActive = definition.IsActive,
-            Status = definition.Status,
-            CreatedUtc = definition.CreatedUtc,
-            UpdatedUtc = definition.UpdatedUtc
+            IsActive = normalized.IsActive,
+            Status = normalized.Status,
+            CreatedUtc = normalized.CreatedUtc,
+            UpdatedUtc = normalized.UpdatedUtc
         };
     }
 
@@ -227,6 +236,15 @@ public sealed class SkillDefinitionService
         definition.Code = dto.Code ?? string.Empty;
         definition.Name = dto.Name ?? string.Empty;
         definition.Description = dto.Description ?? string.Empty;
+        definition.DisplayGroup = dto.DisplayGroup ?? string.Empty;
+        definition.DefaultAttribute = dto.DefaultAttribute ?? string.Empty;
+        definition.AllowedAttributes = dto.AllowedAttributes ?? new List<string>();
+        definition.RankMin = dto.RankMin;
+        definition.RankMax = dto.RankMax;
+        definition.IsRollable = dto.IsRollable;
+        definition.IsRollableExplicitlySet = true;
+        definition.VisibilityRule = dto.VisibilityRule ?? "default";
+        definition.IsArchived = dto.IsArchived;
         definition.Tier = dto.Tier;
         definition.MaxLevel = dto.MaxLevel;
         definition.SkillCategory = dto.SkillCategory;
@@ -239,7 +257,7 @@ public sealed class SkillDefinitionService
         definition.Levels = dto.Levels ?? new List<SkillLevelDefinition>();
         definition.IsActive = dto.IsActive;
         definition.Status = dto.Status;
-        return definition;
+        return SkillDefinitionV2Defaults.Normalize(definition);
     }
 }
 
