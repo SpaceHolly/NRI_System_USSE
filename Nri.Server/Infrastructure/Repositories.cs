@@ -42,6 +42,8 @@ public interface INriRepositoryFactory
     IRepository<ReferenceEntry> References { get; }
     IRepository<UpdateVersionInfo> UpdateVersions { get; }
     IRepository<BackupSnapshot> Backups { get; }
+    IRepository<SyncEvent> SyncEvents { get; }
+    IRepository<SyncCounter> SyncCounters { get; }
     IClassDefinitionRepository ClassDefinitions { get; }
     IRaceDefinitionRepository RaceDefinitions { get; }
     ISkillDefinitionRepository DefinitionSkills { get; }
@@ -73,9 +75,20 @@ public class MongoContext
     public IMongoCollection<ReferenceEntry> References { get; }
     public IMongoCollection<UpdateVersionInfo> UpdateVersions { get; }
     public IMongoCollection<BackupSnapshot> Backups { get; }
+    public IMongoCollection<CharacterModuleStateDocument> CharacterModuleStates { get; }
+    public IMongoCollection<CharacterAttributeProfileDocument> CharacterAttributeProfiles { get; }
+    public IMongoCollection<CharacterSkillProfileDocument> CharacterSkillProfiles { get; }
+    public IMongoCollection<CharacterDevelopmentProfileDocument> CharacterDevelopmentProfiles { get; }
+    public IMongoCollection<CharacterWalletProfileDocument> CharacterWalletProfiles { get; }
+    public IMongoCollection<CharacterBodyProfileDocument> CharacterBodyProfiles { get; }
+    public IMongoCollection<CharacterKnowledgeProfileDocument> CharacterKnowledgeProfiles { get; }
+    public IMongoCollection<CharacterConditionProfileDocument> CharacterConditionProfiles { get; }
+    public IMongoCollection<SyncEvent> SyncEvents { get; }
+    public IMongoCollection<SyncCounter> SyncCounters { get; }
     public IMongoCollection<ClassDefinition> ClassDefinitions { get; }
     public IMongoCollection<RaceDefinition> RaceDefinitions { get; }
     public IMongoCollection<SkillDefinition> DefinitionSkills { get; }
+    public IMongoCollection<UnifiedDefinitionDocument> UnifiedDefinitions { get; }
 
     public MongoContext(ServerConfig config, IServerLogger logger)
     {
@@ -108,9 +121,20 @@ public class MongoContext
         References = db.GetCollection<ReferenceEntry>("references");
         UpdateVersions = db.GetCollection<UpdateVersionInfo>("update_versions");
         Backups = db.GetCollection<BackupSnapshot>("backups");
+        CharacterModuleStates = db.GetCollection<CharacterModuleStateDocument>("character_module_states");
+        CharacterAttributeProfiles = db.GetCollection<CharacterAttributeProfileDocument>("character_attribute_profiles");
+        CharacterSkillProfiles = db.GetCollection<CharacterSkillProfileDocument>("character_skill_profiles");
+        CharacterDevelopmentProfiles = db.GetCollection<CharacterDevelopmentProfileDocument>("character_development_profiles");
+        CharacterWalletProfiles = db.GetCollection<CharacterWalletProfileDocument>("character_wallet_profiles");
+        CharacterBodyProfiles = db.GetCollection<CharacterBodyProfileDocument>("character_body_profiles");
+        CharacterKnowledgeProfiles = db.GetCollection<CharacterKnowledgeProfileDocument>("character_knowledge_profiles");
+        CharacterConditionProfiles = db.GetCollection<CharacterConditionProfileDocument>("character_condition_profiles");
+        SyncEvents = db.GetCollection<SyncEvent>("sync_events");
+        SyncCounters = db.GetCollection<SyncCounter>("sync_counters");
         ClassDefinitions = db.GetCollection<ClassDefinition>("class_definitions");
         RaceDefinitions = db.GetCollection<RaceDefinition>("race_definitions");
         DefinitionSkills = db.GetCollection<SkillDefinition>("skill_definition_documents");
+        UnifiedDefinitions = db.GetCollection<UnifiedDefinitionDocument>("unified_definitions");
 
         EnsureIndexes();
         logger.Debug("Mongo context initialized.");
@@ -139,9 +163,22 @@ public class MongoContext
         References.Indexes.CreateOne(new CreateIndexModel<ReferenceEntry>(Builders<ReferenceEntry>.IndexKeys.Ascending(x => x.WorldId).Ascending(x => x.ReferenceType).Ascending(x => x.Key), new CreateIndexOptions { Unique = true }));
         UpdateVersions.Indexes.CreateOne(new CreateIndexModel<UpdateVersionInfo>(Builders<UpdateVersionInfo>.IndexKeys.Ascending(x => x.ClientChannel), new CreateIndexOptions { Unique = true }));
         Backups.Indexes.CreateOne(new CreateIndexModel<BackupSnapshot>(Builders<BackupSnapshot>.IndexKeys.Descending(x => x.CreatedUtc)));
+        CharacterModuleStates.Indexes.CreateOne(new CreateIndexModel<CharacterModuleStateDocument>(Builders<CharacterModuleStateDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterAttributeProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterAttributeProfileDocument>(Builders<CharacterAttributeProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterSkillProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterSkillProfileDocument>(Builders<CharacterSkillProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterDevelopmentProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterDevelopmentProfileDocument>(Builders<CharacterDevelopmentProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterWalletProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterWalletProfileDocument>(Builders<CharacterWalletProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterBodyProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterBodyProfileDocument>(Builders<CharacterBodyProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterKnowledgeProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterKnowledgeProfileDocument>(Builders<CharacterKnowledgeProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterConditionProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterConditionProfileDocument>(Builders<CharacterConditionProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Ascending(x => x.Revision), new CreateIndexOptions { Unique = true }));
+        SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Ascending(x => x.Scope).Ascending(x => x.Revision)));
+        SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Descending(x => x.CreatedUtc)));
+        SyncCounters.Indexes.CreateOne(new CreateIndexModel<SyncCounter>(Builders<SyncCounter>.IndexKeys.Ascending(x => x.CounterKey), new CreateIndexOptions { Unique = true }));
         ClassDefinitions.Indexes.CreateOne(new CreateIndexModel<ClassDefinition>(Builders<ClassDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
         RaceDefinitions.Indexes.CreateOne(new CreateIndexModel<RaceDefinition>(Builders<RaceDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
         DefinitionSkills.Indexes.CreateOne(new CreateIndexModel<SkillDefinition>(Builders<SkillDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
+        UnifiedDefinitions.Indexes.CreateOne(new CreateIndexModel<UnifiedDefinitionDocument>(Builders<UnifiedDefinitionDocument>.IndexKeys.Ascending(x => x.Category).Ascending(x => x.Id), new CreateIndexOptions { Unique = true }));
     }
 }
 
@@ -206,6 +243,8 @@ public class MongoRepositoryFactory : INriRepositoryFactory
         References = new MongoRepository<ReferenceEntry>(context.References);
         UpdateVersions = new MongoRepository<UpdateVersionInfo>(context.UpdateVersions);
         Backups = new MongoRepository<BackupSnapshot>(context.Backups);
+        SyncEvents = new MongoRepository<SyncEvent>(context.SyncEvents);
+        SyncCounters = new MongoRepository<SyncCounter>(context.SyncCounters);
         ClassDefinitions = new ClassDefinitionRepository(context.ClassDefinitions);
         RaceDefinitions = new RaceDefinitionRepository(context.RaceDefinitions);
         DefinitionSkills = new SkillDefinitionRepository(context.DefinitionSkills);
@@ -235,6 +274,8 @@ public class MongoRepositoryFactory : INriRepositoryFactory
     public IRepository<ReferenceEntry> References { get; }
     public IRepository<UpdateVersionInfo> UpdateVersions { get; }
     public IRepository<BackupSnapshot> Backups { get; }
+    public IRepository<SyncEvent> SyncEvents { get; }
+    public IRepository<SyncCounter> SyncCounters { get; }
     public IClassDefinitionRepository ClassDefinitions { get; }
     public IRaceDefinitionRepository RaceDefinitions { get; }
     public ISkillDefinitionRepository DefinitionSkills { get; }

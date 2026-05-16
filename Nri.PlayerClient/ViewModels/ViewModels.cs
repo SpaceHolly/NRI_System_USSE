@@ -188,6 +188,10 @@ public class PlayerMainViewModel : ViewModelBase
     private readonly JsonTcpClient _client;
     private readonly CommandApi _api;
     private readonly DispatcherTimer _poller;
+    private readonly IClientSyncEventDispatcher _syncDispatcher;
+    private long _syncRevision;
+    private bool _definitionsDirty;
+
 
     private string _connectionState = "Оффлайн";
     private bool _isAuthPopupOpen;
@@ -268,6 +272,7 @@ public class PlayerMainViewModel : ViewModelBase
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
         _poller.Tick += (_, _) => PollRefresh();
+        _syncDispatcher = new ClientSyncEventDispatcher(this);
 
         LoadConnectionSettings();
         InitializeClassVisualLayout();
@@ -592,10 +597,28 @@ public class PlayerMainViewModel : ViewModelBase
         try
         {
             RefreshBottomPanel();
+            PollPassiveSync();
         }
         catch (Exception ex)
         {
             SetConnectionError(ex);
+        }
+    }
+
+    private void PollPassiveSync()
+    {
+        if (!SyncFeatureFlags.UsePassiveSyncPoller) return;
+        var scopes = new[] { "chat:default", "dice", "fate", "definitions", "character", "combat", "audio" };
+        var response = _api.SyncChangesGet(_syncRevision, scopes, 100);
+        if (response.Status != ResponseStatus.Ok || !response.Payload.ContainsKey("events")) return;
+        foreach (var raw in ToObjectList(response.Payload["events"]))
+        {
+            var evt = ClientSyncEvent.FromMap(AsMap(raw, CommandNames.SyncChangesGet));
+            ClientLogService.Instance.Info($"sync.event.received eventId={evt.EventId} revision={evt.Revision} type={evt.Type} scope={evt.Scope}");
+            if (!SyncFeatureFlags.UseEventDispatcher) continue;
+            try { _syncDispatcher.DispatchAsync(evt).GetAwaiter().GetResult(); }
+            catch (Exception ex) { ClientLogService.Instance.Error($"sync.dispatch.error eventId={evt.EventId} type={evt.Type} message={ex.Message}", ex); }
+            _syncRevision = Math.Max(_syncRevision, evt.Revision);
         }
     }
 
@@ -2699,4 +2722,45 @@ public class PlayerMainViewModel : ViewModelBase
     private static IList ToObjectList(object payload) => payload as IList ?? new ArrayList();
 }
 
-public class CombatViewModel : PlayerMainViewModel { }
+public class CombatViewModel : PlayerMainViewModel { 
+    internal void ChatVisibleFeedRefreshFromSync() => RefreshChat();
+    internal void DiceFeedRefreshFromSync() => RefreshDiceAndRequests();
+    internal void SetDefinitionsDirty(long revision) { _definitionsDirty = true; ClientLogService.Instance.Warn($"sync.definitions.dirty revision={revision}"); }
+
+
+public static class SyncFeatureFlags
+{
+    public const bool UsePassiveSyncPoller = true;
+    public const bool UseEventDispatcher = false;
+}
+
+public interface IClientSyncEventDispatcher
+{
+    System.Threading.Tasks.Task DispatchAsync(ClientSyncEvent evt);
+}
+
+public sealed class ClientSyncEventDispatcher : IClientSyncEventDispatcher
+{
+    private readonly PlayerMainViewModel _vm;
+    private bool _chatRefreshInProgress;
+    public ClientSyncEventDispatcher(PlayerMainViewModel vm) { _vm = vm; }
+    public System.Threading.Tasks.Task DispatchAsync(ClientSyncEvent evt)
+    {
+        ClientLogService.Instance.Info($"sync.dispatch.start eventId={evt.EventId} revision={evt.Revision} type={evt.Type}");
+        if (evt.Type.StartsWith("character.") || evt.Type.StartsWith("combat.")) { ClientLogService.Instance.Warn($"sync.dispatch.deferred eventId={evt.EventId} type={evt.Type} reason=profile_migration_pending"); return System.Threading.Tasks.Task.CompletedTask; }
+        if (evt.Type == "audio.state.changed") { ClientLogService.Instance.Warn($"sync.dispatch.deferred eventId={evt.EventId} type={evt.Type} reason=audio_not_ready"); return System.Threading.Tasks.Task.CompletedTask; }
+        switch (evt.Type)
+        {
+            case "chat.message.created": if (_chatRefreshInProgress) { ClientLogService.Instance.Warn("sync.dispatch.deferred eventId="+evt.EventId+" type=chat.message.created reason=chat_refresh_in_progress"); break; } _chatRefreshInProgress=true; _vm.ChatVisibleFeedRefreshFromSync(); _chatRefreshInProgress=false; ClientLogService.Instance.Info($"sync.dispatch.done eventId={evt.EventId} type={evt.Type} action=chat.refresh"); break;
+            case "dice.roll.created": _vm.DiceFeedRefreshFromSync(); ClientLogService.Instance.Info($"sync.dispatch.done eventId={evt.EventId} type={evt.Type} action=dice.refresh"); break;
+            case "fate.settings.updated": ClientLogService.Instance.Warn($"sync.dispatch.deferred eventId={evt.EventId} type={evt.Type} reason=player_visible_only"); break;
+            case "definitions.updated": _vm.SetDefinitionsDirty(evt.Revision); ClientLogService.Instance.Info($"sync.dispatch.done eventId={evt.EventId} type={evt.Type} action=definitions.dirty"); break;
+            default: ClientLogService.Instance.Warn($"sync.event.unhandled type={evt.Type} scope={evt.Scope} revision={evt.Revision}"); break;
+        }
+        return System.Threading.Tasks.Task.CompletedTask;
+    }
+}
+
+public sealed class ClientSyncEvent { public string EventId=""; public long Revision; public string Type=""; public string Scope=""; public static ClientSyncEvent FromMap(Dictionary<string,object>? map){ map ??= new Dictionary<string,object>(); return new ClientSyncEvent{ EventId=map.ContainsKey("eventId")?Convert.ToString(map["eventId"])??"":"", Revision=map.ContainsKey("revision")?Convert.ToInt64(map["revision"]):0, Type=map.ContainsKey("type")?Convert.ToString(map["type"])??"":"", Scope=map.ContainsKey("scope")?Convert.ToString(map["scope"])??"":""}; } }
+
+}

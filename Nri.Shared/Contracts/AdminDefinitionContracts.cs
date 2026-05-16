@@ -159,6 +159,14 @@ public class SkillDefinitionDto
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string DisplayGroup { get; set; } = string.Empty;
+    public string DefaultAttribute { get; set; } = string.Empty;
+    public List<string> AllowedAttributes { get; set; } = new List<string>();
+    public int RankMin { get; set; }
+    public int RankMax { get; set; } = 20;
+    public bool IsRollable { get; set; } = true;
+    public string VisibilityRule { get; set; } = "default";
+    public bool IsArchived { get; set; }
     public int Tier { get; set; }
     public int MaxLevel { get; set; }
     public SkillCategory SkillCategory { get; set; } = SkillCategory.Undefined;
