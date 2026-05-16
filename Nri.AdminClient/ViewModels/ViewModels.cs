@@ -271,6 +271,7 @@ public class AdminMainViewModel : ViewModelBase
     private readonly JsonTcpClient _client;
     private readonly CommandApi _api;
     private readonly DispatcherTimer _poller;
+    private readonly EntityRevisionStore _entityRevisions = new EntityRevisionStore();
     private readonly string _appDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Nri.AdminClient");
     private string _connectionState = "Оффлайн";
     private string _connectionStatusDetail = "Соединение не установлено.";
@@ -331,6 +332,9 @@ public class AdminMainViewModel : ViewModelBase
     private string _diceVisibilityInput = "Public";
     private string _diceDescriptionInput = "Admin quick roll";
     private string _lastDiceAvailabilityReason = string.Empty;
+    private readonly IClientSyncEventDispatcher _syncDispatcher;
+    private long _syncRevision;
+    private bool _definitionsDirty;
 
     public AdminMainViewModel()
     {
@@ -488,7 +492,8 @@ public class AdminMainViewModel : ViewModelBase
         TraceDiceAvailability();
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
-        _poller.Tick += (_, _) => RefreshAll();
+        _poller.Tick += (_, _) => PollSyncAndRefresh();
+        _syncDispatcher = new ClientSyncEventDispatcher(this);
     }
 
     public string LoginText { get; set; } = string.Empty;
@@ -1998,6 +2003,31 @@ public class AdminMainViewModel : ViewModelBase
         });
     }
 
+
+    private void PollSyncAndRefresh()
+    {
+        RefreshAll();
+        PollPassiveSync();
+    }
+
+    private void PollPassiveSync()
+    {
+        if (!SyncFeatureFlags.UsePassiveSyncPoller) return;
+        var scopes = new[] { "chat:default", "dice", "fate", "definitions" };
+        var response = _api.SyncChangesGet(_syncRevision, scopes, 100);
+        if (response.Status != ResponseStatus.Ok || !response.Payload.ContainsKey("events")) return;
+        foreach (var raw in ToList(response.Payload["events"]))
+        {
+            var evt = ClientSyncEvent.FromMap(AsMap(raw));
+            ClientLogService.Instance.Info($"sync.event.received eventId={evt.EventId} revision={evt.Revision} type={evt.Type} scope={evt.Scope}");
+            if (SyncFeatureFlags.UseEventDispatcher)
+            {
+                try { _syncDispatcher.DispatchAsync(evt).GetAwaiter().GetResult(); }
+                catch (Exception ex) { ClientLogService.Instance.Error($"sync.dispatch.error eventId={evt.EventId} type={evt.Type} message={ex.Message}", ex); }
+            }
+            _syncRevision = Math.Max(_syncRevision, evt.Revision);
+        }
+    }
     private void RefreshAll()
     {
         if (!IsConnectedToServer)
@@ -2954,7 +2984,10 @@ ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Кла
 
     private void SaveClassDefinition()
     {
-        var response = EnsureSuccess(_api.DefinitionClassSave(BuildClassDefinitionPayload()));
+        var payload = BuildClassDefinitionPayload();
+        AttachExpectedRevision(payload, "definition:class", FirstNonEmpty(EditClassCode, SelectedClassDefinitionCode), CommandNames.DefinitionsClassSave);
+        var response = EnsureSuccess(_api.DefinitionClassSave(payload));
+        UpdateRevisionAfterDefinitionResponse(response, "definition:class", FirstNonEmpty(EditClassCode, SelectedClassDefinitionCode), CommandNames.DefinitionsClassSave);
         if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
         {
             ApplyClassDefinitionEditor(map);
@@ -2966,7 +2999,8 @@ ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Кла
     {
         var code = FirstNonEmpty(SelectedClassDefinitionCode, EditClassCode);
         if (string.IsNullOrWhiteSpace(code)) return;
-        EnsureSuccess(_api.DefinitionClassArchive(code));
+        var response = EnsureSuccess(SendDefinitionArchiveWithRevision(CommandNames.DefinitionsClassArchive, code));
+        UpdateRevisionAfterDefinitionResponse(response, "definition:class", code, CommandNames.DefinitionsClassArchive);
         RefreshDefinitionClasses();
         if (string.Equals(EditClassCode, code, StringComparison.OrdinalIgnoreCase))
         {
@@ -3058,8 +3092,10 @@ ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Кла
         ClientLogService.Instance.Info(
             $"skillDefinition.save dtoBuilt code={FirstNonEmpty(S(dto, "code"), code)} maxLevel={S(dto, "maxLevel")} levels_count={dtoLevels.Count} levels_item_keys={string.Join(",", firstLevel?.Keys?.ToArray() ?? Array.Empty<string>())}");
         var payload = new Dictionary<string, object> { { "definition", dto } };
+        AttachExpectedRevision(payload, "definition:skill", code, CommandNames.DefinitionsSkillSave);
         ClientLogService.Instance.Info($"skillDefinition.save payloadHasDefinition={payload.ContainsKey("definition").ToString().ToLowerInvariant()} payloadKeys={string.Join(",", payload.Keys)}");
         var response = EnsureSuccess(_api.DefinitionSkillSavePayload(payload));
+        UpdateRevisionAfterDefinitionResponse(response, "definition:skill", code, CommandNames.DefinitionsSkillSave);
         ClientLogService.Instance.Info($"skillDefinition.save code={code} response={response.Status}");
         if (response.Payload.TryGetValue("item", out var item) && item is Dictionary<string, object> map)
         {
@@ -3073,8 +3109,9 @@ ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Кла
     {
         var code = FirstNonEmpty(SelectedSkillDefinitionCode, EditSkillCode);
         if (string.IsNullOrWhiteSpace(code)) return;
-        var response = EnsureSuccess(_api.DefinitionSkillArchive(code));
+        var response = EnsureSuccess(SendDefinitionArchiveWithRevision(CommandNames.DefinitionsSkillArchive, code));
         ClientLogService.Instance.Info($"skillDefinition.archive code={code} response={response.Status}");
+        UpdateRevisionAfterDefinitionResponse(response, "definition:skill", code, CommandNames.DefinitionsSkillArchive);
         RefreshDefinitionSkills();
         if (string.Equals(EditSkillCode, code, StringComparison.OrdinalIgnoreCase))
         {
@@ -3354,11 +3391,51 @@ ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Кла
     {
         if (response.Status != ResponseStatus.Ok)
         {
+            if (ConflictResponseParser.TryParseConflict(response, out var conflict))
+            {
+                _entityRevisions.SetRevision(conflict.EntityType, conflict.EntityId, conflict.CurrentRevision, "conflict");
+                ClientLogService.Instance.Warn($"revision.client.set entityType={conflict.EntityType} entityId={conflict.EntityId} revision={conflict.CurrentRevision} source=conflict");
+                ClientLogService.Instance.Warn($"conflict.definition_save entityType={conflict.EntityType} entityId={conflict.EntityId}");
+            }
             throw new InvalidOperationException(string.IsNullOrWhiteSpace(response.Message) ? response.Status.ToString() : response.Message);
         }
 
         LastErrorMessage = string.Empty;
         return response;
+    }
+
+    private ResponseEnvelope SendDefinitionArchiveWithRevision(string command, string code)
+    {
+        var payload = new Dictionary<string, object> { { "code", code } };
+        AttachExpectedRevision(payload, command.Contains("skill", StringComparison.OrdinalIgnoreCase) ? "definition:skill" : "definition:class", code, command);
+        return command == CommandNames.DefinitionsSkillArchive ? _api.DefinitionSkillArchivePayload(payload) : _api.DefinitionClassArchivePayload(payload);
+    }
+
+    private void AttachExpectedRevision(Dictionary<string, object> payload, string entityType, string entityId, string command)
+    {
+        if (!RevisionFeatureFlags.UseDefinitionExpectedRevision) return;
+        if (_entityRevisions.TryGetExpectedRevision(entityType, entityId, out var expectedRevision))
+        {
+            payload["expectedRevision"] = expectedRevision;
+            ClientLogService.Instance.Info($"revision.client.attach_expected command={command} entityType={entityType} entityId={entityId} expected={expectedRevision}");
+        }
+        else
+        {
+            ClientLogService.Instance.Info($"revision.client.missing entityType={entityType} entityId={entityId}");
+        }
+    }
+
+    private void UpdateRevisionAfterDefinitionResponse(ResponseEnvelope response, string entityType, string entityId, string command)
+    {
+        if (response.Payload.TryGetValue("currentRevision", out var currentRaw) && long.TryParse(Convert.ToString(currentRaw), out var currentRevision))
+        {
+            _entityRevisions.SetRevision(entityType, entityId, currentRevision, "response.currentRevision");
+            ClientLogService.Instance.Info($"revision.client.set entityType={entityType} entityId={entityId} revision={currentRevision} source=response.currentRevision");
+            return;
+        }
+
+        _entityRevisions.MarkStale(entityType, entityId);
+        ClientLogService.Instance.Info($"revision.client.not_returned command={command} entityType={entityType} entityId={entityId}");
     }
 
     private void ChatSend()
@@ -4586,4 +4663,23 @@ ClientLogService.Instance.Debug($"ui-refresh section=Контент block=Кла
     private static string S(Dictionary<string, object> map, string key) => map.ContainsKey(key) && map[key] != null ? Convert.ToString(map[key]) ?? string.Empty : string.Empty;
 }
 
-public class CombatTrackerViewModel : AdminMainViewModel { }
+public class CombatTrackerViewModel : AdminMainViewModel {     internal void ChatRefreshFromSync() => ChatRefresh();
+    internal void RefreshDiceFromSync() => RefreshDiceFeedForChat();
+    internal void SetDefinitionsDirty(long revision) { _definitionsDirty = true; ClientLogService.Instance.Warn($"sync.definitions.dirty revision={revision}"); }
+
+
+public static class SyncFeatureFlags
+{
+    public const bool UsePassiveSyncPoller = false;
+    public const bool UseEventDispatcher = false;
+}
+public interface IClientSyncEventDispatcher { System.Threading.Tasks.Task DispatchAsync(ClientSyncEvent evt); }
+public sealed class ClientSyncEventDispatcher : IClientSyncEventDispatcher
+{
+    private readonly AdminMainViewModel _vm; private bool _chatRefreshInProgress;
+    public ClientSyncEventDispatcher(AdminMainViewModel vm){_vm=vm;}
+    public System.Threading.Tasks.Task DispatchAsync(ClientSyncEvent evt){ ClientLogService.Instance.Info($"sync.dispatch.start eventId={evt.EventId} revision={evt.Revision} type={evt.Type}"); switch(evt.Type){ case "chat.message.created": if(_chatRefreshInProgress){ClientLogService.Instance.Warn($"sync.dispatch.deferred eventId={evt.EventId} type={evt.Type} reason=chat_refresh_in_progress"); break;} _chatRefreshInProgress=true; _vm.ChatRefreshFromSync(); _chatRefreshInProgress=false; ClientLogService.Instance.Info($"sync.dispatch.done eventId={evt.EventId} type={evt.Type} action=chat.refresh"); break; case "dice.roll.created": _vm.RefreshDiceFromSync(); ClientLogService.Instance.Info($"sync.dispatch.done eventId={evt.EventId} type={evt.Type} action=dice.refresh"); break; case "fate.settings.updated": ClientLogService.Instance.Warn($"sync.dispatch.deferred eventId={evt.EventId} type={evt.Type} reason=fate_refresh_todo"); break; case "definitions.updated": _vm.SetDefinitionsDirty(evt.Revision); ClientLogService.Instance.Info($"sync.dispatch.done eventId={evt.EventId} type={evt.Type} action=definitions.dirty"); break; default: ClientLogService.Instance.Warn($"sync.event.unhandled type={evt.Type} scope={evt.Scope} revision={evt.Revision}"); break;} return System.Threading.Tasks.Task.CompletedTask; }
+}
+public sealed class ClientSyncEvent { public string EventId=""; public long Revision; public string Type=""; public string Scope=""; public static ClientSyncEvent FromMap(IDictionary<string,object>? map){ map ??= new Dictionary<string,object>(); return new ClientSyncEvent{ EventId=map.ContainsKey("eventId")?Convert.ToString(map["eventId"])??"":"", Revision=map.ContainsKey("revision")?Convert.ToInt64(map["revision"]):0, Type=map.ContainsKey("type")?Convert.ToString(map["type"])??"":"", Scope=map.ContainsKey("scope")?Convert.ToString(map["scope"])??"":""}; } }
+
+}
