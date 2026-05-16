@@ -29,7 +29,6 @@ public sealed class EntityRevisionInfo : EntityBase
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public string UpdatedByUserId { get; set; } = string.Empty;
     public string RequestId { get; set; } = string.Empty;
-    public int SchemaVersion { get; set; } = 1;
 }
 
 public static class SyncScopes

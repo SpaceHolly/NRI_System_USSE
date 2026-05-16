@@ -14,7 +14,6 @@ public sealed class UnifiedDefinitionDocument : EntityBase
     public Dictionary<string, object> ExtraData { get; set; } = new Dictionary<string, object>();
     public string VisibilityRule { get; set; } = VisibilityRuleIds.Public;
     public List<string> Tags { get; set; } = new List<string>();
-    public int SchemaVersion { get; set; } = 1;
     public bool IsArchived { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
