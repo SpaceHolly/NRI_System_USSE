@@ -1275,6 +1275,7 @@ public partial class ServiceHub
         details["companions"] = c.Companions.Select(CompanionPayload).Cast<object>().ToArray();
         details["holdings"] = c.Holdings.Select(HoldingPayload).Cast<object>().ToArray();
         details["reputation"] = (!isPrivileged && c.Visibility.HideReputationForOthers) ? "[hidden]" : (object)c.Reputation.Select(ReputationPayload).Cast<object>().ToArray();
+        // TODO Foundation 0.5.x: optional development-profile shadow compare under feature flag.
         details["classProgress"] = c.ClassProgress.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "experience", x.Experience } }).Cast<object>().ToArray();
         details["skills"] = c.Skills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "name", x.Name }, { "description", x.Description }, { "type", x.Type.ToString() }, { "available", x.IsAvailable }, { "reason", x.UnavailableReason } }).Cast<object>().ToArray();
         details["raceCode"] = c.RaceCode;

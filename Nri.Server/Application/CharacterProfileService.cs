@@ -23,6 +23,8 @@ public interface ICharacterProfileService
     WalletProfileComparisonResult CompareWalletProfileShadow(string characterId);
     SkillProfile GetSkillProfileShadow(string characterId);
     SkillProfileComparisonResult CompareSkillProfileShadow(string characterId);
+    DevelopmentProfile GetDevelopmentProfileShadow(string characterId);
+    DevelopmentProfileComparisonResult CompareDevelopmentProfileShadow(string characterId);
 }
 
 public class CharacterProfileBundle
@@ -79,14 +81,16 @@ public sealed class CharacterProfileService : ICharacterProfileService
     private readonly ICharacterAttributeProfileFactory _attributeProfileFactory;
     private readonly ICharacterWalletProfileFactory _walletProfileFactory;
     private readonly ICharacterSkillProfileFactory _skillProfileFactory;
+    private readonly ICharacterDevelopmentProfileFactory _developmentProfileFactory;
 
-    public CharacterProfileService(MongoContext mongo, IServerLogger logger, ICharacterAttributeProfileFactory attributeProfileFactory, ICharacterWalletProfileFactory walletProfileFactory, ICharacterSkillProfileFactory skillProfileFactory)
+    public CharacterProfileService(MongoContext mongo, IServerLogger logger, ICharacterAttributeProfileFactory attributeProfileFactory, ICharacterWalletProfileFactory walletProfileFactory, ICharacterSkillProfileFactory skillProfileFactory, ICharacterDevelopmentProfileFactory developmentProfileFactory)
     {
         _mongo = mongo;
         _logger = logger;
         _attributeProfileFactory = attributeProfileFactory;
         _walletProfileFactory = walletProfileFactory;
         _skillProfileFactory = skillProfileFactory;
+        _developmentProfileFactory = developmentProfileFactory;
     }
 
     public AttributeProfile GetAttributeProfile(string characterId)
@@ -244,6 +248,38 @@ public sealed class CharacterProfileService : ICharacterProfileService
         if (comparison.Differences.Count > 0)
         {
             _logger.Debug($"skill.shadow.diff characterId={comparison.CharacterId} diffCount={comparison.Differences.Count}");
+        }
+
+        return comparison;
+    }
+
+    public DevelopmentProfile GetDevelopmentProfileShadow(string characterId)
+    {
+        var character = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (character == null)
+        {
+            return _developmentProfileFactory.BuildEmpty(characterId, RuleSetIds.FantasyNriDefault);
+        }
+
+        var profile = _developmentProfileFactory.BuildFromLegacyCharacter(character);
+        _logger.Debug($"development.shadow.build characterId={profile.CharacterId} ruleSetId={profile.RuleSetId} count={profile.Nodes.Count}");
+        return profile;
+    }
+
+    public DevelopmentProfileComparisonResult CompareDevelopmentProfileShadow(string characterId)
+    {
+        var character = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (character == null)
+        {
+            return new DevelopmentProfileComparisonResult { CharacterId = characterId ?? string.Empty, IsEquivalent = true, ComparedAtUtc = System.DateTime.UtcNow };
+        }
+
+        var persisted = GetDevelopmentProfile(characterId);
+        var comparison = _developmentProfileFactory.CompareLegacyToProfile(character, persisted);
+        _logger.Debug($"development.shadow.compare characterId={comparison.CharacterId} equivalent={comparison.IsEquivalent} diffCount={comparison.Differences.Count}");
+        if (comparison.Differences.Count > 0)
+        {
+            _logger.Debug($"development.shadow.diff characterId={comparison.CharacterId} diffCount={comparison.Differences.Count}");
         }
 
         return comparison;

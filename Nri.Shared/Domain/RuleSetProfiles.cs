@@ -45,6 +45,7 @@ public static class ProfileFeatureFlags
     public const bool UseAttributeProfileReadShadow = false;
     public const bool UseWalletProfileReadShadow = false;
     public const bool UseSkillProfileReadShadow = false;
+    public const bool UseDevelopmentProfileReadShadow = false;
     public const bool UseDevelopmentNodeModel = false;
     public const bool UseSkillDefinitionV2 = false;
 }
@@ -131,17 +132,26 @@ public sealed class CharacterSkillProfileValue
 // Generic development graph state (classes/professions/specializations/etc).
 public sealed class DevelopmentProfile
 {
-    public List<DevelopmentNodeState> Nodes { get; set; } = new List<DevelopmentNodeState>();
-    public int DevelopmentCurrency { get; set; }
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public List<string> ActiveHexagonIds { get; set; } = new List<string>();
+    public List<CharacterDevelopmentNodeState> Nodes { get; set; } = new List<CharacterDevelopmentNodeState>();
+    public string Vocation { get; set; } = string.Empty;
+    public int SchemaVersion { get; set; } = 1;
 }
 
-public sealed class DevelopmentNodeState
+public sealed class CharacterDevelopmentNodeState
 {
-    public string NodeId { get; set; } = string.Empty;
-    // Free-form node type (class, branch, specialization, license, ...).
+    public string DevelopmentNodeId { get; set; } = string.Empty;
     public string NodeType { get; set; } = string.Empty;
-    public int Tier { get; set; }
-    public bool Acquired { get; set; }
+    public int CurrentTier { get; set; }
+    public int MaxTier { get; set; }
+    public bool IsUnlocked { get; set; }
+    public bool IsPurchased { get; set; }
+    public bool IsHidden { get; set; }
+    public string Source { get; set; } = "legacy_shadow";
+    public DateTime PurchasedAtUtc { get; set; } = DateTime.UtcNow;
+    public string Notes { get; set; } = string.Empty;
 }
 
 // Generic wallet balances by currency code.
