@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using MongoDB.Driver;
 using Nri.Server.Infrastructure;
+using Nri.Server.Logging;
 using Nri.Shared.Domain;
 
 namespace Nri.Server.Application;
@@ -16,6 +17,8 @@ public interface ICharacterProfileService
     ConditionProfile GetConditionProfile(string characterId);
     CharacterModuleState GetEnabledModules(string characterId);
     CharacterProfileBundle GetProfileBundle(string characterId);
+    AttributeProfile GetAttributeProfileShadow(string characterId);
+    AttributeProfileComparisonResult CompareAttributeProfileShadow(string characterId);
 }
 
 public class CharacterProfileBundle
@@ -68,10 +71,14 @@ public static class CharacterProfileDefaults
 public sealed class CharacterProfileService : ICharacterProfileService
 {
     private readonly MongoContext _mongo;
+    private readonly IServerLogger _logger;
+    private readonly ICharacterAttributeProfileFactory _attributeProfileFactory;
 
-    public CharacterProfileService(MongoContext mongo)
+    public CharacterProfileService(MongoContext mongo, IServerLogger logger, ICharacterAttributeProfileFactory attributeProfileFactory)
     {
         _mongo = mongo;
+        _logger = logger;
+        _attributeProfileFactory = attributeProfileFactory;
     }
 
     public AttributeProfile GetAttributeProfile(string characterId)
@@ -136,5 +143,37 @@ public sealed class CharacterProfileService : ICharacterProfileService
         bundle.KnowledgeProfile = GetKnowledgeProfile(characterId);
         bundle.ConditionProfile = GetConditionProfile(characterId);
         return bundle;
+    }
+
+    public AttributeProfile GetAttributeProfileShadow(string characterId)
+    {
+        var character = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (character == null)
+        {
+            return _attributeProfileFactory.BuildEmpty(characterId, RuleSetIds.FantasyNriDefault);
+        }
+
+        var profile = _attributeProfileFactory.BuildFromLegacyCharacter(character);
+        _logger.Debug($"attribute.shadow.build characterId={profile.CharacterId} ruleSetId={profile.RuleSetId} valuesCount={profile.Values.Count}");
+        return profile;
+    }
+
+    public AttributeProfileComparisonResult CompareAttributeProfileShadow(string characterId)
+    {
+        var character = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (character == null)
+        {
+            return new AttributeProfileComparisonResult { CharacterId = characterId ?? string.Empty, IsEquivalent = true, ComparedAtUtc = System.DateTime.UtcNow };
+        }
+
+        var persisted = GetAttributeProfile(characterId);
+        var comparison = _attributeProfileFactory.CompareLegacyToProfile(character, persisted);
+        _logger.Debug($"attribute.shadow.compare characterId={comparison.CharacterId} equivalent={comparison.IsEquivalent} diffCount={comparison.Differences.Count}");
+        foreach (var diff in comparison.Differences)
+        {
+            _logger.Debug($"attribute.shadow.diff characterId={comparison.CharacterId} diff={diff}");
+        }
+
+        return comparison;
     }
 }

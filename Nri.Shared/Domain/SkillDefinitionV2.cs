@@ -7,6 +7,10 @@ namespace Nri.Shared.Domain;
 // Attribute identifiers for fantasy_nri_default ruleset (not hardwired into Character).
 public static class CharacterAttributeIds
 {
+    public const string Health = "health";
+    public const string PhysicalArmor = "physical_armor";
+    public const string MagicArmor = "magic_armor";
+    public const string Morale = "morale";
     public const string Strength = "strength";
     public const string Dexterity = "dexterity";
     public const string Endurance = "endurance";

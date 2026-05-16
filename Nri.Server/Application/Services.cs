@@ -1261,6 +1261,7 @@ public partial class ServiceHub
 
     private Dictionary<string, object> CharacterDetailsPayload(Character c, UserAccount owner, UserAccount viewer)
     {
+        // TODO Foundation 0.5.x: optional profile-shadow compare under feature flag.
         EnsureCharacterDefaults(c);
         var isPrivileged = viewer.Id == owner.Id || viewer.Roles.Contains(UserRole.Admin) || viewer.Roles.Contains(UserRole.SuperAdmin);
         var details = CharacterSummaryPayload(c, owner, viewer);

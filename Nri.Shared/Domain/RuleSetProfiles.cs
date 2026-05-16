@@ -42,6 +42,7 @@ public static class ProfileFeatureFlags
     public const bool UseRuleSetProfilesRead = false;
     public const bool UseRuleSetProfilesWriteShadow = false;
     public const bool UseProfileFirstCharacterDetails = false;
+    public const bool UseAttributeProfileReadShadow = false;
     public const bool UseDevelopmentNodeModel = false;
     public const bool UseSkillDefinitionV2 = false;
 }
@@ -71,7 +72,20 @@ public sealed class CharacterModuleState
 // Canonical attributes profile (system-agnostic key/value store).
 public sealed class AttributeProfile
 {
-    public Dictionary<string, int> Attributes { get; set; } = new Dictionary<string, int>();
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public List<CharacterAttributeValue> Values { get; set; } = new List<CharacterAttributeValue>();
+    public int SchemaVersion { get; set; } = 1;
+}
+
+public sealed class CharacterAttributeValue
+{
+    public string AttributeId { get; set; } = string.Empty;
+    public int BaseValue { get; set; }
+    public int CurrentValue { get; set; }
+    public int ManualModifier { get; set; }
+    public string Source { get; set; } = "legacy_shadow";
+    public string Notes { get; set; } = string.Empty;
 }
 
 // Canonical skills profile for learned/known skills.
