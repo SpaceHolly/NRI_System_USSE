@@ -43,8 +43,29 @@ public static class ProfileFeatureFlags
     public const bool UseRuleSetProfilesWriteShadow = false;
     public const bool UseProfileFirstCharacterDetails = false;
     public const bool UseAttributeProfileReadShadow = false;
+    public const bool UseWalletProfileReadShadow = false;
+    public const bool UseSkillProfileReadShadow = false;
+    public const bool UseDevelopmentProfileReadShadow = false;
     public const bool UseDevelopmentNodeModel = false;
     public const bool UseSkillDefinitionV2 = false;
+}
+
+public static class CharacterCurrencyIds
+{
+    public const string IronCoin = "iron_coin";
+    public const string BronzeCoin = "bronze_coin";
+    public const string SilverCoin = "silver_coin";
+    public const string GoldCoin = "gold_coin";
+    public const string PlatinumCoin = "platinum_coin";
+    public const string OrichalcumCoin = "orichalcum_coin";
+    public const string AdamantCoin = "adamant_coin";
+    public const string SovereignCoin = "sovereign_coin";
+    public const string XpCoin = "xp_coin";
+
+    public const string Credit = "credit";
+    public const string CorporateCredit = "corporate_credit";
+    public const string RationToken = "ration_token";
+    public const string LicensePoint = "license_point";
 }
 
 // High-level rule set descriptor. Not wired to legacy commands yet.
@@ -91,36 +112,63 @@ public sealed class CharacterAttributeValue
 // Canonical skills profile for learned/known skills.
 public sealed class SkillProfile
 {
-    public List<SkillProfileEntry> Entries { get; set; } = new List<SkillProfileEntry>();
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public List<CharacterSkillProfileValue> Skills { get; set; } = new List<CharacterSkillProfileValue>();
+    public int SchemaVersion { get; set; } = 1;
 }
 
-public sealed class SkillProfileEntry
+public sealed class CharacterSkillProfileValue
 {
     public string SkillId { get; set; } = string.Empty;
     public int Rank { get; set; }
-    public bool IsActive { get; set; } = true;
+    public bool IsUnlocked { get; set; }
+    public bool IsLearned { get; set; }
+    public string Source { get; set; } = "legacy_shadow";
+    public DateTime LearnedAtUtc { get; set; } = DateTime.UtcNow;
+    public string Notes { get; set; } = string.Empty;
 }
 
 // Generic development graph state (classes/professions/specializations/etc).
 public sealed class DevelopmentProfile
 {
-    public List<DevelopmentNodeState> Nodes { get; set; } = new List<DevelopmentNodeState>();
-    public int DevelopmentCurrency { get; set; }
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public List<string> ActiveHexagonIds { get; set; } = new List<string>();
+    public List<CharacterDevelopmentNodeState> Nodes { get; set; } = new List<CharacterDevelopmentNodeState>();
+    public string Vocation { get; set; } = string.Empty;
+    public int SchemaVersion { get; set; } = 1;
 }
 
-public sealed class DevelopmentNodeState
+public sealed class CharacterDevelopmentNodeState
 {
-    public string NodeId { get; set; } = string.Empty;
-    // Free-form node type (class, branch, specialization, license, ...).
+    public string DevelopmentNodeId { get; set; } = string.Empty;
     public string NodeType { get; set; } = string.Empty;
-    public int Tier { get; set; }
-    public bool Acquired { get; set; }
+    public int CurrentTier { get; set; }
+    public int MaxTier { get; set; }
+    public bool IsUnlocked { get; set; }
+    public bool IsPurchased { get; set; }
+    public bool IsHidden { get; set; }
+    public string Source { get; set; } = "legacy_shadow";
+    public DateTime PurchasedAtUtc { get; set; } = DateTime.UtcNow;
+    public string Notes { get; set; } = string.Empty;
 }
 
 // Generic wallet balances by currency code.
 public sealed class WalletProfile
 {
-    public Dictionary<string, long> Balances { get; set; } = new Dictionary<string, long>();
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public List<CharacterWalletValue> Wallets { get; set; } = new List<CharacterWalletValue>();
+    public int SchemaVersion { get; set; } = 1;
+}
+
+public sealed class CharacterWalletValue
+{
+    public string CurrencyId { get; set; } = string.Empty;
+    public long Amount { get; set; }
+    public string Source { get; set; } = "legacy_shadow";
+    public string Notes { get; set; } = string.Empty;
 }
 
 // Body/health-like derived values (system-agnostic).

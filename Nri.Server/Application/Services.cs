@@ -1268,17 +1268,20 @@ public partial class ServiceHub
         details["age"] = c.Age.HasValue ? (object)c.Age.Value : string.Empty;
         details["backstory"] = (!isPrivileged && c.Visibility.HideBackstoryForOthers) ? "[hidden]" : c.Backstory;
         details["stats"] = (!isPrivileged && c.Visibility.HideStatsForOthers) ? "[hidden]" : (object)StatsPayload(c.Stats);
+        // TODO Foundation 0.5.x: optional wallet-profile shadow compare under feature flag.
         details["money"] = WalletPayload(c.Wallet);
         details["currencies"] = CurrencyListPayload(c);
         details["inventory"] = c.Inventory.Select(InventoryPayload).Cast<object>().ToArray();
         details["companions"] = c.Companions.Select(CompanionPayload).Cast<object>().ToArray();
         details["holdings"] = c.Holdings.Select(HoldingPayload).Cast<object>().ToArray();
         details["reputation"] = (!isPrivileged && c.Visibility.HideReputationForOthers) ? "[hidden]" : (object)c.Reputation.Select(ReputationPayload).Cast<object>().ToArray();
+        // TODO Foundation 0.5.x: optional development-profile shadow compare under feature flag.
         details["classProgress"] = c.ClassProgress.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "experience", x.Experience } }).Cast<object>().ToArray();
         details["skills"] = c.Skills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "name", x.Name }, { "description", x.Description }, { "type", x.Type.ToString() }, { "available", x.IsAvailable }, { "reason", x.UnavailableReason } }).Cast<object>().ToArray();
         details["raceCode"] = c.RaceCode;
         details["xpCoins"] = c.XpCoins;
         details["characterClasses"] = c.CharacterClasses.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "learnedUtc", x.LearnedUtc } }).Cast<object>().ToArray();
+        // TODO Foundation 0.5.x: optional skill-profile shadow compare under feature flag.
         details["characterSkills"] = c.CharacterSkills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "tier", x.Tier }, { "level", x.Level }, { "learnedUtc", x.LearnedUtc } }).Cast<object>().ToArray();
         details["visibility"] = VisibilityPayload(c.Visibility);
         details["notesContext"] = BuildNotesContextPayload(c.Id);
