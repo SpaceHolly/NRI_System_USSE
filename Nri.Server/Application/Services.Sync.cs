@@ -31,7 +31,7 @@ public partial class ServiceHub
         var afterRevision = PayloadReader.GetLong(context.Request.Payload, "afterRevision") ?? 0;
         var requestedScopes = ExtractScopes(context.Request.Payload);
         var allowedScopes = FilterScopesForActor(requestedScopes, actor);
-        var limit = PayloadReader.GetInt(context.Request.Payload, "limit");
+        var limit = PayloadReader.GetInt(context.Request.Payload, "limit") ?? 100;
         if (limit <= 0) limit = 100;
 
         var result = _syncEvents.GetChanges(afterRevision, allowedScopes, limit, context.Request.RequestId ?? string.Empty);
@@ -46,11 +46,12 @@ public partial class ServiceHub
 
     private static IReadOnlyCollection<string> ExtractScopes(Dictionary<string, object> payload)
     {
-        var list = PayloadReader.GetList(payload, "scopes") ?? new ArrayList();
-        return list.Cast<object>()
+        var list = PayloadReader.GetList(payload, "scopes");
+        if (list == null) return Array.Empty<string>();
+        return list
             .Select(Convert.ToString)
             .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(x => x!.Trim())
+            .Select(x => x.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }

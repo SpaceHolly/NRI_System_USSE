@@ -23,8 +23,9 @@ public partial class ServiceHub
     private readonly GameContentService _contentService;
     private readonly string _audioFolderPath;
     private readonly SyncEventService _syncEvents;
+    private readonly IVisibilityService _visibilityService;
 
-    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, GameContentService contentService, string audioFolderPath, SyncEventService syncEvents)
+    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, GameContentService contentService, string audioFolderPath, SyncEventService syncEvents, IVisibilityService visibilityService)
     {
         _repositories = repositories;
         _sessionManager = sessionManager;
@@ -34,6 +35,7 @@ public partial class ServiceHub
         _contentService = contentService;
         _audioFolderPath = string.IsNullOrWhiteSpace(audioFolderPath) ? "./audio" : audioFolderPath;
         _syncEvents = syncEvents;
+        _visibilityService = visibilityService;
     }
 
     public ResponseEnvelope Register(CommandContext context)
@@ -2321,6 +2323,20 @@ public partial class ServiceHub
         {
             var roll = CreateResolvedDiceRoll(context, actor, isTestRoll: false);
             _repositories.DiceRequests.Insert(roll);
+            TryPublishSyncEvent(
+                type: "dice.roll.created",
+                scope: SyncScopes.Dice,
+                entityType: "diceRoll",
+                entityId: roll.Id,
+                operation: "created",
+                actorUserId: actor.Id,
+                payload: new Dictionary<string, object>
+                {
+                    { "rollId", roll.Id },
+                    { "createdUtc", roll.CreatedUtc },
+                    { "visibility", roll.Visibility.ToString() }
+                },
+                requestId: context.Request.RequestId ?? string.Empty);
             _logger.Admin($"dice.roll.saved commentPresent={!string.IsNullOrWhiteSpace(roll.Description)}");
             _logger.Admin($"dice.roll.standard created actor={actor.Login} requestId={roll.Id}");
             _logger.Admin($"dice.roll.standard actor={actor.Login} requestId={roll.Id} total={roll.Result?.Total ?? 0}");
@@ -2350,6 +2366,20 @@ public partial class ServiceHub
             if (existing == null)
             {
                 _repositories.DiceRequests.Insert(roll);
+                TryPublishSyncEvent(
+                    type: "dice.roll.created",
+                    scope: SyncScopes.Dice,
+                    entityType: "diceRoll",
+                    entityId: roll.Id,
+                    operation: "created",
+                    actorUserId: actor.Id,
+                    payload: new Dictionary<string, object>
+                    {
+                        { "rollId", roll.Id },
+                        { "createdUtc", roll.CreatedUtc },
+                        { "visibility", roll.Visibility.ToString() }
+                    },
+                    requestId: context.Request.RequestId ?? string.Empty);
                 _logger.Admin($"dice.roll.saved commentPresent={!string.IsNullOrWhiteSpace(roll.Description)}");
                 _logger.Admin($"dice.roll.test replacedPrevious=false actor={actor.Login} requestId={roll.Id}");
                 _logger.Admin($"dice.roll.test actor={actor.Login} action=create requestId={roll.Id} total={roll.Result?.Total ?? 0}");
@@ -2368,6 +2398,20 @@ public partial class ServiceHub
             existing.UpdatedUtc = newTimestamp;
             existing.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "TestReplaced", Comment = roll.Formula.Normalized });
             _repositories.DiceRequests.Replace(existing);
+            TryPublishSyncEvent(
+                type: "dice.roll.created",
+                scope: SyncScopes.Dice,
+                entityType: "diceRoll",
+                entityId: existing.Id,
+                operation: "created",
+                actorUserId: actor.Id,
+                payload: new Dictionary<string, object>
+                {
+                    { "rollId", existing.Id },
+                    { "createdUtc", existing.CreatedUtc },
+                    { "visibility", existing.Visibility.ToString() }
+                },
+                requestId: context.Request.RequestId ?? string.Empty);
             _logger.Admin($"dice.roll.saved commentPresent={!string.IsNullOrWhiteSpace(existing.Description)}");
             _logger.Admin($"dice.roll.test replacement oldTimestamp={oldTimestamp:o}");
             _logger.Admin($"dice.roll.test replacement newTimestamp={newTimestamp:o}");
@@ -2828,6 +2872,18 @@ public partial class ServiceHub
     {
         _repositories.AuditLogs.Insert(new AuditLogEntry { Category = category, ActorUserId = actorUserId, Action = action, Target = target });
         _logger.Audit($"{category}:{action} actor={actorUserId} target={target}");
+    }
+
+    private void TryPublishSyncEvent(string type, string scope, string entityType, string entityId, string operation, string actorUserId, Dictionary<string, object>? payload, string requestId)
+    {
+        try
+        {
+            _syncEvents.Publish(type, scope, entityType, entityId, operation, actorUserId, payload, requestId);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"sync.publish.error requestId={requestId} type={type} entityId={entityId} message={ex.Message}", ex);
+        }
     }
 
     private static Dictionary<string, object> AccountPayload(UserAccount x) => new Dictionary<string, object>

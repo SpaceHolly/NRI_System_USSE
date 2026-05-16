@@ -21,6 +21,17 @@ public sealed class SyncCounter : EntityBase
     public long Value { get; set; }
 }
 
+public sealed class EntityRevisionInfo : EntityBase
+{
+    public string EntityType { get; set; } = string.Empty;
+    public string EntityId { get; set; } = string.Empty;
+    public long Revision { get; set; }
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+    public string UpdatedByUserId { get; set; } = string.Empty;
+    public string RequestId { get; set; } = string.Empty;
+    public int SchemaVersion { get; set; } = 1;
+}
+
 public static class SyncScopes
 {
     public const string Global = "global";

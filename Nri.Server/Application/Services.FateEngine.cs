@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Nri.Server.FateEngine;
 using Nri.Shared.Contracts;
+using Nri.Shared.Domain;
 using Nri.Shared.Utilities;
 
 namespace Nri.Server.Application;
@@ -155,14 +156,18 @@ public partial class ServiceHub
         _logger.Debug($"fate.settings.update savedEffects={savedEffects}");
         _logger.Debug($"fate.state.instance id={_fateState.InstanceId} source=fate-settings-update");
         _logger.Debug($"fate.settings.update enabled={updated.Enabled} effects={savedEffects} mods={savedMods} instance={_fateState.InstanceId}");
-        _syncEvents.Publish(
+        TryPublishSyncEvent(
             type: "fate.settings.updated",
             scope: SyncScopes.Fate,
             entityType: "fateSettings",
             entityId: "default",
             operation: "updated",
             actorUserId: context.Session?.UserId ?? string.Empty,
-            payload: new Dictionary<string, object> { { "updatedUtc", DateTime.UtcNow } },
+            payload: new Dictionary<string, object>
+            {
+                { "updatedUtc", DateTime.UtcNow },
+                { "updatedByUserId", context.Session?.UserId ?? string.Empty }
+            },
             requestId: context.Request.RequestId ?? string.Empty);
         var message = savedToFile ? "Fate settings updated." : "Fate settings updated (warning: save failed, see server log).";
         return Ok(message, FateSettingsPayload(updated));

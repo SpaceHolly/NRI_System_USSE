@@ -41,7 +41,7 @@ public partial class ServiceHub
         };
 
         _repositories.ChatMessages.Insert(msg);
-        _syncEvents.Publish(
+        TryPublishSyncEvent(
             type: "chat.message.created",
             scope: SyncScopes.Chat(sessionId),
             entityType: "chatMessage",

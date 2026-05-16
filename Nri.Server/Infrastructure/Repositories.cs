@@ -88,6 +88,7 @@ public class MongoContext
     public IMongoCollection<ClassDefinition> ClassDefinitions { get; }
     public IMongoCollection<RaceDefinition> RaceDefinitions { get; }
     public IMongoCollection<SkillDefinition> DefinitionSkills { get; }
+    public IMongoCollection<UnifiedDefinitionDocument> UnifiedDefinitions { get; }
 
     public MongoContext(ServerConfig config, IServerLogger logger)
     {
@@ -133,6 +134,7 @@ public class MongoContext
         ClassDefinitions = db.GetCollection<ClassDefinition>("class_definitions");
         RaceDefinitions = db.GetCollection<RaceDefinition>("race_definitions");
         DefinitionSkills = db.GetCollection<SkillDefinition>("skill_definition_documents");
+        UnifiedDefinitions = db.GetCollection<UnifiedDefinitionDocument>("unified_definitions");
 
         EnsureIndexes();
         logger.Debug("Mongo context initialized.");
@@ -176,6 +178,7 @@ public class MongoContext
         ClassDefinitions.Indexes.CreateOne(new CreateIndexModel<ClassDefinition>(Builders<ClassDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
         RaceDefinitions.Indexes.CreateOne(new CreateIndexModel<RaceDefinition>(Builders<RaceDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
         DefinitionSkills.Indexes.CreateOne(new CreateIndexModel<SkillDefinition>(Builders<SkillDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
+        UnifiedDefinitions.Indexes.CreateOne(new CreateIndexModel<UnifiedDefinitionDocument>(Builders<UnifiedDefinitionDocument>.IndexKeys.Ascending(x => x.Category).Ascending(x => x.Id), new CreateIndexOptions { Unique = true }));
     }
 }
 
