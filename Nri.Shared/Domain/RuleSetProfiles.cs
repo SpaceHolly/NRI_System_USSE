@@ -144,17 +144,26 @@ public sealed class DevelopmentProfile
     public int SchemaVersion { get; set; } = 1;
 }
 
-public sealed class CharacterDevelopmentNodeState
+public class CharacterDevelopmentNodeState : EntityBase
 {
+    public string CharacterId { get; set; } = string.Empty;
     public string DevelopmentNodeId { get; set; } = string.Empty;
+
+    // Тип узла развития: class, branch, subbranch, skill, profession, magic_path и т.д.
     public string NodeType { get; set; } = string.Empty;
+
     public int CurrentTier { get; set; }
     public int MaxTier { get; set; }
+
     public bool IsUnlocked { get; set; }
     public bool IsPurchased { get; set; }
     public bool IsHidden { get; set; }
-    public string Source { get; set; } = "legacy_shadow";
+
+    public string PurchasedAtWorldDate { get; set; } = string.Empty;
     public DateTime PurchasedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public string Source { get; set; } = string.Empty;
+    public string GMApprovalStatus { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
 }
 
