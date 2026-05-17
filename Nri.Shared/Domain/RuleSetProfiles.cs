@@ -46,6 +46,10 @@ public static class ProfileFeatureFlags
     public const bool UseWalletProfileReadShadow = false;
     public const bool UseSkillProfileReadShadow = false;
     public const bool UseDevelopmentProfileReadShadow = false;
+    public const bool UseInventoryProfileReadShadow = false;
+    public const bool UseReputationProfileReadShadow = false;
+    public const bool UseHoldingsProfileReadShadow = false;
+    public const bool UseCompanionProfileReadShadow = false;
     public const bool UseDevelopmentNodeModel = false;
     public const bool UseSkillDefinitionV2 = false;
 }
@@ -189,4 +193,94 @@ public sealed class ConditionProfile
 {
     public List<string> Conditions { get; set; } = new List<string>();
     public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
+}
+
+public sealed class InventoryProfile
+{
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public List<CharacterInventoryItemProfileValue> Items { get; set; } = new List<CharacterInventoryItemProfileValue>();
+    public int SchemaVersion { get; set; } = 1;
+}
+
+public sealed class CharacterInventoryItemProfileValue
+{
+    public string ItemId { get; set; } = string.Empty;
+    public string DefinitionId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public int Durability { get; set; }
+    public int MaxDurability { get; set; }
+    public bool IsEquipped { get; set; }
+    public string SlotId { get; set; } = string.Empty;
+    public string Source { get; set; } = "legacy_shadow";
+    public string Notes { get; set; } = string.Empty;
+    public List<string> Tags { get; set; } = new List<string>();
+}
+
+
+public sealed class ReputationProfile
+{
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public List<CharacterReputationProfileValue> Entries { get; set; } = new List<CharacterReputationProfileValue>();
+    public int SchemaVersion { get; set; } = 1;
+}
+
+public sealed class CharacterReputationProfileValue
+{
+    public string TargetType { get; set; } = string.Empty;
+    public string TargetId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Value { get; set; }
+    public int GroupValue { get; set; }
+    public string Notes { get; set; } = string.Empty;
+    public List<string> Tags { get; set; } = new List<string>();
+    public string Source { get; set; } = "legacy_shadow";
+}
+
+public sealed class HoldingsProfile
+{
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public List<CharacterHoldingProfileValue> Holdings { get; set; } = new List<CharacterHoldingProfileValue>();
+    public int SchemaVersion { get; set; } = 1;
+}
+
+public sealed class CharacterHoldingProfileValue
+{
+    public string HoldingId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string HoldingType { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string LocationId { get; set; } = string.Empty;
+    public List<string> OwnerUserIds { get; set; } = new List<string>();
+    public List<string> OwnerCharacterIds { get; set; } = new List<string>();
+    public string LegalStatus { get; set; } = string.Empty;
+    public string ActualStatus { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public List<string> Tags { get; set; } = new List<string>();
+    public string Source { get; set; } = "legacy_shadow";
+}
+
+public sealed class CompanionProfile
+{
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public List<CharacterCompanionProfileValue> Companions { get; set; } = new List<CharacterCompanionProfileValue>();
+    public int SchemaVersion { get; set; } = 1;
+}
+
+public sealed class CharacterCompanionProfileValue
+{
+    public string CompanionId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string RaceOrSpeciesId { get; set; } = string.Empty;
+    public string OwnerCharacterId { get; set; } = string.Empty;
+    public string InitiativeMode { get; set; } = string.Empty;
+    public bool HasSeparateInventory { get; set; }
+    public string Notes { get; set; } = string.Empty;
+    public List<string> Tags { get; set; } = new List<string>();
+    public string Source { get; set; } = "legacy_shadow";
 }

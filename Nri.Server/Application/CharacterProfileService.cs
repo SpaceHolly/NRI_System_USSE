@@ -15,6 +15,10 @@ public interface ICharacterProfileService
     BodyProfile GetBodyProfile(string characterId);
     KnowledgeProfile GetKnowledgeProfile(string characterId);
     ConditionProfile GetConditionProfile(string characterId);
+    InventoryProfile GetInventoryProfile(string characterId);
+    ReputationProfile GetReputationProfile(string characterId);
+    HoldingsProfile GetHoldingsProfile(string characterId);
+    CompanionProfile GetCompanionProfile(string characterId);
     CharacterModuleState GetEnabledModules(string characterId);
     CharacterProfileBundle GetProfileBundle(string characterId);
     AttributeProfile GetAttributeProfileShadow(string characterId);
@@ -25,6 +29,14 @@ public interface ICharacterProfileService
     SkillProfileComparisonResult CompareSkillProfileShadow(string characterId);
     DevelopmentProfile GetDevelopmentProfileShadow(string characterId);
     DevelopmentProfileComparisonResult CompareDevelopmentProfileShadow(string characterId);
+    InventoryProfile GetInventoryProfileShadow(string characterId);
+    InventoryProfileComparisonResult CompareInventoryProfileShadow(string characterId);
+    ReputationProfile GetReputationProfileShadow(string characterId);
+    ReputationProfileComparisonResult CompareReputationProfileShadow(string characterId);
+    HoldingsProfile GetHoldingsProfileShadow(string characterId);
+    HoldingsProfileComparisonResult CompareHoldingsProfileShadow(string characterId);
+    CompanionProfile GetCompanionProfileShadow(string characterId);
+    CompanionProfileComparisonResult CompareCompanionProfileShadow(string characterId);
 }
 
 public class CharacterProfileBundle
@@ -39,6 +51,10 @@ public class CharacterProfileBundle
     public BodyProfile BodyProfile { get; set; } = new BodyProfile();
     public KnowledgeProfile KnowledgeProfile { get; set; } = new KnowledgeProfile();
     public ConditionProfile ConditionProfile { get; set; } = new ConditionProfile();
+    public InventoryProfile InventoryProfile { get; set; } = new InventoryProfile();
+    public ReputationProfile ReputationProfile { get; set; } = new ReputationProfile();
+    public HoldingsProfile HoldingsProfile { get; set; } = new HoldingsProfile();
+    public CompanionProfile CompanionProfile { get; set; } = new CompanionProfile();
     public int SchemaVersion { get; set; } = 1;
 }
 
@@ -52,6 +68,10 @@ public static class CharacterProfileDefaults
     public static BodyProfile EmptyBodyProfile() => new BodyProfile();
     public static KnowledgeProfile EmptyKnowledgeProfile() => new KnowledgeProfile();
     public static ConditionProfile EmptyConditionProfile() => new ConditionProfile();
+    public static InventoryProfile EmptyInventoryProfile() => new InventoryProfile();
+    public static ReputationProfile EmptyReputationProfile() => new ReputationProfile();
+    public static HoldingsProfile EmptyHoldingsProfile() => new HoldingsProfile();
+    public static CompanionProfile EmptyCompanionProfile() => new CompanionProfile();
 
     public static CharacterProfileBundle EmptyBundle(string characterId)
     {
@@ -67,6 +87,10 @@ public static class CharacterProfileDefaults
             BodyProfile = EmptyBodyProfile(),
             KnowledgeProfile = EmptyKnowledgeProfile(),
             ConditionProfile = EmptyConditionProfile(),
+            InventoryProfile = EmptyInventoryProfile(),
+            ReputationProfile = EmptyReputationProfile(),
+            HoldingsProfile = EmptyHoldingsProfile(),
+            CompanionProfile = EmptyCompanionProfile(),
             SchemaVersion = 1
         };
     }
@@ -82,8 +106,12 @@ public sealed class CharacterProfileService : ICharacterProfileService
     private readonly ICharacterWalletProfileFactory _walletProfileFactory;
     private readonly ICharacterSkillProfileFactory _skillProfileFactory;
     private readonly ICharacterDevelopmentProfileFactory _developmentProfileFactory;
+    private readonly ICharacterInventoryProfileFactory _inventoryProfileFactory;
+    private readonly ICharacterReputationProfileFactory _reputationProfileFactory;
+    private readonly ICharacterHoldingsProfileFactory _holdingsProfileFactory;
+    private readonly ICharacterCompanionProfileFactory _companionProfileFactory;
 
-    public CharacterProfileService(MongoContext mongo, IServerLogger logger, ICharacterAttributeProfileFactory attributeProfileFactory, ICharacterWalletProfileFactory walletProfileFactory, ICharacterSkillProfileFactory skillProfileFactory, ICharacterDevelopmentProfileFactory developmentProfileFactory)
+    public CharacterProfileService(MongoContext mongo, IServerLogger logger, ICharacterAttributeProfileFactory attributeProfileFactory, ICharacterWalletProfileFactory walletProfileFactory, ICharacterSkillProfileFactory skillProfileFactory, ICharacterDevelopmentProfileFactory developmentProfileFactory, ICharacterInventoryProfileFactory inventoryProfileFactory, ICharacterReputationProfileFactory reputationProfileFactory, ICharacterHoldingsProfileFactory holdingsProfileFactory, ICharacterCompanionProfileFactory companionProfileFactory)
     {
         _mongo = mongo;
         _logger = logger;
@@ -91,6 +119,10 @@ public sealed class CharacterProfileService : ICharacterProfileService
         _walletProfileFactory = walletProfileFactory;
         _skillProfileFactory = skillProfileFactory;
         _developmentProfileFactory = developmentProfileFactory;
+        _inventoryProfileFactory = inventoryProfileFactory;
+        _reputationProfileFactory = reputationProfileFactory;
+        _holdingsProfileFactory = holdingsProfileFactory;
+        _companionProfileFactory = companionProfileFactory;
     }
 
     public AttributeProfile GetAttributeProfile(string characterId)
@@ -135,6 +167,31 @@ public sealed class CharacterProfileService : ICharacterProfileService
         return doc?.Profile ?? CharacterProfileDefaults.EmptyConditionProfile();
     }
 
+    public InventoryProfile GetInventoryProfile(string characterId)
+    {
+        var character = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (character == null) return CharacterProfileDefaults.EmptyInventoryProfile();
+        return _inventoryProfileFactory.BuildFromLegacyCharacter(character);
+    }
+
+    public ReputationProfile GetReputationProfile(string characterId)
+    {
+        var c = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        return c == null ? CharacterProfileDefaults.EmptyReputationProfile() : _reputationProfileFactory.BuildFromLegacyCharacter(c);
+    }
+
+    public HoldingsProfile GetHoldingsProfile(string characterId)
+    {
+        var c = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        return c == null ? CharacterProfileDefaults.EmptyHoldingsProfile() : _holdingsProfileFactory.BuildFromLegacyCharacter(c);
+    }
+
+    public CompanionProfile GetCompanionProfile(string characterId)
+    {
+        var c = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        return c == null ? CharacterProfileDefaults.EmptyCompanionProfile() : _companionProfileFactory.BuildFromLegacyCharacter(c);
+    }
+
     public CharacterModuleState GetEnabledModules(string characterId)
     {
         var doc = _mongo.CharacterModuleStates.Find(Builders<CharacterModuleStateDocument>.Filter.Eq(x => x.CharacterId, characterId)).FirstOrDefault();
@@ -154,6 +211,10 @@ public sealed class CharacterProfileService : ICharacterProfileService
         bundle.BodyProfile = GetBodyProfile(characterId);
         bundle.KnowledgeProfile = GetKnowledgeProfile(characterId);
         bundle.ConditionProfile = GetConditionProfile(characterId);
+        bundle.InventoryProfile = GetInventoryProfile(characterId);
+        bundle.ReputationProfile = GetReputationProfile(characterId);
+        bundle.HoldingsProfile = GetHoldingsProfile(characterId);
+        bundle.CompanionProfile = GetCompanionProfile(characterId);
         return bundle;
     }
 
@@ -284,4 +345,91 @@ public sealed class CharacterProfileService : ICharacterProfileService
 
         return comparison;
     }
+
+    public InventoryProfile GetInventoryProfileShadow(string characterId)
+    {
+        var character = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (character == null)
+        {
+            return _inventoryProfileFactory.BuildEmpty(characterId, RuleSetIds.FantasyNriDefault);
+        }
+
+        var profile = _inventoryProfileFactory.BuildFromLegacyCharacter(character);
+        _logger.Debug($"inventory.shadow.build characterId={profile.CharacterId} ruleSetId={profile.RuleSetId} count={profile.Items.Count}");
+        return profile;
+    }
+
+    public InventoryProfileComparisonResult CompareInventoryProfileShadow(string characterId)
+    {
+        var character = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (character == null)
+        {
+            return new InventoryProfileComparisonResult { CharacterId = characterId ?? string.Empty, IsEquivalent = true, ComparedAtUtc = System.DateTime.UtcNow };
+        }
+
+        var persisted = GetInventoryProfile(characterId);
+        var comparison = _inventoryProfileFactory.CompareLegacyToProfile(character, persisted);
+        _logger.Debug($"inventory.shadow.compare characterId={comparison.CharacterId} equivalent={comparison.IsEquivalent} diffCount={comparison.Differences.Count}");
+        if (comparison.Differences.Count > 0)
+        {
+            _logger.Debug($"inventory.shadow.diff characterId={comparison.CharacterId} diffCount={comparison.Differences.Count}");
+        }
+
+        return comparison;
+    }
+
+    public ReputationProfile GetReputationProfileShadow(string characterId)
+    {
+        var c = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (c == null) return _reputationProfileFactory.BuildEmpty(characterId, RuleSetIds.FantasyNriDefault);
+        var p = _reputationProfileFactory.BuildFromLegacyCharacter(c);
+        _logger.Debug($"reputation.shadow.build characterId={p.CharacterId} ruleSetId={p.RuleSetId} count={p.Entries.Count}");
+        return p;
+    }
+
+    public ReputationProfileComparisonResult CompareReputationProfileShadow(string characterId)
+    {
+        var c = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (c == null) return new ReputationProfileComparisonResult { CharacterId = characterId ?? string.Empty, IsEquivalent = true, ComparedAtUtc = System.DateTime.UtcNow };
+        var cmp = _reputationProfileFactory.CompareLegacyToProfile(c, GetReputationProfile(characterId));
+        _logger.Debug($"reputation.shadow.compare characterId={cmp.CharacterId} equivalent={cmp.IsEquivalent} diffCount={cmp.Differences.Count}");
+        return cmp;
+    }
+
+    public HoldingsProfile GetHoldingsProfileShadow(string characterId)
+    {
+        var c = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (c == null) return _holdingsProfileFactory.BuildEmpty(characterId, RuleSetIds.FantasyNriDefault);
+        var p = _holdingsProfileFactory.BuildFromLegacyCharacter(c);
+        _logger.Debug($"holdings.shadow.build characterId={p.CharacterId} ruleSetId={p.RuleSetId} count={p.Holdings.Count}");
+        return p;
+    }
+
+    public HoldingsProfileComparisonResult CompareHoldingsProfileShadow(string characterId)
+    {
+        var c = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (c == null) return new HoldingsProfileComparisonResult { CharacterId = characterId ?? string.Empty, IsEquivalent = true, ComparedAtUtc = System.DateTime.UtcNow };
+        var cmp = _holdingsProfileFactory.CompareLegacyToProfile(c, GetHoldingsProfile(characterId));
+        _logger.Debug($"holdings.shadow.compare characterId={cmp.CharacterId} equivalent={cmp.IsEquivalent} diffCount={cmp.Differences.Count}");
+        return cmp;
+    }
+
+    public CompanionProfile GetCompanionProfileShadow(string characterId)
+    {
+        var c = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (c == null) return _companionProfileFactory.BuildEmpty(characterId, RuleSetIds.FantasyNriDefault);
+        var p = _companionProfileFactory.BuildFromLegacyCharacter(c);
+        _logger.Debug($"companion.shadow.build characterId={p.CharacterId} ruleSetId={p.RuleSetId} count={p.Companions.Count}");
+        return p;
+    }
+
+    public CompanionProfileComparisonResult CompareCompanionProfileShadow(string characterId)
+    {
+        var c = _mongo.Characters.Find(Builders<Character>.Filter.Eq(x => x.Id, characterId)).FirstOrDefault();
+        if (c == null) return new CompanionProfileComparisonResult { CharacterId = characterId ?? string.Empty, IsEquivalent = true, ComparedAtUtc = System.DateTime.UtcNow };
+        var cmp = _companionProfileFactory.CompareLegacyToProfile(c, GetCompanionProfile(characterId));
+        _logger.Debug($"companion.shadow.compare characterId={cmp.CharacterId} equivalent={cmp.IsEquivalent} diffCount={cmp.Differences.Count}");
+        return cmp;
+    }
+
 }

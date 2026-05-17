@@ -1271,9 +1271,13 @@ public partial class ServiceHub
         // TODO Foundation 0.5.x: optional wallet-profile shadow compare under feature flag.
         details["money"] = WalletPayload(c.Wallet);
         details["currencies"] = CurrencyListPayload(c);
+        // TODO Foundation 0.5.x: optional inventory-profile shadow compare under feature flag.
         details["inventory"] = c.Inventory.Select(InventoryPayload).Cast<object>().ToArray();
+        // TODO Foundation 0.5.x: optional companion-profile shadow compare under feature flag.
         details["companions"] = c.Companions.Select(CompanionPayload).Cast<object>().ToArray();
+        // TODO Foundation 0.5.x: optional holdings-profile shadow compare under feature flag.
         details["holdings"] = c.Holdings.Select(HoldingPayload).Cast<object>().ToArray();
+        // TODO Foundation 0.5.x: optional reputation-profile shadow compare under feature flag.
         details["reputation"] = (!isPrivileged && c.Visibility.HideReputationForOthers) ? "[hidden]" : (object)c.Reputation.Select(ReputationPayload).Cast<object>().ToArray();
         // TODO Foundation 0.5.x: optional development-profile shadow compare under feature flag.
         details["classProgress"] = c.ClassProgress.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "experience", x.Experience } }).Cast<object>().ToArray();
