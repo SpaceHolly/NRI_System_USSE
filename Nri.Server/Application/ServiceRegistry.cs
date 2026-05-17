@@ -49,7 +49,12 @@ public static class ServiceRegistry
         contentService.EnsureFolders();
         var contentReport = contentService.Reload();
         logger.Debug($"content.init success={contentReport.Success} filesFound={contentReport.FilesFound} filesRead={contentReport.FilesRead} errors={contentReport.ErrorCount}");
-        var hub = new ServiceHub(repositories, sessions, logger, fateState, fateSettingsStore, contentService, config.AudioFolderPath);
+        var revisionService = new RevisionService(mongo);
+        var syncRepository = new SyncEventRepository(mongo);
+        var syncEventService = new SyncEventService(syncRepository, revisionService, logger);
+        var visibilityService = new VisibilityService(logger);
+        var entityRevisionService = new EntityRevisionService(mongo, logger);
+        var hub = new ServiceHub(repositories, sessions, logger, fateState, fateSettingsStore, contentService, config.AudioFolderPath, syncEventService, visibilityService);
         var auditLogService = new AuditLogService(repositories, logger);
         var validationService = new DefinitionValidationService(
             new ClassDefinitionValidator(),
@@ -60,7 +65,7 @@ public static class ServiceRegistry
         var classDefinitionService = new ClassDefinitionService(repositories.ClassDefinitions, validationService, auditLogService);
         var skillDefinitionService = new SkillDefinitionService(repositories.DefinitionSkills, validationService, auditLogService);
         var accountRoleService = new AccountRoleService(repositories, auditLogService);
-        var routedHandlers = new AdminDefinitionHandlers(repositories, raceDefinitionService, classDefinitionService, skillDefinitionService, logger).CreateHandlers()
+        var routedHandlers = new AdminDefinitionHandlers(repositories, raceDefinitionService, classDefinitionService, skillDefinitionService, logger, syncEventService, entityRevisionService).CreateHandlers()
             .Concat(new AdminAccountRoleHandlers(repositories, accountRoleService).CreateHandlers())
             .ToArray();
         var adminDefinitionRouter = new RequestRouter(routedHandlers);
@@ -319,6 +324,8 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.LockRelease, new DelegateCommandHandler(hub.LockRelease));
         dispatcher.Register(CommandNames.LockForceRelease, new DelegateCommandHandler(hub.LockForceRelease));
         dispatcher.Register(CommandNames.LockStatus, new DelegateCommandHandler(hub.LockStatus));
+        dispatcher.Register(CommandNames.SyncSnapshotGet, new DelegateCommandHandler(hub.SyncSnapshotGet));
+        dispatcher.Register(CommandNames.SyncChangesGet, new DelegateCommandHandler(hub.SyncChangesGet));
         dispatcher.Register(CommandNames.CharacterLockAcquire, new DelegateCommandHandler(hub.CharacterLockAcquire));
         dispatcher.Register(CommandNames.CharacterLockRelease, new DelegateCommandHandler(hub.CharacterLockRelease));
         dispatcher.Register(CommandNames.CharacterLockForceRelease, new DelegateCommandHandler(hub.CharacterLockForceRelease));

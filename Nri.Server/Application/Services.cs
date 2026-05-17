@@ -22,8 +22,10 @@ public partial class ServiceHub
     private readonly FateEngineSettingsStore _fateSettingsStore;
     private readonly GameContentService _contentService;
     private readonly string _audioFolderPath;
+    private readonly SyncEventService _syncEvents;
+    private readonly IVisibilityService _visibilityService;
 
-    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, GameContentService contentService, string audioFolderPath)
+    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, GameContentService contentService, string audioFolderPath, SyncEventService syncEvents, IVisibilityService visibilityService)
     {
         _repositories = repositories;
         _sessionManager = sessionManager;
@@ -32,6 +34,8 @@ public partial class ServiceHub
         _fateSettingsStore = fateSettingsStore;
         _contentService = contentService;
         _audioFolderPath = string.IsNullOrWhiteSpace(audioFolderPath) ? "./audio" : audioFolderPath;
+        _syncEvents = syncEvents;
+        _visibilityService = visibilityService;
     }
 
     public ResponseEnvelope Register(CommandContext context)
@@ -1257,23 +1261,31 @@ public partial class ServiceHub
 
     private Dictionary<string, object> CharacterDetailsPayload(Character c, UserAccount owner, UserAccount viewer)
     {
+        // TODO Foundation 0.5.x: optional profile-shadow compare under feature flag.
         EnsureCharacterDefaults(c);
         var isPrivileged = viewer.Id == owner.Id || viewer.Roles.Contains(UserRole.Admin) || viewer.Roles.Contains(UserRole.SuperAdmin);
         var details = CharacterSummaryPayload(c, owner, viewer);
         details["age"] = c.Age.HasValue ? (object)c.Age.Value : string.Empty;
         details["backstory"] = (!isPrivileged && c.Visibility.HideBackstoryForOthers) ? "[hidden]" : c.Backstory;
         details["stats"] = (!isPrivileged && c.Visibility.HideStatsForOthers) ? "[hidden]" : (object)StatsPayload(c.Stats);
+        // TODO Foundation 0.5.x: optional wallet-profile shadow compare under feature flag.
         details["money"] = WalletPayload(c.Wallet);
         details["currencies"] = CurrencyListPayload(c);
+        // TODO Foundation 0.5.x: optional inventory-profile shadow compare under feature flag.
         details["inventory"] = c.Inventory.Select(InventoryPayload).Cast<object>().ToArray();
+        // TODO Foundation 0.5.x: optional companion-profile shadow compare under feature flag.
         details["companions"] = c.Companions.Select(CompanionPayload).Cast<object>().ToArray();
+        // TODO Foundation 0.5.x: optional holdings-profile shadow compare under feature flag.
         details["holdings"] = c.Holdings.Select(HoldingPayload).Cast<object>().ToArray();
+        // TODO Foundation 0.5.x: optional reputation-profile shadow compare under feature flag.
         details["reputation"] = (!isPrivileged && c.Visibility.HideReputationForOthers) ? "[hidden]" : (object)c.Reputation.Select(ReputationPayload).Cast<object>().ToArray();
+        // TODO Foundation 0.5.x: optional development-profile shadow compare under feature flag.
         details["classProgress"] = c.ClassProgress.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "experience", x.Experience } }).Cast<object>().ToArray();
         details["skills"] = c.Skills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "name", x.Name }, { "description", x.Description }, { "type", x.Type.ToString() }, { "available", x.IsAvailable }, { "reason", x.UnavailableReason } }).Cast<object>().ToArray();
         details["raceCode"] = c.RaceCode;
         details["xpCoins"] = c.XpCoins;
         details["characterClasses"] = c.CharacterClasses.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "learnedUtc", x.LearnedUtc } }).Cast<object>().ToArray();
+        // TODO Foundation 0.5.x: optional skill-profile shadow compare under feature flag.
         details["characterSkills"] = c.CharacterSkills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "tier", x.Tier }, { "level", x.Level }, { "learnedUtc", x.LearnedUtc } }).Cast<object>().ToArray();
         details["visibility"] = VisibilityPayload(c.Visibility);
         details["notesContext"] = BuildNotesContextPayload(c.Id);
@@ -2319,6 +2331,20 @@ public partial class ServiceHub
         {
             var roll = CreateResolvedDiceRoll(context, actor, isTestRoll: false);
             _repositories.DiceRequests.Insert(roll);
+            TryPublishSyncEvent(
+                type: "dice.roll.created",
+                scope: SyncScopes.Dice,
+                entityType: "diceRoll",
+                entityId: roll.Id,
+                operation: "created",
+                actorUserId: actor.Id,
+                payload: new Dictionary<string, object>
+                {
+                    { "rollId", roll.Id },
+                    { "createdUtc", roll.CreatedUtc },
+                    { "visibility", roll.Visibility.ToString() }
+                },
+                requestId: context.Request.RequestId ?? string.Empty);
             _logger.Admin($"dice.roll.saved commentPresent={!string.IsNullOrWhiteSpace(roll.Description)}");
             _logger.Admin($"dice.roll.standard created actor={actor.Login} requestId={roll.Id}");
             _logger.Admin($"dice.roll.standard actor={actor.Login} requestId={roll.Id} total={roll.Result?.Total ?? 0}");
@@ -2348,6 +2374,20 @@ public partial class ServiceHub
             if (existing == null)
             {
                 _repositories.DiceRequests.Insert(roll);
+                TryPublishSyncEvent(
+                    type: "dice.roll.created",
+                    scope: SyncScopes.Dice,
+                    entityType: "diceRoll",
+                    entityId: roll.Id,
+                    operation: "created",
+                    actorUserId: actor.Id,
+                    payload: new Dictionary<string, object>
+                    {
+                        { "rollId", roll.Id },
+                        { "createdUtc", roll.CreatedUtc },
+                        { "visibility", roll.Visibility.ToString() }
+                    },
+                    requestId: context.Request.RequestId ?? string.Empty);
                 _logger.Admin($"dice.roll.saved commentPresent={!string.IsNullOrWhiteSpace(roll.Description)}");
                 _logger.Admin($"dice.roll.test replacedPrevious=false actor={actor.Login} requestId={roll.Id}");
                 _logger.Admin($"dice.roll.test actor={actor.Login} action=create requestId={roll.Id} total={roll.Result?.Total ?? 0}");
@@ -2366,6 +2406,20 @@ public partial class ServiceHub
             existing.UpdatedUtc = newTimestamp;
             existing.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "TestReplaced", Comment = roll.Formula.Normalized });
             _repositories.DiceRequests.Replace(existing);
+            TryPublishSyncEvent(
+                type: "dice.roll.created",
+                scope: SyncScopes.Dice,
+                entityType: "diceRoll",
+                entityId: existing.Id,
+                operation: "created",
+                actorUserId: actor.Id,
+                payload: new Dictionary<string, object>
+                {
+                    { "rollId", existing.Id },
+                    { "createdUtc", existing.CreatedUtc },
+                    { "visibility", existing.Visibility.ToString() }
+                },
+                requestId: context.Request.RequestId ?? string.Empty);
             _logger.Admin($"dice.roll.saved commentPresent={!string.IsNullOrWhiteSpace(existing.Description)}");
             _logger.Admin($"dice.roll.test replacement oldTimestamp={oldTimestamp:o}");
             _logger.Admin($"dice.roll.test replacement newTimestamp={newTimestamp:o}");
@@ -2826,6 +2880,18 @@ public partial class ServiceHub
     {
         _repositories.AuditLogs.Insert(new AuditLogEntry { Category = category, ActorUserId = actorUserId, Action = action, Target = target });
         _logger.Audit($"{category}:{action} actor={actorUserId} target={target}");
+    }
+
+    private void TryPublishSyncEvent(string type, string scope, string entityType, string entityId, string operation, string actorUserId, Dictionary<string, object>? payload, string requestId)
+    {
+        try
+        {
+            _syncEvents.Publish(type, scope, entityType, entityId, operation, actorUserId, payload, requestId);
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug($"sync.publish.error requestId={requestId} type={type} entityId={entityId} message={ex.Message}");
+        }
     }
 
     private static Dictionary<string, object> AccountPayload(UserAccount x) => new Dictionary<string, object>
