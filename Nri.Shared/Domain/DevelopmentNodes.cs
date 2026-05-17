@@ -104,20 +104,6 @@ public class DevelopmentReward
     public List<string> Tags { get; set; } = new List<string>();
 }
 
-public class CharacterDevelopmentNodeState : EntityBase
-{
-    public string CharacterId { get; set; } = string.Empty;
-    public string DevelopmentNodeId { get; set; } = string.Empty;
-    public int CurrentTier { get; set; }
-    public bool IsUnlocked { get; set; }
-    public bool IsPurchased { get; set; }
-    public string PurchasedAtWorldDate { get; set; } = string.Empty;
-    public DateTime PurchasedAtUtc { get; set; } = DateTime.UtcNow;
-    public string Source { get; set; } = string.Empty;
-    public string GMApprovalStatus { get; set; } = string.Empty;
-    public string Notes { get; set; } = string.Empty;
-}
-
 public class DevelopmentHexagonDefinition : EntityBase
 {
     public string RuleSetId { get; set; } = string.Empty;
