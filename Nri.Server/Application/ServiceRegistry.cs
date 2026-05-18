@@ -54,7 +54,15 @@ public static class ServiceRegistry
         var syncEventService = new SyncEventService(syncRepository, revisionService, logger);
         var visibilityService = new VisibilityService(logger);
         var entityRevisionService = new EntityRevisionService(mongo, logger);
-        var hub = new ServiceHub(repositories, sessions, logger, fateState, fateSettingsStore, contentService, config.AudioFolderPath, syncEventService, visibilityService);
+        var attributeProfileFactory = new CharacterAttributeProfileFactory();
+        var walletProfileFactory = new CharacterWalletProfileFactory();
+        var skillProfileFactory = new CharacterSkillProfileFactory();
+        var developmentProfileFactory = new CharacterDevelopmentProfileFactory();
+        var inventoryProfileFactory = new CharacterInventoryProfileFactory();
+        var shadowBuilder = new CharacterProfileShadowBuilder(attributeProfileFactory, walletProfileFactory, skillProfileFactory, developmentProfileFactory, inventoryProfileFactory, new CharacterReputationProfileFactory(), new CharacterHoldingsProfileFactory(), new CharacterCompanionProfileFactory(), logger);
+        var profileConsistencyService = new CharacterProfileConsistencyService(mongo, shadowBuilder, logger);
+        var profileShadowWriteService = new CharacterProfileShadowWriteService(mongo, logger, attributeProfileFactory, walletProfileFactory, skillProfileFactory, developmentProfileFactory, inventoryProfileFactory, profileConsistencyService);
+        var hub = new ServiceHub(repositories, sessions, logger, fateState, fateSettingsStore, contentService, config.AudioFolderPath, syncEventService, visibilityService, profileShadowWriteService, profileConsistencyService);
         var auditLogService = new AuditLogService(repositories, logger);
         var validationService = new DefinitionValidationService(
             new ClassDefinitionValidator(),
@@ -123,6 +131,7 @@ public static class ServiceRegistry
         dispatcher.Register(CommandNames.CharacterSkillAdd, new DelegateCommandHandler(hub.CharacterSkillAdd));
         dispatcher.Register(CommandNames.CharacterSkillUpdateLevel, new DelegateCommandHandler(hub.CharacterSkillUpdateLevel));
         dispatcher.Register(CommandNames.CharacterSkillRemove, new DelegateCommandHandler(hub.CharacterSkillRemove));
+        dispatcher.Register(CommandNames.CharacterProfileConsistencyVerify, new DelegateCommandHandler(hub.CharacterProfileConsistencyVerify));
 
         dispatcher.Register(CommandNames.CharacterUpdateBasicInfo, new DelegateCommandHandler(hub.CharacterUpdateBasicInfo));
         dispatcher.Register(CommandNames.CharacterUpdateStats, new DelegateCommandHandler(hub.CharacterUpdateStats));

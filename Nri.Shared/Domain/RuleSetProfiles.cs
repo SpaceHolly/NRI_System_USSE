@@ -50,6 +50,13 @@ public static class ProfileFeatureFlags
     public const bool UseReputationProfileReadShadow = false;
     public const bool UseHoldingsProfileReadShadow = false;
     public const bool UseCompanionProfileReadShadow = false;
+    public const bool UseCharacterProfileShadowCompare = false;
+    public const bool UseAttributeProfileShadowWrite = false;
+    public const bool UseWalletProfileShadowWrite = false;
+    public const bool UseSkillProfileShadowWrite = false;
+    public const bool UseDevelopmentProfileShadowWrite = false;
+    public const bool UseInventoryProfileShadowWrite = false;
+    public const bool UseCharacterProfileConsistencyVerification = false;
     public const bool UseDevelopmentNodeModel = false;
     public const bool UseSkillDefinitionV2 = false;
 }

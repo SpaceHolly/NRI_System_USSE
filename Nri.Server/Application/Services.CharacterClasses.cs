@@ -40,6 +40,7 @@ public partial class ServiceHub
         }
 
         _repositories.Characters.Replace(character);
+        TryShadowWrite(() => _profileShadowWriteService.WriteDevelopmentProfileShadowAsync(character, actor.Id, context.Request.RequestId ?? string.Empty));
         WriteAudit("character", actor.Id, "class.assign", $"{character.Id}:{classCode}:{level}");
         _logger.Admin($"character.class.assign actor={actor.Login} characterId={character.Id} classCode={classCode} level={level}");
 

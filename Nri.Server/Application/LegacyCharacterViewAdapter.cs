@@ -12,6 +12,7 @@ public interface ILegacyCharacterViewAdapter
     LegacyCharacterDetailsView BuildFromLegacyCharacter(Character character);
     LegacyCharacterDetailsView BuildFromProfileBundle(Character legacyCharacter, CharacterProfileBundle profileBundle);
     LegacyCharacterViewComparison CompareLegacyAndProfileView(Character character, CharacterProfileBundle profileBundle);
+    CharacterShadowCompareResult CompareLegacyAndProfileShadow(Character character);
 }
 
 public class LegacyCharacterDetailsView
@@ -40,6 +41,13 @@ public class LegacyCharacterViewComparison
 
 public sealed class LegacyCharacterViewAdapter : ILegacyCharacterViewAdapter
 {
+    private readonly ICharacterProfileShadowBuilder _shadowBuilder;
+
+    public LegacyCharacterViewAdapter(ICharacterProfileShadowBuilder shadowBuilder)
+    {
+        _shadowBuilder = shadowBuilder;
+    }
+
     public LegacyCharacterDetailsView BuildFromLegacyCharacter(Character character)
     {
         var source = character ?? new Character();
@@ -122,5 +130,10 @@ public sealed class LegacyCharacterViewAdapter : ILegacyCharacterViewAdapter
             IsEquivalent = differences.Count == 0,
             Differences = differences
         };
+    }
+
+    public CharacterShadowCompareResult CompareLegacyAndProfileShadow(Character character)
+    {
+        return _shadowBuilder.CompareLegacyToShadow(character);
     }
 }

@@ -35,6 +35,12 @@ public class CharacterWalletProfileDocument : EntityBase
     public WalletProfile Profile { get; set; } = new WalletProfile();
 }
 
+public class CharacterInventoryProfileDocument : EntityBase
+{
+    public string CharacterId { get; set; } = string.Empty;
+    public InventoryProfile Profile { get; set; } = new InventoryProfile();
+}
+
 public class CharacterBodyProfileDocument : EntityBase
 {
     public string CharacterId { get; set; } = string.Empty;

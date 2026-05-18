@@ -24,8 +24,10 @@ public partial class ServiceHub
     private readonly string _audioFolderPath;
     private readonly SyncEventService _syncEvents;
     private readonly IVisibilityService _visibilityService;
+    private readonly ICharacterProfileShadowWriteService _profileShadowWriteService;
+    private readonly ICharacterProfileConsistencyService _profileConsistencyService;
 
-    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, GameContentService contentService, string audioFolderPath, SyncEventService syncEvents, IVisibilityService visibilityService)
+    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, GameContentService contentService, string audioFolderPath, SyncEventService syncEvents, IVisibilityService visibilityService, ICharacterProfileShadowWriteService profileShadowWriteService, ICharacterProfileConsistencyService profileConsistencyService)
     {
         _repositories = repositories;
         _sessionManager = sessionManager;
@@ -36,6 +38,8 @@ public partial class ServiceHub
         _audioFolderPath = string.IsNullOrWhiteSpace(audioFolderPath) ? "./audio" : audioFolderPath;
         _syncEvents = syncEvents;
         _visibilityService = visibilityService;
+        _profileShadowWriteService = profileShadowWriteService;
+        _profileConsistencyService = profileConsistencyService;
     }
 
     public ResponseEnvelope Register(CommandContext context)
@@ -503,6 +507,7 @@ public partial class ServiceHub
         c.Stats.Intellect = RequireRange(PayloadReader.GetInt(context.Request.Payload, "intellect"), 0, 999, "intellect");
         c.Stats.Charisma = RequireRange(PayloadReader.GetInt(context.Request.Payload, "charisma"), 0, 999, "charisma");
         _repositories.Characters.Replace(c);
+        TryShadowWrite(() => _profileShadowWriteService.WriteAttributeProfileShadowAsync(c, actor.Id, context.Request.RequestId ?? string.Empty));
         WriteAudit("character", actor.Id, "updateStats", c.Id);
         return Ok("Character stats updated.");
     }
@@ -564,6 +569,7 @@ public partial class ServiceHub
             throw new ArgumentException("money payload does not contain any valid currencies.");
         c.Wallet.NormalizeUpward();
         _repositories.Characters.Replace(c);
+        TryShadowWrite(() => _profileShadowWriteService.WriteWalletProfileShadowAsync(c, actor.Id, context.Request.RequestId ?? string.Empty));
         _logger.Admin($"character.money.save response=ok currenciesSaved={updatedCurrencies}");
         WriteAudit("character", actor.Id, "updateMoney", c.Id);
         return Ok("Character money updated.", new Dictionary<string, object> { { "money", WalletPayload(c.Wallet) } });
@@ -591,6 +597,7 @@ public partial class ServiceHub
         var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         c.Inventory = ParseInventoryList(PayloadReader.GetList(context.Request.Payload, "inventory"));
         _repositories.Characters.Replace(c);
+        TryShadowWrite(() => _profileShadowWriteService.WriteInventoryProfileShadowAsync(c, actor.Id, context.Request.RequestId ?? string.Empty));
         WriteAudit("character", actor.Id, "updateInventory", c.Id);
         return Ok("Character inventory updated.");
     }
@@ -662,6 +669,7 @@ public partial class ServiceHub
         };
         character.CharacterSkills.Add(skill);
         _repositories.Characters.Replace(character);
+        TryShadowWrite(() => _profileShadowWriteService.WriteSkillProfileShadowAsync(character, actor.Id, context.Request.RequestId ?? string.Empty));
         _logger.Admin($"character.skill.add actor={actor.Login} response=ok characterId={character.Id} skillCode={skill.SkillCode} level={skill.Level}");
         return Ok("Character skill added.", new Dictionary<string, object> { { "item", CharacterSkillPayload(skill) } });
     }
@@ -679,6 +687,7 @@ public partial class ServiceHub
         var level = RequireRange(PayloadReader.GetInt(context.Request.Payload, "level"), 1, 999, "level");
         skill.Level = Math.Min(level, Math.Max(1, definition.MaxLevel));
         _repositories.Characters.Replace(character);
+        TryShadowWrite(() => _profileShadowWriteService.WriteSkillProfileShadowAsync(character, actor.Id, context.Request.RequestId ?? string.Empty));
         _logger.Admin($"character.skill.updateLevel actor={actor.Login} response=ok characterId={character.Id} skillCode={skill.SkillCode} level={skill.Level}");
         return Ok("Character skill level updated.", new Dictionary<string, object> { { "item", CharacterSkillPayload(skill) } });
     }
@@ -691,6 +700,7 @@ public partial class ServiceHub
         var skillCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "skillCode"), 1, 128, "skillCode");
         character.CharacterSkills.RemoveAll(x => string.Equals(x.SkillCode, skillCode, StringComparison.OrdinalIgnoreCase));
         _repositories.Characters.Replace(character);
+        TryShadowWrite(() => _profileShadowWriteService.WriteSkillProfileShadowAsync(character, actor.Id, context.Request.RequestId ?? string.Empty));
         _logger.Admin($"character.skill.remove actor={actor.Login} response=ok characterId={character.Id} skillCode={skillCode}");
         return Ok("Character skill removed.");
     }
@@ -1228,6 +1238,18 @@ public partial class ServiceHub
         return Ok(archive ? "Character archived." : "Character restored.");
     }
 
+    private void TryShadowWrite(Func<System.Threading.Tasks.Task<ShadowWriteResult>> write)
+    {
+        try
+        {
+            _ = write().GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"profile.shadow.write.error profile=unknown characterId=unknown message={ex.Message}");
+        }
+    }
+
     private bool CanViewCharacter(UserAccount actor, UserAccount owner, Character character)
     {
         if (actor.Id == owner.Id) return true;
@@ -1261,7 +1283,7 @@ public partial class ServiceHub
 
     private Dictionary<string, object> CharacterDetailsPayload(Character c, UserAccount owner, UserAccount viewer)
     {
-        // TODO Foundation 0.5.x: optional profile-shadow compare under feature flag.
+        // TODO Foundation 0.5.9: optional profile-first CharacterDetails under feature flag after compare mode is stable.
         EnsureCharacterDefaults(c);
         var isPrivileged = viewer.Id == owner.Id || viewer.Roles.Contains(UserRole.Admin) || viewer.Roles.Contains(UserRole.SuperAdmin);
         var details = CharacterSummaryPayload(c, owner, viewer);
@@ -2857,6 +2879,22 @@ public partial class ServiceHub
     {
         var account = _repositories.Accounts.GetById(accountId);
         return string.IsNullOrWhiteSpace(account?.Login) ? accountId : account.Login!;
+    }
+
+
+    public ResponseEnvelope CharacterProfileConsistencyVerify(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 1, 128, "characterId");
+        var report = _profileConsistencyService.VerifyCharacterAsync(characterId, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+        WriteAudit("profile", actor.Id, "consistency.verify", $"{characterId}:{report.IsConsistent}:{report.TotalDifferenceCount}:{context.Request.RequestId ?? string.Empty}");
+        return Ok("Character profile consistency verified.", new Dictionary<string, object>
+        {
+            { "characterId", report.CharacterId },
+            { "isConsistent", report.IsConsistent },
+            { "totalDifferenceCount", report.TotalDifferenceCount },
+            { "sections", report.SectionReports.Select(x => new Dictionary<string, object>{{"section", x.Section},{"hasPersistedProfile", x.HasPersistedProfile},{"isConsistent", x.IsConsistent},{"differenceCount", x.DifferenceCount},{"severity", x.Severity},{"differences", x.Differences.Cast<object>().ToArray()}}).Cast<object>().ToArray() }
+        });
     }
 
     private UserAccount RequireAdmin(CommandContext context)
