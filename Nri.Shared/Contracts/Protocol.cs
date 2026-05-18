@@ -93,6 +93,8 @@ public static class CommandNames
     public const string CharacterSkillUpdateLevel = "character.skill.updateLevel";
     public const string CharacterSkillRemove = "character.skill.remove";
 
+    public const string CharacterProfileConsistencyVerify = "character.profile.consistency.verify";
+
     public const string CharacterUpdateBasicInfo = "character.update.basicInfo";
     public const string CharacterUpdateStats = "character.update.stats";
     public const string CharacterUpdateVisibility = "character.update.visibility";

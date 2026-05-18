@@ -80,6 +80,7 @@ public class MongoContext
     public IMongoCollection<CharacterSkillProfileDocument> CharacterSkillProfiles { get; }
     public IMongoCollection<CharacterDevelopmentProfileDocument> CharacterDevelopmentProfiles { get; }
     public IMongoCollection<CharacterWalletProfileDocument> CharacterWalletProfiles { get; }
+    public IMongoCollection<CharacterInventoryProfileDocument> CharacterInventoryProfiles { get; }
     public IMongoCollection<CharacterBodyProfileDocument> CharacterBodyProfiles { get; }
     public IMongoCollection<CharacterKnowledgeProfileDocument> CharacterKnowledgeProfiles { get; }
     public IMongoCollection<CharacterConditionProfileDocument> CharacterConditionProfiles { get; }
@@ -126,6 +127,7 @@ public class MongoContext
         CharacterSkillProfiles = db.GetCollection<CharacterSkillProfileDocument>("character_skill_profiles");
         CharacterDevelopmentProfiles = db.GetCollection<CharacterDevelopmentProfileDocument>("character_development_profiles");
         CharacterWalletProfiles = db.GetCollection<CharacterWalletProfileDocument>("character_wallet_profiles");
+        CharacterInventoryProfiles = db.GetCollection<CharacterInventoryProfileDocument>("character_inventory_profiles");
         CharacterBodyProfiles = db.GetCollection<CharacterBodyProfileDocument>("character_body_profiles");
         CharacterKnowledgeProfiles = db.GetCollection<CharacterKnowledgeProfileDocument>("character_knowledge_profiles");
         CharacterConditionProfiles = db.GetCollection<CharacterConditionProfileDocument>("character_condition_profiles");
@@ -168,6 +170,7 @@ public class MongoContext
         CharacterSkillProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterSkillProfileDocument>(Builders<CharacterSkillProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
         CharacterDevelopmentProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterDevelopmentProfileDocument>(Builders<CharacterDevelopmentProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
         CharacterWalletProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterWalletProfileDocument>(Builders<CharacterWalletProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterInventoryProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterInventoryProfileDocument>(Builders<CharacterInventoryProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
         CharacterBodyProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterBodyProfileDocument>(Builders<CharacterBodyProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
         CharacterKnowledgeProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterKnowledgeProfileDocument>(Builders<CharacterKnowledgeProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
         CharacterConditionProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterConditionProfileDocument>(Builders<CharacterConditionProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
