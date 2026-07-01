@@ -1,0 +1,72 @@
+2026-06-03 23:31:17.963 [INFO] [t:1] Application start: PlayerClient
+2026-06-03 23:31:17.963 [INFO] [t:1] Log file path: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\03.06.2026+23.31.17-PlayerClient-log.txt
+2026-06-03 23:31:17.963 [INFO] [t:1] AppContext.BaseDirectory: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\
+2026-06-03 23:31:17.963 [INFO] [t:1] PreserveClientLogs: False
+2026-06-03 23:31:17.963 [INFO] [t:1] Config load attempt path=C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\client.config.json
+2026-06-03 23:31:17.963 [INFO] [t:1] Loaded client config: host=127.0.0.1, port=4600, preserveClientLogs=False
+2026-06-03 23:31:18.111 [INFO] [t:1] PlayerMainViewModel initialized
+2026-06-03 23:31:18.127 [INFO] [t:1] Disconnected from server
+2026-06-03 23:31:18.127 [INFO] [t:1] Endpoint updated: 26.129.64.85:4600
+2026-06-03 23:31:18.134 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-03 23:31:18.136 [INFO] [t:1] chat.input.wrap enabled=true
+2026-06-03 23:31:18.136 [INFO] [t:1] dice.layout.movedUnderChat=true
+2026-06-03 23:31:18.356 [INFO] [t:1] ui.player.root-scroll.initialized
+2026-06-03 23:31:18.356 [INFO] [t:1] ui.player.main.loaded scroll=true
+2026-06-03 23:31:18.356 [INFO] [t:1] ui.player.sections.visible chat/create/dice/session
+2026-06-03 23:31:18.356 [INFO] [t:1] ui.player.main-content.reachable=true
+2026-06-03 23:31:18.356 [INFO] [t:1] ui.dice.panel.opened
+2026-06-03 23:31:18.356 [INFO] [t:1] player.layout.bottomSections rearranged=true
+2026-06-03 23:31:18.358 [INFO] [t:1] player.map.world.list.load
+2026-06-03 23:31:18.359 [DEBUG] [t:1] request.start command=map.player.world.list; requestId=b2df2ff6b9d845388fb098542e0acb28; startedUtc=2026-06-03T20:31:18.3587596Z; payloadKeys=3
+2026-06-03 23:31:18.360 [INFO] [t:1] Connecting to server: 26.129.64.85:4600
+2026-06-03 23:31:18.360 [INFO] [t:1] Disconnected from server
+2026-06-03 23:31:23.362 [ERROR] [t:1] Network connection timeout | System.TimeoutException: Connection timeout.
+2026-06-03 23:31:23.373 [ERROR] [t:1] request.error command=map.player.world.list; requestId=b2df2ff6b9d845388fb098542e0acb28; elapsedMs=5002 | System.TimeoutException: Connection timeout.
+   в Nri.PlayerClient.Networking.JsonTcpClient.Connect() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 73
+   в Nri.PlayerClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 87
+   в Nri.PlayerClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 113
+2026-06-03 23:31:23.373 [WARN] [t:1] player.map.world.list.error message=Connection timeout.
+2026-06-03 23:31:23.374 [INFO] [t:1] player.room.flags.refresh.start
+2026-06-03 23:31:23.374 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=b3c3a094077a4835a7a88d9f0453887a; startedUtc=2026-06-03T20:31:23.3747267Z; payloadKeys=0
+2026-06-03 23:31:23.374 [INFO] [t:1] Connecting to server: 26.129.64.85:4600
+2026-06-03 23:31:23.374 [INFO] [t:1] Disconnected from server
+2026-06-03 23:31:28.361 [ERROR] [t:1] Network connection timeout | System.TimeoutException: Connection timeout.
+2026-06-03 23:31:28.361 [ERROR] [t:1] request.error command=system.featureFlags.snapshot; requestId=b3c3a094077a4835a7a88d9f0453887a; elapsedMs=4986 | System.TimeoutException: Connection timeout.
+   в Nri.PlayerClient.Networking.JsonTcpClient.Connect() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 73
+   в Nri.PlayerClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 87
+   в Nri.PlayerClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 113
+2026-06-03 23:31:28.361 [WARN] [t:1] player.room.flags.refresh.error message=Connection timeout.
+2026-06-03 23:31:28.361 [INFO] [t:1] player.room.load.start
+2026-06-03 23:31:28.362 [DEBUG] [t:1] request.start command=map.player.room.list; requestId=7d4c09e1720f4132a82b95343508a4ad; startedUtc=2026-06-03T20:31:28.3625533Z; payloadKeys=2
+2026-06-03 23:31:28.362 [INFO] [t:1] Connecting to server: 26.129.64.85:4600
+2026-06-03 23:31:28.362 [INFO] [t:1] Disconnected from server
+2026-06-03 23:31:33.368 [ERROR] [t:1] Network connection timeout | System.TimeoutException: Connection timeout.
+2026-06-03 23:31:33.368 [ERROR] [t:1] request.error command=map.player.room.list; requestId=7d4c09e1720f4132a82b95343508a4ad; elapsedMs=5006 | System.TimeoutException: Connection timeout.
+   в Nri.PlayerClient.Networking.JsonTcpClient.Connect() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 73
+   в Nri.PlayerClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 87
+   в Nri.PlayerClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 113
+2026-06-03 23:31:33.368 [WARN] [t:1] player.room.load.error message=Connection timeout.
+2026-06-03 23:31:35.072 [INFO] [t:1] player.room.flags.refresh.start
+2026-06-03 23:31:35.072 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=af3356bb25c54961bb818d6038a81dd1; startedUtc=2026-06-03T20:31:35.0720856Z; payloadKeys=0
+2026-06-03 23:31:35.072 [INFO] [t:1] Connecting to server: 26.129.64.85:4600
+2026-06-03 23:31:35.072 [INFO] [t:1] Disconnected from server
+2026-06-03 23:31:40.064 [ERROR] [t:1] Network connection timeout | System.TimeoutException: Connection timeout.
+2026-06-03 23:31:40.064 [ERROR] [t:1] request.error command=system.featureFlags.snapshot; requestId=af3356bb25c54961bb818d6038a81dd1; elapsedMs=4992 | System.TimeoutException: Connection timeout.
+   в Nri.PlayerClient.Networking.JsonTcpClient.Connect() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 73
+   в Nri.PlayerClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 87
+   в Nri.PlayerClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 113
+2026-06-03 23:31:40.064 [WARN] [t:1] player.room.flags.refresh.error message=Connection timeout.
+2026-06-03 23:31:40.064 [INFO] [t:1] player.room.load.start
+2026-06-03 23:31:40.064 [DEBUG] [t:1] request.start command=map.player.room.list; requestId=f18067d9b0434aac89b8ff9ad19e7b62; startedUtc=2026-06-03T20:31:40.0649698Z; payloadKeys=2
+2026-06-03 23:31:40.064 [INFO] [t:1] Connecting to server: 26.129.64.85:4600
+2026-06-03 23:31:40.064 [INFO] [t:1] Disconnected from server
+2026-06-03 23:31:45.077 [ERROR] [t:1] Network connection timeout | System.TimeoutException: Connection timeout.
+2026-06-03 23:31:45.077 [ERROR] [t:1] request.error command=map.player.room.list; requestId=f18067d9b0434aac89b8ff9ad19e7b62; elapsedMs=5012 | System.TimeoutException: Connection timeout.
+   в Nri.PlayerClient.Networking.JsonTcpClient.Connect() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 73
+   в Nri.PlayerClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 87
+   в Nri.PlayerClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 113
+2026-06-03 23:31:45.077 [WARN] [t:1] player.room.load.error message=Connection timeout.
+2026-06-03 23:31:51.760 [INFO] [t:1] Main window closing (Player)
+2026-06-03 23:31:51.760 [INFO] [t:1] Logout / shutdown requested from Player client
+2026-06-03 23:31:51.760 [INFO] [t:1] Disconnected from server
+2026-06-03 23:31:51.774 [INFO] [t:1] Application closing. graceful=False, abnormal=False, preserveLogs=False, keepLog=True

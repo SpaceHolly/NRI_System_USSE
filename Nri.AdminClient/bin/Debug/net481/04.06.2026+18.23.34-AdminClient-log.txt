@@ -1,0 +1,43 @@
+2026-06-04 18:23:34.445 [INFO] [t:1] Application start: AdminClient
+2026-06-04 18:23:34.445 [INFO] [t:1] Log file path: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\04.06.2026+18.23.34-AdminClient-log.txt
+2026-06-04 18:23:34.445 [INFO] [t:1] AppContext.BaseDirectory: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\
+2026-06-04 18:23:34.445 [INFO] [t:1] PreserveClientLogs: False
+2026-06-04 18:23:34.445 [INFO] [t:1] Config load attempt path=C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\client.config.json
+2026-06-04 18:23:34.445 [INFO] [t:1] Loaded client config: host=127.0.0.1, port=4600, preserveClientLogs=False
+2026-06-04 18:23:34.709 [INFO] [t:1] AdminMainViewModel initialized
+2026-06-04 18:23:34.709 [INFO] [t:1] chat.window.layout fixedHeaderFooter=true
+2026-06-04 18:23:34.730 [INFO] [t:1] ui.navigation.selected item=admin.dashboard target=admin.dashboard
+2026-06-04 18:23:34.758 [INFO] [t:1] Endpoint updated: 26.129.64.85:4600
+2026-06-04 18:23:34.758 [INFO] [t:1] Disconnected from server
+2026-06-04 18:23:34.761 [INFO] [t:1] skillDefinitions.content.new enabled=false
+2026-06-04 18:23:34.761 [INFO] [t:1] skillDefinitions.content.save enabled=false
+2026-06-04 18:23:34.761 [INFO] [t:1] skillDefinitions.content.archive enabled=false
+2026-06-04 18:23:34.761 [INFO] [t:1] skillDefinitions.content.refresh enabled=false
+2026-06-04 18:23:34.777 [INFO] [t:1] ui.admin.dice.panel.loaded
+2026-06-04 18:23:34.777 [INFO] [t:1] people.grid.template fixed=true
+2026-06-04 18:23:34.777 [INFO] [t:1] dice.actor.mode=account
+2026-06-04 18:23:34.777 [DEBUG] [t:1] suppressed repeated log line count=1 message=dice.actor.mode=account
+2026-06-04 18:23:34.777 [INFO] [t:1] ui.admin.dice.button state=disabled reason=Требуется подключение и вход администратора.
+2026-06-04 18:23:35.149 [INFO] [t:1] ui.admin.root-scroll.initialized
+2026-06-04 18:23:35.150 [INFO] [t:1] ui.admin.layout.people-table.fixed
+2026-06-04 18:23:35.150 [INFO] [t:1] ui.admin.layout.dice-panel.separate=true
+2026-06-04 18:23:35.150 [INFO] [t:1] ui.admin.sections.reachable=true
+2026-06-04 18:23:35.161 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=d3f44fbc4b604be4baf95dbdf025c377; startedUtc=2026-06-04T15:23:35.1612026Z; payloadKeys=0
+2026-06-04 18:23:35.163 [INFO] [t:1] Connecting to server: 26.129.64.85:4600
+2026-06-04 18:23:35.163 [INFO] [t:1] Disconnected from server
+2026-06-04 18:23:40.158 [ERROR] [t:1] Network connection timeout | System.TimeoutException: Timed out connecting to 26.129.64.85:4600.
+2026-06-04 18:23:40.158 [INFO] [t:1] Disconnected from server
+2026-06-04 18:23:40.170 [ERROR] [t:1] Network send failed for command=system.featureFlags.snapshot | System.TimeoutException: Timed out connecting to 26.129.64.85:4600.
+   в Nri.AdminClient.Networking.JsonTcpClient.ConnectUnsafe() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 84
+   в Nri.AdminClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 130
+2026-06-04 18:23:40.171 [ERROR] [t:1] request.error command=system.featureFlags.snapshot; requestId=d3f44fbc4b604be4baf95dbdf025c377; elapsedMs=5010 | System.IO.IOException: Transport error while sending system.featureFlags.snapshot to 26.129.64.85:4600. ---> System.TimeoutException: Timed out connecting to 26.129.64.85:4600.
+   в Nri.AdminClient.Networking.JsonTcpClient.ConnectUnsafe() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 84
+   в Nri.AdminClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 130
+   --- Конец трассировки внутреннего стека исключений ---
+   в Nri.AdminClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 153
+   в Nri.AdminClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\CommandApi.cs:строка 340
+2026-06-04 18:23:40.176 [INFO] [t:1] admin.room.flags.refresh.start
+2026-06-04 18:23:40.177 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=67e1a55409d14424b40d92fd3b8c16a5; startedUtc=2026-06-04T15:23:40.1776010Z; payloadKeys=0
+2026-06-04 18:23:40.177 [INFO] [t:1] Connecting to server: 26.129.64.85:4600
+2026-06-04 18:23:40.177 [INFO] [t:1] Disconnected from server
+2026-06-04 18:23:40.179 [INFO] [t:1] Connected to server: 26.129.64.85:4600

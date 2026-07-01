@@ -525,7 +525,10 @@ public enum AudioCategory
     Combat,
     Tense,
     Calm,
-    Manual
+    Manual,
+    Battle,
+    Siege,
+    Custom
 }
 
 public enum SessionAudioMode
@@ -538,17 +541,57 @@ public enum AudioPlaybackState
 {
     Stopped,
     Playing,
-    Transitioning
+    Transitioning,
+    Paused
+}
+
+public static class AudioVisibilityIds
+{
+    public const string PlayerVisible = "player_visible";
+    public const string GMOnly = "gm_only";
+    public const string AdminOnly = "admin_only";
+    public const string ServerOnly = "server_only";
+}
+
+public static class AudioLoopModeIds
+{
+    public const string None = "none";
+    public const string Track = "track";
+    public const string Category = "category";
+}
+
+public static class AudioAutoNextModeIds
+{
+    public const string Off = "off";
+    public const string Category = "category";
 }
 
 public class AudioTrackDefinition : EntityBase
 {
+    public string TrackId { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public string RelativePath { get; set; } = string.Empty;
     public AudioCategory Category { get; set; } = AudioCategory.Normal;
+    public string CategoryId { get; set; } = string.Empty;
     public int DurationSeconds { get; set; }
+    public bool LoopDefault { get; set; }
     public bool IsEnabled { get; set; } = true;
+    public bool IsPlayerVisible { get; set; } = true;
+    public string Visibility { get; set; } = AudioVisibilityIds.PlayerVisible;
+    public List<string> Tags { get; set; } = new List<string>();
+    public string CreatedByUserId { get; set; } = string.Empty;
+    public string CreatedByDisplayName { get; set; } = string.Empty;
+    public string UpdatedByUserId { get; set; } = string.Empty;
+    public string UpdatedByDisplayName { get; set; } = string.Empty;
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+    public int Revision { get; set; }
+    public bool IsArchived { get; set; }
     public int SortOrder { get; set; }
+    public Dictionary<string, object> ExtraData { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> ServerOnlyData { get; set; } = new Dictionary<string, object>();
 }
 
 public class AudioTrackRotationState
@@ -560,25 +603,47 @@ public class AudioTrackRotationState
 public class SessionAudioState : EntityBase
 {
     public string SessionId { get; set; } = string.Empty;
+    public string CampaignId { get; set; } = string.Empty;
     public SessionAudioMode Mode { get; set; } = SessionAudioMode.Auto;
     public AudioCategory CurrentCategory { get; set; } = AudioCategory.Normal;
+    public string CurrentCategoryId { get; set; } = string.Empty;
     public string? CurrentTrackId { get; set; }
     public string CurrentTrackPath { get; set; } = string.Empty;
+    public string CurrentTrackDisplayName { get; set; } = string.Empty;
     public DateTime StartedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? PausedAtUtc { get; set; }
     public int StartOffsetSeconds { get; set; }
+    public int PositionSeconds { get; set; }
     public AudioPlaybackState PlaybackState { get; set; } = AudioPlaybackState.Stopped;
+    public string PlaybackStateId { get; set; } = string.Empty;
     public bool OverrideEnabled { get; set; }
     public string OverrideByUserId { get; set; } = string.Empty;
     public DateTime LastUpdatedUtc { get; set; } = DateTime.UtcNow;
     public int FadeMilliseconds { get; set; } = 1800;
+    public double FadeSeconds { get; set; } = 1.8;
+    public string LoopMode { get; set; } = AudioLoopModeIds.None;
+    public string AutoNextMode { get; set; } = AudioAutoNextModeIds.Category;
+    public double VolumeMaster { get; set; } = 1.0;
+    public string UpdatedByUserId { get; set; } = string.Empty;
+    public string UpdatedByDisplayName { get; set; } = string.Empty;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+    public int Revision { get; set; }
     public List<AudioTrackRotationState> Rotation { get; set; } = new List<AudioTrackRotationState>();
+    public Dictionary<string, object> ExtraData { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> ServerOnlyData { get; set; } = new Dictionary<string, object>();
 }
 
 public class AudioClientSettingsState : EntityBase
 {
     public string UserId { get; set; } = string.Empty;
+    public string SessionId { get; set; } = string.Empty;
     public double Volume { get; set; } = 0.7;
     public bool Muted { get; set; }
+    public double LocalVolume { get; set; } = 0.7;
+    public bool IsMuted { get; set; }
+    public string PreferredOutput { get; set; } = string.Empty;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+    public int Revision { get; set; }
 }
 
 public class AudioSyncSnapshot

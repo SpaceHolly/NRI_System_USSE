@@ -1,0 +1,807 @@
+2026-06-24 18:32:45.697 [INFO] [t:1] Application start: PlayerClient
+2026-06-24 18:32:45.697 [INFO] [t:1] Log file path: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\24.06.2026+18.32.45-PlayerClient-log.txt
+2026-06-24 18:32:45.697 [INFO] [t:1] AppContext.BaseDirectory: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\
+2026-06-24 18:32:45.697 [INFO] [t:1] PreserveClientLogs: False
+2026-06-24 18:32:45.697 [INFO] [t:1] Config load attempt path=C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\client.config.json
+2026-06-24 18:32:45.697 [INFO] [t:1] Loaded client config: host=127.0.0.1, port=4600, preserveClientLogs=False
+2026-06-24 18:32:45.891 [INFO] [t:1] PlayerMainViewModel initialized
+2026-06-24 18:32:45.912 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:32:45.913 [INFO] [t:1] chat.input.wrap enabled=true
+2026-06-24 18:32:45.914 [INFO] [t:1] dice.layout.movedUnderChat=true
+2026-06-24 18:32:46.139 [INFO] [t:1] ui.player.root-scroll.initialized
+2026-06-24 18:32:46.139 [INFO] [t:1] ui.player.main.loaded scroll=true
+2026-06-24 18:32:46.139 [INFO] [t:1] ui.player.sections.visible chat/create/dice/session
+2026-06-24 18:32:46.139 [INFO] [t:1] ui.player.main-content.reachable=true
+2026-06-24 18:32:46.139 [INFO] [t:1] ui.dice.panel.opened
+2026-06-24 18:32:46.139 [INFO] [t:1] player.layout.bottomSections rearranged=true
+2026-06-24 18:32:46.140 [DEBUG] [t:1] request.start command=proposal.player.template.list; requestId=409a2ba9473b45708eebefe2e9307e30; startedUtc=2026-06-24T15:32:46.1408987Z; payloadKeys=0
+2026-06-24 18:32:46.141 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:32:46.142 [INFO] [t:1] Disconnected from server
+2026-06-24 18:32:46.145 [INFO] [t:1] Connected to server: 127.0.0.1:4600
+2026-06-24 18:32:46.158 [DEBUG] [t:1] request.end command=proposal.player.template.list; requestId=409a2ba9473b45708eebefe2e9307e30; status=Unauthorized; success=False; elapsedMs=17; message=Auth token is invalid.
+2026-06-24 18:32:46.167 [DEBUG] [t:1] request.start command=proposal.player.draft.listMine; requestId=6e6c2e28e3774dc9a1105436e136d0d4; startedUtc=2026-06-24T15:32:46.1671593Z; payloadKeys=0
+2026-06-24 18:32:46.168 [DEBUG] [t:1] request.end command=proposal.player.draft.listMine; requestId=6e6c2e28e3774dc9a1105436e136d0d4; status=Unauthorized; success=False; elapsedMs=1; message=Auth token is invalid.
+2026-06-24 18:32:58.006 [INFO] [t:1] ui.player.dice.button state=enabled reason=ready
+2026-06-24 18:33:00.533 [INFO] [t:1] ui.password.change.opened
+2026-06-24 18:33:01.910 [INFO] [t:1] Login attempt: user=dev_player
+2026-06-24 18:33:01.910 [DEBUG] [t:1] request.start command=auth.login; requestId=f6d66b9f778d4edd9ae12ee19e623135; startedUtc=2026-06-24T15:33:01.9105075Z; payloadKeys=2
+2026-06-24 18:33:02.171 [DEBUG] [t:1] request.end command=auth.login; requestId=f6d66b9f778d4edd9ae12ee19e623135; status=Ok; success=True; elapsedMs=260; message=Login success.
+2026-06-24 18:33:02.171 [INFO] [t:1] ui.player.dice.button state=enabled reason=ready
+2026-06-24 18:33:02.175 [INFO] [t:1] player.characters.load.start
+2026-06-24 18:33:02.175 [DEBUG] [t:1] request.start command=character.list.mine; requestId=1ac375e45b8a4018abafa72a65d567dc; startedUtc=2026-06-24T15:33:02.1755534Z; payloadKeys=0
+2026-06-24 18:33:02.373 [DEBUG] [t:1] request.end command=character.list.mine; requestId=1ac375e45b8a4018abafa72a65d567dc; status=Ok; success=True; elapsedMs=198; message=Assigned characters loaded.
+2026-06-24 18:33:02.376 [INFO] [t:1] player.characters.load.done count=2
+2026-06-24 18:33:02.376 [INFO] [t:1] myCharacters.render count=2
+2026-06-24 18:33:02.377 [DEBUG] [t:1] request.start command=character.player.hub.get; requestId=61d0d43392e34831a217210810ee8cfd; startedUtc=2026-06-24T15:33:02.3773212Z; payloadKeys=1
+2026-06-24 18:33:02.413 [DEBUG] [t:1] request.end command=character.player.hub.get; requestId=61d0d43392e34831a217210810ee8cfd; status=Ok; success=True; elapsedMs=36; message=Player character hub loaded.
+2026-06-24 18:33:02.417 [INFO] [t:1] player.character.vitals.bind count=5
+2026-06-24 18:33:02.417 [INFO] [t:1] player.character.derivedStats.bind count=4
+2026-06-24 18:33:02.419 [INFO] [t:1] player.character.attributes.bind count=7
+2026-06-24 18:33:02.422 [INFO] [t:1] activeCharacter.inventory.bind count=5
+2026-06-24 18:33:02.422 [INFO] [t:1] inventory.player.mapped.count=5
+2026-06-24 18:33:02.422 [INFO] [t:1] inventory.player.bound.count=5
+2026-06-24 18:33:02.422 [INFO] [t:1] activeCharacter.inventory.render count=5
+2026-06-24 18:33:02.422 [INFO] [t:1] inventory.player.render.count=5
+2026-06-24 18:33:02.422 [INFO] [t:1] activeCharacter.inventory.placeholder hidden=true
+2026-06-24 18:33:02.425 [INFO] [t:1] activeCharacter.holdings.bind count=4
+2026-06-24 18:33:02.425 [INFO] [t:1] activeCharacter.holdings.render count=4
+2026-06-24 18:33:02.425 [INFO] [t:1] activeCharacter.holdings.placeholder hidden=true
+2026-06-24 18:33:02.426 [INFO] [t:1] activeCharacter.reputation.bind count=10
+2026-06-24 18:33:02.426 [INFO] [t:1] activeCharacter.reputation.render count=10
+2026-06-24 18:33:02.426 [INFO] [t:1] activeCharacter.reputation.placeholder hidden=true
+2026-06-24 18:33:02.428 [INFO] [t:1] activeCharacter.companions.bind count=4
+2026-06-24 18:33:02.428 [INFO] [t:1] activeCharacter.companions.render count=4
+2026-06-24 18:33:02.428 [INFO] [t:1] activeCharacter.companions.placeholder hidden=true
+2026-06-24 18:33:02.430 [DEBUG] [t:1] request.start command=crafting.player.recipe.list; requestId=4b1efeb1a8fc4187b281d925328cdd25; startedUtc=2026-06-24T15:33:02.4304732Z; payloadKeys=3
+2026-06-24 18:33:02.435 [DEBUG] [t:1] request.end command=crafting.player.recipe.list; requestId=4b1efeb1a8fc4187b281d925328cdd25; status=Forbidden; success=False; elapsedMs=5; message=Crafting MVP is disabled by feature flags.
+2026-06-24 18:33:02.436 [INFO] [t:1] activeCharacter.load id=fbd8a7b8e9a74810becc233f30fe9160
+2026-06-24 18:33:02.440 [DEBUG] [t:1] request.start command=development.player.hexagon.get; requestId=c694d00e0f0a4c4a9ae5c76e04544013; startedUtc=2026-06-24T15:33:02.4404646Z; payloadKeys=1
+2026-06-24 18:33:02.567 [DEBUG] [t:1] request.end command=development.player.hexagon.get; requestId=c694d00e0f0a4c4a9ae5c76e04544013; status=Ok; success=True; elapsedMs=127; message=Available nodes loaded.
+2026-06-24 18:33:02.572 [INFO] [t:1] player.development.hexagon.response status=Ok; payloadKeys=activeHexagonId,hexagon,hexagons,items,version,xpCoins; rawCollectionKey=items; rawItemsType=Object[]; rawCount=14; mappedCount=14
+2026-06-24 18:33:02.574 [DEBUG] [t:1] request.start command=progression.available.skills; requestId=a7078a1e54244daabb8833037d8c5cf6; startedUtc=2026-06-24T15:33:02.5743256Z; payloadKeys=1
+2026-06-24 18:33:02.588 [DEBUG] [t:1] request.end command=progression.available.skills; requestId=a7078a1e54244daabb8833037d8c5cf6; status=Ok; success=True; elapsedMs=14; message=Available skills loaded.
+2026-06-24 18:33:02.589 [INFO] [t:1] player.skillCatalog.response.keys=items
+2026-06-24 18:33:02.589 [INFO] [t:1] player.skillCatalog.rawCount=13
+2026-06-24 18:33:02.589 [INFO] [t:1] player.skillCatalog.mappedCount=13
+2026-06-24 18:33:02.589 [DEBUG] [t:1] request.start command=character.skills.get; requestId=84579fcbf4694f7ea1199045817a1070; startedUtc=2026-06-24T15:33:02.5890895Z; payloadKeys=1
+2026-06-24 18:33:02.613 [DEBUG] [t:1] request.end command=character.skills.get; requestId=84579fcbf4694f7ea1199045817a1070; status=Ok; success=True; elapsedMs=24; message=Character skills loaded.
+2026-06-24 18:33:02.613 [INFO] [t:1] player.characterSkills.response status=Ok
+2026-06-24 18:33:02.613 [INFO] [t:1] character.skills.response.keys=items,sourceOfTruth
+2026-06-24 18:33:02.613 [INFO] [t:1] character.skills.rawCollectionKey=items
+2026-06-24 18:33:02.613 [INFO] [t:1] character.skills.rawCount=12
+2026-06-24 18:33:02.613 [INFO] [t:1] character.skills.mappedCount=12
+2026-06-24 18:33:02.613 [INFO] [t:1] character.skills.firstSkillCode=acrobatics
+2026-06-24 18:33:02.613 [INFO] [t:1] player.characterSkills.rawCount=12
+2026-06-24 18:33:02.613 [INFO] [t:1] player.characterSkills.mappedCount=12
+2026-06-24 18:33:02.613 [INFO] [t:1] player.skillCatalog.count=13
+2026-06-24 18:33:02.613 [INFO] [t:1] player.characterSkills.count=12
+2026-06-24 18:33:02.613 [INFO] [t:1] activeCharacter.skills loaded=12
+2026-06-24 18:33:02.613 [INFO] [t:1] player.skills.placeholder hidden=true
+2026-06-24 18:33:02.613 [INFO] [t:1] player.skills.character.bind count=12
+2026-06-24 18:33:02.613 [INFO] [t:1] activeCharacter.skills.render count=12
+2026-06-24 18:33:02.613 [INFO] [t:1] activeCharacter.skills.placeholder hidden=true
+2026-06-24 18:33:02.614 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=02f1795abb4d434990fcf8ba981384ff; startedUtc=2026-06-24T15:33:02.6148935Z; payloadKeys=2
+2026-06-24 18:33:02.635 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=02f1795abb4d434990fcf8ba981384ff; status=Ok; success=True; elapsedMs=20; message=Chat history loaded.
+2026-06-24 18:33:02.638 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:33:02.640 [INFO] [t:1] chat.window.timeline mergedCount=80
+2026-06-24 18:33:02.640 [DEBUG] [t:1] merged.timeline first=System:23.06.2026 21:16
+2026-06-24 18:33:02.640 [DEBUG] [t:1] merged.timeline last=System:18:33
+2026-06-24 18:33:02.640 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:33:02.640 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:33:02.642 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:33:02.642 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=9b11da5046b5466989b0ffd0cc3749f1; startedUtc=2026-06-24T15:33:02.6428083Z; payloadKeys=0
+2026-06-24 18:33:02.686 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=9b11da5046b5466989b0ffd0cc3749f1; status=Ok; success=True; elapsedMs=43; message=Dice feed loaded.
+2026-06-24 18:33:02.686 [DEBUG] [t:1] dice.feed.refresh itemsRaw=36
+2026-06-24 18:33:02.688 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782246500846)/
+2026-06-24 18:33:02.688 [DEBUG] [t:1] dice.timeline timestampMapped=23.06.2026 23:28
+2026-06-24 18:33:02.688 [DEBUG] [t:1] dice.feed.firstComment=Проверка навыка: Проверочный навык 0.14.51 (dev_acceptance_skill_01451). Ранг 0 + атрибут -3 + подхарактеристика Проверочная подхарактеристика 0.14.51 4 + ручной бонус 0 = 1
+2026-06-24 18:33:02.688 [DEBUG] [t:1] dice.feed.refresh itemsMapped=36
+2026-06-24 18:33:02.688 [DEBUG] [t:1] dice.feed.refresh ownItems=36
+2026-06-24 18:33:02.688 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-24 18:33:02.688 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=71ce56df46ed4f7eba33dfba1d385c72; startedUtc=2026-06-24T15:33:02.6887310Z; payloadKeys=0
+2026-06-24 18:33:02.722 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=71ce56df46ed4f7eba33dfba1d385c72; status=Ok; success=True; elapsedMs=33; message=Player requests loaded.
+2026-06-24 18:33:02.724 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=372e1f5898bb490faa908a8ec77267ef; startedUtc=2026-06-24T15:33:02.7247305Z; payloadKeys=0
+2026-06-24 18:33:02.728 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=372e1f5898bb490faa908a8ec77267ef; status=Ok; success=True; elapsedMs=4; message=No current test roll.
+2026-06-24 18:33:02.728 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-24 18:33:02.728 [DEBUG] [t:1] dice.feed.render visibleRows=36
+2026-06-24 18:33:02.728 [DEBUG] [t:1] dice.view.counts feed=36 requests=39
+2026-06-24 18:33:02.729 [DEBUG] [t:1] request.start command=combat.timeline; requestId=1b2c96c86f6f446b9f66907b03c319f0; startedUtc=2026-06-24T15:33:02.7297309Z; payloadKeys=1
+2026-06-24 18:33:02.732 [DEBUG] [t:1] request.end command=combat.timeline; requestId=1b2c96c86f6f446b9f66907b03c319f0; status=NotFound; success=False; elapsedMs=3; message=Combat state not found.
+2026-06-24 18:33:02.732 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=2991c5caefc44b93a986b9168f9ea5c1; startedUtc=2026-06-24T15:33:02.7327302Z; payloadKeys=1
+2026-06-24 18:33:02.735 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=2991c5caefc44b93a986b9168f9ea5c1; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-24 18:33:02.735 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=2eeb19f0e77c4aa5829660e2b0e06b29; startedUtc=2026-06-24T15:33:02.7357303Z; payloadKeys=1
+2026-06-24 18:33:02.739 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=2eeb19f0e77c4aa5829660e2b0e06b29; status=Ok; success=True; elapsedMs=4; message=Audio state loaded.
+2026-06-24 18:33:02.740 [INFO] [t:1] chat.window.timeline mergedCount=117
+2026-06-24 18:33:02.740 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-24 18:33:02.740 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:33:02.740 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:33:02.740 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:33:02.740 [INFO] [t:1] gameFeed diceMerged=36
+2026-06-24 18:33:02.740 [INFO] [t:1] player.functional.dashboard.load.start
+2026-06-24 18:33:02.740 [DEBUG] [t:1] request.start command=player.dashboard.get; requestId=d5960b0d5fd64847a1d568f7998f7dea; startedUtc=2026-06-24T15:33:02.7407306Z; payloadKeys=0
+2026-06-24 18:33:02.744 [DEBUG] [t:1] request.end command=player.dashboard.get; requestId=d5960b0d5fd64847a1d568f7998f7dea; status=Ok; success=True; elapsedMs=3; message=Client functionalization is disabled by feature flags.
+2026-06-24 18:33:02.746 [INFO] [t:1] player.functional.dashboard.load.done enabled=False metrics=0 processes=0 actions=0
+2026-06-24 18:33:02.746 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=3f9d20636ea8438d963ebb3a5cb4b758; startedUtc=2026-06-24T15:33:02.7467299Z; payloadKeys=0
+2026-06-24 18:33:02.748 [DEBUG] [t:1] request.end command=system.featureFlags.snapshot; requestId=3f9d20636ea8438d963ebb3a5cb4b758; status=Unauthorized; success=False; elapsedMs=2; message=Insufficient role.
+2026-06-24 18:33:02.749 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=98bd90e6b1004029959e0cdd59309f8e; startedUtc=2026-06-24T15:33:02.7497324Z; payloadKeys=0
+2026-06-24 18:33:02.752 [DEBUG] [t:1] request.end command=system.featureFlags.snapshot; requestId=98bd90e6b1004029959e0cdd59309f8e; status=Unauthorized; success=False; elapsedMs=2; message=Insufficient role.
+2026-06-24 18:33:02.752 [DEBUG] [t:1] request.start command=journal.player.event.list; requestId=d43ea564228c427897d40cd631cd476c; startedUtc=2026-06-24T15:33:02.7528042Z; payloadKeys=4
+2026-06-24 18:33:02.775 [DEBUG] [t:1] request.end command=journal.player.event.list; requestId=d43ea564228c427897d40cd631cd476c; status=Ok; success=True; elapsedMs=21; message=Player event journal loaded.
+2026-06-24 18:33:02.779 [INFO] [t:1] player.journal.flags
+2026-06-24 18:33:02.780 [INFO] [t:1] player.map.active.load.start
+2026-06-24 18:33:02.780 [DEBUG] [t:1] request.start command=map.player.scene.active.get; requestId=7bc773f9b8054b509dd6f25a9f6b2319; startedUtc=2026-06-24T15:33:02.7808208Z; payloadKeys=5
+2026-06-24 18:33:02.786 [DEBUG] [t:1] request.end command=map.player.scene.active.get; requestId=7bc773f9b8054b509dd6f25a9f6b2319; status=Forbidden; success=False; elapsedMs=5; message=player active scene map endpoint disabled
+2026-06-24 18:33:02.787 [WARN] [t:1] player.map.active.load.error message=player active scene map endpoint disabled
+2026-06-24 18:33:02.787 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=5f24a6d6c02d4ebda8139831dede3204; startedUtc=2026-06-24T15:33:02.7870196Z; payloadKeys=0
+2026-06-24 18:33:02.790 [DEBUG] [t:1] request.end command=system.featureFlags.snapshot; requestId=5f24a6d6c02d4ebda8139831dede3204; status=Unauthorized; success=False; elapsedMs=2; message=Insufficient role.
+2026-06-24 18:33:02.790 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=d67a11db4ff04ebab7ec237a15cf0795; startedUtc=2026-06-24T15:33:02.7900203Z; payloadKeys=0
+2026-06-24 18:33:02.793 [DEBUG] [t:1] request.end command=system.featureFlags.snapshot; requestId=d67a11db4ff04ebab7ec237a15cf0795; status=Unauthorized; success=False; elapsedMs=2; message=Insufficient role.
+2026-06-24 18:33:02.793 [INFO] [t:1] ui.player.dice.button state=enabled reason=ready
+2026-06-24 18:33:02.793 [INFO] [t:1] player.auth.login.success user=dev_player
+2026-06-24 18:33:10.784 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=9f38e2758fdc4e7dbe591548594086ef; startedUtc=2026-06-24T15:33:10.7846676Z; payloadKeys=2
+2026-06-24 18:33:10.806 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=9f38e2758fdc4e7dbe591548594086ef; status=Ok; success=True; elapsedMs=21; message=Chat history loaded.
+2026-06-24 18:33:10.806 [INFO] [t:1] gameFeed diceMerged=36
+2026-06-24 18:33:10.806 [INFO] [t:1] chat.window.timeline mergedCount=117
+2026-06-24 18:33:10.806 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-24 18:33:10.806 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:33:10.806 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:33:10.806 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:33:10.806 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:33:10.807 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=63b749af92b242f9ae3ee2675fe0d750; startedUtc=2026-06-24T15:33:10.8074950Z; payloadKeys=0
+2026-06-24 18:33:10.836 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=63b749af92b242f9ae3ee2675fe0d750; status=Ok; success=True; elapsedMs=29; message=Dice feed loaded.
+2026-06-24 18:33:10.836 [DEBUG] [t:1] dice.feed.refresh itemsRaw=36
+2026-06-24 18:33:10.838 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782246500846)/
+2026-06-24 18:33:10.838 [DEBUG] [t:1] dice.timeline timestampMapped=23.06.2026 23:28
+2026-06-24 18:33:10.838 [DEBUG] [t:1] dice.feed.firstComment=Проверка навыка: Проверочный навык 0.14.51 (dev_acceptance_skill_01451). Ранг 0 + атрибут -3 + подхарактеристика Проверочная подхарактеристика 0.14.51 4 + ручной бонус 0 = 1
+2026-06-24 18:33:10.838 [DEBUG] [t:1] dice.feed.refresh itemsMapped=36
+2026-06-24 18:33:10.838 [DEBUG] [t:1] dice.feed.refresh ownItems=36
+2026-06-24 18:33:10.838 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-24 18:33:10.838 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=10aec471d4e14e619b66abb8b87bc756; startedUtc=2026-06-24T15:33:10.8386564Z; payloadKeys=0
+2026-06-24 18:33:10.872 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=10aec471d4e14e619b66abb8b87bc756; status=Ok; success=True; elapsedMs=34; message=Player requests loaded.
+2026-06-24 18:33:10.873 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=fe52436bc1d54ba2bcfe1ed71b889d50; startedUtc=2026-06-24T15:33:10.8733611Z; payloadKeys=0
+2026-06-24 18:33:10.877 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=fe52436bc1d54ba2bcfe1ed71b889d50; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-24 18:33:10.877 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-24 18:33:10.877 [DEBUG] [t:1] dice.feed.render visibleRows=36
+2026-06-24 18:33:10.877 [DEBUG] [t:1] dice.view.counts feed=36 requests=39
+2026-06-24 18:33:10.877 [DEBUG] [t:1] request.start command=combat.timeline; requestId=6fc03366bcb344d6a2027bd1ea12822c; startedUtc=2026-06-24T15:33:10.8773603Z; payloadKeys=1
+2026-06-24 18:33:10.880 [DEBUG] [t:1] request.end command=combat.timeline; requestId=6fc03366bcb344d6a2027bd1ea12822c; status=NotFound; success=False; elapsedMs=3; message=Combat state not found.
+2026-06-24 18:33:10.881 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=6c6e0c2af9d3498f886ff579a747385f; startedUtc=2026-06-24T15:33:10.8810983Z; payloadKeys=1
+2026-06-24 18:33:10.884 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=6c6e0c2af9d3498f886ff579a747385f; status=NotFound; success=False; elapsedMs=3; message=Combat state not found.
+2026-06-24 18:33:10.884 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=2007c59912b545c4bf01f41d68954725; startedUtc=2026-06-24T15:33:10.8843050Z; payloadKeys=1
+2026-06-24 18:33:10.889 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=2007c59912b545c4bf01f41d68954725; status=Ok; success=True; elapsedMs=4; message=Audio state loaded.
+2026-06-24 18:33:10.889 [INFO] [t:1] chat.window.timeline mergedCount=117
+2026-06-24 18:33:10.889 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-24 18:33:10.889 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:33:10.889 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:33:10.889 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:33:10.889 [INFO] [t:1] gameFeed diceMerged=36
+2026-06-24 18:33:18.881 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=778de277518b4b45a7ba2fca004b209e; startedUtc=2026-06-24T15:33:18.8810556Z; payloadKeys=2
+2026-06-24 18:33:18.903 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=778de277518b4b45a7ba2fca004b209e; status=Ok; success=True; elapsedMs=22; message=Chat history loaded.
+2026-06-24 18:33:18.905 [INFO] [t:1] gameFeed diceMerged=36
+2026-06-24 18:33:18.905 [INFO] [t:1] chat.window.timeline mergedCount=117
+2026-06-24 18:33:18.905 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-24 18:33:18.905 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:33:18.905 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:33:18.905 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:33:18.905 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:33:18.905 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=1fc258d33cf94800be9b4abefa5f1c5c; startedUtc=2026-06-24T15:33:18.9051412Z; payloadKeys=0
+2026-06-24 18:33:18.938 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=1fc258d33cf94800be9b4abefa5f1c5c; status=Ok; success=True; elapsedMs=33; message=Dice feed loaded.
+2026-06-24 18:33:18.938 [DEBUG] [t:1] dice.feed.refresh itemsRaw=36
+2026-06-24 18:33:18.939 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782246500846)/
+2026-06-24 18:33:18.939 [DEBUG] [t:1] dice.timeline timestampMapped=23.06.2026 23:28
+2026-06-24 18:33:18.939 [DEBUG] [t:1] dice.feed.firstComment=Проверка навыка: Проверочный навык 0.14.51 (dev_acceptance_skill_01451). Ранг 0 + атрибут -3 + подхарактеристика Проверочная подхарактеристика 0.14.51 4 + ручной бонус 0 = 1
+2026-06-24 18:33:18.939 [DEBUG] [t:1] dice.feed.refresh itemsMapped=36
+2026-06-24 18:33:18.939 [DEBUG] [t:1] dice.feed.refresh ownItems=36
+2026-06-24 18:33:18.939 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-24 18:33:18.939 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=f71e844301334163bef2fd1c1202b0cd; startedUtc=2026-06-24T15:33:18.9391761Z; payloadKeys=0
+2026-06-24 18:33:18.976 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=f71e844301334163bef2fd1c1202b0cd; status=Ok; success=True; elapsedMs=37; message=Player requests loaded.
+2026-06-24 18:33:18.978 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=014a8ae6d2ab4fb5964e6167bb6e0df9; startedUtc=2026-06-24T15:33:18.9781751Z; payloadKeys=0
+2026-06-24 18:33:18.982 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=014a8ae6d2ab4fb5964e6167bb6e0df9; status=Ok; success=True; elapsedMs=4; message=No current test roll.
+2026-06-24 18:33:18.982 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-24 18:33:18.982 [DEBUG] [t:1] dice.feed.render visibleRows=36
+2026-06-24 18:33:18.982 [DEBUG] [t:1] dice.view.counts feed=36 requests=39
+2026-06-24 18:33:18.982 [DEBUG] [t:1] request.start command=combat.timeline; requestId=05deb8c1322a44e19f83f4a1e5b5021e; startedUtc=2026-06-24T15:33:18.9821770Z; payloadKeys=1
+2026-06-24 18:33:18.986 [DEBUG] [t:1] request.end command=combat.timeline; requestId=05deb8c1322a44e19f83f4a1e5b5021e; status=NotFound; success=False; elapsedMs=3; message=Combat state not found.
+2026-06-24 18:33:18.986 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=df10543c861d4db58252ceffdef39156; startedUtc=2026-06-24T15:33:18.9861756Z; payloadKeys=1
+2026-06-24 18:33:18.989 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=df10543c861d4db58252ceffdef39156; status=NotFound; success=False; elapsedMs=3; message=Combat state not found.
+2026-06-24 18:33:18.989 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=7b8fa508362b42358147e33da50e637f; startedUtc=2026-06-24T15:33:18.9897055Z; payloadKeys=1
+2026-06-24 18:33:18.994 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=7b8fa508362b42358147e33da50e637f; status=Ok; success=True; elapsedMs=4; message=Audio state loaded.
+2026-06-24 18:33:18.994 [INFO] [t:1] chat.window.timeline mergedCount=117
+2026-06-24 18:33:18.994 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-24 18:33:18.994 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:33:18.994 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:33:18.994 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:33:18.994 [INFO] [t:1] gameFeed diceMerged=36
+2026-06-24 18:33:26.988 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=5d4ec1eab0ad4d69a87b9fe45ebc819f; startedUtc=2026-06-24T15:33:26.9883551Z; payloadKeys=2
+2026-06-24 18:33:27.008 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=5d4ec1eab0ad4d69a87b9fe45ebc819f; status=Ok; success=True; elapsedMs=20; message=Chat history loaded.
+2026-06-24 18:33:27.009 [INFO] [t:1] gameFeed diceMerged=36
+2026-06-24 18:33:27.009 [INFO] [t:1] chat.window.timeline mergedCount=117
+2026-06-24 18:33:27.009 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-24 18:33:27.009 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:33:27.009 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:33:27.009 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:33:27.009 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:33:27.009 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=9a59861e1c774483b15f886e321d9eb3; startedUtc=2026-06-24T15:33:27.0092569Z; payloadKeys=0
+2026-06-24 18:33:27.039 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=9a59861e1c774483b15f886e321d9eb3; status=Ok; success=True; elapsedMs=30; message=Dice feed loaded.
+2026-06-24 18:33:27.039 [DEBUG] [t:1] dice.feed.refresh itemsRaw=36
+2026-06-24 18:33:27.041 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782246500846)/
+2026-06-24 18:33:27.041 [DEBUG] [t:1] dice.timeline timestampMapped=23.06.2026 23:28
+2026-06-24 18:33:27.041 [DEBUG] [t:1] dice.feed.firstComment=Проверка навыка: Проверочный навык 0.14.51 (dev_acceptance_skill_01451). Ранг 0 + атрибут -3 + подхарактеристика Проверочная подхарактеристика 0.14.51 4 + ручной бонус 0 = 1
+2026-06-24 18:33:27.041 [DEBUG] [t:1] dice.feed.refresh itemsMapped=36
+2026-06-24 18:33:27.041 [DEBUG] [t:1] dice.feed.refresh ownItems=36
+2026-06-24 18:33:27.041 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-24 18:33:27.041 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=a8a33ae335f04d0292fef42b68e6405a; startedUtc=2026-06-24T15:33:27.0415728Z; payloadKeys=0
+2026-06-24 18:33:27.079 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=a8a33ae335f04d0292fef42b68e6405a; status=Ok; success=True; elapsedMs=38; message=Player requests loaded.
+2026-06-24 18:33:27.080 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=c84a78f162b94e6c8f9247aee8e6b8d7; startedUtc=2026-06-24T15:33:27.0806179Z; payloadKeys=0
+2026-06-24 18:33:27.084 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=c84a78f162b94e6c8f9247aee8e6b8d7; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-24 18:33:27.084 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-24 18:33:27.084 [DEBUG] [t:1] dice.feed.render visibleRows=36
+2026-06-24 18:33:27.084 [DEBUG] [t:1] dice.view.counts feed=36 requests=39
+2026-06-24 18:33:27.084 [DEBUG] [t:1] request.start command=combat.timeline; requestId=8b541f038839412588754b2c83746643; startedUtc=2026-06-24T15:33:27.0846175Z; payloadKeys=1
+2026-06-24 18:33:27.087 [DEBUG] [t:1] request.end command=combat.timeline; requestId=8b541f038839412588754b2c83746643; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-24 18:33:27.087 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=ec64804cabc34e3d86fd5e78c12491d7; startedUtc=2026-06-24T15:33:27.0876182Z; payloadKeys=1
+2026-06-24 18:33:27.090 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=ec64804cabc34e3d86fd5e78c12491d7; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-24 18:33:27.090 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=145e16b54eec491b938592777c0d5eb9; startedUtc=2026-06-24T15:33:27.0906196Z; payloadKeys=1
+2026-06-24 18:33:27.095 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=145e16b54eec491b938592777c0d5eb9; status=Ok; success=True; elapsedMs=4; message=Audio state loaded.
+2026-06-24 18:33:27.095 [INFO] [t:1] chat.window.timeline mergedCount=117
+2026-06-24 18:33:27.095 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-24 18:33:27.095 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:33:27.095 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:33:27.095 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:33:27.095 [INFO] [t:1] gameFeed diceMerged=36
+2026-06-24 18:33:35.088 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=f87c1b095e144beb85df4938f2d1cf28; startedUtc=2026-06-24T15:33:35.0882114Z; payloadKeys=2
+2026-06-24 18:33:35.090 [INFO] [t:1] Disconnected from server
+2026-06-24 18:33:35.090 [WARN] [t:1] Network unavailable command=chat.visibleFeed; endpoint=127.0.0.1:4600; message=Не удается записать данные в транспортное соединение: Удаленный хост принудительно разорвал существующее подключение.
+2026-06-24 18:33:35.090 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=f87c1b095e144beb85df4938f2d1cf28; status=Error; success=False; elapsedMs=2; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:33:35.091 [INFO] [t:1] gameFeed diceMerged=36
+2026-06-24 18:33:35.091 [INFO] [t:1] chat.window.timeline mergedCount=37
+2026-06-24 18:33:35.091 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-24 18:33:35.091 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:33:35.091 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:33:35.091 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:33:35.091 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:33:35.091 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=e720ae9aca5f4467b6de3dc8c9366e8c; startedUtc=2026-06-24T15:33:35.0912118Z; payloadKeys=0
+2026-06-24 18:33:35.091 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:33:35.091 [INFO] [t:1] Disconnected from server
+2026-06-24 18:33:37.094 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:33:37.094 [WARN] [t:1] Network unavailable command=dice.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:33:37.094 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=e720ae9aca5f4467b6de3dc8c9366e8c; status=Error; success=False; elapsedMs=2003; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:33:37.094 [DEBUG] [t:1] dice.feed.refresh itemsRaw=0
+2026-06-24 18:33:37.094 [DEBUG] [t:1] dice.feed.refresh itemsMapped=0
+2026-06-24 18:33:37.094 [DEBUG] [t:1] dice.feed.refresh ownItems=0
+2026-06-24 18:33:37.094 [DEBUG] [t:1] dice.feed.commentMapped=False
+2026-06-24 18:33:37.094 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=935ae4c1f6f942ddbc168291958acaa4; startedUtc=2026-06-24T15:33:37.0942202Z; payloadKeys=0
+2026-06-24 18:33:37.094 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:33:37.094 [INFO] [t:1] Disconnected from server
+2026-06-24 18:33:39.098 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:33:39.098 [WARN] [t:1] Network unavailable command=request.player.listMine; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:33:39.098 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=935ae4c1f6f942ddbc168291958acaa4; status=Error; success=False; elapsedMs=2003; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:33:39.098 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=a04b397c7aab4f389e8b0723895ce192; startedUtc=2026-06-24T15:33:39.0981108Z; payloadKeys=0
+2026-06-24 18:33:39.098 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:33:39.098 [INFO] [t:1] Disconnected from server
+2026-06-24 18:33:41.100 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:33:41.100 [WARN] [t:1] Network unavailable command=dice.test.getCurrent; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:33:41.100 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=a04b397c7aab4f389e8b0723895ce192; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:33:41.100 [INFO] [t:1] dice.test.getCurrent.status=Error
+2026-06-24 18:33:41.100 [DEBUG] [t:1] dice.feed.render visibleRows=0
+2026-06-24 18:33:41.100 [DEBUG] [t:1] dice.view.counts feed=0 requests=0
+2026-06-24 18:33:41.100 [DEBUG] [t:1] request.start command=combat.timeline; requestId=c7b10a31e4aa4c5fb4283d14e352662a; startedUtc=2026-06-24T15:33:41.1001441Z; payloadKeys=1
+2026-06-24 18:33:41.100 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:33:41.100 [INFO] [t:1] Disconnected from server
+2026-06-24 18:33:43.103 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:33:43.103 [WARN] [t:1] Network unavailable command=combat.timeline; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:33:43.103 [DEBUG] [t:1] request.end command=combat.timeline; requestId=c7b10a31e4aa4c5fb4283d14e352662a; status=Error; success=False; elapsedMs=2003; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:33:43.103 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=ad8107859b5149d1b62d7177ede1d067; startedUtc=2026-06-24T15:33:43.1032735Z; payloadKeys=1
+2026-06-24 18:33:43.103 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:33:43.103 [INFO] [t:1] Disconnected from server
+2026-06-24 18:33:45.105 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:33:45.105 [WARN] [t:1] Network unavailable command=combat.visibleState; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:33:45.105 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=ad8107859b5149d1b62d7177ede1d067; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:33:45.105 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=1718e91889ca4df3aaa12b8ca5233e99; startedUtc=2026-06-24T15:33:45.1055583Z; payloadKeys=1
+2026-06-24 18:33:45.105 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:33:45.105 [INFO] [t:1] Disconnected from server
+2026-06-24 18:33:47.107 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:33:47.107 [WARN] [t:1] Network unavailable command=audio.state.sync; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:33:47.107 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=1718e91889ca4df3aaa12b8ca5233e99; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:33:47.107 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:33:47.107 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:33:47.107 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:33:47.107 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:33:47.107 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:33:47.107 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:33:55.103 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=9d1512de74f34aed9f7ac94293d3dc91; startedUtc=2026-06-24T15:33:55.1032729Z; payloadKeys=2
+2026-06-24 18:33:55.103 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:33:55.103 [INFO] [t:1] Disconnected from server
+2026-06-24 18:33:57.105 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:33:57.105 [WARN] [t:1] Network unavailable command=chat.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:33:57.105 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=9d1512de74f34aed9f7ac94293d3dc91; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:33:57.105 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:33:57.105 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:33:57.105 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:33:57.105 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:33:57.105 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:33:57.105 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:33:57.105 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:33:57.105 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=a2f61942d10d4979b21b0186b3fd108a; startedUtc=2026-06-24T15:33:57.1052271Z; payloadKeys=0
+2026-06-24 18:33:57.105 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:33:57.105 [INFO] [t:1] Disconnected from server
+2026-06-24 18:33:59.107 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:33:59.107 [WARN] [t:1] Network unavailable command=dice.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:33:59.107 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=a2f61942d10d4979b21b0186b3fd108a; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:33:59.107 [DEBUG] [t:1] dice.feed.refresh itemsRaw=0
+2026-06-24 18:33:59.107 [DEBUG] [t:1] dice.feed.refresh itemsMapped=0
+2026-06-24 18:33:59.107 [DEBUG] [t:1] dice.feed.refresh ownItems=0
+2026-06-24 18:33:59.107 [DEBUG] [t:1] dice.feed.commentMapped=False
+2026-06-24 18:33:59.107 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=5281cee3ec2f4f8fa36c1fcf6463956e; startedUtc=2026-06-24T15:33:59.1071310Z; payloadKeys=0
+2026-06-24 18:33:59.107 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:33:59.107 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:01.110 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:01.110 [WARN] [t:1] Network unavailable command=request.player.listMine; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:01.110 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=5281cee3ec2f4f8fa36c1fcf6463956e; status=Error; success=False; elapsedMs=2003; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:01.110 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=999c2036c5164ff199ee6f860cda7640; startedUtc=2026-06-24T15:34:01.1105440Z; payloadKeys=0
+2026-06-24 18:34:01.110 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:01.110 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:03.112 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:03.112 [WARN] [t:1] Network unavailable command=dice.test.getCurrent; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:03.112 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=999c2036c5164ff199ee6f860cda7640; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:03.112 [INFO] [t:1] dice.test.getCurrent.status=Error
+2026-06-24 18:34:03.112 [DEBUG] [t:1] dice.feed.render visibleRows=0
+2026-06-24 18:34:03.112 [DEBUG] [t:1] dice.view.counts feed=0 requests=0
+2026-06-24 18:34:03.112 [DEBUG] [t:1] request.start command=combat.timeline; requestId=2956a29b94dd49388f7286102f3f05df; startedUtc=2026-06-24T15:34:03.1122553Z; payloadKeys=1
+2026-06-24 18:34:03.112 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:03.112 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:05.113 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:05.113 [WARN] [t:1] Network unavailable command=combat.timeline; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:05.113 [DEBUG] [t:1] request.end command=combat.timeline; requestId=2956a29b94dd49388f7286102f3f05df; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:05.113 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=298d95dfe60b47ee96853b5e111fa242; startedUtc=2026-06-24T15:34:05.1135020Z; payloadKeys=1
+2026-06-24 18:34:05.113 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:05.113 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:07.115 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:07.115 [WARN] [t:1] Network unavailable command=combat.visibleState; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:07.115 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=298d95dfe60b47ee96853b5e111fa242; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:07.115 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=af31e0b2897e461c8f966a61a0b76cf9; startedUtc=2026-06-24T15:34:07.1159110Z; payloadKeys=1
+2026-06-24 18:34:07.115 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:07.115 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:09.131 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:09.131 [WARN] [t:1] Network unavailable command=audio.state.sync; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:09.131 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=af31e0b2897e461c8f966a61a0b76cf9; status=Error; success=False; elapsedMs=2015; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:09.131 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:34:09.131 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:34:09.131 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:34:09.131 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:34:09.131 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:34:09.131 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:34:17.134 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=3417b0c0e08644c6867243507d9bc721; startedUtc=2026-06-24T15:34:17.1345788Z; payloadKeys=2
+2026-06-24 18:34:17.134 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:17.134 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:19.136 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:19.136 [WARN] [t:1] Network unavailable command=chat.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:19.136 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=3417b0c0e08644c6867243507d9bc721; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:19.136 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:34:19.136 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:34:19.136 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:34:19.136 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:34:19.136 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:34:19.136 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:34:19.136 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:34:19.136 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=8a085390ce04438d895604fbfaff39a7; startedUtc=2026-06-24T15:34:19.1368858Z; payloadKeys=0
+2026-06-24 18:34:19.136 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:19.136 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:21.140 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:21.140 [WARN] [t:1] Network unavailable command=dice.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:21.140 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=8a085390ce04438d895604fbfaff39a7; status=Error; success=False; elapsedMs=2003; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:21.140 [DEBUG] [t:1] dice.feed.refresh itemsRaw=0
+2026-06-24 18:34:21.140 [DEBUG] [t:1] dice.feed.refresh itemsMapped=0
+2026-06-24 18:34:21.140 [DEBUG] [t:1] dice.feed.refresh ownItems=0
+2026-06-24 18:34:21.140 [DEBUG] [t:1] dice.feed.commentMapped=False
+2026-06-24 18:34:21.140 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=165b8340643d4a4c88c3c4efcdef45c2; startedUtc=2026-06-24T15:34:21.1401425Z; payloadKeys=0
+2026-06-24 18:34:21.140 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:21.140 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:23.143 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:23.143 [WARN] [t:1] Network unavailable command=request.player.listMine; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:23.143 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=165b8340643d4a4c88c3c4efcdef45c2; status=Error; success=False; elapsedMs=2003; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:23.143 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=e82dafccf5794f2cb093ced8189a42c1; startedUtc=2026-06-24T15:34:23.1433415Z; payloadKeys=0
+2026-06-24 18:34:23.143 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:23.143 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:25.146 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:25.146 [WARN] [t:1] Network unavailable command=dice.test.getCurrent; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:25.146 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=e82dafccf5794f2cb093ced8189a42c1; status=Error; success=False; elapsedMs=2003; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:25.146 [INFO] [t:1] dice.test.getCurrent.status=Error
+2026-06-24 18:34:25.146 [DEBUG] [t:1] dice.feed.render visibleRows=0
+2026-06-24 18:34:25.146 [DEBUG] [t:1] dice.view.counts feed=0 requests=0
+2026-06-24 18:34:25.146 [DEBUG] [t:1] request.start command=combat.timeline; requestId=55806d7b5d204cb7b48e989952d4b7ea; startedUtc=2026-06-24T15:34:25.1469083Z; payloadKeys=1
+2026-06-24 18:34:25.146 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:25.146 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:27.146 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:27.146 [WARN] [t:1] Network unavailable command=combat.timeline; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:27.146 [DEBUG] [t:1] request.end command=combat.timeline; requestId=55806d7b5d204cb7b48e989952d4b7ea; status=Error; success=False; elapsedMs=1999; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:27.146 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=365773e2033d4c07aee4ac1016eaad5e; startedUtc=2026-06-24T15:34:27.1469064Z; payloadKeys=1
+2026-06-24 18:34:27.146 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:27.146 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:29.151 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:29.151 [WARN] [t:1] Network unavailable command=combat.visibleState; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:29.151 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=365773e2033d4c07aee4ac1016eaad5e; status=Error; success=False; elapsedMs=2004; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:29.151 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=c2b90f59eef44a1d856d619bd25ae503; startedUtc=2026-06-24T15:34:29.1512650Z; payloadKeys=1
+2026-06-24 18:34:29.151 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:29.151 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:31.155 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:31.155 [WARN] [t:1] Network unavailable command=audio.state.sync; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:31.155 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=c2b90f59eef44a1d856d619bd25ae503; status=Error; success=False; elapsedMs=2004; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:31.155 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:34:31.155 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:34:31.155 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:34:31.155 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:34:31.155 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:34:31.155 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:34:39.144 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=913e7b9c50d84f63be9113420c9ba3de; startedUtc=2026-06-24T15:34:39.1441356Z; payloadKeys=2
+2026-06-24 18:34:39.144 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:39.144 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:41.150 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:41.150 [WARN] [t:1] Network unavailable command=chat.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:41.150 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=913e7b9c50d84f63be9113420c9ba3de; status=Error; success=False; elapsedMs=2006; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:41.150 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:34:41.150 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:34:41.150 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:34:41.150 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:34:41.150 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:34:41.150 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:34:41.150 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:34:41.150 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=77128676d270495f848da218f891d3af; startedUtc=2026-06-24T15:34:41.1500053Z; payloadKeys=0
+2026-06-24 18:34:41.150 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:41.150 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:43.153 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:43.153 [WARN] [t:1] Network unavailable command=dice.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:43.153 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=77128676d270495f848da218f891d3af; status=Error; success=False; elapsedMs=2003; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:43.153 [DEBUG] [t:1] dice.feed.refresh itemsRaw=0
+2026-06-24 18:34:43.153 [DEBUG] [t:1] dice.feed.refresh itemsMapped=0
+2026-06-24 18:34:43.153 [DEBUG] [t:1] dice.feed.refresh ownItems=0
+2026-06-24 18:34:43.153 [DEBUG] [t:1] dice.feed.commentMapped=False
+2026-06-24 18:34:43.153 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=1715a3ddc14d412886f159573d3d9b2f; startedUtc=2026-06-24T15:34:43.1533137Z; payloadKeys=0
+2026-06-24 18:34:43.153 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:43.153 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:45.156 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:45.156 [WARN] [t:1] Network unavailable command=request.player.listMine; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:45.156 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=1715a3ddc14d412886f159573d3d9b2f; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:45.156 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=e45b20d01cd14f54b634ad277f6d04b5; startedUtc=2026-06-24T15:34:45.1563750Z; payloadKeys=0
+2026-06-24 18:34:45.156 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:45.156 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:47.156 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:47.156 [WARN] [t:1] Network unavailable command=dice.test.getCurrent; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:47.156 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=e45b20d01cd14f54b634ad277f6d04b5; status=Error; success=False; elapsedMs=2000; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:47.156 [INFO] [t:1] dice.test.getCurrent.status=Error
+2026-06-24 18:34:47.156 [DEBUG] [t:1] dice.feed.render visibleRows=0
+2026-06-24 18:34:47.156 [DEBUG] [t:1] dice.view.counts feed=0 requests=0
+2026-06-24 18:34:47.156 [DEBUG] [t:1] request.start command=combat.timeline; requestId=f848b0cf12cb488ba9d575257ea786af; startedUtc=2026-06-24T15:34:47.1568411Z; payloadKeys=1
+2026-06-24 18:34:47.156 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:47.156 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:49.157 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:49.157 [WARN] [t:1] Network unavailable command=combat.timeline; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:49.157 [DEBUG] [t:1] request.end command=combat.timeline; requestId=f848b0cf12cb488ba9d575257ea786af; status=Error; success=False; elapsedMs=2000; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:49.158 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=6341add15a7a40f48fb11bd4b74aaa04; startedUtc=2026-06-24T15:34:49.1578176Z; payloadKeys=1
+2026-06-24 18:34:49.158 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:49.158 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:51.159 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:51.159 [WARN] [t:1] Network unavailable command=combat.visibleState; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:51.159 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=6341add15a7a40f48fb11bd4b74aaa04; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:51.159 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=7354c1e1a4774b0a87aa5362a1c5acd6; startedUtc=2026-06-24T15:34:51.1597304Z; payloadKeys=1
+2026-06-24 18:34:51.159 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:34:51.159 [INFO] [t:1] Disconnected from server
+2026-06-24 18:34:53.161 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:34:53.161 [WARN] [t:1] Network unavailable command=audio.state.sync; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:34:53.161 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=7354c1e1a4774b0a87aa5362a1c5acd6; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:34:53.161 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:34:53.161 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:34:53.161 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:34:53.161 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:34:53.161 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:34:53.161 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:35:01.168 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=9788254bff304d4ca0de9302901a8d39; startedUtc=2026-06-24T15:35:01.1683972Z; payloadKeys=2
+2026-06-24 18:35:01.168 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:01.168 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:03.170 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:03.170 [WARN] [t:1] Network unavailable command=chat.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:03.170 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=9788254bff304d4ca0de9302901a8d39; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:03.170 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:35:03.170 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:35:03.170 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:35:03.170 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:35:03.170 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:35:03.170 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:35:03.170 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:35:03.170 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=7110c147a502465296d9a0a7b5aafb21; startedUtc=2026-06-24T15:35:03.1705363Z; payloadKeys=0
+2026-06-24 18:35:03.170 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:03.170 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:05.171 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:05.171 [WARN] [t:1] Network unavailable command=dice.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:05.171 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=7110c147a502465296d9a0a7b5aafb21; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:05.171 [DEBUG] [t:1] dice.feed.refresh itemsRaw=0
+2026-06-24 18:35:05.171 [DEBUG] [t:1] dice.feed.refresh itemsMapped=0
+2026-06-24 18:35:05.171 [DEBUG] [t:1] dice.feed.refresh ownItems=0
+2026-06-24 18:35:05.171 [DEBUG] [t:1] dice.feed.commentMapped=False
+2026-06-24 18:35:05.171 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=57b7a146b216406680e1711104b6a0c6; startedUtc=2026-06-24T15:35:05.1719213Z; payloadKeys=0
+2026-06-24 18:35:05.171 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:05.171 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:07.173 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:07.173 [WARN] [t:1] Network unavailable command=request.player.listMine; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:07.173 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=57b7a146b216406680e1711104b6a0c6; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:07.173 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=4f21e50f0fce48cb87da2a081330b0c5; startedUtc=2026-06-24T15:35:07.1733486Z; payloadKeys=0
+2026-06-24 18:35:07.173 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:07.173 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:09.176 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:09.176 [WARN] [t:1] Network unavailable command=dice.test.getCurrent; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:09.176 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=4f21e50f0fce48cb87da2a081330b0c5; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:09.176 [INFO] [t:1] dice.test.getCurrent.status=Error
+2026-06-24 18:35:09.176 [DEBUG] [t:1] dice.feed.render visibleRows=0
+2026-06-24 18:35:09.176 [DEBUG] [t:1] dice.view.counts feed=0 requests=0
+2026-06-24 18:35:09.176 [DEBUG] [t:1] request.start command=combat.timeline; requestId=816ad4223a094d02bf2ce47b30770d50; startedUtc=2026-06-24T15:35:09.1761868Z; payloadKeys=1
+2026-06-24 18:35:09.176 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:09.176 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:11.179 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:11.179 [WARN] [t:1] Network unavailable command=combat.timeline; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:11.179 [DEBUG] [t:1] request.end command=combat.timeline; requestId=816ad4223a094d02bf2ce47b30770d50; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:11.179 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=e39bd03a30884d8dbe83102a621f4b98; startedUtc=2026-06-24T15:35:11.1791871Z; payloadKeys=1
+2026-06-24 18:35:11.179 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:11.179 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:13.181 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:13.181 [WARN] [t:1] Network unavailable command=combat.visibleState; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:13.181 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=e39bd03a30884d8dbe83102a621f4b98; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:13.181 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=64fdd0beb0e84c9db079e984478fbfdc; startedUtc=2026-06-24T15:35:13.1816777Z; payloadKeys=1
+2026-06-24 18:35:13.181 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:13.181 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:15.184 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:15.184 [WARN] [t:1] Network unavailable command=audio.state.sync; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:15.184 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=64fdd0beb0e84c9db079e984478fbfdc; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:15.184 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:35:15.184 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:35:15.184 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:35:15.184 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:35:15.184 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:35:15.184 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:35:23.181 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=56e6511e0229472180169b69b7495996; startedUtc=2026-06-24T15:35:23.1819181Z; payloadKeys=2
+2026-06-24 18:35:23.181 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:23.181 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:25.182 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:25.182 [WARN] [t:1] Network unavailable command=chat.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:25.182 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=56e6511e0229472180169b69b7495996; status=Error; success=False; elapsedMs=2000; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:25.182 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:35:25.182 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:35:25.182 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:35:25.182 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:35:25.182 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:35:25.182 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:35:25.182 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:35:25.182 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=74efdd9458ab47e6a4f9a7d4dcadd08e; startedUtc=2026-06-24T15:35:25.1821197Z; payloadKeys=0
+2026-06-24 18:35:25.182 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:25.182 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:27.183 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:27.183 [WARN] [t:1] Network unavailable command=dice.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:27.183 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=74efdd9458ab47e6a4f9a7d4dcadd08e; status=Error; success=False; elapsedMs=2000; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:27.183 [DEBUG] [t:1] dice.feed.refresh itemsRaw=0
+2026-06-24 18:35:27.183 [DEBUG] [t:1] dice.feed.refresh itemsMapped=0
+2026-06-24 18:35:27.183 [DEBUG] [t:1] dice.feed.refresh ownItems=0
+2026-06-24 18:35:27.183 [DEBUG] [t:1] dice.feed.commentMapped=False
+2026-06-24 18:35:27.183 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=18fc3163f9fb48f391c542a9d9e5c0f7; startedUtc=2026-06-24T15:35:27.1832021Z; payloadKeys=0
+2026-06-24 18:35:27.183 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:27.183 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:29.186 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:29.186 [WARN] [t:1] Network unavailable command=request.player.listMine; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:29.186 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=18fc3163f9fb48f391c542a9d9e5c0f7; status=Error; success=False; elapsedMs=2003; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:29.186 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=35920b13be0e4060a11fe24b071db0b7; startedUtc=2026-06-24T15:35:29.1867926Z; payloadKeys=0
+2026-06-24 18:35:29.186 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:29.186 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:31.188 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:31.188 [WARN] [t:1] Network unavailable command=dice.test.getCurrent; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:31.188 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=35920b13be0e4060a11fe24b071db0b7; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:31.188 [INFO] [t:1] dice.test.getCurrent.status=Error
+2026-06-24 18:35:31.188 [DEBUG] [t:1] dice.feed.render visibleRows=0
+2026-06-24 18:35:31.188 [DEBUG] [t:1] dice.view.counts feed=0 requests=0
+2026-06-24 18:35:31.188 [DEBUG] [t:1] request.start command=combat.timeline; requestId=4dbe5a2211754abbb8ec2d4501a08e49; startedUtc=2026-06-24T15:35:31.1887912Z; payloadKeys=1
+2026-06-24 18:35:31.188 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:31.188 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:33.190 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:33.190 [WARN] [t:1] Network unavailable command=combat.timeline; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:33.190 [DEBUG] [t:1] request.end command=combat.timeline; requestId=4dbe5a2211754abbb8ec2d4501a08e49; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:33.190 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=506c83221d3c412a9aa4d9944d670c24; startedUtc=2026-06-24T15:35:33.1902398Z; payloadKeys=1
+2026-06-24 18:35:33.190 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:33.190 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:35.207 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:35.207 [WARN] [t:1] Network unavailable command=combat.visibleState; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:35.207 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=506c83221d3c412a9aa4d9944d670c24; status=Error; success=False; elapsedMs=2016; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:35.207 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=64dea6339b8049b99fbf34c3a8f757fc; startedUtc=2026-06-24T15:35:35.2072396Z; payloadKeys=1
+2026-06-24 18:35:35.207 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:35.207 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:37.211 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:37.211 [WARN] [t:1] Network unavailable command=audio.state.sync; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:37.211 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=64dea6339b8049b99fbf34c3a8f757fc; status=Error; success=False; elapsedMs=2004; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:37.211 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:35:37.211 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:35:37.211 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:35:37.211 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:35:37.211 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:35:37.211 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:35:45.212 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=2f873d95b2304a2d86a08c228880bbc9; startedUtc=2026-06-24T15:35:45.2124104Z; payloadKeys=2
+2026-06-24 18:35:45.212 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:45.212 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:47.215 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:47.215 [WARN] [t:1] Network unavailable command=chat.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:47.215 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=2f873d95b2304a2d86a08c228880bbc9; status=Error; success=False; elapsedMs=2003; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:47.215 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:35:47.215 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:35:47.215 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:35:47.215 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:35:47.215 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:35:47.215 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:35:47.215 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:35:47.215 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=39e4cb87218943b89a5d77ec05c161bf; startedUtc=2026-06-24T15:35:47.2155877Z; payloadKeys=0
+2026-06-24 18:35:47.215 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:47.215 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:49.217 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:49.217 [WARN] [t:1] Network unavailable command=dice.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:49.217 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=39e4cb87218943b89a5d77ec05c161bf; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:49.217 [DEBUG] [t:1] dice.feed.refresh itemsRaw=0
+2026-06-24 18:35:49.217 [DEBUG] [t:1] dice.feed.refresh itemsMapped=0
+2026-06-24 18:35:49.217 [DEBUG] [t:1] dice.feed.refresh ownItems=0
+2026-06-24 18:35:49.217 [DEBUG] [t:1] dice.feed.commentMapped=False
+2026-06-24 18:35:49.217 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=9c7bc8c112614e96a0cfc3bc46f17276; startedUtc=2026-06-24T15:35:49.2173720Z; payloadKeys=0
+2026-06-24 18:35:49.217 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:49.217 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:51.220 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:51.220 [WARN] [t:1] Network unavailable command=request.player.listMine; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:51.220 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=9c7bc8c112614e96a0cfc3bc46f17276; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:51.220 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=55959e4d6ca742ab80cfab33523f4ed1; startedUtc=2026-06-24T15:35:51.2204721Z; payloadKeys=0
+2026-06-24 18:35:51.220 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:51.220 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:53.224 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:53.224 [WARN] [t:1] Network unavailable command=dice.test.getCurrent; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:53.224 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=55959e4d6ca742ab80cfab33523f4ed1; status=Error; success=False; elapsedMs=2004; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:53.224 [INFO] [t:1] dice.test.getCurrent.status=Error
+2026-06-24 18:35:53.224 [DEBUG] [t:1] dice.feed.render visibleRows=0
+2026-06-24 18:35:53.224 [DEBUG] [t:1] dice.view.counts feed=0 requests=0
+2026-06-24 18:35:53.224 [DEBUG] [t:1] request.start command=combat.timeline; requestId=a0083078536344228e21877b9056ff5a; startedUtc=2026-06-24T15:35:53.2247266Z; payloadKeys=1
+2026-06-24 18:35:53.224 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:53.224 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:55.226 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:55.226 [WARN] [t:1] Network unavailable command=combat.timeline; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:55.226 [DEBUG] [t:1] request.end command=combat.timeline; requestId=a0083078536344228e21877b9056ff5a; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:55.226 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=d566cadf675543cca7d27ebc99890f6f; startedUtc=2026-06-24T15:35:55.2263322Z; payloadKeys=1
+2026-06-24 18:35:55.226 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:55.226 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:57.228 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:57.228 [WARN] [t:1] Network unavailable command=combat.visibleState; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:57.228 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=d566cadf675543cca7d27ebc99890f6f; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:57.228 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=253e262be7c5489c82bab82c46baa97c; startedUtc=2026-06-24T15:35:57.2283112Z; payloadKeys=1
+2026-06-24 18:35:57.228 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:35:57.228 [INFO] [t:1] Disconnected from server
+2026-06-24 18:35:59.229 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:35:59.229 [WARN] [t:1] Network unavailable command=audio.state.sync; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:35:59.229 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=253e262be7c5489c82bab82c46baa97c; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:35:59.229 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:35:59.229 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:35:59.229 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:35:59.229 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:35:59.229 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:35:59.229 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:36:07.223 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=7a473cc57f7f437fbd252efc95e0b3c2; startedUtc=2026-06-24T15:36:07.2233334Z; payloadKeys=2
+2026-06-24 18:36:07.223 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:07.223 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:09.225 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:09.225 [WARN] [t:1] Network unavailable command=chat.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:09.225 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=7a473cc57f7f437fbd252efc95e0b3c2; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:09.225 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:36:09.225 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:36:09.225 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:36:09.225 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:36:09.225 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:36:09.225 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:36:09.225 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:36:09.225 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=499775b310f34b56a08ad70e3eb969d2; startedUtc=2026-06-24T15:36:09.2255015Z; payloadKeys=0
+2026-06-24 18:36:09.225 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:09.225 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:11.226 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:11.226 [WARN] [t:1] Network unavailable command=dice.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:11.226 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=499775b310f34b56a08ad70e3eb969d2; status=Error; success=False; elapsedMs=2000; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:11.226 [DEBUG] [t:1] dice.feed.refresh itemsRaw=0
+2026-06-24 18:36:11.226 [DEBUG] [t:1] dice.feed.refresh itemsMapped=0
+2026-06-24 18:36:11.226 [DEBUG] [t:1] dice.feed.refresh ownItems=0
+2026-06-24 18:36:11.226 [DEBUG] [t:1] dice.feed.commentMapped=False
+2026-06-24 18:36:11.226 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=1da600d4a5dd4f818e6257880aeeab59; startedUtc=2026-06-24T15:36:11.2263705Z; payloadKeys=0
+2026-06-24 18:36:11.226 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:11.226 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:13.231 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:13.231 [WARN] [t:1] Network unavailable command=request.player.listMine; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:13.231 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=1da600d4a5dd4f818e6257880aeeab59; status=Error; success=False; elapsedMs=2004; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:13.231 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=958b629484214d0890621791be3e4e73; startedUtc=2026-06-24T15:36:13.2312539Z; payloadKeys=0
+2026-06-24 18:36:13.231 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:13.231 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:15.236 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:15.236 [WARN] [t:1] Network unavailable command=dice.test.getCurrent; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:15.236 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=958b629484214d0890621791be3e4e73; status=Error; success=False; elapsedMs=2004; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:15.236 [INFO] [t:1] dice.test.getCurrent.status=Error
+2026-06-24 18:36:15.236 [DEBUG] [t:1] dice.feed.render visibleRows=0
+2026-06-24 18:36:15.236 [DEBUG] [t:1] dice.view.counts feed=0 requests=0
+2026-06-24 18:36:15.236 [DEBUG] [t:1] request.start command=combat.timeline; requestId=9164e82fbe9c42ea9893d6ffb36a18fc; startedUtc=2026-06-24T15:36:15.2361741Z; payloadKeys=1
+2026-06-24 18:36:15.236 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:15.236 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:17.238 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:17.238 [WARN] [t:1] Network unavailable command=combat.timeline; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:17.238 [DEBUG] [t:1] request.end command=combat.timeline; requestId=9164e82fbe9c42ea9893d6ffb36a18fc; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:17.238 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=21904c6803564e228aacc9542649915e; startedUtc=2026-06-24T15:36:17.2385757Z; payloadKeys=1
+2026-06-24 18:36:17.238 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:17.238 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:19.241 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:19.241 [WARN] [t:1] Network unavailable command=combat.visibleState; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:19.241 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=21904c6803564e228aacc9542649915e; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:19.241 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=7b1c8cbd74d141d5b15ecf32bc7f23dc; startedUtc=2026-06-24T15:36:19.2414770Z; payloadKeys=1
+2026-06-24 18:36:19.241 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:19.241 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:21.242 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:21.242 [WARN] [t:1] Network unavailable command=audio.state.sync; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:21.242 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=7b1c8cbd74d141d5b15ecf32bc7f23dc; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:21.242 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:36:21.242 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:36:21.242 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:36:21.242 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:36:21.242 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:36:21.242 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:36:29.243 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=2f8c3ab0fa8f41908d38cc8e3b090a77; startedUtc=2026-06-24T15:36:29.2431647Z; payloadKeys=2
+2026-06-24 18:36:29.243 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:29.243 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:31.245 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:31.245 [WARN] [t:1] Network unavailable command=chat.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:31.245 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=2f8c3ab0fa8f41908d38cc8e3b090a77; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:31.245 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-24 18:36:31.245 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:36:31.245 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:36:31.245 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:36:31.245 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:36:31.245 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:36:31.245 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-24 18:36:31.245 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=8287a99e50a94c9fb738a18d01dbcc30; startedUtc=2026-06-24T15:36:31.2450313Z; payloadKeys=0
+2026-06-24 18:36:31.245 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:31.245 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:33.246 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:33.246 [WARN] [t:1] Network unavailable command=dice.visibleFeed; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:33.246 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=8287a99e50a94c9fb738a18d01dbcc30; status=Error; success=False; elapsedMs=2000; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:33.246 [DEBUG] [t:1] dice.feed.refresh itemsRaw=0
+2026-06-24 18:36:33.246 [DEBUG] [t:1] dice.feed.refresh itemsMapped=0
+2026-06-24 18:36:33.246 [DEBUG] [t:1] dice.feed.refresh ownItems=0
+2026-06-24 18:36:33.246 [DEBUG] [t:1] dice.feed.commentMapped=False
+2026-06-24 18:36:33.246 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=d2ee6e266927472c84fd365aeafe0d68; startedUtc=2026-06-24T15:36:33.2465886Z; payloadKeys=0
+2026-06-24 18:36:33.246 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:33.246 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:35.248 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:35.248 [WARN] [t:1] Network unavailable command=request.player.listMine; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:35.248 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=d2ee6e266927472c84fd365aeafe0d68; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:35.248 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=18e38b4587fc4b018afa5adae8aba450; startedUtc=2026-06-24T15:36:35.2480799Z; payloadKeys=0
+2026-06-24 18:36:35.248 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:35.248 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:37.250 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:37.250 [WARN] [t:1] Network unavailable command=dice.test.getCurrent; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:37.250 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=18e38b4587fc4b018afa5adae8aba450; status=Error; success=False; elapsedMs=2002; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:37.250 [INFO] [t:1] dice.test.getCurrent.status=Error
+2026-06-24 18:36:37.250 [DEBUG] [t:1] dice.feed.render visibleRows=0
+2026-06-24 18:36:37.250 [DEBUG] [t:1] dice.view.counts feed=0 requests=0
+2026-06-24 18:36:37.250 [DEBUG] [t:1] request.start command=combat.timeline; requestId=0117b38bcf9e412f836d89ec0ee6eb1b; startedUtc=2026-06-24T15:36:37.2503938Z; payloadKeys=1
+2026-06-24 18:36:37.250 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:37.250 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:39.251 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:39.251 [WARN] [t:1] Network unavailable command=combat.timeline; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:39.251 [DEBUG] [t:1] request.end command=combat.timeline; requestId=0117b38bcf9e412f836d89ec0ee6eb1b; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:39.251 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=d32b2259a8a848aa85405d70622b0eb9; startedUtc=2026-06-24T15:36:39.2516644Z; payloadKeys=1
+2026-06-24 18:36:39.251 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:39.251 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:41.253 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:41.253 [WARN] [t:1] Network unavailable command=combat.visibleState; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:41.253 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=d32b2259a8a848aa85405d70622b0eb9; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:41.253 [DEBUG] [t:1] request.start command=audio.state.sync; requestId=27e86260d0274f47851d5a309918c10c; startedUtc=2026-06-24T15:36:41.2530221Z; payloadKeys=1
+2026-06-24 18:36:41.253 [INFO] [t:1] Connecting to server: 127.0.0.1:4600
+2026-06-24 18:36:41.253 [INFO] [t:1] Disconnected from server
+2026-06-24 18:36:43.255 [DEBUG] [t:1] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-24 18:36:43.255 [WARN] [t:1] Network unavailable command=audio.state.sync; endpoint=127.0.0.1:4600; message=Произошла одна или несколько ошибок.
+2026-06-24 18:36:43.255 [DEBUG] [t:1] request.end command=audio.state.sync; requestId=27e86260d0274f47851d5a309918c10c; status=Error; success=False; elapsedMs=2001; message=Сервер недоступен: 127.0.0.1:4600. Проверьте адрес и запущен ли сервер.
+2026-06-24 18:36:43.255 [INFO] [t:1] chat.window.timeline mergedCount=1
+2026-06-24 18:36:43.255 [DEBUG] [t:1] merged.timeline first=System:
+2026-06-24 18:36:43.255 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-24 18:36:43.255 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-24 18:36:43.255 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-24 18:36:43.255 [INFO] [t:1] gameFeed diceMerged=0

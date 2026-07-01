@@ -1,0 +1,240 @@
+{
+  "packId": "fantasy_nri_default_starter",
+  "name": "Fantasy NRI Default Starter",
+  "ruleSetId": "fantasy_nri_default",
+  "version": "0.1.0",
+  "description": "Minimal fantasy starter pack for Definitions v2 dry-run validation.",
+  "author": "NRI System",
+  "tags": [
+    "starter",
+    "fantasy",
+    "dry-run"
+  ],
+  "schemaVersion": 1,
+  "files": [
+    {
+      "category": "attribute",
+      "path": "attributes.json",
+      "required": true,
+      "expectedMinCount": 6,
+      "notes": "Core primary character attributes."
+    },
+    {
+      "category": "subattribute",
+      "path": "subattributes.json",
+      "required": true,
+      "expectedMinCount": 20,
+      "notes": "RuleSet-driven subattributes nested under primary attributes."
+    },
+    {
+      "category": "derivedStat",
+      "path": "derived_stats.json",
+      "required": true,
+      "expectedMinCount": 9,
+      "notes": "Draft derived stat metadata. No runtime formulas are wired."
+    },
+    {
+      "category": "currency",
+      "path": "currencies.json",
+      "required": true,
+      "expectedMinCount": 9,
+      "notes": "Fantasy currency metadata. Existing wallet logic is unchanged."
+    },
+    {
+      "category": "skill",
+      "path": "skills.json",
+      "required": true,
+      "expectedMinCount": 25,
+      "notes": "Starter fantasy skills metadata. Legacy skill handlers are unchanged."
+    },
+    {
+      "category": "developmentNode",
+      "path": "development_nodes.json",
+      "required": true,
+      "expectedMinCount": 15,
+      "notes": "Starter development nodes for Character v2 and DevelopmentProfile tests."
+    },
+    {
+      "category": "developmentHexagon",
+      "path": "development_hexagons.json",
+      "required": true,
+      "expectedMinCount": 1,
+      "notes": "Starter fantasy development hexagon metadata. DevelopmentNodeModel remains disabled by default."
+    },
+    {
+      "category": "raceTrait",
+      "path": "race_traits.json",
+      "required": true,
+      "expectedMinCount": 8,
+      "notes": "Draft race trait metadata. Traits do not modify Character automatically."
+    },
+    {
+      "category": "race",
+      "path": "races.json",
+      "required": true,
+      "expectedMinCount": 8,
+      "notes": "Starter playable race metadata. Legacy race handlers are unchanged."
+    },
+    {
+      "category": "subspecies",
+      "path": "subspecies.json",
+      "required": true,
+      "expectedMinCount": 8,
+      "notes": "Starter canonical subspecies metadata."
+    },
+    {
+      "category": "hybrid",
+      "path": "hybrids.json",
+      "required": true,
+      "expectedMinCount": 3,
+      "notes": "Manually allowed starter hybrid metadata. No free hybrid generation."
+    },
+    {
+      "category": "hybridSubtype",
+      "path": "hybrid_subtypes.json",
+      "required": true,
+      "expectedMinCount": 4,
+      "notes": "Starter canonical hybrid subtype metadata."
+    },
+    {
+      "category": "language",
+      "path": "languages.json",
+      "required": true,
+      "expectedMinCount": 12,
+      "notes": "Starter Western Continent languages. No LanguageProfile or runtime language logic is wired."
+    },
+    {
+      "category": "continent",
+      "path": "continents.json",
+      "required": true,
+      "expectedMinCount": 1,
+      "notes": "Starter Western Continent lore metadata. No map or world simulation is wired."
+    },
+    {
+      "category": "country",
+      "path": "countries.json",
+      "required": true,
+      "expectedMinCount": 11,
+      "notes": "Starter country lore metadata. No economy, war or faction engine is wired."
+    },
+    {
+      "category": "cityState",
+      "path": "city_states.json",
+      "required": true,
+      "expectedMinCount": 3,
+      "notes": "Starter city-state lore metadata. City-states do not receive separate languages."
+    },
+    {
+      "category": "equipmentSlot",
+      "path": "equipment_slots.json",
+      "required": true,
+      "expectedMinCount": 8,
+      "notes": "Starter equipment slots metadata. InventoryProfile is unchanged."
+    },
+    {
+      "category": "item",
+      "path": "items.json",
+      "required": true,
+      "expectedMinCount": 10,
+      "notes": "Starter item metadata. InventoryProfile and economy are unchanged."
+    },
+    {
+      "category": "weapon",
+      "path": "weapons.json",
+      "required": true,
+      "expectedMinCount": 10,
+      "notes": "Starter weapon metadata with draft combat values. No combat integration."
+    },
+    {
+      "category": "armor",
+      "path": "armor.json",
+      "required": true,
+      "expectedMinCount": 8,
+      "notes": "Starter armor metadata with draft protection values. No combat integration."
+    },
+    {
+      "category": "ammo",
+      "path": "ammo.json",
+      "required": true,
+      "expectedMinCount": 6,
+      "notes": "Starter ammo metadata with draft combat values. No combat integration."
+    },
+    {
+      "category": "conditionGroup",
+      "path": "condition_groups.json",
+      "required": true,
+      "expectedMinCount": 6,
+      "notes": "Starter condition groups metadata. ConditionProfile and combat/Fate/magic systems are unchanged."
+    },
+    {
+      "category": "condition",
+      "path": "conditions.json",
+      "required": true,
+      "expectedMinCount": 30,
+      "notes": "Starter condition metadata with draft effect hints only. No runtime effects are wired."
+    },
+    {
+      "category": "locationType",
+      "path": "location_types.json",
+      "required": true,
+      "expectedMinCount": 15,
+      "notes": "Starter location type metadata. No map or travel system is wired."
+    },
+    {
+      "category": "region",
+      "path": "regions.json",
+      "required": true,
+      "expectedMinCount": 8,
+      "notes": "Starter Western Continent region metadata. No map, travel or economy engine is wired."
+    },
+    {
+      "category": "location",
+      "path": "locations.json",
+      "required": true,
+      "expectedMinCount": 30,
+      "notes": "Starter locations and points of interest metadata. No world, travel, economy or faction engine is wired."
+    },
+    {
+      "category": "faction",
+      "path": "factions.json",
+      "required": true,
+      "expectedMinCount": 12,
+      "notes": "Starter faction metadata. No faction engine is wired."
+    },
+    {
+      "category": "organization",
+      "path": "organizations.json",
+      "required": true,
+      "expectedMinCount": 12,
+      "notes": "Starter organization metadata. No reputation, faction or organization engine is wired."
+    },
+    {
+      "category": "law",
+      "path": "laws.json",
+      "required": true,
+      "expectedMinCount": 10,
+      "notes": "Starter law metadata. No law enforcement mechanics are wired."
+    },
+    {
+      "category": "restriction",
+      "path": "restrictions.json",
+      "required": true,
+      "expectedMinCount": 10,
+      "notes": "Starter restriction metadata. Restrictions are draft data only."
+    },
+    {
+      "category": "marketTag",
+      "path": "market_tags.json",
+      "required": true,
+      "expectedMinCount": 15,
+      "notes": "Starter market tag metadata. No economy or market simulation is wired."
+    },
+    {
+      "category": "other",
+      "path": "placeholder_definitions.json",
+      "required": false,
+      "expectedMinCount": 0,
+      "notes": "Empty placeholder retained for dry-run compatibility."
+    }
+  ]
+}

@@ -1,0 +1,242 @@
+<UserControl x:Class="Nri.AdminClient.Views.Administration.AdminDefinitionsBrowserView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.2*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Справочники" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Read-only browser definitions: категории, поиск, детали и dry-run validation starter pack. Импорт, редактирование и сохранение отключены."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding ValidationSummary}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+                    <TextBlock Text="{Binding WarningMessage}" Foreground="#FFF59E0B" TextWrapping="Wrap" Margin="0,6,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasWarning}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFF87171" TextWrapping="Wrap" Margin="0,6,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Width="560" Margin="16,0,0,0">
+                    <WrapPanel>
+                        <ComboBox Width="190" ItemsSource="{Binding SourceOptions}" SelectedItem="{Binding SelectedSource}"/>
+                        <Button Content="Загрузить starter pack" Command="{Binding LoadFromDryRunPackCommand}" IsEnabled="{Binding CanRefresh}" Margin="8,0,0,0"/>
+                        <Button Content="Dry-run" Style="{StaticResource GhostButtonStyle}" Command="{Binding RunPackDryRunCommand}" IsEnabled="{Binding CanRefresh}"/>
+                    </WrapPanel>
+                    <TextBox Text="{Binding PackPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0" ToolTip="Путь к starter definition pack"/>
+                    <WrapPanel Margin="0,8,0,0">
+                        <TextBox Width="260" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по id, названию, категории и tags"/>
+                        <Button Content="Найти" Style="{StaticResource GhostButtonStyle}" Command="{Binding SearchCommand}" Margin="8,0,0,0"/>
+                        <Button Content="Очистить" Style="{StaticResource GhostButtonStyle}" Command="{Binding ClearSearchCommand}"/>
+                        <TextBlock Text="{Binding LastLoadedText, StringFormat=Последняя загрузка: {0}}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="2.1*"/>
+                <ColumnDefinition Width="1.35*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Категории" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBlock Text="{Binding FilterSummary}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,8"/>
+                    </StackPanel>
+                    <ListBox Grid.Row="1"
+                             ItemsSource="{Binding Categories}"
+                             SelectedItem="{Binding SelectedCategoryItem}"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,6" Padding="8">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Group}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                        <TextBlock Text="{Binding Id}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="10"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <DockPanel>
+                        <StackPanel>
+                            <TextBlock Text="Definitions" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock Text="{Binding SelectedCategoryTitle, StringFormat=Фильтр: {0}}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding FilterSummary}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                    </DockPanel>
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding FilteredDefinitions}"
+                              SelectedItem="{Binding SelectedDefinitionItem}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              MinColumnWidth="90"
+                              ColumnWidth="SizeToHeader"
+                              HorizontalScrollBarVisibility="Auto"
+                              Margin="0,8,0,0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="190"/>
+                            <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="190"/>
+                            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="120"/>
+                            <DataGridTextColumn Header="RuleSetIds" Binding="{Binding RuleSetIds}" Width="190"/>
+                            <DataGridTextColumn Header="Tags" Binding="{Binding Tags}" Width="260"/>
+                            <DataGridTextColumn Header="Visibility" Binding="{Binding Visibility}" Width="100"/>
+                            <DataGridTextColumn Header="Schema" Binding="{Binding SchemaVersion}" Width="80"/>
+                            <DataGridTextColumn Header="Archived" Binding="{Binding ArchivedText}" Width="90"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Детали definition" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBlock Text="{Binding SelectedDefinition.Name}" FontSize="18" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding SelectedDefinition.Id}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                        <WrapPanel Margin="0,8,0,0">
+                            <TextBlock Text="{Binding SelectedDefinition.CategoryLabel, StringFormat=Категория: {0}}" Margin="0,0,12,0"/>
+                            <TextBlock Text="{Binding SelectedDefinition.Visibility, StringFormat=Visibility: {0}}" Margin="0,0,12,0"/>
+                            <TextBlock Text="{Binding SelectedDefinition.SchemaVersion, StringFormat=Schema: {0}}"/>
+                        </WrapPanel>
+                        <TextBlock Text="{Binding SelectedDefinition.RuleSetIds, StringFormat=RuleSetIds: {0}}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <TextBlock Text="{Binding SelectedDefinition.Tags, StringFormat=Tags: {0}}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                        <TextBlock Text="{Binding SelectedDefinition.SourcePath, StringFormat=Source: {0}}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                        <TextBlock Text="{Binding SelectedDefinition.ServerOnlyDataText, StringFormat=ServerOnlyData: {0}}" Foreground="#FFF59E0B" TextWrapping="Wrap" Margin="0,3,0,0"/>
+
+                        <Separator Margin="0,12,0,12"/>
+                        <TextBlock Text="Описание" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="{Binding SelectedDefinition.PublicDescription}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <TextBlock Text="{Binding SelectedDefinition.GMDescription, StringFormat=GM: {0}}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+
+                        <Separator Margin="0,12,0,12"/>
+                        <TextBlock Text="Category preview" Style="{StaticResource TitleTextStyle}"/>
+                        <DataGrid ItemsSource="{Binding SelectedDefinition.PreviewRows}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  MinHeight="90"
+                                  Margin="0,6,0,0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Key" Binding="{Binding Key}" Width="150"/>
+                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <Separator Margin="0,12,0,12"/>
+                        <TextBlock Text="ExtraData" Style="{StaticResource TitleTextStyle}"/>
+                        <DataGrid ItemsSource="{Binding SelectedDefinition.ExtraDataRows}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  MinHeight="180"
+                                  Margin="0,6,0,0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Key" Binding="{Binding Key}" Width="160"/>
+                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="2" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.1*"/>
+                <ColumnDefinition Width="1.2*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0">
+                <StackPanel>
+                    <TextBlock Text="Dry-run validation" Style="{StaticResource TitleTextStyle}"/>
+                    <TextBlock Text="{Binding ValidationSummary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    <DataGrid ItemsSource="{Binding ValidationFiles}" AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="140" Margin="0,8,0,0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="130"/>
+                            <DataGridTextColumn Header="File" Binding="{Binding Path}" Width="180"/>
+                            <DataGridTextColumn Header="Count" Binding="{Binding DefinitionCount}" Width="70"/>
+                            <DataGridTextColumn Header="Err" Binding="{Binding Errors}" Width="55"/>
+                            <DataGridTextColumn Header="Warn" Binding="{Binding Warnings}" Width="65"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Errors" Style="{StaticResource TitleTextStyle}"/>
+                        <ListBox ItemsSource="{Binding ValidationErrors}" MaxHeight="160" Margin="0,6,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                        <TextBlock Text="Warnings" Style="{StaticResource TitleTextStyle}"/>
+                        <ListBox ItemsSource="{Binding ValidationWarnings}" MaxHeight="160" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource SubtleCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Будущий редактор" Style="{StaticResource TitleTextStyle}"/>
+                    <TextBlock Text="Редактор справочников будет добавлен позже. Импорт/изменение definitions отключены." TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+                    <WrapPanel Margin="0,10,0,0">
+                        <Button Content="Save" IsEnabled="False"/>
+                        <Button Content="Delete" IsEnabled="False" Style="{StaticResource GhostButtonStyle}"/>
+                        <Button Content="Import" IsEnabled="False" Style="{StaticResource GhostButtonStyle}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

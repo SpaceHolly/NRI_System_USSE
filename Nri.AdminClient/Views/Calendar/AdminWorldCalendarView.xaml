@@ -1,0 +1,206 @@
+<UserControl x:Class="Nri.AdminClient.Views.Calendar.AdminWorldCalendarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Loaded="OnLoaded"
+             Language="ru-RU">
+    <Grid Margin="8" AutomationProperties.AutomationId="AdminWorldCalendar_Root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,8">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="Календарь мира / хроника" Style="{StaticResource SectionTitleTextStyle}" AutomationProperties.AutomationId="AdminWorldCalendar_Title"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding DisabledText}" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
+                <WrapPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                    <TextBox Width="120" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" ToolTip="CampaignId" AutomationProperties.AutomationId="AdminWorldCalendar_CampaignId"/>
+                    <TextBox Width="120" Text="{Binding RuleSetId, UpdateSourceTrigger=PropertyChanged}" ToolTip="RuleSetId"/>
+                    <Button Content="Flags" Style="{StaticResource GhostButtonStyle}" Command="{Binding RefreshFlagsCommand}"/>
+                    <Button Content="Создать базовый" Style="{StaticResource GhostButtonStyle}" Command="{Binding EnsureCalendarCommand}" AutomationProperties.AutomationId="AdminWorldCalendar_Ensure_Button"/>
+                    <Button Content="Обновить" Command="{Binding RefreshCommand}" AutomationProperties.AutomationId="AdminWorldCalendar_Refresh_Button"/>
+                </WrapPanel>
+            </DockPanel>
+        </Border>
+
+        <TabControl Grid.Row="1" AutomationProperties.AutomationId="AdminWorldCalendar_Tabs">
+            <TabItem Header="Текущая дата">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.1*"/>
+                        <ColumnDefinition Width="1.3*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="{Binding CalendarName}" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock Text="{Binding CurrentDisplay}" FontSize="22" FontWeight="Bold" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminWorldCalendar_CurrentDisplay"/>
+                            <TextBlock Text="{Binding CurrentSeason, StringFormat=Сезон: {0}}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding CurrentWeekDay, StringFormat=День недели: {0}}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,12"/>
+                            <TextBlock Text="Месяцы" FontWeight="SemiBold"/>
+                            <ListBox ItemsSource="{Binding Months}" MinHeight="220" Margin="0,6,0,0" AutomationProperties.AutomationId="AdminWorldCalendar_Months_List">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Display}" TextWrapping="Wrap"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="Управление датой" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <UniformGrid Columns="6" Margin="0,8,0,0">
+                                <StackPanel Margin="0,0,6,0"><TextBlock Text="Год"/><TextBox Text="{Binding Year, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="AdminWorldCalendar_Year"/></StackPanel>
+                                <StackPanel Margin="0,0,6,0"><TextBlock Text="Эра"/><CheckBox Content="до нашей эры" IsChecked="{Binding IsBeforeCommonEra}" AutomationProperties.AutomationId="AdminWorldCalendar_BeforeEra"/></StackPanel>
+                                <StackPanel Margin="0,0,6,0"><TextBlock Text="Месяц"/><TextBox Text="{Binding MonthOrder, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="AdminWorldCalendar_Month"/></StackPanel>
+                                <StackPanel Margin="0,0,6,0"><TextBlock Text="День"/><TextBox Text="{Binding DayOfMonth, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="AdminWorldCalendar_Day"/></StackPanel>
+                                <StackPanel Margin="0,0,6,0"><TextBlock Text="Час"/><TextBox Text="{Binding Hour, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="AdminWorldCalendar_Hour"/></StackPanel>
+                                <StackPanel><TextBlock Text="Минута"/><TextBox Text="{Binding Minute, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="AdminWorldCalendar_Minute"/></StackPanel>
+                            </UniformGrid>
+                            <TextBox Text="{Binding AdvanceReason, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0" ToolTip="Причина изменения"/>
+                            <WrapPanel Margin="0,8,0,0">
+                                <Button Content="Установить дату" Command="{Binding SetDateCommand}" AutomationProperties.AutomationId="AdminWorldCalendar_SetDate_Button"/>
+                                <TextBox Width="80" Text="{Binding AdvanceDays, UpdateSourceTrigger=PropertyChanged}" Margin="8,0,0,0" ToolTip="Дней вперёд"/>
+                                <Button Content="Продвинуть" Style="{StaticResource GhostButtonStyle}" Command="{Binding AdvanceTimeCommand}" AutomationProperties.AutomationId="AdminWorldCalendar_Advance_Button"/>
+                            </WrapPanel>
+                            <Border Style="{StaticResource SubtleCardStyle}" Padding="10" Margin="0,12,0,0">
+                                <TextBlock Text="Расписание реальных игр и техработ подключено в соседней вкладке «Расписание игр». Эта вкладка меняет внутриигровое время мира." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Хроника">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.5*"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+                    <DataGrid ItemsSource="{Binding Events}" SelectedItem="{Binding SelectedEvent}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="420" Margin="0,0,8,0" AutomationProperties.AutomationId="AdminWorldCalendar_Events_List">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Дата" Binding="{Binding StartDisplay}" Width="1.4*"/>
+                            <DataGridTextColumn Header="Событие" Binding="{Binding Title}" Width="2*"/>
+                            <DataGridTextColumn Header="Тип" Binding="{Binding EventTypeDisplay}" Width="1*"/>
+                            <DataGridTextColumn Header="Статус" Binding="{Binding StatusDisplay}" Width="1*"/>
+                            <DataGridCheckBoxColumn Header="Игрокам" Binding="{Binding IsPlayerVisible}" Width="0.8*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Событие" Style="{StaticResource SectionTitleTextStyle}"/>
+                                <TextBox Text="{Binding EventTitle, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название" AutomationProperties.AutomationId="AdminWorldCalendar_Event_Title"/>
+                                <TextBox Text="{Binding EventSummary, UpdateSourceTrigger=PropertyChanged}" MinHeight="70" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,0" ToolTip="Публичное описание" AutomationProperties.AutomationId="AdminWorldCalendar_Event_PublicSummary"/>
+                                <TextBox Text="{Binding EventGmSummary, UpdateSourceTrigger=PropertyChanged}" MinHeight="70" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,0" ToolTip="Заметка GM" AutomationProperties.AutomationId="AdminWorldCalendar_Event_GmSummary"/>
+                                <UniformGrid Columns="2" Margin="0,8,0,0">
+                                    <ComboBox ItemsSource="{Binding EventTypeOptions}" SelectedItem="{Binding EventType}" AutomationProperties.AutomationId="AdminWorldCalendar_Event_Type"/>
+                                    <ComboBox ItemsSource="{Binding EventStatusOptions}" SelectedItem="{Binding EventStatus}" AutomationProperties.AutomationId="AdminWorldCalendar_Event_Status"/>
+                                </UniformGrid>
+                                <ComboBox ItemsSource="{Binding RevealPolicyOptions}" SelectedItem="{Binding EventRevealPolicy}" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminWorldCalendar_Event_RevealPolicy"/>
+                                <CheckBox Content="Видно игрокам" IsChecked="{Binding EventPlayerVisible}" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminWorldCalendar_Event_PlayerVisible"/>
+                                <WrapPanel Margin="0,8,0,0">
+                                    <Button Content="Создать" Command="{Binding CreateEventCommand}" AutomationProperties.AutomationId="AdminWorldCalendar_Event_Create_Button"/>
+                                    <Button Content="Сохранить" Style="{StaticResource GhostButtonStyle}" Command="{Binding UpdateEventCommand}"/>
+                                    <Button Content="Отменить" Style="{StaticResource GhostButtonStyle}" Command="{Binding CancelEventCommand}"/>
+                                    <Button Content="Архив" Style="{StaticResource GhostButtonStyle}" Command="{Binding ArchiveEventCommand}"/>
+                                </WrapPanel>
+                                <Separator Margin="0,12,0,8"/>
+                                <TextBlock Text="Версия события" FontWeight="SemiBold"/>
+                                <ComboBox ItemsSource="{Binding VersionTypeOptions}" SelectedItem="{Binding VersionType}" Margin="0,6,0,0"/>
+                                <TextBox Text="{Binding VersionSummary, UpdateSourceTrigger=PropertyChanged}" MinHeight="60" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,0"/>
+                                <CheckBox Content="Версия видна игрокам" IsChecked="{Binding VersionPlayerVisible}" Margin="0,6,0,0"/>
+                                <Button Content="Добавить версию" Style="{StaticResource GhostButtonStyle}" Command="{Binding AddVersionCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Праздники">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.4*"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+                    <ListBox ItemsSource="{Binding Holidays}" SelectedItem="{Binding SelectedHoliday}" Margin="0,0,8,0" MinHeight="420">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,0,0,6">
+                                    <TextBlock Text="{Binding Display}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Description}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="Праздник" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBox Text="{Binding HolidayName, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Text="{Binding HolidayDescription, UpdateSourceTrigger=PropertyChanged}" MinHeight="80" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,0"/>
+                            <UniformGrid Columns="2" Margin="0,8,0,0">
+                                <TextBox Text="{Binding HolidayMonth, UpdateSourceTrigger=PropertyChanged}" ToolTip="Месяц"/>
+                                <TextBox Text="{Binding HolidayDay, UpdateSourceTrigger=PropertyChanged}" ToolTip="День"/>
+                            </UniformGrid>
+                            <CheckBox Content="Видно игрокам" IsChecked="{Binding HolidayPlayerVisible}" Margin="0,8,0,0"/>
+                            <WrapPanel Margin="0,8,0,0">
+                                <Button Content="Создать" Command="{Binding CreateHolidayCommand}"/>
+                                <Button Content="Архивировать" Style="{StaticResource GhostButtonStyle}" Command="{Binding ArchiveHolidayCommand}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Напоминания GM">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.4*"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+                    <ListBox ItemsSource="{Binding Reminders}" SelectedItem="{Binding SelectedReminder}" Margin="0,0,8,0" MinHeight="420">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,0,0,6">
+                                    <TextBlock Text="{Binding Display}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Notes}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="Локальная для GM память кампании" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBox Text="{Binding ReminderTitle, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Text="{Binding ReminderNotes, UpdateSourceTrigger=PropertyChanged}" MinHeight="90" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,0"/>
+                            <WrapPanel Margin="0,8,0,0">
+                                <Button Content="Создать" Command="{Binding CreateReminderCommand}"/>
+                                <Button Content="Закрыть" Style="{StaticResource GhostButtonStyle}" Command="{Binding DismissReminderCommand}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Расписание">
+                <Border Style="{StaticResource CardStyle}" Padding="12" Margin="8">
+                    <StackPanel>
+                        <TextBlock Text="Реальное расписание" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBlock Text="{Binding RealSchedulePlaceholder}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8" Margin="0,8,0,0">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Очистить ошибку" Style="{StaticResource GhostButtonStyle}" Command="{Binding ClearErrorCommand}"/>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,0 +1,656 @@
+2026-06-29 14:40:29.206 [INFO] [t:1] Application start: PlayerClient
+2026-06-29 14:40:29.206 [INFO] [t:1] Log file path: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\29.06.2026+14.40.29-PlayerClient-log.txt
+2026-06-29 14:40:29.206 [INFO] [t:1] AppContext.BaseDirectory: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\
+2026-06-29 14:40:29.206 [INFO] [t:1] PreserveClientLogs: False
+2026-06-29 14:40:29.206 [INFO] [t:1] Config load attempt path=C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\client.config.json
+2026-06-29 14:40:29.206 [INFO] [t:1] Loaded client config: host=127.0.0.1, port=4600, preserveClientLogs=False
+2026-06-29 14:40:29.367 [INFO] [t:1] PlayerMainViewModel initialized
+2026-06-29 14:40:29.388 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-29 14:40:29.389 [INFO] [t:1] chat.input.wrap enabled=true
+2026-06-29 14:40:29.389 [INFO] [t:1] dice.layout.movedUnderChat=true
+2026-06-29 14:40:29.555 [INFO] [t:1] ui.player.root-scroll.initialized
+2026-06-29 14:40:29.555 [INFO] [t:1] ui.player.main.loaded scroll=true
+2026-06-29 14:40:29.555 [INFO] [t:1] ui.player.sections.visible chat/create/dice/session
+2026-06-29 14:40:29.555 [INFO] [t:1] ui.player.main-content.reachable=true
+2026-06-29 14:40:29.555 [INFO] [t:1] ui.dice.panel.opened
+2026-06-29 14:40:29.555 [INFO] [t:1] player.layout.bottomSections rearranged=true
+2026-06-29 14:40:29.557 [DEBUG] [t:4] request.start command=system.featureFlags.snapshot; requestId=17760a62eb634bdfa683104a66e69e9f; startedUtc=2026-06-29T11:40:29.5576220Z; payloadKeys=0
+2026-06-29 14:40:29.558 [DEBUG] [t:5] request.start command=system.featureFlags.snapshot; requestId=d1040823d28544bcbd23c0de768be070; startedUtc=2026-06-29T11:40:29.5586216Z; payloadKeys=0
+2026-06-29 14:40:29.559 [INFO] [t:4] Connecting to server: 127.0.0.1:4600
+2026-06-29 14:40:29.559 [INFO] [t:4] Disconnected from server
+2026-06-29 14:40:29.564 [INFO] [t:4] Connected to server: 127.0.0.1:4600
+2026-06-29 14:40:29.584 [DEBUG] [t:4] request.end command=system.featureFlags.snapshot; requestId=17760a62eb634bdfa683104a66e69e9f; status=Unauthorized; success=False; elapsedMs=27; message=Auth token is invalid.
+2026-06-29 14:40:29.585 [DEBUG] [t:5] request.end command=system.featureFlags.snapshot; requestId=d1040823d28544bcbd23c0de768be070; status=Unauthorized; success=False; elapsedMs=27; message=Auth token is invalid.
+2026-06-29 14:40:29.585 [INFO] [t:1] player.world_calendar.load.start
+2026-06-29 14:40:29.585 [DEBUG] [t:6] request.start command=world.calendar.player.get; requestId=a9751f7127a54df69570d94baeae7ecd; startedUtc=2026-06-29T11:40:29.5858351Z; payloadKeys=2
+2026-06-29 14:40:29.587 [DEBUG] [t:6] request.end command=world.calendar.player.get; requestId=a9751f7127a54df69570d94baeae7ecd; status=Unauthorized; success=False; elapsedMs=1; message=Auth token is invalid.
+2026-06-29 14:40:29.587 [INFO] [t:1] player.schedule.load.start
+2026-06-29 14:40:29.588 [DEBUG] [t:5] request.start command=schedule.real.player.next; requestId=73bc675c296f4594af55cb155e1cac02; startedUtc=2026-06-29T11:40:29.5884184Z; payloadKeys=1
+2026-06-29 14:40:29.588 [DEBUG] [t:5] request.end command=schedule.real.player.next; requestId=73bc675c296f4594af55cb155e1cac02; status=Unauthorized; success=False; elapsedMs=0; message=Auth token is invalid.
+2026-06-29 14:40:29.589 [DEBUG] [t:6] request.start command=schedule.real.player.list; requestId=cc633b77d3034599a72485a964157b3a; startedUtc=2026-06-29T11:40:29.5894641Z; payloadKeys=1
+2026-06-29 14:40:29.590 [DEBUG] [t:6] request.end command=schedule.real.player.list; requestId=cc633b77d3034599a72485a964157b3a; status=Unauthorized; success=False; elapsedMs=1; message=Auth token is invalid.
+2026-06-29 14:40:30.951 [INFO] [t:1] ui.password.change.opened
+2026-06-29 14:40:32.297 [INFO] [t:1] Login attempt: user=dev_player
+2026-06-29 14:40:32.297 [DEBUG] [t:1] request.start command=auth.login; requestId=496d29efc103497c85b5f674541976c4; startedUtc=2026-06-29T11:40:32.2971419Z; payloadKeys=2
+2026-06-29 14:40:32.560 [DEBUG] [t:1] request.end command=auth.login; requestId=496d29efc103497c85b5f674541976c4; status=Ok; success=True; elapsedMs=262; message=Login success.
+2026-06-29 14:40:32.560 [INFO] [t:1] ui.player.dice.button state=enabled reason=ready
+2026-06-29 14:40:32.564 [INFO] [t:1] player.characters.load.start
+2026-06-29 14:40:32.564 [DEBUG] [t:1] request.start command=character.list.mine; requestId=d0c6d828481140868b0ef5cb2f09cec3; startedUtc=2026-06-29T11:40:32.5648544Z; payloadKeys=0
+2026-06-29 14:40:32.618 [DEBUG] [t:1] request.end command=character.list.mine; requestId=d0c6d828481140868b0ef5cb2f09cec3; status=Ok; success=True; elapsedMs=53; message=Assigned characters loaded.
+2026-06-29 14:40:32.620 [INFO] [t:1] player.characters.load.done count=3
+2026-06-29 14:40:32.620 [INFO] [t:1] myCharacters.render count=3
+2026-06-29 14:40:32.622 [DEBUG] [t:1] request.start command=character.player.hub.get; requestId=40d7a7ce3d8c46d4959e84f18b344cfd; startedUtc=2026-06-29T11:40:32.6222843Z; payloadKeys=1
+2026-06-29 14:40:32.675 [DEBUG] [t:1] request.end command=character.player.hub.get; requestId=40d7a7ce3d8c46d4959e84f18b344cfd; status=Ok; success=True; elapsedMs=54; message=Player character hub loaded.
+2026-06-29 14:40:32.679 [INFO] [t:1] player.character.vitals.bind count=5
+2026-06-29 14:40:32.679 [INFO] [t:1] player.character.derivedStats.bind count=4
+2026-06-29 14:40:32.680 [INFO] [t:1] player.character.attributes.bind count=7
+2026-06-29 14:40:32.684 [INFO] [t:1] activeCharacter.inventory.bind count=7
+2026-06-29 14:40:32.684 [INFO] [t:1] inventory.player.mapped.count=7
+2026-06-29 14:40:32.684 [INFO] [t:1] inventory.player.bound.count=7
+2026-06-29 14:40:32.684 [INFO] [t:1] activeCharacter.inventory.render count=7
+2026-06-29 14:40:32.684 [INFO] [t:1] inventory.player.render.count=7
+2026-06-29 14:40:32.684 [INFO] [t:1] activeCharacter.inventory.placeholder hidden=true
+2026-06-29 14:40:32.686 [INFO] [t:1] activeCharacter.holdings.bind count=2
+2026-06-29 14:40:32.686 [INFO] [t:1] activeCharacter.holdings.render count=2
+2026-06-29 14:40:32.686 [INFO] [t:1] activeCharacter.holdings.placeholder hidden=true
+2026-06-29 14:40:32.686 [INFO] [t:1] activeCharacter.reputation.bind count=8
+2026-06-29 14:40:32.686 [INFO] [t:1] activeCharacter.reputation.render count=8
+2026-06-29 14:40:32.686 [INFO] [t:1] activeCharacter.reputation.placeholder hidden=true
+2026-06-29 14:40:32.689 [INFO] [t:1] activeCharacter.companions.bind count=2
+2026-06-29 14:40:32.689 [INFO] [t:1] activeCharacter.companions.render count=2
+2026-06-29 14:40:32.689 [INFO] [t:1] activeCharacter.companions.placeholder hidden=true
+2026-06-29 14:40:32.691 [DEBUG] [t:1] request.start command=crafting.player.recipe.list; requestId=3ac50941719848698c68ce2a310b7730; startedUtc=2026-06-29T11:40:32.6919162Z; payloadKeys=3
+2026-06-29 14:40:32.696 [DEBUG] [t:1] request.end command=crafting.player.recipe.list; requestId=3ac50941719848698c68ce2a310b7730; status=Forbidden; success=False; elapsedMs=5; message=Crafting MVP is disabled by feature flags.
+2026-06-29 14:40:32.696 [INFO] [t:1] activeCharacter.load id=fbd8a7b8e9a74810becc233f30fe9160
+2026-06-29 14:40:32.701 [DEBUG] [t:1] request.start command=development.player.hexagon.get; requestId=217b01de72424a6ab1e724a70b353c07; startedUtc=2026-06-29T11:40:32.7019174Z; payloadKeys=1
+2026-06-29 14:40:32.752 [DEBUG] [t:1] request.end command=development.player.hexagon.get; requestId=217b01de72424a6ab1e724a70b353c07; status=Ok; success=True; elapsedMs=50; message=Available nodes loaded.
+2026-06-29 14:40:32.756 [INFO] [t:1] player.development.hexagon.response status=Ok; payloadKeys=activeHexagonId,hexagon,hexagons,items,version,xpCoins; rawCollectionKey=items; rawItemsType=Object[]; rawCount=16; mappedCount=16
+2026-06-29 14:40:32.757 [INFO] [t:1] player.development.hexagon.links.rendered count=3
+2026-06-29 14:40:32.758 [DEBUG] [t:1] request.start command=progression.available.skills; requestId=e824436a7a3e43b7aa00c6ad5d5c6aa6; startedUtc=2026-06-29T11:40:32.7584265Z; payloadKeys=1
+2026-06-29 14:40:32.765 [DEBUG] [t:1] request.end command=progression.available.skills; requestId=e824436a7a3e43b7aa00c6ad5d5c6aa6; status=Ok; success=True; elapsedMs=6; message=Available skills loaded.
+2026-06-29 14:40:32.766 [INFO] [t:1] player.skillCatalog.response.keys=items
+2026-06-29 14:40:32.766 [INFO] [t:1] player.skillCatalog.rawCount=13
+2026-06-29 14:40:32.766 [INFO] [t:1] player.skillCatalog.mappedCount=13
+2026-06-29 14:40:32.766 [DEBUG] [t:1] request.start command=character.skills.get; requestId=4c0da9112c664aae990ece1a5165ce28; startedUtc=2026-06-29T11:40:32.7664281Z; payloadKeys=1
+2026-06-29 14:40:32.777 [DEBUG] [t:1] request.end command=character.skills.get; requestId=4c0da9112c664aae990ece1a5165ce28; status=Ok; success=True; elapsedMs=11; message=Character skills loaded.
+2026-06-29 14:40:32.777 [INFO] [t:1] player.characterSkills.response status=Ok
+2026-06-29 14:40:32.777 [INFO] [t:1] character.skills.response.keys=items,sourceOfTruth
+2026-06-29 14:40:32.777 [INFO] [t:1] character.skills.rawCollectionKey=items
+2026-06-29 14:40:32.777 [INFO] [t:1] character.skills.rawCount=12
+2026-06-29 14:40:32.777 [INFO] [t:1] character.skills.mappedCount=12
+2026-06-29 14:40:32.777 [INFO] [t:1] character.skills.firstSkillCode=acrobatics
+2026-06-29 14:40:32.777 [INFO] [t:1] player.characterSkills.rawCount=12
+2026-06-29 14:40:32.777 [INFO] [t:1] player.characterSkills.mappedCount=12
+2026-06-29 14:40:32.777 [INFO] [t:1] player.skillCatalog.count=13
+2026-06-29 14:40:32.777 [INFO] [t:1] player.characterSkills.count=12
+2026-06-29 14:40:32.777 [INFO] [t:1] activeCharacter.skills loaded=12
+2026-06-29 14:40:32.777 [INFO] [t:1] player.skills.placeholder hidden=true
+2026-06-29 14:40:32.777 [INFO] [t:1] player.skills.character.bind count=12
+2026-06-29 14:40:32.777 [INFO] [t:1] activeCharacter.skills.render count=12
+2026-06-29 14:40:32.777 [INFO] [t:1] activeCharacter.skills.placeholder hidden=true
+2026-06-29 14:40:32.778 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=a97c2d6c8e7c409696a8d1f0e34cdabc; startedUtc=2026-06-29T11:40:32.7784271Z; payloadKeys=2
+2026-06-29 14:40:32.813 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=a97c2d6c8e7c409696a8d1f0e34cdabc; status=Ok; success=True; elapsedMs=34; message=Chat history loaded.
+2026-06-29 14:40:32.817 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-29 14:40:32.819 [INFO] [t:1] chat.window.timeline mergedCount=80
+2026-06-29 14:40:32.819 [DEBUG] [t:1] merged.timeline first=System:14:07
+2026-06-29 14:40:32.819 [DEBUG] [t:1] merged.timeline last=System:14:40
+2026-06-29 14:40:32.819 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:40:32.819 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:40:32.821 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:40:32.821 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=30d73c4b5b954d3bb48f5b3ae4e6e43a; startedUtc=2026-06-29T11:40:32.8212552Z; payloadKeys=0
+2026-06-29 14:40:32.895 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=30d73c4b5b954d3bb48f5b3ae4e6e43a; status=Ok; success=True; elapsedMs=73; message=Dice feed loaded.
+2026-06-29 14:40:32.895 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:40:32.897 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:40:32.897 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:40:32.897 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:40:32.897 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:40:32.897 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:40:32.897 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:40:32.897 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=f4d67a281c894cc183d1ec3473d2f547; startedUtc=2026-06-29T11:40:32.8974458Z; payloadKeys=0
+2026-06-29 14:40:32.928 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=f4d67a281c894cc183d1ec3473d2f547; status=Ok; success=True; elapsedMs=31; message=Player requests loaded.
+2026-06-29 14:40:32.928 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=6ecab412ae9e48ce9abff224bcb9ecad; startedUtc=2026-06-29T11:40:32.9288885Z; payloadKeys=0
+2026-06-29 14:40:32.933 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=6ecab412ae9e48ce9abff224bcb9ecad; status=Ok; success=True; elapsedMs=4; message=No current test roll.
+2026-06-29 14:40:32.933 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:40:32.933 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:40:32.933 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:40:32.933 [DEBUG] [t:1] request.start command=combat.timeline; requestId=692b3a3ae10f4144935c3222b3f96113; startedUtc=2026-06-29T11:40:32.9338895Z; payloadKeys=1
+2026-06-29 14:40:32.936 [DEBUG] [t:1] request.end command=combat.timeline; requestId=692b3a3ae10f4144935c3222b3f96113; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:40:32.936 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=db4b3d35215a46a8ad8131aa9d05a348; startedUtc=2026-06-29T11:40:32.9368891Z; payloadKeys=1
+2026-06-29 14:40:32.939 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=db4b3d35215a46a8ad8131aa9d05a348; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:40:32.939 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=956033d639f64d079051fc6b301ac4b6; startedUtc=2026-06-29T11:40:32.9398888Z; payloadKeys=1
+2026-06-29 14:40:32.951 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=956033d639f64d079051fc6b301ac4b6; status=Ok; success=True; elapsedMs=11; message=Player audio state loaded.
+2026-06-29 14:40:32.951 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=6325e83cddc0480a8a7f1eac0b3fac86; startedUtc=2026-06-29T11:40:32.9518895Z; payloadKeys=1
+2026-06-29 14:40:32.959 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=6325e83cddc0480a8a7f1eac0b3fac86; status=Ok; success=True; elapsedMs=8; message=Player-visible audio tracks loaded.
+2026-06-29 14:40:32.960 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:40:32.960 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:40:32.960 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:40:32.960 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:40:32.960 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:40:32.960 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:40:32.960 [INFO] [t:1] player.functional.dashboard.load.start
+2026-06-29 14:40:32.960 [DEBUG] [t:1] request.start command=player.dashboard.get; requestId=673607c6146944da8a7f9a7d10137fa4; startedUtc=2026-06-29T11:40:32.9608899Z; payloadKeys=0
+2026-06-29 14:40:32.964 [DEBUG] [t:1] request.end command=player.dashboard.get; requestId=673607c6146944da8a7f9a7d10137fa4; status=Ok; success=True; elapsedMs=3; message=Функциональный пульт выключен настройками модулей.
+2026-06-29 14:40:32.966 [INFO] [t:1] player.functional.dashboard.load.done enabled=False metrics=0 processes=0 actions=0
+2026-06-29 14:40:32.966 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=ed3e56de9875465f952e643578cc4f12; startedUtc=2026-06-29T11:40:32.9668902Z; payloadKeys=0
+2026-06-29 14:40:32.969 [DEBUG] [t:1] request.end command=system.featureFlags.snapshot; requestId=ed3e56de9875465f952e643578cc4f12; status=Unauthorized; success=False; elapsedMs=2; message=Insufficient role.
+2026-06-29 14:40:32.969 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=cf4a8b11339a41e89baaabc685ac30c2; startedUtc=2026-06-29T11:40:32.9698895Z; payloadKeys=0
+2026-06-29 14:40:32.972 [DEBUG] [t:1] request.end command=system.featureFlags.snapshot; requestId=cf4a8b11339a41e89baaabc685ac30c2; status=Unauthorized; success=False; elapsedMs=2; message=Insufficient role.
+2026-06-29 14:40:32.973 [DEBUG] [t:1] request.start command=journal.player.event.list; requestId=9691957586e2493794043282ee7c006e; startedUtc=2026-06-29T11:40:32.9738899Z; payloadKeys=4
+2026-06-29 14:40:32.998 [DEBUG] [t:1] request.end command=journal.player.event.list; requestId=9691957586e2493794043282ee7c006e; status=Ok; success=True; elapsedMs=25; message=Player event journal loaded.
+2026-06-29 14:40:33.002 [INFO] [t:1] player.journal.flags
+2026-06-29 14:40:33.002 [INFO] [t:1] player.map.active.load.start
+2026-06-29 14:40:33.002 [DEBUG] [t:1] request.start command=map.player.scene.active.get; requestId=fb635b4eb18f43bea86398b3c694e815; startedUtc=2026-06-29T11:40:33.0028888Z; payloadKeys=5
+2026-06-29 14:40:33.006 [DEBUG] [t:1] request.end command=map.player.scene.active.get; requestId=fb635b4eb18f43bea86398b3c694e815; status=Forbidden; success=False; elapsedMs=3; message=player active scene map endpoint disabled
+2026-06-29 14:40:33.006 [WARN] [t:1] player.map.active.load.error message=player active scene map endpoint disabled
+2026-06-29 14:40:33.006 [DEBUG] [t:5] request.start command=system.featureFlags.snapshot; requestId=8977264918d34c0984d8cf954f79b272; startedUtc=2026-06-29T11:40:33.0068896Z; payloadKeys=0
+2026-06-29 14:40:33.006 [DEBUG] [t:4] request.start command=system.featureFlags.snapshot; requestId=3652ec0944364d1cb9f9a4bbb0409269; startedUtc=2026-06-29T11:40:33.0068896Z; payloadKeys=0
+2026-06-29 14:40:33.006 [INFO] [t:1] ui.player.dice.button state=enabled reason=ready
+2026-06-29 14:40:33.006 [INFO] [t:1] player.auth.login.success user=dev_player
+2026-06-29 14:40:33.009 [DEBUG] [t:5] request.end command=system.featureFlags.snapshot; requestId=8977264918d34c0984d8cf954f79b272; status=Unauthorized; success=False; elapsedMs=2; message=Insufficient role.
+2026-06-29 14:40:33.012 [DEBUG] [t:4] request.end command=system.featureFlags.snapshot; requestId=3652ec0944364d1cb9f9a4bbb0409269; status=Unauthorized; success=False; elapsedMs=5; message=Insufficient role.
+2026-06-29 14:40:33.058 [INFO] [t:1] player.world_calendar.load.start
+2026-06-29 14:40:33.058 [DEBUG] [t:6] request.start command=world.calendar.player.get; requestId=b5ed6243196346c28f3e89b4e60deda2; startedUtc=2026-06-29T11:40:33.0588909Z; payloadKeys=2
+2026-06-29 14:40:33.058 [INFO] [t:1] player.schedule.load.start
+2026-06-29 14:40:33.058 [DEBUG] [t:4] request.start command=schedule.real.player.next; requestId=83088f8008f84a7fb2e0ba81c043506c; startedUtc=2026-06-29T11:40:33.0588909Z; payloadKeys=1
+2026-06-29 14:40:33.062 [WARN] [t:6] conflict.received command=world.calendar.player.get entityType= entityId= expected=0 current=0 requestId=b5ed6243196346c28f3e89b4e60deda2
+2026-06-29 14:40:33.062 [DEBUG] [t:6] request.end command=world.calendar.player.get; requestId=b5ed6243196346c28f3e89b4e60deda2; status=Conflict; success=False; elapsedMs=4; message=world calendar not found
+2026-06-29 14:40:33.066 [DEBUG] [t:4] request.end command=schedule.real.player.next; requestId=83088f8008f84a7fb2e0ba81c043506c; status=Ok; success=True; elapsedMs=8; message=Real schedule next event loaded.
+2026-06-29 14:40:33.078 [DEBUG] [t:5] request.start command=schedule.real.player.list; requestId=ec826a235a964025927b66e46c2c9be3; startedUtc=2026-06-29T11:40:33.0788880Z; payloadKeys=1
+2026-06-29 14:40:33.082 [DEBUG] [t:5] request.end command=schedule.real.player.list; requestId=ec826a235a964025927b66e46c2c9be3; status=Ok; success=True; elapsedMs=4; message=Real schedule player events loaded.
+2026-06-29 14:40:33.083 [INFO] [t:1] player.schedule.load.done
+2026-06-29 14:40:40.996 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=15620cb65eb347da8aa50ad75c42580b; startedUtc=2026-06-29T11:40:40.9965946Z; payloadKeys=2
+2026-06-29 14:40:41.033 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=15620cb65eb347da8aa50ad75c42580b; status=Ok; success=True; elapsedMs=36; message=Chat history loaded.
+2026-06-29 14:40:41.033 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:40:41.033 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:40:41.033 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:40:41.033 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:40:41.033 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:40:41.033 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:40:41.033 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:40:41.033 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=672b2ed4041c4ad380a3d59bbba16c61; startedUtc=2026-06-29T11:40:41.0336931Z; payloadKeys=0
+2026-06-29 14:40:41.107 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=672b2ed4041c4ad380a3d59bbba16c61; status=Ok; success=True; elapsedMs=73; message=Dice feed loaded.
+2026-06-29 14:40:41.107 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:40:41.108 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:40:41.108 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:40:41.108 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:40:41.108 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:40:41.108 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:40:41.108 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:40:41.108 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=d4607959200a41529108a6962192e7b6; startedUtc=2026-06-29T11:40:41.1083273Z; payloadKeys=0
+2026-06-29 14:40:41.138 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=d4607959200a41529108a6962192e7b6; status=Ok; success=True; elapsedMs=29; message=Player requests loaded.
+2026-06-29 14:40:41.139 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=7bce0d0aa5e24b7ba8d641eb33e89965; startedUtc=2026-06-29T11:40:41.1393272Z; payloadKeys=0
+2026-06-29 14:40:41.142 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=7bce0d0aa5e24b7ba8d641eb33e89965; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:40:41.142 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:40:41.142 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:40:41.142 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:40:41.142 [DEBUG] [t:1] request.start command=combat.timeline; requestId=771e5a6cdc4c41aaa420d90b84f65edf; startedUtc=2026-06-29T11:40:41.1423281Z; payloadKeys=1
+2026-06-29 14:40:41.145 [DEBUG] [t:1] request.end command=combat.timeline; requestId=771e5a6cdc4c41aaa420d90b84f65edf; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:40:41.145 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=335617c1e4ae4aefbef0e5a4a5b9f549; startedUtc=2026-06-29T11:40:41.1453283Z; payloadKeys=1
+2026-06-29 14:40:41.148 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=335617c1e4ae4aefbef0e5a4a5b9f549; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:40:41.148 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=14b2f21a8ac74e84bae56d5572eebf61; startedUtc=2026-06-29T11:40:41.1483280Z; payloadKeys=1
+2026-06-29 14:40:41.158 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=14b2f21a8ac74e84bae56d5572eebf61; status=Ok; success=True; elapsedMs=10; message=Player audio state loaded.
+2026-06-29 14:40:41.158 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=110d498bfe614251ac8dc8d0150047bc; startedUtc=2026-06-29T11:40:41.1583286Z; payloadKeys=1
+2026-06-29 14:40:41.167 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=110d498bfe614251ac8dc8d0150047bc; status=Ok; success=True; elapsedMs=8; message=Player-visible audio tracks loaded.
+2026-06-29 14:40:41.167 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:40:41.167 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:40:41.167 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:40:41.167 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:40:41.167 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:40:41.167 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:40:49.168 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=8bcc1d8480244561b306b9ce4abdfb1c; startedUtc=2026-06-29T11:40:49.1681836Z; payloadKeys=2
+2026-06-29 14:40:49.202 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=8bcc1d8480244561b306b9ce4abdfb1c; status=Ok; success=True; elapsedMs=35; message=Chat history loaded.
+2026-06-29 14:40:49.202 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:40:49.203 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:40:49.203 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:40:49.203 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:40:49.203 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:40:49.203 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:40:49.203 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:40:49.203 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=066705182a2243f1b3c2c0b9f8acec10; startedUtc=2026-06-29T11:40:49.2037878Z; payloadKeys=0
+2026-06-29 14:40:49.276 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=066705182a2243f1b3c2c0b9f8acec10; status=Ok; success=True; elapsedMs=73; message=Dice feed loaded.
+2026-06-29 14:40:49.277 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:40:49.278 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:40:49.278 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:40:49.278 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:40:49.278 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:40:49.278 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:40:49.278 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:40:49.278 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=17f140e043374d318291b4adf466fe92; startedUtc=2026-06-29T11:40:49.2786638Z; payloadKeys=0
+2026-06-29 14:40:49.310 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=17f140e043374d318291b4adf466fe92; status=Ok; success=True; elapsedMs=31; message=Player requests loaded.
+2026-06-29 14:40:49.310 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=4c8d1caac86a42e2a453d87eb6584cfa; startedUtc=2026-06-29T11:40:49.3103551Z; payloadKeys=0
+2026-06-29 14:40:49.314 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=4c8d1caac86a42e2a453d87eb6584cfa; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:40:49.314 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:40:49.314 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:40:49.314 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:40:49.314 [DEBUG] [t:1] request.start command=combat.timeline; requestId=bf7f76ce9aaf4480b9fb96558a5452da; startedUtc=2026-06-29T11:40:49.3145881Z; payloadKeys=1
+2026-06-29 14:40:49.317 [DEBUG] [t:1] request.end command=combat.timeline; requestId=bf7f76ce9aaf4480b9fb96558a5452da; status=NotFound; success=False; elapsedMs=3; message=Combat state not found.
+2026-06-29 14:40:49.317 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=93d4386e9b13425aac3723efa0002945; startedUtc=2026-06-29T11:40:49.3178258Z; payloadKeys=1
+2026-06-29 14:40:49.320 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=93d4386e9b13425aac3723efa0002945; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:40:49.320 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=89ac2ac8dd104342a2e45b766780e579; startedUtc=2026-06-29T11:40:49.3204435Z; payloadKeys=1
+2026-06-29 14:40:49.331 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=89ac2ac8dd104342a2e45b766780e579; status=Ok; success=True; elapsedMs=11; message=Player audio state loaded.
+2026-06-29 14:40:49.331 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=48071db5ac0c4e94b6b56ba6cf067ae5; startedUtc=2026-06-29T11:40:49.3313623Z; payloadKeys=1
+2026-06-29 14:40:49.340 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=48071db5ac0c4e94b6b56ba6cf067ae5; status=Ok; success=True; elapsedMs=9; message=Player-visible audio tracks loaded.
+2026-06-29 14:40:49.341 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:40:49.341 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:40:49.341 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:40:49.341 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:40:49.341 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:40:49.341 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:40:57.339 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=e0a0ed11b4a24c578b4ff33edba566d4; startedUtc=2026-06-29T11:40:57.3390294Z; payloadKeys=2
+2026-06-29 14:40:57.374 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=e0a0ed11b4a24c578b4ff33edba566d4; status=Ok; success=True; elapsedMs=35; message=Chat history loaded.
+2026-06-29 14:40:57.375 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:40:57.375 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:40:57.375 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:40:57.375 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:40:57.375 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:40:57.375 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:40:57.375 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:40:57.375 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=96587108220d45ce9cb8a51e85668979; startedUtc=2026-06-29T11:40:57.3750042Z; payloadKeys=0
+2026-06-29 14:40:57.452 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=96587108220d45ce9cb8a51e85668979; status=Ok; success=True; elapsedMs=77; message=Dice feed loaded.
+2026-06-29 14:40:57.452 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:40:57.453 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:40:57.453 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:40:57.453 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:40:57.453 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:40:57.453 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:40:57.453 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:40:57.453 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=97d1f77ac9744b938688c91175cb5fab; startedUtc=2026-06-29T11:40:57.4536687Z; payloadKeys=0
+2026-06-29 14:40:57.486 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=97d1f77ac9744b938688c91175cb5fab; status=Ok; success=True; elapsedMs=33; message=Player requests loaded.
+2026-06-29 14:40:57.487 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=0673da9e22594ef0ab356f670557145b; startedUtc=2026-06-29T11:40:57.4878168Z; payloadKeys=0
+2026-06-29 14:40:57.490 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=0673da9e22594ef0ab356f670557145b; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:40:57.490 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:40:57.490 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:40:57.490 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:40:57.490 [DEBUG] [t:1] request.start command=combat.timeline; requestId=039077a79d0c4ee68c3e0f90c3b27e83; startedUtc=2026-06-29T11:40:57.4908175Z; payloadKeys=1
+2026-06-29 14:40:57.493 [DEBUG] [t:1] request.end command=combat.timeline; requestId=039077a79d0c4ee68c3e0f90c3b27e83; status=NotFound; success=False; elapsedMs=3; message=Combat state not found.
+2026-06-29 14:40:57.494 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=dcad1ea936bd4da593725838c13838e7; startedUtc=2026-06-29T11:40:57.4948181Z; payloadKeys=1
+2026-06-29 14:40:57.496 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=dcad1ea936bd4da593725838c13838e7; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:40:57.497 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=028db02f54f648dcbae6e7b121d883fe; startedUtc=2026-06-29T11:40:57.4978155Z; payloadKeys=1
+2026-06-29 14:40:57.509 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=028db02f54f648dcbae6e7b121d883fe; status=Ok; success=True; elapsedMs=11; message=Player audio state loaded.
+2026-06-29 14:40:57.509 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=8beb48045d4043d189bcd4bdf9bd52da; startedUtc=2026-06-29T11:40:57.5096812Z; payloadKeys=1
+2026-06-29 14:40:57.517 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=8beb48045d4043d189bcd4bdf9bd52da; status=Ok; success=True; elapsedMs=8; message=Player-visible audio tracks loaded.
+2026-06-29 14:40:57.517 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:40:57.517 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:40:57.517 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:40:57.517 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:40:57.517 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:40:57.517 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:05.510 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=787a26a282f84620bd2f898b86e2b507; startedUtc=2026-06-29T11:41:05.5104660Z; payloadKeys=2
+2026-06-29 14:41:05.545 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=787a26a282f84620bd2f898b86e2b507; status=Ok; success=True; elapsedMs=35; message=Chat history loaded.
+2026-06-29 14:41:05.546 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:05.546 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:05.546 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:05.546 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:05.546 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:05.546 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:05.546 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:41:05.546 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=6c42974624aa453cb46abccad1a38574; startedUtc=2026-06-29T11:41:05.5460475Z; payloadKeys=0
+2026-06-29 14:41:05.621 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=6c42974624aa453cb46abccad1a38574; status=Ok; success=True; elapsedMs=75; message=Dice feed loaded.
+2026-06-29 14:41:05.621 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:41:05.623 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:41:05.623 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:41:05.623 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:41:05.623 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:41:05.623 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:41:05.623 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:41:05.623 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=f6bd30aadd9049e59420929024fc7eb2; startedUtc=2026-06-29T11:41:05.6231923Z; payloadKeys=0
+2026-06-29 14:41:05.654 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=f6bd30aadd9049e59420929024fc7eb2; status=Ok; success=True; elapsedMs=31; message=Player requests loaded.
+2026-06-29 14:41:05.654 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=fc608c4278a2426284945bff364bff61; startedUtc=2026-06-29T11:41:05.6544077Z; payloadKeys=0
+2026-06-29 14:41:05.658 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=fc608c4278a2426284945bff364bff61; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:41:05.658 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:41:05.658 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:41:05.658 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:41:05.658 [DEBUG] [t:1] request.start command=combat.timeline; requestId=b0dc7ec41d894bb1a3b353a39a2c798d; startedUtc=2026-06-29T11:41:05.6584059Z; payloadKeys=1
+2026-06-29 14:41:05.661 [DEBUG] [t:1] request.end command=combat.timeline; requestId=b0dc7ec41d894bb1a3b353a39a2c798d; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:41:05.661 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=54ac4d522cf84c73aca8ac14b9fcad8f; startedUtc=2026-06-29T11:41:05.6614092Z; payloadKeys=1
+2026-06-29 14:41:05.664 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=54ac4d522cf84c73aca8ac14b9fcad8f; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:41:05.664 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=154714ad5abc4a6a868e1c77ff0a5952; startedUtc=2026-06-29T11:41:05.6644064Z; payloadKeys=1
+2026-06-29 14:41:05.676 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=154714ad5abc4a6a868e1c77ff0a5952; status=Ok; success=True; elapsedMs=11; message=Player audio state loaded.
+2026-06-29 14:41:05.676 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=eacf52828c0d4971b492c65d4a07e8a3; startedUtc=2026-06-29T11:41:05.6764061Z; payloadKeys=1
+2026-06-29 14:41:05.684 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=eacf52828c0d4971b492c65d4a07e8a3; status=Ok; success=True; elapsedMs=8; message=Player-visible audio tracks loaded.
+2026-06-29 14:41:05.684 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:05.684 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:05.684 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:05.684 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:05.684 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:05.684 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:13.693 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=25c9caa9d5e04376843dac8971fa094e; startedUtc=2026-06-29T11:41:13.6933956Z; payloadKeys=2
+2026-06-29 14:41:13.726 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=25c9caa9d5e04376843dac8971fa094e; status=Ok; success=True; elapsedMs=33; message=Chat history loaded.
+2026-06-29 14:41:13.726 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:13.726 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:13.726 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:13.726 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:13.727 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:13.727 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:13.727 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:41:13.727 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=80398da57cfd47859be7ba7496dad6fe; startedUtc=2026-06-29T11:41:13.7273950Z; payloadKeys=0
+2026-06-29 14:41:13.803 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=80398da57cfd47859be7ba7496dad6fe; status=Ok; success=True; elapsedMs=76; message=Dice feed loaded.
+2026-06-29 14:41:13.803 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:41:13.804 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:41:13.804 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:41:13.804 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:41:13.804 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:41:13.804 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:41:13.804 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:41:13.804 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=39c8ed97792f41c4965fc57137ee3976; startedUtc=2026-06-29T11:41:13.8047369Z; payloadKeys=0
+2026-06-29 14:41:13.833 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=39c8ed97792f41c4965fc57137ee3976; status=Ok; success=True; elapsedMs=28; message=Player requests loaded.
+2026-06-29 14:41:13.834 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=6869a8859d4e453a8f6c65bd382f6595; startedUtc=2026-06-29T11:41:13.8347375Z; payloadKeys=0
+2026-06-29 14:41:13.837 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=6869a8859d4e453a8f6c65bd382f6595; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:41:13.837 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:41:13.837 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:41:13.837 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:41:13.837 [DEBUG] [t:1] request.start command=combat.timeline; requestId=65511480f1b946a480b2baae31be2554; startedUtc=2026-06-29T11:41:13.8379368Z; payloadKeys=1
+2026-06-29 14:41:13.841 [DEBUG] [t:1] request.end command=combat.timeline; requestId=65511480f1b946a480b2baae31be2554; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:41:13.841 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=fa409274b1e145e484fdcf90bbec7565; startedUtc=2026-06-29T11:41:13.8410811Z; payloadKeys=1
+2026-06-29 14:41:13.843 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=fa409274b1e145e484fdcf90bbec7565; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:41:13.843 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=55d2984c134f4092b148cd9aa5a01f34; startedUtc=2026-06-29T11:41:13.8436838Z; payloadKeys=1
+2026-06-29 14:41:13.854 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=55d2984c134f4092b148cd9aa5a01f34; status=Ok; success=True; elapsedMs=11; message=Player audio state loaded.
+2026-06-29 14:41:13.854 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=4c844adfdf2c4478bfcc74535c94566d; startedUtc=2026-06-29T11:41:13.8543217Z; payloadKeys=1
+2026-06-29 14:41:13.863 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=4c844adfdf2c4478bfcc74535c94566d; status=Ok; success=True; elapsedMs=8; message=Player-visible audio tracks loaded.
+2026-06-29 14:41:13.863 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:13.863 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:13.863 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:13.863 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:13.863 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:13.863 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:21.853 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=d6514f53d7bb431e90c4020b062ca575; startedUtc=2026-06-29T11:41:21.8531417Z; payloadKeys=2
+2026-06-29 14:41:21.889 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=d6514f53d7bb431e90c4020b062ca575; status=Ok; success=True; elapsedMs=36; message=Chat history loaded.
+2026-06-29 14:41:21.889 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:21.889 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:21.889 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:21.889 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:21.889 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:21.889 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:21.889 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:41:21.889 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=2384e802de2e4ea088a2b75e8d61c9d7; startedUtc=2026-06-29T11:41:21.8891422Z; payloadKeys=0
+2026-06-29 14:41:21.964 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=2384e802de2e4ea088a2b75e8d61c9d7; status=Ok; success=True; elapsedMs=75; message=Dice feed loaded.
+2026-06-29 14:41:21.964 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:41:21.965 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:41:21.965 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:41:21.965 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:41:21.965 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:41:21.965 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:41:21.965 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:41:21.965 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=f82fdb29ab8d4482992d688aeb954763; startedUtc=2026-06-29T11:41:21.9657462Z; payloadKeys=0
+2026-06-29 14:41:22.000 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=f82fdb29ab8d4482992d688aeb954763; status=Ok; success=True; elapsedMs=34; message=Player requests loaded.
+2026-06-29 14:41:22.000 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=41d1fab0bd2d4e878aeb51452068ac6c; startedUtc=2026-06-29T11:41:22.0004822Z; payloadKeys=0
+2026-06-29 14:41:22.004 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=41d1fab0bd2d4e878aeb51452068ac6c; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:41:22.004 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:41:22.004 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:41:22.004 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:41:22.004 [DEBUG] [t:1] request.start command=combat.timeline; requestId=40f98c2e965f4478aed19bcbbde4920c; startedUtc=2026-06-29T11:41:22.0046907Z; payloadKeys=1
+2026-06-29 14:41:22.007 [DEBUG] [t:1] request.end command=combat.timeline; requestId=40f98c2e965f4478aed19bcbbde4920c; status=NotFound; success=False; elapsedMs=3; message=Combat state not found.
+2026-06-29 14:41:22.008 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=552a38130a2f457e9898b3da459ae52c; startedUtc=2026-06-29T11:41:22.0083530Z; payloadKeys=1
+2026-06-29 14:41:22.011 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=552a38130a2f457e9898b3da459ae52c; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:41:22.011 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=04217ee569ea48e689caa89a4ec893a7; startedUtc=2026-06-29T11:41:22.0113604Z; payloadKeys=1
+2026-06-29 14:41:22.022 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=04217ee569ea48e689caa89a4ec893a7; status=Ok; success=True; elapsedMs=11; message=Player audio state loaded.
+2026-06-29 14:41:22.022 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=5185f8556d4946a99a4076ac38a87276; startedUtc=2026-06-29T11:41:22.0223609Z; payloadKeys=1
+2026-06-29 14:41:22.030 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=5185f8556d4946a99a4076ac38a87276; status=Ok; success=True; elapsedMs=8; message=Player-visible audio tracks loaded.
+2026-06-29 14:41:22.031 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:22.031 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:22.031 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:22.031 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:22.031 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:22.031 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:30.026 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=47853f4f77fb4d22aa84070d1deee377; startedUtc=2026-06-29T11:41:30.0260992Z; payloadKeys=2
+2026-06-29 14:41:30.062 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=47853f4f77fb4d22aa84070d1deee377; status=Ok; success=True; elapsedMs=36; message=Chat history loaded.
+2026-06-29 14:41:30.063 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:30.063 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:30.063 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:30.063 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:30.063 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:30.063 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:30.063 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:41:30.063 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=080e2d26fa3f44efbcb4d6b58563f9a6; startedUtc=2026-06-29T11:41:30.0630989Z; payloadKeys=0
+2026-06-29 14:41:30.139 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=080e2d26fa3f44efbcb4d6b58563f9a6; status=Ok; success=True; elapsedMs=76; message=Dice feed loaded.
+2026-06-29 14:41:30.139 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:41:30.140 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:41:30.140 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:41:30.140 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:41:30.140 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:41:30.140 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:41:30.140 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:41:30.140 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=ad7bdfb21f16419486995af0ea666ce2; startedUtc=2026-06-29T11:41:30.1407037Z; payloadKeys=0
+2026-06-29 14:41:30.171 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=ad7bdfb21f16419486995af0ea666ce2; status=Ok; success=True; elapsedMs=31; message=Player requests loaded.
+2026-06-29 14:41:30.172 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=0511d43b4aec4fa59444122b5b80c9fd; startedUtc=2026-06-29T11:41:30.1729443Z; payloadKeys=0
+2026-06-29 14:41:30.176 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=0511d43b4aec4fa59444122b5b80c9fd; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:41:30.176 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:41:30.176 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:41:30.176 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:41:30.176 [DEBUG] [t:1] request.start command=combat.timeline; requestId=1881165bdda34b66be60baff456566be; startedUtc=2026-06-29T11:41:30.1768377Z; payloadKeys=1
+2026-06-29 14:41:30.179 [DEBUG] [t:1] request.end command=combat.timeline; requestId=1881165bdda34b66be60baff456566be; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:41:30.179 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=71ad91f2234747ee9539690b65defebe; startedUtc=2026-06-29T11:41:30.1794967Z; payloadKeys=1
+2026-06-29 14:41:30.182 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=71ad91f2234747ee9539690b65defebe; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:41:30.182 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=0b07e6b88066435fbe6e0ff85bdaac9a; startedUtc=2026-06-29T11:41:30.1827079Z; payloadKeys=1
+2026-06-29 14:41:30.194 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=0b07e6b88066435fbe6e0ff85bdaac9a; status=Ok; success=True; elapsedMs=12; message=Player audio state loaded.
+2026-06-29 14:41:30.194 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=097d1529c8e84b8aa15f318574b2d311; startedUtc=2026-06-29T11:41:30.1948263Z; payloadKeys=1
+2026-06-29 14:41:30.202 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=097d1529c8e84b8aa15f318574b2d311; status=Ok; success=True; elapsedMs=8; message=Player-visible audio tracks loaded.
+2026-06-29 14:41:30.202 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:30.202 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:30.202 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:30.202 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:30.202 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:30.202 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:38.197 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=a04741cef63f4e4982d76f07730a3204; startedUtc=2026-06-29T11:41:38.1971421Z; payloadKeys=2
+2026-06-29 14:41:38.230 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=a04741cef63f4e4982d76f07730a3204; status=Ok; success=True; elapsedMs=34; message=Chat history loaded.
+2026-06-29 14:41:38.231 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:38.231 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:38.231 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:38.231 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:38.231 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:38.231 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:38.231 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:41:38.234 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=9aa5aca24b794209849e4ad5bc8d2abe; startedUtc=2026-06-29T11:41:38.2346688Z; payloadKeys=0
+2026-06-29 14:41:38.308 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=9aa5aca24b794209849e4ad5bc8d2abe; status=Ok; success=True; elapsedMs=74; message=Dice feed loaded.
+2026-06-29 14:41:38.308 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:41:38.309 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:41:38.309 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:41:38.309 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:41:38.309 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:41:38.309 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:41:38.309 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:41:38.309 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=f8ac2a1dc2bc4bfb9bca7eb981f0fe24; startedUtc=2026-06-29T11:41:38.3099989Z; payloadKeys=0
+2026-06-29 14:41:38.343 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=f8ac2a1dc2bc4bfb9bca7eb981f0fe24; status=Ok; success=True; elapsedMs=32; message=Player requests loaded.
+2026-06-29 14:41:38.343 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=c3f680238043457cb40a000b2979bc2a; startedUtc=2026-06-29T11:41:38.3430004Z; payloadKeys=0
+2026-06-29 14:41:38.346 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=c3f680238043457cb40a000b2979bc2a; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:41:38.346 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:41:38.346 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:41:38.346 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:41:38.346 [DEBUG] [t:1] request.start command=combat.timeline; requestId=99bdcbc2378e46b283421e6b69281366; startedUtc=2026-06-29T11:41:38.3469992Z; payloadKeys=1
+2026-06-29 14:41:38.349 [DEBUG] [t:1] request.end command=combat.timeline; requestId=99bdcbc2378e46b283421e6b69281366; status=NotFound; success=False; elapsedMs=3; message=Combat state not found.
+2026-06-29 14:41:38.349 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=d59e2288233f4e9b8770eb3bbf270014; startedUtc=2026-06-29T11:41:38.3499991Z; payloadKeys=1
+2026-06-29 14:41:38.353 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=d59e2288233f4e9b8770eb3bbf270014; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:41:38.353 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=4a367aaa7b3c40d89c13cef3a4b12e4c; startedUtc=2026-06-29T11:41:38.3530001Z; payloadKeys=1
+2026-06-29 14:41:38.363 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=4a367aaa7b3c40d89c13cef3a4b12e4c; status=Ok; success=True; elapsedMs=11; message=Player audio state loaded.
+2026-06-29 14:41:38.363 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=e4f3f256b9a84224b3f8ab3e5e72b47f; startedUtc=2026-06-29T11:41:38.3639994Z; payloadKeys=1
+2026-06-29 14:41:38.371 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=e4f3f256b9a84224b3f8ab3e5e72b47f; status=Ok; success=True; elapsedMs=7; message=Player-visible audio tracks loaded.
+2026-06-29 14:41:38.371 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:38.371 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:38.371 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:38.371 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:38.371 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:38.371 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:46.369 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=4501d5a2aa8b4b268cdbab3e838105f6; startedUtc=2026-06-29T11:41:46.3692046Z; payloadKeys=2
+2026-06-29 14:41:46.402 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=4501d5a2aa8b4b268cdbab3e838105f6; status=Ok; success=True; elapsedMs=33; message=Chat history loaded.
+2026-06-29 14:41:46.402 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:46.402 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:46.402 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:46.402 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:46.402 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:46.402 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:46.402 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:41:46.405 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=963094826f19406dbc5b8822b0d1b0c6; startedUtc=2026-06-29T11:41:46.4042053Z; payloadKeys=0
+2026-06-29 14:41:46.477 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=963094826f19406dbc5b8822b0d1b0c6; status=Ok; success=True; elapsedMs=72; message=Dice feed loaded.
+2026-06-29 14:41:46.477 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:41:46.478 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:41:46.478 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:41:46.478 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:41:46.478 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:41:46.478 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:41:46.478 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:41:46.478 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=f6066b58baef4a5ab2741d1a8fa49e6c; startedUtc=2026-06-29T11:41:46.4788026Z; payloadKeys=0
+2026-06-29 14:41:46.508 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=f6066b58baef4a5ab2741d1a8fa49e6c; status=Ok; success=True; elapsedMs=29; message=Player requests loaded.
+2026-06-29 14:41:46.508 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=5191bf332bf64fd48b9c3070ed4ed8b9; startedUtc=2026-06-29T11:41:46.5088027Z; payloadKeys=0
+2026-06-29 14:41:46.511 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=5191bf332bf64fd48b9c3070ed4ed8b9; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:41:46.511 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:41:46.511 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:41:46.511 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:41:46.511 [DEBUG] [t:1] request.start command=combat.timeline; requestId=f43c0de428d2496db71e277447b85701; startedUtc=2026-06-29T11:41:46.5118035Z; payloadKeys=1
+2026-06-29 14:41:46.514 [DEBUG] [t:1] request.end command=combat.timeline; requestId=f43c0de428d2496db71e277447b85701; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:41:46.514 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=94edbea202844b959183d7b02e9297c0; startedUtc=2026-06-29T11:41:46.5148036Z; payloadKeys=1
+2026-06-29 14:41:46.517 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=94edbea202844b959183d7b02e9297c0; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:41:46.517 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=7ce297d941f041818323c038d2c53aad; startedUtc=2026-06-29T11:41:46.5178041Z; payloadKeys=1
+2026-06-29 14:41:46.528 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=7ce297d941f041818323c038d2c53aad; status=Ok; success=True; elapsedMs=11; message=Player audio state loaded.
+2026-06-29 14:41:46.528 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=1dc9215313ee42adae0cbbbb68959528; startedUtc=2026-06-29T11:41:46.5288035Z; payloadKeys=1
+2026-06-29 14:41:46.537 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=1dc9215313ee42adae0cbbbb68959528; status=Ok; success=True; elapsedMs=8; message=Player-visible audio tracks loaded.
+2026-06-29 14:41:46.537 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:46.537 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:46.537 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:46.537 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:46.537 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:46.537 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:47.326 [DEBUG] [t:6] request.start command=system.featureFlags.snapshot; requestId=99bccf22d72849b4b3551762624b6bb1; startedUtc=2026-06-29T11:41:47.3266517Z; payloadKeys=0
+2026-06-29 14:41:47.326 [DEBUG] [t:5] request.start command=system.featureFlags.snapshot; requestId=03f6fa71c93841f1ae1f597aa39c2c78; startedUtc=2026-06-29T11:41:47.3266517Z; payloadKeys=0
+2026-06-29 14:41:47.329 [DEBUG] [t:6] request.end command=system.featureFlags.snapshot; requestId=99bccf22d72849b4b3551762624b6bb1; status=Unauthorized; success=False; elapsedMs=3; message=Insufficient role.
+2026-06-29 14:41:47.329 [INFO] [t:1] player.world_calendar.load.start
+2026-06-29 14:41:47.329 [DEBUG] [t:6] request.start command=world.calendar.player.get; requestId=c025cc03426b475a9d10723511e1eca1; startedUtc=2026-06-29T11:41:47.3296531Z; payloadKeys=2
+2026-06-29 14:41:47.334 [WARN] [t:6] conflict.received command=world.calendar.player.get entityType= entityId= expected=0 current=0 requestId=c025cc03426b475a9d10723511e1eca1
+2026-06-29 14:41:47.334 [DEBUG] [t:6] request.end command=world.calendar.player.get; requestId=c025cc03426b475a9d10723511e1eca1; status=Conflict; success=False; elapsedMs=4; message=world calendar not found
+2026-06-29 14:41:47.337 [DEBUG] [t:5] request.end command=system.featureFlags.snapshot; requestId=03f6fa71c93841f1ae1f597aa39c2c78; status=Unauthorized; success=False; elapsedMs=11; message=Insufficient role.
+2026-06-29 14:41:47.337 [INFO] [t:1] player.schedule.load.start
+2026-06-29 14:41:47.337 [DEBUG] [t:5] request.start command=schedule.real.player.next; requestId=3a860d84723d4643a8bb766d2fa91013; startedUtc=2026-06-29T11:41:47.3376534Z; payloadKeys=1
+2026-06-29 14:41:47.341 [DEBUG] [t:5] request.end command=schedule.real.player.next; requestId=3a860d84723d4643a8bb766d2fa91013; status=Ok; success=True; elapsedMs=4; message=Real schedule next event loaded.
+2026-06-29 14:41:47.341 [DEBUG] [t:5] request.start command=schedule.real.player.list; requestId=f13db3abc21b4c9c97895522e0b209b0; startedUtc=2026-06-29T11:41:47.3416524Z; payloadKeys=1
+2026-06-29 14:41:47.345 [DEBUG] [t:5] request.end command=schedule.real.player.list; requestId=f13db3abc21b4c9c97895522e0b209b0; status=Ok; success=True; elapsedMs=3; message=Real schedule player events loaded.
+2026-06-29 14:41:47.345 [INFO] [t:1] player.schedule.load.done
+2026-06-29 14:41:54.527 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=a8c906f77f1c4a46be38d86965e10e1b; startedUtc=2026-06-29T11:41:54.5270609Z; payloadKeys=2
+2026-06-29 14:41:54.567 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=a8c906f77f1c4a46be38d86965e10e1b; status=Ok; success=True; elapsedMs=40; message=Chat history loaded.
+2026-06-29 14:41:54.567 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:41:54.567 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:54.567 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:54.567 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:54.567 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:54.567 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:54.567 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:41:54.567 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=9e9141ceee1b49d4933a2bb68dd957aa; startedUtc=2026-06-29T11:41:54.5674429Z; payloadKeys=0
+2026-06-29 14:41:54.645 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=9e9141ceee1b49d4933a2bb68dd957aa; status=Ok; success=True; elapsedMs=77; message=Dice feed loaded.
+2026-06-29 14:41:54.645 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:41:54.646 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:41:54.646 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:41:54.646 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:41:54.646 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:41:54.646 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:41:54.646 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:41:54.646 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=8526be4cebb640339b86241870878c41; startedUtc=2026-06-29T11:41:54.6464411Z; payloadKeys=0
+2026-06-29 14:41:54.680 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=8526be4cebb640339b86241870878c41; status=Ok; success=True; elapsedMs=34; message=Player requests loaded.
+2026-06-29 14:41:54.681 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=0d7d217db85d4a92a10f18e2e9af9210; startedUtc=2026-06-29T11:41:54.6818325Z; payloadKeys=0
+2026-06-29 14:41:54.684 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=0d7d217db85d4a92a10f18e2e9af9210; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:41:54.684 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:41:54.684 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:41:54.684 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:41:54.684 [DEBUG] [t:1] request.start command=combat.timeline; requestId=4c7dc28505c74a84976af8ac49602920; startedUtc=2026-06-29T11:41:54.6848306Z; payloadKeys=1
+2026-06-29 14:41:54.688 [DEBUG] [t:1] request.end command=combat.timeline; requestId=4c7dc28505c74a84976af8ac49602920; status=NotFound; success=False; elapsedMs=3; message=Combat state not found.
+2026-06-29 14:41:54.688 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=89f27c407cad443cbab037d79058a41a; startedUtc=2026-06-29T11:41:54.6888311Z; payloadKeys=1
+2026-06-29 14:41:54.691 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=89f27c407cad443cbab037d79058a41a; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:41:54.691 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=33aeebf2245d4f3c926577841d1c83f4; startedUtc=2026-06-29T11:41:54.6918325Z; payloadKeys=1
+2026-06-29 14:41:54.703 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=33aeebf2245d4f3c926577841d1c83f4; status=Ok; success=True; elapsedMs=12; message=Player audio state loaded.
+2026-06-29 14:41:54.703 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=b9c7ab49610345b08faf0ef08f85dd30; startedUtc=2026-06-29T11:41:54.7038324Z; payloadKeys=1
+2026-06-29 14:41:54.712 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=b9c7ab49610345b08faf0ef08f85dd30; status=Ok; success=True; elapsedMs=9; message=Player-visible audio tracks loaded.
+2026-06-29 14:41:54.713 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:41:54.713 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:41:54.713 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:41:54.713 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:41:54.713 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:41:54.713 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:42:02.720 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=6b12ec1087f045cfbcf1ac4d4b7454a9; startedUtc=2026-06-29T11:42:02.7204940Z; payloadKeys=2
+2026-06-29 14:42:02.752 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=6b12ec1087f045cfbcf1ac4d4b7454a9; status=Ok; success=True; elapsedMs=32; message=Chat history loaded.
+2026-06-29 14:42:02.752 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:42:02.752 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:42:02.752 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:42:02.752 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:42:02.752 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:42:02.752 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:42:02.752 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:42:02.752 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=fa867720a5de42139cd2d6d4ba6bea92; startedUtc=2026-06-29T11:42:02.7528086Z; payloadKeys=0
+2026-06-29 14:42:02.828 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=fa867720a5de42139cd2d6d4ba6bea92; status=Ok; success=True; elapsedMs=76; message=Dice feed loaded.
+2026-06-29 14:42:02.828 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:42:02.830 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:42:02.830 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:42:02.830 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:42:02.830 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:42:02.830 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:42:02.830 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:42:02.830 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=1fa9eab075b440058d2e76dee48c8ba4; startedUtc=2026-06-29T11:42:02.8309286Z; payloadKeys=0
+2026-06-29 14:42:02.863 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=1fa9eab075b440058d2e76dee48c8ba4; status=Ok; success=True; elapsedMs=32; message=Player requests loaded.
+2026-06-29 14:42:02.863 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=8cc607b0e31c4796a0221a83d48a41c2; startedUtc=2026-06-29T11:42:02.8636258Z; payloadKeys=0
+2026-06-29 14:42:02.866 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=8cc607b0e31c4796a0221a83d48a41c2; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:42:02.866 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:42:02.866 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:42:02.866 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:42:02.866 [DEBUG] [t:1] request.start command=combat.timeline; requestId=a5885b756f2d4981a63e25a086347964; startedUtc=2026-06-29T11:42:02.8666266Z; payloadKeys=1
+2026-06-29 14:42:02.870 [DEBUG] [t:1] request.end command=combat.timeline; requestId=a5885b756f2d4981a63e25a086347964; status=NotFound; success=False; elapsedMs=3; message=Combat state not found.
+2026-06-29 14:42:02.870 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=4307a050b95d4ae98ec2cda5474e4c1e; startedUtc=2026-06-29T11:42:02.8706260Z; payloadKeys=1
+2026-06-29 14:42:02.873 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=4307a050b95d4ae98ec2cda5474e4c1e; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:42:02.873 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=2fc8dfed98c9464d81b5d00442baf422; startedUtc=2026-06-29T11:42:02.8736259Z; payloadKeys=1
+2026-06-29 14:42:02.884 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=2fc8dfed98c9464d81b5d00442baf422; status=Ok; success=True; elapsedMs=10; message=Player audio state loaded.
+2026-06-29 14:42:02.884 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=11c39c717a2742d4b59fc5b5fb36f908; startedUtc=2026-06-29T11:42:02.8846262Z; payloadKeys=1
+2026-06-29 14:42:02.892 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=11c39c717a2742d4b59fc5b5fb36f908; status=Ok; success=True; elapsedMs=8; message=Player-visible audio tracks loaded.
+2026-06-29 14:42:02.892 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:42:02.892 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:42:02.892 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:42:02.892 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:42:02.892 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:42:02.892 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:42:10.884 [DEBUG] [t:1] request.start command=chat.visibleFeed; requestId=e7ca0c1835ed4dc5b0cb0a7f2abe5f0f; startedUtc=2026-06-29T11:42:10.8848759Z; payloadKeys=2
+2026-06-29 14:42:10.919 [DEBUG] [t:1] request.end command=chat.visibleFeed; requestId=e7ca0c1835ed4dc5b0cb0a7f2abe5f0f; status=Ok; success=True; elapsedMs=35; message=Chat history loaded.
+2026-06-29 14:42:10.920 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:42:10.920 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:42:10.920 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:42:10.920 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:42:10.920 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:42:10.920 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:42:10.920 [DEBUG] [t:1] dice.feed.refresh requested
+2026-06-29 14:42:10.925 [DEBUG] [t:1] request.start command=dice.visibleFeed; requestId=08910a4c77be4c86bb3f15b50ad0cb72; startedUtc=2026-06-29T11:42:10.9258762Z; payloadKeys=0
+2026-06-29 14:42:10.997 [DEBUG] [t:1] request.end command=dice.visibleFeed; requestId=08910a4c77be4c86bb3f15b50ad0cb72; status=Ok; success=True; elapsedMs=70; message=Dice feed loaded.
+2026-06-29 14:42:10.997 [DEBUG] [t:1] dice.feed.refresh itemsRaw=98
+2026-06-29 14:42:10.999 [DEBUG] [t:1] dice.timeline timestampRaw=/Date(1782733195598)/
+2026-06-29 14:42:10.999 [DEBUG] [t:1] dice.timeline timestampMapped=14:39
+2026-06-29 14:42:10.999 [DEBUG] [t:1] dice.feed.firstComment=Fate disabled dice 01457
+2026-06-29 14:42:10.999 [DEBUG] [t:1] dice.feed.refresh itemsMapped=98
+2026-06-29 14:42:10.999 [DEBUG] [t:1] dice.feed.refresh ownItems=98
+2026-06-29 14:42:10.999 [DEBUG] [t:1] dice.feed.commentMapped=True
+2026-06-29 14:42:11.000 [DEBUG] [t:1] request.start command=request.player.listMine; requestId=9e706de2f6254852931eadf70e484f7f; startedUtc=2026-06-29T11:42:11.0004187Z; payloadKeys=0
+2026-06-29 14:42:11.030 [DEBUG] [t:1] request.end command=request.player.listMine; requestId=9e706de2f6254852931eadf70e484f7f; status=Ok; success=True; elapsedMs=30; message=Player requests loaded.
+2026-06-29 14:42:11.030 [DEBUG] [t:1] request.start command=dice.test.getCurrent; requestId=a2c1717e032940b7ba0d40992dbbaeaf; startedUtc=2026-06-29T11:42:11.0306932Z; payloadKeys=0
+2026-06-29 14:42:11.034 [DEBUG] [t:1] request.end command=dice.test.getCurrent; requestId=a2c1717e032940b7ba0d40992dbbaeaf; status=Ok; success=True; elapsedMs=3; message=No current test roll.
+2026-06-29 14:42:11.034 [INFO] [t:1] dice.test.getCurrent.status=Ok
+2026-06-29 14:42:11.034 [DEBUG] [t:1] dice.feed.render visibleRows=98
+2026-06-29 14:42:11.034 [DEBUG] [t:1] dice.view.counts feed=98 requests=33
+2026-06-29 14:42:11.034 [DEBUG] [t:1] request.start command=combat.timeline; requestId=3af9a24cf0124f94924b86e997095f40; startedUtc=2026-06-29T11:42:11.0346946Z; payloadKeys=1
+2026-06-29 14:42:11.037 [DEBUG] [t:1] request.end command=combat.timeline; requestId=3af9a24cf0124f94924b86e997095f40; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:42:11.037 [DEBUG] [t:1] request.start command=combat.visibleState; requestId=72c41a1daf304a0d84ab95c54bff9236; startedUtc=2026-06-29T11:42:11.0378166Z; payloadKeys=1
+2026-06-29 14:42:11.040 [DEBUG] [t:1] request.end command=combat.visibleState; requestId=72c41a1daf304a0d84ab95c54bff9236; status=NotFound; success=False; elapsedMs=2; message=Combat state not found.
+2026-06-29 14:42:11.040 [DEBUG] [t:1] request.start command=audio.player.state.get; requestId=d64dc9d7b93a4562b715fc781e407ec3; startedUtc=2026-06-29T11:42:11.0409615Z; payloadKeys=1
+2026-06-29 14:42:11.051 [DEBUG] [t:1] request.end command=audio.player.state.get; requestId=d64dc9d7b93a4562b715fc781e407ec3; status=Ok; success=True; elapsedMs=11; message=Player audio state loaded.
+2026-06-29 14:42:11.051 [DEBUG] [t:1] request.start command=audio.player.tracks.visible; requestId=efde28943dc94af9bb84b1ffaec9e50a; startedUtc=2026-06-29T11:42:11.0518732Z; payloadKeys=1
+2026-06-29 14:42:11.059 [DEBUG] [t:1] request.end command=audio.player.tracks.visible; requestId=efde28943dc94af9bb84b1ffaec9e50a; status=Ok; success=True; elapsedMs=8; message=Player-visible audio tracks loaded.
+2026-06-29 14:42:11.059 [INFO] [t:1] chat.window.timeline mergedCount=179
+2026-06-29 14:42:11.059 [DEBUG] [t:1] merged.timeline first=dev_player:16.06.2026 21:18
+2026-06-29 14:42:11.059 [DEBUG] [t:1] merged.timeline last=System:
+2026-06-29 14:42:11.059 [INFO] [t:1] chat.window.timeline sorted=true
+2026-06-29 14:42:11.059 [DEBUG] [t:1] merged.timeline sorted=true
+2026-06-29 14:42:11.060 [INFO] [t:1] gameFeed diceMerged=98
+2026-06-29 14:42:13.146 [DEBUG] [t:8] request.start command=system.featureFlags.snapshot; requestId=af610d92f19247c6a63811dd650641e0; startedUtc=2026-06-29T11:42:13.1466284Z; payloadKeys=0
+2026-06-29 14:42:13.146 [DEBUG] [t:4] request.start command=system.featureFlags.snapshot; requestId=5217e4b4474f42fb997b72433159fe20; startedUtc=2026-06-29T11:42:13.1466284Z; payloadKeys=0
+2026-06-29 14:42:13.150 [DEBUG] [t:8] request.end command=system.featureFlags.snapshot; requestId=af610d92f19247c6a63811dd650641e0; status=Unauthorized; success=False; elapsedMs=3; message=Insufficient role.
+2026-06-29 14:42:13.150 [INFO] [t:1] player.world_calendar.load.start
+2026-06-29 14:42:13.150 [DEBUG] [t:11] request.start command=world.calendar.player.get; requestId=477e82a5a19f4adc8eac4ffa8597af5f; startedUtc=2026-06-29T11:42:13.1506270Z; payloadKeys=2
+2026-06-29 14:42:13.154 [WARN] [t:11] conflict.received command=world.calendar.player.get entityType= entityId= expected=0 current=0 requestId=477e82a5a19f4adc8eac4ffa8597af5f
+2026-06-29 14:42:13.154 [DEBUG] [t:11] request.end command=world.calendar.player.get; requestId=477e82a5a19f4adc8eac4ffa8597af5f; status=Conflict; success=False; elapsedMs=3; message=world calendar not found
+2026-06-29 14:42:13.157 [DEBUG] [t:4] request.end command=system.featureFlags.snapshot; requestId=5217e4b4474f42fb997b72433159fe20; status=Unauthorized; success=False; elapsedMs=10; message=Insufficient role.
+2026-06-29 14:42:13.158 [INFO] [t:1] player.schedule.load.start
+2026-06-29 14:42:13.158 [DEBUG] [t:4] request.start command=schedule.real.player.next; requestId=828cc98e4a3e45e893db0f2283172aaf; startedUtc=2026-06-29T11:42:13.1583948Z; payloadKeys=1
+2026-06-29 14:42:13.162 [DEBUG] [t:4] request.end command=schedule.real.player.next; requestId=828cc98e4a3e45e893db0f2283172aaf; status=Ok; success=True; elapsedMs=4; message=Real schedule next event loaded.
+2026-06-29 14:42:13.162 [DEBUG] [t:4] request.start command=schedule.real.player.list; requestId=6880ed8c549a40f0ae3b6144ed2612cf; startedUtc=2026-06-29T11:42:13.1626099Z; payloadKeys=1
+2026-06-29 14:42:13.166 [DEBUG] [t:4] request.end command=schedule.real.player.list; requestId=6880ed8c549a40f0ae3b6144ed2612cf; status=Ok; success=True; elapsedMs=3; message=Real schedule player events loaded.
+2026-06-29 14:42:13.166 [INFO] [t:1] player.schedule.load.done

@@ -19,7 +19,7 @@ public sealed class DetachedPanelWindow : Window
         _viewModel = viewModel;
         _panel = panel;
 
-        Title = $"НРИ / Панель Админа — {panel.Title}";
+        Title = $"Панель Гейм Мастера — {panel.Title}";
         Width = panel.WindowWidth;
         Height = panel.WindowHeight;
         Left = panel.WindowLeft;

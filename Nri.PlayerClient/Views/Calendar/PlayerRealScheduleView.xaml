@@ -1,0 +1,101 @@
+<UserControl x:Class="Nri.PlayerClient.Views.Calendar.PlayerRealScheduleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Language="ru-RU">
+    <Grid AutomationProperties.AutomationId="PlayerRealSchedule_Root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}" Padding="14" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Расписание игр" Style="{StaticResource TitleTextStyle}" FontSize="20" AutomationProperties.AutomationId="PlayerRealSchedule_Title"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding DisabledText}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBox Width="140" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" ToolTip="CampaignId" Margin="0,0,8,0" AutomationProperties.AutomationId="PlayerRealSchedule_CampaignId"/>
+                    <Button Content="Проверить доступность" Command="{Binding RefreshFlagsCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,0"/>
+                    <Button Content="Обновить" Command="{Binding RefreshCommand}" Style="{StaticResource GhostButtonStyle}" AutomationProperties.AutomationId="PlayerRealSchedule_Refresh_Button"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.05*"/>
+                <ColumnDefinition Width="1.1*"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,10,10">
+                    <StackPanel>
+                        <TextBlock Text="Ближайшая игра" Style="{StaticResource TitleTextStyle}" FontSize="16"/>
+                        <TextBlock Text="{Binding NextEvent.Title}" FontWeight="SemiBold" FontSize="17" Margin="0,8,0,0" AutomationProperties.AutomationId="PlayerRealSchedule_Next_Title"/>
+                        <TextBlock Text="{Binding NextEvent.LocalStartDisplay}" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding NextEvent.CountdownText}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding NextEvent.Meta}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding NextEvent.LocationText}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding NextEvent.ConnectionInfoSummary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding NextEvent.PublicNotes}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,10,0">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="Открытые события" Style="{StaticResource TitleTextStyle}" FontSize="16" Margin="0,0,0,8"/>
+                        <ListBox ItemsSource="{Binding Events}" SelectedItem="{Binding SelectedEvent}" BorderThickness="0" Background="Transparent" AutomationProperties.AutomationId="PlayerRealSchedule_Events_List">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding LocalStartDisplay}" Foreground="{StaticResource AccentBrush}" Margin="0,3,0,0"/>
+                                            <TextBlock Text="{Binding Meta}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding CountdownText}" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+            </StackPanel>
+
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Карточка события" Style="{StaticResource TitleTextStyle}" FontSize="16"/>
+                        <TextBlock Text="{Binding SelectedEvent.Title}" FontWeight="SemiBold" FontSize="18" Margin="0,8,0,0" AutomationProperties.AutomationId="PlayerRealSchedule_Selected_Title"/>
+                        <TextBlock Text="{Binding SelectedEvent.LocalStartDisplay}" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding SelectedEvent.Meta}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding SelectedEvent.CountdownText}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,10"/>
+                        <TextBlock Text="Описание" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding SelectedEvent.Description}" TextWrapping="Wrap" Margin="0,4,0,10"/>
+                        <TextBlock Text="Место и подключение" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding SelectedEvent.LocationText}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding SelectedEvent.ConnectionInfoSummary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,10"/>
+                        <TextBlock Text="Публичные заметки" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding SelectedEvent.PublicNotes}" TextWrapping="Wrap" Margin="0,4,0,10"/>
+                        <TextBlock Text="Участники" FontWeight="SemiBold"/>
+                        <ListBox ItemsSource="{Binding SelectedEvent.Participants}" DisplayMemberPath="Display" BorderThickness="0" Background="Transparent" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="10" Margin="0,10,0,0">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Очистить ошибку" Command="{Binding ClearErrorCommand}" Style="{StaticResource GhostButtonStyle}"/>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

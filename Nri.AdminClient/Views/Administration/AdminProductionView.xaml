@@ -1,0 +1,317 @@
+<UserControl x:Class="Nri.AdminClient.Views.Administration.AdminProductionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}">
+            <DockPanel LastChildFill="True">
+                <Button DockPanel.Dock="Right" Content="Обновить" Command="{Binding RefreshCommand}" Margin="8,0,0,0"/>
+                <StackPanel>
+                    <TextBlock Text="Производство" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    <TextBlock Text="Factory Order готовит заказ. Manufacturing Project выполняет изготовление: стадии, ресурсы, затраты, платежи, испытания, дефекты, приёмка GM и создание asset после принятия."
+                               Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <TabControl Grid.Row="1" Margin="0,8,0,0">
+            <TabItem Header="Мощности">
+                <Grid Margin="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.1*"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Мощности, типы и процессы" Style="{StaticResource TitleTextStyle}"/>
+                            <TabControl Grid.Row="1" Margin="0,8,0,8">
+                                <TabItem Header="Мощности">
+                                    <ListBox ItemsSource="{Binding Facilities}" SelectedItem="{Binding SelectedFacility, Mode=TwoWay}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Типы">
+                                    <ListBox ItemsSource="{Binding FacilityDefinitions}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Процессы">
+                                    <ListBox ItemsSource="{Binding Processes}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                            </TabControl>
+                            <StackPanel Grid.Row="2">
+                                <TextBox Text="{Binding NewFacilityName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название мощности"/>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <TextBox Width="150" Text="{Binding NewFacilityCategory, UpdateSourceTrigger=PropertyChanged}" ToolTip="Категория"/>
+                                    <TextBox Width="120" Text="{Binding NewFacilityType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип" Margin="6,0,0,0"/>
+                                    <TextBox Width="150" Text="{Binding NewFacilityDomain, UpdateSourceTrigger=PropertyChanged}" ToolTip="Домен" Margin="6,0,0,0"/>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <TextBox Width="90" Text="{Binding CapacityRating, UpdateSourceTrigger=PropertyChanged}" ToolTip="Мощность"/>
+                                    <TextBox Width="90" Text="{Binding MaxQueueSlots, UpdateSourceTrigger=PropertyChanged}" ToolTip="Слоты"/>
+                                    <TextBox Width="90" Text="{Binding CurrentLoadPercent, UpdateSourceTrigger=PropertyChanged}" ToolTip="Загрузка %"/>
+                                    <CheckBox Content="Видно игрокам" IsChecked="{Binding VisibleToPlayers}" Margin="8,2,0,0"/>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,8,0,0">
+                                    <Button Content="Создать тип" Command="{Binding CreateFacilityDefinitionCommand}"/>
+                                    <Button Content="Создать мощность" Command="{Binding CreateFacilityCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Сохранить мощность" Command="{Binding SaveFacilityCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Добавить возможность" Command="{Binding AddCapabilityCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Сохранить ёмкость" Command="{Binding SaveCapacityCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Создать процесс" Command="{Binding CreateProcessCommand}" Margin="6,0,0,0"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Очередь, возможности и журнал" Style="{StaticResource TitleTextStyle}"/>
+                            <TabControl Grid.Row="1" Margin="0,8,0,0">
+                                <TabItem Header="Очередь">
+                                    <ListBox ItemsSource="{Binding QueueSlots}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Возможности">
+                                    <ListBox ItemsSource="{Binding Capabilities}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Журнал">
+                                    <ListBox ItemsSource="{Binding AuditRows}"/>
+                                </TabItem>
+                            </TabControl>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Заказы">
+                <Grid Margin="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.2*"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Оценки и factory orders" Style="{StaticResource TitleTextStyle}"/>
+                            <TabControl Grid.Row="1" Margin="0,8,0,8">
+                                <TabItem Header="Оценки">
+                                    <ListBox ItemsSource="{Binding Quotes}" SelectedItem="{Binding SelectedQuote, Mode=TwoWay}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Заказы">
+                                    <ListBox ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder, Mode=TwoWay}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                            </TabControl>
+                            <StackPanel Grid.Row="2">
+                                <TextBox Text="{Binding QuoteName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название оценки или заказа"/>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <TextBox Width="170" Text="{Binding QuoteFacilityId, UpdateSourceTrigger=PropertyChanged}" ToolTip="FacilityId"/>
+                                    <TextBox Width="170" Text="{Binding QuoteBlueprintId, UpdateSourceTrigger=PropertyChanged}" ToolTip="BlueprintId" Margin="6,0,0,0"/>
+                                    <TextBox Width="150" Text="{Binding QuotePresetId, UpdateSourceTrigger=PropertyChanged}" ToolTip="PresetId" Margin="6,0,0,0"/>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <TextBox Width="170" Text="{Binding QuoteOwnerUserId, UpdateSourceTrigger=PropertyChanged}" ToolTip="OwnerUserId"/>
+                                    <TextBox Width="170" Text="{Binding QuoteOwnerCharacterId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ID персонажа-владельца" Margin="6,0,0,0"/>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,8,0,0">
+                                    <Button Content="Сделать оценку" Command="{Binding GenerateQuoteCommand}"/>
+                                    <Button Content="Предложить" Command="{Binding OfferQuoteCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Принять" Command="{Binding AcceptQuoteCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Отклонить" Command="{Binding RejectQuoteCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="В заказ" Command="{Binding ConvertQuoteToOrderCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Создать заказ" Command="{Binding CreateOrderCommand}" Margin="6,0,0,0"/>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <Button Content="Утвердить" Command="{Binding ApproveOrderCommand}"/>
+                                    <Button Content="В очередь" Command="{Binding ScheduleOrderCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Резерв слота" Command="{Binding ReserveQueueCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Отменить" Command="{Binding CancelOrderCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Архив" Command="{Binding ArchiveOrderCommand}" Margin="6,0,0,0"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Запуск фактического производства" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="Создайте Manufacturing Project из выбранного заказа или вручную. Asset не создаётся до GM acceptance."
+                                       Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                            <Button Content="Создать производство из заказа" Command="{Binding CreateManufacturingFromOrderCommand}"/>
+                            <Button Content="Создать производство вручную" Command="{Binding CreateManualManufacturingCommand}" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Производство">
+                <Grid Margin="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.1*"/>
+                        <ColumnDefinition Width="1.4*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Производственные проекты" Style="{StaticResource TitleTextStyle}"/>
+                            <ListBox Grid.Row="1" Margin="0,8,0,8" ItemsSource="{Binding ManufacturingProjects}" SelectedItem="{Binding SelectedManufacturingProject, Mode=TwoWay}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="2">
+                                            <TextBlock Text="{Binding Summary}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Secondary}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <WrapPanel Grid.Row="2">
+                                <Button Content="Старт" Command="{Binding StartManufacturingCommand}"/>
+                                <Button Content="Пауза" Command="{Binding PauseManufacturingCommand}" Margin="6,0,0,0"/>
+                                <Button Content="Возобновить" Command="{Binding ResumeManufacturingCommand}" Margin="6,0,0,0"/>
+                                <Button Content="Отменить" Command="{Binding CancelManufacturingCommand}" Margin="6,0,0,0"/>
+                            </WrapPanel>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Стадии, ресурсы, платежи, испытания" Style="{StaticResource TitleTextStyle}"/>
+                            <TabControl Grid.Row="1" Margin="0,8,0,8">
+                                <TabItem Header="Стадии">
+                                    <ListBox ItemsSource="{Binding Stages}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Ресурсный план">
+                                    <ListBox ItemsSource="{Binding ResourcePlans}" SelectedItem="{Binding SelectedResourcePlan, Mode=TwoWay}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Резервации">
+                                    <ListBox ItemsSource="{Binding Reservations}" SelectedItem="{Binding SelectedReservation, Mode=TwoWay}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Платежи">
+                                    <ListBox ItemsSource="{Binding Payments}" SelectedItem="{Binding SelectedPayment, Mode=TwoWay}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Испытания">
+                                    <ListBox ItemsSource="{Binding Tests}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Дефекты">
+                                    <ListBox ItemsSource="{Binding Defects}" SelectedItem="{Binding SelectedDefect, Mode=TwoWay}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                            </TabControl>
+                            <StackPanel Grid.Row="2">
+                                <WrapPanel>
+                                    <TextBox Width="150" Text="{Binding StageName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название стадии"/>
+                                    <TextBox Width="120" Text="{Binding StageType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип стадии" Margin="6,0,0,0"/>
+                                    <TextBox Width="90" Text="{Binding ProgressDelta, UpdateSourceTrigger=PropertyChanged}" ToolTip="Прогресс" Margin="6,0,0,0"/>
+                                    <Button Content="Добавить стадию" Command="{Binding AddStageCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Старт стадии" Command="{Binding StartStageCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Завершить стадию" Command="{Binding CompleteStageCommand}" Margin="6,0,0,0"/>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <TextBox Width="150" Text="{Binding ResourceName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Ресурс"/>
+                                    <TextBox Width="80" Text="{Binding ResourceQuantity, UpdateSourceTrigger=PropertyChanged}" ToolTip="Количество" Margin="6,0,0,0"/>
+                                    <TextBox Width="70" Text="{Binding ResourceUnit, UpdateSourceTrigger=PropertyChanged}" ToolTip="Ед." Margin="6,0,0,0"/>
+                                    <Button Content="План ресурса" Command="{Binding AddResourcePlanCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Резерв" Command="{Binding ReserveResourceCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Списать резервацию" Command="{Binding ConsumeResourceCommand}" Margin="6,0,0,0"/>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <TextBox Width="90" Text="{Binding CostAmount, UpdateSourceTrigger=PropertyChanged}" ToolTip="Затрата"/>
+                                    <TextBox Width="90" Text="{Binding PaymentAmount, UpdateSourceTrigger=PropertyChanged}" ToolTip="Платёж" Margin="6,0,0,0"/>
+                                    <Button Content="Добавить затрату" Command="{Binding AddCostCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Добавить платёж" Command="{Binding AddPaymentCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Оплачен" Command="{Binding MarkPaymentPaidCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Прогресс" Command="{Binding AddProgressCommand}" Margin="6,0,0,0"/>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <TextBox Width="170" Text="{Binding TestPlanName, UpdateSourceTrigger=PropertyChanged}" ToolTip="План испытаний"/>
+                                    <Button Content="План испытаний" Command="{Binding CreateTestPlanCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Тест пройден" Command="{Binding AddPassedTestCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Тест провален" Command="{Binding AddFailedTestCommand}" Margin="6,0,0,0"/>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <TextBox Width="220" Text="{Binding DefectSummary, UpdateSourceTrigger=PropertyChanged}" ToolTip="Дефект"/>
+                                    <CheckBox Content="Критичный" IsChecked="{Binding DefectCritical}" Margin="6,2,0,0"/>
+                                    <CheckBox Content="Переопределение GM" IsChecked="{Binding GmOverride}" Margin="6,2,0,0"/>
+                                    <Button Content="Создать дефект" Command="{Binding CreateDefectCommand}" Margin="6,0,0,0"/>
+                                    <Button Content="Закрыть дефект" Command="{Binding ResolveDefectCommand}" Margin="6,0,0,0"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Приёмка / активы">
+                <Grid Margin="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="1.2*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="Приёмка GM" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="Актив создаётся только после принятия результата. Критичные дефекты блокируют приёмку без переопределения GM."
+                                       Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                            <WrapPanel>
+                                <Button Content="Подготовить приёмку" Command="{Binding PrepareAcceptanceCommand}"/>
+                                <Button Content="Принять" Command="{Binding AcceptManufacturingCommand}" Margin="6,0,0,0"/>
+                                <Button Content="Отклонить" Command="{Binding RejectAcceptanceCommand}" Margin="6,0,0,0"/>
+                                <Button Content="Создать asset" Command="{Binding CreateAssetCommand}" Margin="6,0,0,0"/>
+                            </WrapPanel>
+                            <TextBlock Text="Передача и ввод в эксплуатацию" Style="{StaticResource TitleTextStyle}" Margin="0,16,0,4"/>
+                            <WrapPanel>
+                                <Button Content="Передать владельцу" Command="{Binding TransferAssetCommand}"/>
+                                <Button Content="Ввести в эксплуатацию" Command="{Binding CommissionAssetCommand}" Margin="6,0,0,0"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Произведённые активы / техника" Style="{StaticResource TitleTextStyle}"/>
+                            <ListBox Grid.Row="1" Margin="0,8,0,0" ItemsSource="{Binding ManufacturedAssets}" SelectedItem="{Binding SelectedAsset, Mode=TwoWay}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="2">
+                                            <TextBlock Text="{Binding Summary}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Secondary}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,8,0,0">
+            <DockPanel LastChildFill="True">
+                <Button DockPanel.Dock="Right" Content="Скрыть ошибку" Command="{Binding ClearErrorCommand}" Margin="8,0,0,0"/>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

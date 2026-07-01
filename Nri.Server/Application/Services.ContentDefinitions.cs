@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Nri.Server.Application.Services;
 using Nri.Server.Content;
 using Nri.Shared.Contracts;
+using Nri.Shared.Domain;
 using Nri.Shared.Utilities;
 
 namespace Nri.Server.Application;
@@ -120,6 +123,66 @@ public partial class ServiceHub
         });
     }
 
+    public ResponseEnvelope DefinitionsPackDryRun(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var requestedPath = PayloadReader.GetString(context.Request.Payload, "packPath");
+        var packDirectory = ResolveDefinitionPackDirectory(requestedPath);
+        var loader = new DefinitionPackLoader(_logger);
+        var result = loader.DryRunImportAsync(packDirectory).GetAwaiter().GetResult();
+        _logger.Admin($"definition.pack.dryrun.actor actor={actor.Id} packId={result.PackId} success={result.Success} definitions={result.LoadedDefinitions}");
+
+        return Ok("Definition pack dry-run completed.", new Dictionary<string, object>
+        {
+            { "packId", result.PackId },
+            { "success", result.Success },
+            { "loadedDefinitions", result.LoadedDefinitions },
+            { "errors", result.Errors.Cast<object>().ToArray() },
+            { "warnings", result.Warnings.Cast<object>().ToArray() },
+            { "crossReferenceErrors", result.CrossReferenceErrors.Cast<object>().ToArray() },
+            { "crossReferenceWarnings", result.CrossReferenceWarnings.Cast<object>().ToArray() },
+            { "files", result.FileResults.Select(DefinitionPackFileResultPayload).Cast<object>().ToArray() }
+        });
+    }
+
+    public ResponseEnvelope EconomyRuntimeSeedApply(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        if (!EconomyFeatureFlags.UseEconomyRuntimeSeedWrite)
+        {
+            return Error("economy runtime seed write disabled", ResponseStatus.Forbidden, ErrorCode.Forbidden);
+        }
+
+        var requestedPath = PayloadReader.GetString(context.Request.Payload, "packPath");
+        var packDirectory = ResolveDefinitionPackDirectory(requestedPath);
+        var loader = new DefinitionPackLoader(_logger);
+        var planner = new EconomyRuntimeSeedPlanner(loader, new DefinitionPackCrossReferenceValidator(), _logger);
+        var service = new EconomyRuntimeSeedService(planner, _repositories, _logger);
+        var request = new EconomyRuntimeSeedRequest
+        {
+            RuleSetId = PayloadReader.GetString(context.Request.Payload, "ruleSetId") ?? "fantasy_nri_default",
+            CampaignId = PayloadReader.GetString(context.Request.Payload, "campaignId") ?? string.Empty,
+            PackId = PayloadReader.GetString(context.Request.Payload, "packId") ?? string.Empty,
+            PackPath = packDirectory,
+            IncludeFactions = GetBoolDefault(context.Request.Payload, "includeFactions", true),
+            IncludeOrganizations = GetBoolDefault(context.Request.Payload, "includeOrganizations", true),
+            IncludeLaws = GetBoolDefault(context.Request.Payload, "includeLaws", true),
+            IncludeRestrictions = GetBoolDefault(context.Request.Payload, "includeRestrictions", true),
+            IncludeMarkets = GetBoolDefault(context.Request.Payload, "includeMarkets", true),
+            IncludeEconomyScopes = GetBoolDefault(context.Request.Payload, "includeEconomyScopes", true),
+            RequireDryRunSuccess = GetBoolDefault(context.Request.Payload, "requireDryRunSuccess", true),
+            AllowOverwrite = PayloadReader.GetBool(context.Request.Payload, "allowOverwrite"),
+            ValidateOnly = PayloadReader.GetBool(context.Request.Payload, "validateOnly"),
+            ActorUserId = actor.Id,
+            RequestId = context.Request.RequestId ?? string.Empty
+        };
+
+        var result = service.SeedFromDefinitionsAsync(request).GetAwaiter().GetResult();
+        _logger.Admin($"economy.seed.apply.actor actor={actor.Id} campaignId={result.CampaignId} success={result.Success} created={result.CreatedStates.Count} skipped={result.SkippedStates.Count}");
+
+        return Ok("Economy runtime seed apply completed.", EconomyRuntimeSeedResultPayload(result));
+    }
+
     private static IEnumerable<GameContentRecord> FilterRecords(IEnumerable<GameContentRecord> source, string? search, bool includeArchived, Func<GameContentRecord, bool> extraFilter)
     {
         foreach (var item in source)
@@ -192,5 +255,100 @@ public partial class ServiceHub
 
         payload["additionalData"] = record.ExtraFields.ToDictionary(x => x.Key, x => (object)x.Value.ToString());
         return payload;
+    }
+
+    private static Dictionary<string, object> DefinitionPackFileResultPayload(DefinitionPackFileValidationResult result)
+    {
+        return new Dictionary<string, object>
+        {
+            { "category", result.Category },
+            { "path", result.Path },
+            { "definitionCount", result.DefinitionCount },
+            { "errors", result.Errors.Cast<object>().ToArray() },
+            { "warnings", result.Warnings.Cast<object>().ToArray() }
+        };
+    }
+
+    private static Dictionary<string, object> EconomyRuntimeSeedResultPayload(EconomyRuntimeSeedResult result)
+    {
+        return new Dictionary<string, object>
+        {
+            { "success", result.Success },
+            { "ruleSetId", result.RuleSetId },
+            { "campaignId", result.CampaignId },
+            { "packId", result.PackId },
+            { "createdStates", result.CreatedStates.Select(x => new Dictionary<string, object>{{"runtimeType", x.RuntimeType},{"id", x.Id},{"definitionId", x.DefinitionId},{"name", x.Name},{"collectionName", x.CollectionName}}).Cast<object>().ToArray() },
+            { "skippedStates", result.SkippedStates.Select(x => new Dictionary<string, object>{{"runtimeType", x.RuntimeType},{"proposedId", x.ProposedId},{"definitionId", x.DefinitionId},{"reason", x.Reason}}).Cast<object>().ToArray() },
+            { "errors", result.Errors.Cast<object>().ToArray() },
+            { "warnings", result.Warnings.Cast<object>().ToArray() },
+            { "summary", new Dictionary<string, object>
+                {
+                    { "createdFactions", result.Summary.CreatedFactions },
+                    { "createdOrganizations", result.Summary.CreatedOrganizations },
+                    { "createdLaws", result.Summary.CreatedLaws },
+                    { "createdRestrictions", result.Summary.CreatedRestrictions },
+                    { "createdMarkets", result.Summary.CreatedMarkets },
+                    { "createdEconomyScopes", result.Summary.CreatedEconomyScopes },
+                    { "skippedExisting", result.Summary.SkippedExisting },
+                    { "errorCount", result.Summary.ErrorCount },
+                    { "warningCount", result.Summary.WarningCount }
+                }
+            },
+            { "seededAtUtc", result.SeededAtUtc }
+        };
+    }
+
+    private static bool GetBoolDefault(IDictionary<string, object> payload, string key, bool defaultValue)
+    {
+        return payload.ContainsKey(key) && payload[key] != null
+            ? PayloadReader.GetBool(payload, key)
+            : defaultValue;
+    }
+
+    private static string ResolveDefinitionPackDirectory(string? requestedPath)
+    {
+        var raw = string.IsNullOrWhiteSpace(requestedPath)
+            ? Path.Combine("Content", "DefinitionPacks", "fantasy_nri_default_starter")
+            : requestedPath.Trim();
+        var current = Directory.GetCurrentDirectory();
+        var candidate = Path.IsPathRooted(raw)
+            ? Path.GetFullPath(raw)
+            : Path.GetFullPath(Path.Combine(current, raw));
+
+        if (!Directory.Exists(candidate) && !Path.IsPathRooted(raw))
+        {
+            var serverCandidate = Path.GetFullPath(Path.Combine(current, "Nri.Server", raw));
+            if (Directory.Exists(serverCandidate))
+            {
+                candidate = serverCandidate;
+            }
+        }
+
+        var allowedRoots = new[]
+        {
+            Path.GetFullPath(Path.Combine(current, "Content", "DefinitionPacks")),
+            Path.GetFullPath(Path.Combine(current, "Nri.Server", "Content", "DefinitionPacks"))
+        };
+
+        if (!allowedRoots.Any(root => IsSameOrChildPath(root, candidate)))
+        {
+            throw new UnauthorizedAccessException("Definition pack dry-run path must be inside Content/DefinitionPacks.");
+        }
+
+        if (!Directory.Exists(candidate))
+        {
+            throw new DirectoryNotFoundException("Definition pack directory not found.");
+        }
+
+        return candidate;
+    }
+
+    private static bool IsSameOrChildPath(string root, string candidate)
+    {
+        var normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var normalizedCandidate = Path.GetFullPath(candidate).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return string.Equals(normalizedRoot, normalizedCandidate, StringComparison.OrdinalIgnoreCase)
+            || normalizedCandidate.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || normalizedCandidate.StartsWith(normalizedRoot + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 }

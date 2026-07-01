@@ -41,12 +41,16 @@ public static class ProfileFeatureFlags
 {
     public const bool UseRuleSetProfilesRead = false;
     public const bool UseRuleSetProfilesWriteShadow = false;
-    public const bool UseProfileFirstCharacterDetails = false;
+    public const bool UseProfileFirstCharacterDetails = true;
+    public const bool UseProfileFirstCharacterCreation = true;
+    public const bool UseProfileFirstCreationCleanup = false;
     public const bool UseAttributeProfileReadShadow = false;
     public const bool UseWalletProfileReadShadow = false;
     public const bool UseSkillProfileReadShadow = false;
     public const bool UseDevelopmentProfileReadShadow = false;
     public const bool UseInventoryProfileReadShadow = false;
+    public const bool UseRaceOrSpeciesProfileReadShadow = false;
+    public const bool UseBodyProfileReadShadow = false;
     public const bool UseReputationProfileReadShadow = false;
     public const bool UseHoldingsProfileReadShadow = false;
     public const bool UseCompanionProfileReadShadow = false;
@@ -56,6 +60,17 @@ public static class ProfileFeatureFlags
     public const bool UseSkillProfileShadowWrite = false;
     public const bool UseDevelopmentProfileShadowWrite = false;
     public const bool UseInventoryProfileShadowWrite = false;
+    public const bool UseRaceOrSpeciesProfileShadowWrite = false;
+    public const bool UseBodyProfileShadowWrite = false;
+    public const bool UseProfileNativeCharacterWrites = true;
+    public const bool UseProfileNativeStatsWrite = true;
+    public const bool UseProfileNativeWalletWrite = true;
+    public const bool UseProfileNativeSkillWrite = true;
+    public const bool UseProfileNativeDevelopmentWrite = true;
+    public const bool UseProfileNativeInventoryWrite = true;
+    public const bool UseProfileNativeRaceBodyWrite = true;
+    public const bool UseProfileNativeRaceOrSpeciesWrite = true;
+    public const bool UseProfileNativeBodyWrite = true;
     public const bool UseCharacterProfileConsistencyVerification = false;
     public const bool UseDevelopmentNodeModel = false;
     public const bool UseSkillDefinitionV2 = false;
@@ -120,6 +135,32 @@ public sealed class CharacterAttributeValue
     public string Notes { get; set; } = string.Empty;
 }
 
+public sealed class SubAttributeProfile
+{
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public int ProfileVersion { get; set; } = 1;
+    public List<CharacterSubAttributeValue> SubAttributes { get; set; } = new List<CharacterSubAttributeValue>();
+    public int Revision { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+    public bool IsArchived { get; set; }
+    public int SchemaVersion { get; set; } = 1;
+}
+
+public sealed class CharacterSubAttributeValue
+{
+    public string SubAttributeId { get; set; } = string.Empty;
+    public string ParentAttributeId { get; set; } = string.Empty;
+    public int BaseValue { get; set; }
+    public int CurrentValue { get; set; }
+    public int ManualBonus { get; set; }
+    public string Source { get; set; } = "ruleset_default";
+    public bool IsVisibleToPlayer { get; set; } = true;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+    public string Notes { get; set; } = string.Empty;
+}
+
 // Canonical skills profile for learned/known skills.
 public sealed class SkillProfile
 {
@@ -133,10 +174,14 @@ public sealed class CharacterSkillProfileValue
 {
     public string SkillId { get; set; } = string.Empty;
     public int Rank { get; set; }
+    public int ManualBonus { get; set; }
+    public string TrainingState { get; set; } = "trained";
+    public bool IsPlayerVisible { get; set; } = true;
     public bool IsUnlocked { get; set; }
     public bool IsLearned { get; set; }
     public string Source { get; set; } = "legacy_shadow";
     public DateTime LearnedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public string Notes { get; set; } = string.Empty;
 }
 
@@ -145,16 +190,35 @@ public sealed class DevelopmentProfile
 {
     public string CharacterId { get; set; } = string.Empty;
     public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public string ActiveHexagonId { get; set; } = string.Empty;
     public List<string> ActiveHexagonIds { get; set; } = new List<string>();
+    public List<CharacterDevelopmentHexagonState> Hexagons { get; set; } = new List<CharacterDevelopmentHexagonState>();
     public List<CharacterDevelopmentNodeState> Nodes { get; set; } = new List<CharacterDevelopmentNodeState>();
     public string Vocation { get; set; } = string.Empty;
+    public int TotalXpSpent { get; set; }
+    public int Revision { get; set; }
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public int SchemaVersion { get; set; } = 1;
+}
+
+public class CharacterDevelopmentHexagonState
+{
+    public string HexagonId { get; set; } = string.Empty;
+    public string HexagonType { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public bool IsUnlocked { get; set; }
+    public bool IsPlayerVisible { get; set; } = true;
+    public bool IsMain { get; set; }
+    public int SortOrder { get; set; }
+    public List<CharacterDevelopmentNodeState> Nodes { get; set; } = new List<CharacterDevelopmentNodeState>();
 }
 
 public class CharacterDevelopmentNodeState : EntityBase
 {
     public string CharacterId { get; set; } = string.Empty;
+    public string HexagonId { get; set; } = "main_development_hexagon";
     public string DevelopmentNodeId { get; set; } = string.Empty;
+    public string ClassId { get; set; } = string.Empty;
 
     // Тип узла развития: class, branch, subbranch, skill, profession, magic_path и т.д.
     public string NodeType { get; set; } = string.Empty;
@@ -165,13 +229,19 @@ public class CharacterDevelopmentNodeState : EntityBase
     public bool IsUnlocked { get; set; }
     public bool IsPurchased { get; set; }
     public bool IsHidden { get; set; }
+    public bool IsAvailable { get; set; }
+    public string State { get; set; } = string.Empty;
+    public bool IsCompleted { get; set; }
 
     public string PurchasedAtWorldDate { get; set; } = string.Empty;
     public DateTime PurchasedAtUtc { get; set; } = DateTime.UtcNow;
+    public int CostPaid { get; set; }
+    public string CurrencyId { get; set; } = CharacterCurrencyIds.XpCoin;
 
     public string Source { get; set; } = string.Empty;
     public string GMApprovalStatus { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 }
 
 // Generic wallet balances by currency code.
@@ -191,10 +261,44 @@ public sealed class CharacterWalletValue
     public string Notes { get; set; } = string.Empty;
 }
 
+// Canonical race/species identity profile. Legacy Character remains authoritative.
+public sealed class RaceOrSpeciesProfile
+{
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public string RaceId { get; set; } = string.Empty;
+    public string RaceCode { get; set; } = string.Empty;
+    public string RaceName { get; set; } = string.Empty;
+    public string SubspeciesId { get; set; } = string.Empty;
+    public string HybridId { get; set; } = string.Empty;
+    public string HybridSubtypeId { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Source { get; set; } = "legacy_shadow";
+    public string Notes { get; set; } = string.Empty;
+    public List<string> Tags { get; set; } = new List<string>();
+    public int SchemaVersion { get; set; } = 1;
+}
+
 // Body/health-like derived values (system-agnostic).
 public sealed class BodyProfile
 {
+    public string CharacterId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = RuleSetIds.FantasyNriDefault;
+    public string BodyType { get; set; } = string.Empty;
+    public string SpeciesBodyType { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Backstory { get; set; } = string.Empty;
+    public int HeightCm { get; set; }
+    public string HeightText { get; set; } = string.Empty;
+    public int AgeYears { get; set; }
+    public string AgeText { get; set; } = string.Empty;
+    public string SizeCategory { get; set; } = string.Empty;
+    public List<string> BodyTags { get; set; } = new List<string>();
+    public List<string> EquipmentCompatibilityTags { get; set; } = new List<string>();
+    public string Notes { get; set; } = string.Empty;
+    public string Source { get; set; } = "legacy_shadow";
     public Dictionary<string, int> BodyStats { get; set; } = new Dictionary<string, int>();
+    public int SchemaVersion { get; set; } = 1;
 }
 
 // Knowledge + language holder for modular rulesets.
@@ -223,12 +327,28 @@ public sealed class CharacterInventoryItemProfileValue
 {
     public string ItemId { get; set; } = string.Empty;
     public string DefinitionId { get; set; } = string.Empty;
+    public string ItemDefinitionId { get; set; } = string.Empty;
+    public string DefinitionCategory { get; set; } = string.Empty;
+    public string DefinitionCode { get; set; } = string.Empty;
+    public string SnapshotDisplayName { get; set; } = string.Empty;
+    public string SnapshotCategory { get; set; } = string.Empty;
+    public string SnapshotDescription { get; set; } = string.Empty;
+    public List<string> SnapshotTags { get; set; } = new List<string>();
     public string Name { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public int Durability { get; set; }
     public int MaxDurability { get; set; }
+    public string Condition { get; set; } = string.Empty;
+    public int Ammo { get; set; }
     public bool IsEquipped { get; set; }
     public string SlotId { get; set; } = string.Empty;
+    public bool IsPlayerVisible { get; set; } = true;
+    public int SortOrder { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public string Source { get; set; } = "legacy_shadow";
     public string Notes { get; set; } = string.Empty;
     public List<string> Tags { get; set; } = new List<string>();
@@ -245,12 +365,18 @@ public sealed class ReputationProfile
 
 public sealed class CharacterReputationProfileValue
 {
+    public string EntryId { get; set; } = string.Empty;
+    public string Scope { get; set; } = "Personal";
+    public string ScopeType { get; set; } = "Character";
     public string TargetType { get; set; } = string.Empty;
     public string TargetId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int Value { get; set; }
     public int GroupValue { get; set; }
+    public string Status { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+    public bool IsPlayerVisible { get; set; } = true;
+    public bool IsArchived { get; set; }
     public List<string> Tags { get; set; } = new List<string>();
     public string Source { get; set; } = "legacy_shadow";
 }
@@ -270,10 +396,14 @@ public sealed class CharacterHoldingProfileValue
     public string HoldingType { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string LocationId { get; set; } = string.Empty;
+    public string LocationName { get; set; } = string.Empty;
     public List<string> OwnerUserIds { get; set; } = new List<string>();
     public List<string> OwnerCharacterIds { get; set; } = new List<string>();
+    public string OwnerDisplayName { get; set; } = string.Empty;
     public string LegalStatus { get; set; } = string.Empty;
     public string ActualStatus { get; set; } = string.Empty;
+    public bool IsPlayerVisible { get; set; } = true;
+    public bool IsArchived { get; set; }
     public string Notes { get; set; } = string.Empty;
     public List<string> Tags { get; set; } = new List<string>();
     public string Source { get; set; } = "legacy_shadow";
@@ -293,9 +423,14 @@ public sealed class CharacterCompanionProfileValue
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string RaceOrSpeciesId { get; set; } = string.Empty;
+    public string CompanionType { get; set; } = string.Empty;
     public string OwnerCharacterId { get; set; } = string.Empty;
+    public string OwnerDisplayName { get; set; } = string.Empty;
     public string InitiativeMode { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
     public bool HasSeparateInventory { get; set; }
+    public bool IsPlayerVisible { get; set; } = true;
+    public bool IsArchived { get; set; }
     public string Notes { get; set; } = string.Empty;
     public List<string> Tags { get; set; } = new List<string>();
     public string Source { get; set; } = "legacy_shadow";

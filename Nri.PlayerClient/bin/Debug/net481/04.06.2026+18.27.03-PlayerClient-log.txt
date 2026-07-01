@@ -1,0 +1,41 @@
+2026-06-04 18:27:03.220 [INFO] [t:1] Application start: PlayerClient
+2026-06-04 18:27:03.221 [INFO] [t:1] Log file path: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\04.06.2026+18.27.03-PlayerClient-log.txt
+2026-06-04 18:27:03.221 [INFO] [t:1] AppContext.BaseDirectory: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\
+2026-06-04 18:27:03.221 [INFO] [t:1] PreserveClientLogs: False
+2026-06-04 18:27:03.221 [INFO] [t:1] Config load attempt path=C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\client.config.json
+2026-06-04 18:27:03.221 [INFO] [t:1] Loaded client config: host=127.0.0.1, port=4600, preserveClientLogs=False
+2026-06-04 18:27:03.360 [INFO] [t:1] PlayerMainViewModel initialized
+2026-06-04 18:27:03.373 [INFO] [t:1] Disconnected from server
+2026-06-04 18:27:03.373 [INFO] [t:1] Endpoint updated: 26.129.64.85:4600
+2026-06-04 18:27:03.380 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-04 18:27:03.382 [INFO] [t:1] chat.input.wrap enabled=true
+2026-06-04 18:27:03.382 [INFO] [t:1] dice.layout.movedUnderChat=true
+2026-06-04 18:27:03.564 [INFO] [t:1] ui.player.root-scroll.initialized
+2026-06-04 18:27:03.564 [INFO] [t:1] ui.player.main.loaded scroll=true
+2026-06-04 18:27:03.564 [INFO] [t:1] ui.player.sections.visible chat/create/dice/session
+2026-06-04 18:27:03.564 [INFO] [t:1] ui.player.main-content.reachable=true
+2026-06-04 18:27:03.564 [INFO] [t:1] ui.dice.panel.opened
+2026-06-04 18:27:03.564 [INFO] [t:1] player.layout.bottomSections rearranged=true
+2026-06-04 18:27:03.566 [INFO] [t:1] player.map.world.list.load
+2026-06-04 18:27:03.567 [DEBUG] [t:1] request.start command=map.player.world.list; requestId=bf73a233bee8459b8e5c9880af3be4e8; startedUtc=2026-06-04T15:27:03.5667186Z; payloadKeys=3
+2026-06-04 18:27:03.567 [INFO] [t:1] Connecting to server: 26.129.64.85:4600
+2026-06-04 18:27:03.567 [INFO] [t:1] Disconnected from server
+2026-06-04 18:27:03.572 [INFO] [t:1] Connected to server: 26.129.64.85:4600
+2026-06-04 18:27:08.595 [ERROR] [t:1] Network send failed for command=map.player.world.list | System.IO.IOException: Не удается прочитать данные из транспортного соединения: Попытка установить соединение была безуспешной, т.к. от другого компьютера за требуемое время не получен нужный отклик, или было разорвано уже установленное соединение из-за неверного отклика уже подключенного компьютера. ---> System.Net.Sockets.SocketException: Попытка установить соединение была безуспешной, т.к. от другого компьютера за требуемое время не получен нужный отклик, или было разорвано уже установленное соединение из-за неверного отклика уже подключенного компьютера
+   в System.Net.Sockets.NetworkStream.Read(Byte[] buffer, Int32 offset, Int32 size)
+   --- Конец трассировки внутреннего стека исключений ---
+   в System.Net.Sockets.NetworkStream.Read(Byte[] buffer, Int32 offset, Int32 size)
+   в System.IO.StreamReader.ReadBuffer()
+   в System.IO.StreamReader.ReadLine()
+   в Nri.PlayerClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 95
+2026-06-04 18:27:08.595 [ERROR] [t:1] request.error command=map.player.world.list; requestId=bf73a233bee8459b8e5c9880af3be4e8; elapsedMs=5028 | System.IO.IOException: Не удается прочитать данные из транспортного соединения: Попытка установить соединение была безуспешной, т.к. от другого компьютера за требуемое время не получен нужный отклик, или было разорвано уже установленное соединение из-за неверного отклика уже подключенного компьютера. ---> System.Net.Sockets.SocketException: Попытка установить соединение была безуспешной, т.к. от другого компьютера за требуемое время не получен нужный отклик, или было разорвано уже установленное соединение из-за неверного отклика уже подключенного компьютера
+   в System.Net.Sockets.NetworkStream.Read(Byte[] buffer, Int32 offset, Int32 size)
+   --- Конец трассировки внутреннего стека исключений ---
+   в System.Net.Sockets.NetworkStream.Read(Byte[] buffer, Int32 offset, Int32 size)
+   в System.IO.StreamReader.ReadBuffer()
+   в System.IO.StreamReader.ReadLine()
+   в Nri.PlayerClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 107
+   в Nri.PlayerClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 118
+2026-06-04 18:27:08.595 [WARN] [t:1] player.map.world.list.error message=Не удается прочитать данные из транспортного соединения: Попытка установить соединение была безуспешной, т.к. от другого компьютера за требуемое время не получен нужный отклик, или было разорвано уже установленное соединение из-за неверного отклика уже подключенного компьютера.
+2026-06-04 18:27:08.596 [INFO] [t:1] player.room.flags.refresh.start
+2026-06-04 18:27:08.596 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=d499ff0b48364d0580ff3d9f3ead034a; startedUtc=2026-06-04T15:27:08.5967320Z; payloadKeys=0

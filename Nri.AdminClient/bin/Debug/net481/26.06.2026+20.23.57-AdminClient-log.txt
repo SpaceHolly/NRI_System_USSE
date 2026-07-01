@@ -1,0 +1,86 @@
+2026-06-26 20:23:57.881 [INFO] [t:1] Application start: AdminClient
+2026-06-26 20:23:57.881 [INFO] [t:1] Log file path: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\26.06.2026+20.23.57-AdminClient-log.txt
+2026-06-26 20:23:57.881 [INFO] [t:1] AppContext.BaseDirectory: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\
+2026-06-26 20:23:57.881 [INFO] [t:1] PreserveClientLogs: False
+2026-06-26 20:23:57.881 [INFO] [t:1] Config load attempt path=C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\client.config.json
+2026-06-26 20:23:57.881 [INFO] [t:1] Loaded client config: host=127.0.0.1, port=4600, preserveClientLogs=False
+2026-06-26 20:23:58.177 [INFO] [t:1] AdminMainViewModel initialized
+2026-06-26 20:23:58.177 [INFO] [t:1] chat.window.layout fixedHeaderFooter=true
+2026-06-26 20:23:58.206 [INFO] [t:1] ui.navigation.selected item=admin.dashboard target=admin.dashboard
+2026-06-26 20:23:58.229 [INFO] [t:1] Endpoint updated: 127.0.0.1:4600
+2026-06-26 20:23:58.229 [INFO] [t:1] Disconnected from server
+2026-06-26 20:23:58.232 [INFO] [t:1] skillDefinitions.content.new enabled=false
+2026-06-26 20:23:58.232 [INFO] [t:1] skillDefinitions.content.save enabled=false
+2026-06-26 20:23:58.232 [INFO] [t:1] skillDefinitions.content.archive enabled=false
+2026-06-26 20:23:58.232 [INFO] [t:1] skillDefinitions.content.refresh enabled=false
+2026-06-26 20:23:58.244 [INFO] [t:1] ui.admin.dice.panel.loaded
+2026-06-26 20:23:58.244 [INFO] [t:1] people.grid.template fixed=true
+2026-06-26 20:23:58.244 [INFO] [t:1] dice.actor.mode=account
+2026-06-26 20:23:58.244 [DEBUG] [t:1] suppressed repeated log line count=1 message=dice.actor.mode=account
+2026-06-26 20:23:58.244 [INFO] [t:1] ui.admin.dice.button state=disabled reason=Привилегированные разделы недоступны.
+2026-06-26 20:23:58.541 [ERROR] [t:1] Abnormal termination detected: Application.DispatcherUnhandledException | System.InvalidOperationException: Привязка типа TwoWay или OneWayToSource не может работать с доступным только для чтения свойством "SelectedRollBaseResult" типа "Nri.AdminClient.ViewModels.AdminFateControlViewModel".
+   в MS.Internal.Data.PropertyPathWorker.CheckReadOnly(Object item, Object info)
+   в MS.Internal.Data.PropertyPathWorker.ReplaceItem(Int32 k, Object newO, Object parent)
+   в MS.Internal.Data.PropertyPathWorker.UpdateSourceValueState(Int32 k, ICollectionView collectionView, Object newValue, Boolean isASubPropertyChange)
+   в MS.Internal.Data.ClrBindingWorker.AttachDataItem()
+   в System.Windows.Data.BindingExpression.Activate(Object item)
+   в System.Windows.Data.BindingExpression.AttachToContext(AttachAttempt attempt)
+   в System.Windows.Data.BindingExpression.MS.Internal.Data.IDataBindEngineClient.AttachToContext(Boolean lastChance)
+   в MS.Internal.Data.DataBindEngine.Task.Run(Boolean lastChance)
+   в MS.Internal.Data.DataBindEngine.Run(Object arg)
+   в System.Windows.ContextLayoutManager.fireLayoutUpdateEvent()
+   в System.Windows.ContextLayoutManager.UpdateLayout()
+   в System.Windows.Interop.HwndSource.SetLayoutSize()
+   в System.Windows.Interop.HwndSource.set_RootVisualInternal(Visual value)
+   в System.Windows.Window.SetRootVisual()
+   в System.Windows.Window.SetRootVisualAndUpdateSTC()
+   в System.Windows.Window.SetupInitialState(Double requestedTop, Double requestedLeft, Double requestedWidth, Double requestedHeight)
+   в System.Windows.Window.CreateSourceWindow(Boolean duringShow)
+   в System.Windows.Window.ShowHelper(Object booleanBox)
+   в Nri.AdminClient.App.OnStartup(StartupEventArgs e) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\App.xaml.cs:строка 52
+   в System.Windows.Application.<.ctor>b__1_0(Object unused)
+   в System.Windows.Threading.ExceptionWrapper.InternalRealCall(Delegate callback, Object args, Int32 numArgs)
+   в System.Windows.Threading.ExceptionWrapper.TryCatchWhen(Object source, Delegate callback, Object args, Int32 numArgs, Delegate catchHandler)
+2026-06-26 20:23:58.543 [ERROR] [t:1] Abnormal termination detected: AppDomain.CurrentDomain.UnhandledException | System.InvalidOperationException: Привязка типа TwoWay или OneWayToSource не может работать с доступным только для чтения свойством "SelectedRollBaseResult" типа "Nri.AdminClient.ViewModels.AdminFateControlViewModel".
+   в MS.Internal.Data.PropertyPathWorker.CheckReadOnly(Object item, Object info)
+   в MS.Internal.Data.PropertyPathWorker.ReplaceItem(Int32 k, Object newO, Object parent)
+   в MS.Internal.Data.PropertyPathWorker.UpdateSourceValueState(Int32 k, ICollectionView collectionView, Object newValue, Boolean isASubPropertyChange)
+   в MS.Internal.Data.ClrBindingWorker.AttachDataItem()
+   в System.Windows.Data.BindingExpression.Activate(Object item)
+   в System.Windows.Data.BindingExpression.AttachToContext(AttachAttempt attempt)
+   в System.Windows.Data.BindingExpression.MS.Internal.Data.IDataBindEngineClient.AttachToContext(Boolean lastChance)
+   в MS.Internal.Data.DataBindEngine.Task.Run(Boolean lastChance)
+   в MS.Internal.Data.DataBindEngine.Run(Object arg)
+   в System.Windows.ContextLayoutManager.fireLayoutUpdateEvent()
+   в System.Windows.ContextLayoutManager.UpdateLayout()
+   в System.Windows.Interop.HwndSource.SetLayoutSize()
+   в System.Windows.Interop.HwndSource.set_RootVisualInternal(Visual value)
+   в System.Windows.Window.SetRootVisual()
+   в System.Windows.Window.SetRootVisualAndUpdateSTC()
+   в System.Windows.Window.SetupInitialState(Double requestedTop, Double requestedLeft, Double requestedWidth, Double requestedHeight)
+   в System.Windows.Window.CreateSourceWindow(Boolean duringShow)
+   в System.Windows.Window.ShowHelper(Object booleanBox)
+   в Nri.AdminClient.App.OnStartup(StartupEventArgs e) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\App.xaml.cs:строка 52
+   в System.Windows.Application.<.ctor>b__1_0(Object unused)
+   в System.Windows.Threading.ExceptionWrapper.InternalRealCall(Delegate callback, Object args, Int32 numArgs)
+   в System.Windows.Threading.ExceptionWrapper.TryCatchWhen(Object source, Delegate callback, Object args, Int32 numArgs, Delegate catchHandler)
+   в System.Windows.Threading.DispatcherOperation.InvokeImpl()
+   в MS.Internal.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   в System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
+   в System.Threading.ExecutionContext.Run(ExecutionContext executionContext, ContextCallback callback, Object state, Boolean preserveSyncCtx)
+   в System.Threading.ExecutionContext.Run(ExecutionContext executionContext, ContextCallback callback, Object state)
+   в MS.Internal.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   в System.Windows.Threading.DispatcherOperation.Invoke()
+   в System.Windows.Threading.Dispatcher.ProcessQueue()
+   в System.Windows.Threading.Dispatcher.WndProcHook(IntPtr hwnd, Int32 msg, IntPtr wParam, IntPtr lParam, Boolean& handled)
+   в MS.Win32.HwndWrapper.WndProc(IntPtr hwnd, Int32 msg, IntPtr wParam, IntPtr lParam, Boolean& handled)
+   в MS.Win32.HwndSubclass.DispatcherCallbackOperation(Object o)
+   в System.Windows.Threading.ExceptionWrapper.InternalRealCall(Delegate callback, Object args, Int32 numArgs)
+   в System.Windows.Threading.ExceptionWrapper.TryCatchWhen(Object source, Delegate callback, Object args, Int32 numArgs, Delegate catchHandler)
+   в System.Windows.Threading.Dispatcher.LegacyInvokeImpl(DispatcherPriority priority, TimeSpan timeout, Delegate method, Object args, Int32 numArgs)
+   в MS.Win32.HwndSubclass.SubclassWndProc(IntPtr hwnd, Int32 msg, IntPtr wParam, IntPtr lParam)
+   в MS.Win32.UnsafeNativeMethods.DispatchMessage(MSG& msg)
+   в System.Windows.Threading.Dispatcher.PushFrameImpl(DispatcherFrame frame)
+   в System.Windows.Application.RunDispatcher(Object ignore)
+   в System.Windows.Application.RunInternal(Window window)
+   в Nri.AdminClient.App.Main()

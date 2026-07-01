@@ -27,6 +27,7 @@ public class JsonTcpClient : IJsonTcpClient
 {
     private readonly ClientConfig _config;
     private readonly ClientSessionState _session;
+    private readonly object _syncRoot = new();
     private TcpClient? _tcpClient;
     private StreamReader? _reader;
     private StreamWriter? _writer;
@@ -42,13 +43,24 @@ public class JsonTcpClient : IJsonTcpClient
 
     public void UpdateEndpoint(string host, int port)
     {
-        _config.ServerHost = host;
-        _config.ServerPort = port;
-        ClientLogService.Instance.Info($"Endpoint updated: {host}:{port}");
-        Disconnect();
+        lock (_syncRoot)
+        {
+            _config.ServerHost = host;
+            _config.ServerPort = port;
+            ClientLogService.Instance.Info($"Endpoint updated: {host}:{port}");
+            DisconnectUnsafe();
+        }
     }
 
     public void Connect()
+    {
+        lock (_syncRoot)
+        {
+            ConnectUnsafe();
+        }
+    }
+
+    private void ConnectUnsafe()
     {
         if (_tcpClient is { Connected: true } && _reader != null && _writer != null)
         {
@@ -57,7 +69,7 @@ public class JsonTcpClient : IJsonTcpClient
 
         ClientLogService.Instance.Info($"Connecting to server: {ServerHost}:{ServerPort}");
 
-        Disconnect();
+        DisconnectUnsafe();
         var connectingClient = new TcpClient();
         var connectTask = connectingClient.ConnectAsync(ServerHost, ServerPort);
         if (!connectTask.Wait(TimeSpan.FromSeconds(5)))
@@ -65,8 +77,16 @@ public class JsonTcpClient : IJsonTcpClient
             ObserveFaultedTask(connectTask);
             connectingClient.Dispose();
             var timeout = new TimeoutException($"Timed out connecting to {ServerHost}:{ServerPort}.");
-            ClientLogService.Instance.Error("Network connection timeout", timeout);
+            ClientLogService.Instance.Warn($"Network connection timeout endpoint={ServerHost}:{ServerPort}");
             throw timeout;
+        }
+
+        if (connectTask.IsFaulted)
+        {
+            connectingClient.Dispose();
+            var root = connectTask.Exception?.GetBaseException() ?? new IOException($"Failed to connect to {ServerHost}:{ServerPort}.");
+            ClientLogService.Instance.Warn($"Network connection failed endpoint={ServerHost}:{ServerPort}; message={root.Message}");
+            throw root;
         }
 
         connectTask.GetAwaiter().GetResult();
@@ -82,6 +102,14 @@ public class JsonTcpClient : IJsonTcpClient
 
     public void Disconnect()
     {
+        lock (_syncRoot)
+        {
+            DisconnectUnsafe();
+        }
+    }
+
+    private void DisconnectUnsafe()
+    {
         _reader?.Dispose();
         _writer?.Dispose();
         _tcpClient?.Close();
@@ -93,32 +121,37 @@ public class JsonTcpClient : IJsonTcpClient
 
     public ResponseEnvelope Send(RequestEnvelope request)
     {
-        if (_tcpClient is not { Connected: true } || _reader == null || _writer == null)
+        lock (_syncRoot)
         {
-            Connect();
-        }
-
-        try
-        {
-            request.AuthToken = request.AuthToken ?? _session.AuthToken;
-            var json = JsonProtocolSerializer.Serialize(request);
-            _writer!.WriteLine(json);
-
-            var responseJson = _reader!.ReadLine();
-            var response = JsonProtocolSerializer.Deserialize<ResponseEnvelope>(responseJson ?? string.Empty)
-                           ?? new ResponseEnvelope { Status = ResponseStatus.Error, ErrorCode = ErrorCode.InvalidRequest, Message = "Empty response." };
-
-            if (response.Payload.ContainsKey("authToken"))
+            try
             {
-                _session.AuthToken = Convert.ToString(response.Payload["authToken"]);
-            }
+                if (_tcpClient is not { Connected: true } || _reader == null || _writer == null)
+                {
+                    ConnectUnsafe();
+                }
 
-            return response;
-        }
-        catch (Exception ex)
-        {
-            ClientLogService.Instance.Error($"Network send failed for command={request.Command}", ex);
-            throw;
+                request.AuthToken = request.AuthToken ?? _session.AuthToken;
+                var json = JsonProtocolSerializer.Serialize(request);
+                _writer!.WriteLine(json);
+
+                var responseJson = _reader!.ReadLine();
+                var response = JsonProtocolSerializer.Deserialize<ResponseEnvelope>(responseJson ?? string.Empty)
+                               ?? new ResponseEnvelope { Status = ResponseStatus.Error, ErrorCode = ErrorCode.InvalidRequest, Message = "Empty response." };
+
+                if (response.Payload.ContainsKey("authToken"))
+                {
+                    _session.AuthToken = Convert.ToString(response.Payload["authToken"]);
+                }
+
+                return response;
+            }
+            catch (Exception ex) when (IsTransportException(ex))
+            {
+                // Always drop stale/broken sockets on transport errors.
+                DisconnectUnsafe();
+                ClientLogService.Instance.Warn($"Network unavailable command={request.Command}; endpoint={ServerHost}:{ServerPort}; message={ex.Message}");
+                return BuildTransportErrorResponse(request, $"Сервер недоступен: {ServerHost}:{ServerPort}. Проверьте адрес и запущен ли сервер.");
+            }
         }
     }
 
@@ -138,5 +171,32 @@ public class JsonTcpClient : IJsonTcpClient
         task.ContinueWith(
             continuation => _ = continuation.Exception,
             TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnFaulted);
+    }
+
+    private static bool IsTransportException(Exception ex)
+        => ex is IOException
+           || ex is SocketException
+           || ex is TimeoutException
+           || ex.InnerException is SocketException
+           || ex.InnerException is IOException
+           || ex.InnerException is TimeoutException;
+
+    private static ResponseEnvelope BuildTransportErrorResponse(RequestEnvelope request, string message)
+        => new ResponseEnvelope
+        {
+            RequestId = request.RequestId,
+            Status = ResponseStatus.Error,
+            ErrorCode = ErrorCode.InternalError,
+            Message = NormalizeTransportErrorMessage(message)
+        };
+
+    private static string NormalizeTransportErrorMessage(string message)
+    {
+        if (!string.IsNullOrWhiteSpace(message) && !message.Contains("Р"))
+        {
+            return message;
+        }
+
+        return "Сервер недоступен. Проверьте адрес, порт и запущен ли сервер.";
     }
 }

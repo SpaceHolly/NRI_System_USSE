@@ -1,0 +1,36 @@
+<UserControl x:Class="Nri.AdminClient.Views.Administration.AdminEconomyMarketsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Border Style="{StaticResource CardStyle}" Margin="8" Padding="22">
+            <StackPanel>
+                <TextBlock Text="Экономика / рынки" Style="{StaticResource SectionTitleTextStyle}" FontSize="22"/>
+                <TextBlock Text="Статус: недоступно / отложено" Style="{StaticResource TitleTextStyle}" Margin="0,12,0,0"/>
+                <TextBlock Text="Экономическая симуляция, рынки, цены и законы не являются Working MVP ветки 0.14. Финансы персонажа остаются в карточке персонажа и не смешиваются с этим модулем."
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           Margin="0,8,0,0"/>
+                <UniformGrid Columns="3" Margin="0,18,0,0">
+                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="Причина" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="Для рынков нужен отдельный доменный слой и acceptance." TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="Целевой этап" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="post-1.0 или отдельный этап" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource SubtleCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Действия" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="Рабочие кнопки скрыты до готовности модуля." TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+            </StackPanel>
+        </Border>
+    </ScrollViewer>
+</UserControl>

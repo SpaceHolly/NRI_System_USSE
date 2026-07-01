@@ -1,0 +1,66 @@
+2026-06-29 14:22:22.401 [INFO] [t:1] Application start: PlayerClient
+2026-06-29 14:22:22.401 [INFO] [t:1] Log file path: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\29.06.2026+14.22.22-PlayerClient-log.txt
+2026-06-29 14:22:22.401 [INFO] [t:1] AppContext.BaseDirectory: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\
+2026-06-29 14:22:22.401 [INFO] [t:1] PreserveClientLogs: False
+2026-06-29 14:22:22.401 [INFO] [t:1] Config load attempt path=C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\client.config.json
+2026-06-29 14:22:22.401 [INFO] [t:1] Loaded client config: host=127.0.0.1, port=4600, preserveClientLogs=False
+2026-06-29 14:22:22.558 [INFO] [t:1] PlayerMainViewModel initialized
+2026-06-29 14:22:22.578 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-29 14:22:22.580 [INFO] [t:1] chat.input.wrap enabled=true
+2026-06-29 14:22:22.580 [INFO] [t:1] dice.layout.movedUnderChat=true
+2026-06-29 14:22:22.743 [INFO] [t:1] ui.player.root-scroll.initialized
+2026-06-29 14:22:22.744 [INFO] [t:1] ui.player.main.loaded scroll=true
+2026-06-29 14:22:22.744 [INFO] [t:1] ui.player.sections.visible chat/create/dice/session
+2026-06-29 14:22:22.744 [INFO] [t:1] ui.player.main-content.reachable=true
+2026-06-29 14:22:22.744 [INFO] [t:1] ui.dice.panel.opened
+2026-06-29 14:22:22.744 [INFO] [t:1] player.layout.bottomSections rearranged=true
+2026-06-29 14:22:22.746 [DEBUG] [t:4] request.start command=system.featureFlags.snapshot; requestId=7c999a10ff9345398c882d7f965c820a; startedUtc=2026-06-29T11:22:22.7460187Z; payloadKeys=0
+2026-06-29 14:22:22.746 [DEBUG] [t:5] request.start command=system.featureFlags.snapshot; requestId=314fee76a2504f77afad11405810d039; startedUtc=2026-06-29T11:22:22.7460187Z; payloadKeys=0
+2026-06-29 14:22:22.747 [INFO] [t:4] Connecting to server: 127.0.0.1:4600
+2026-06-29 14:22:22.747 [DEBUG] [t:4] suppressed repeated log line count=1 message=Connecting to server: 127.0.0.1:4600
+2026-06-29 14:22:22.747 [INFO] [t:4] Disconnected from server
+2026-06-29 14:22:22.751 [DEBUG] [t:5] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-29 14:22:22.751 [INFO] [t:5] Connected to server: 127.0.0.1:4600
+2026-06-29 14:22:22.785 [DEBUG] [t:5] suppressed repeated log line count=1 message=Connected to server: 127.0.0.1:4600
+2026-06-29 14:22:22.785 [DEBUG] [t:5] request.end command=system.featureFlags.snapshot; requestId=7c999a10ff9345398c882d7f965c820a; status=Unauthorized; success=False; elapsedMs=38; message=Auth token is invalid.
+2026-06-29 14:22:22.785 [DEBUG] [t:4] request.end command=system.featureFlags.snapshot; requestId=7c999a10ff9345398c882d7f965c820a; status=Unauthorized; success=False; elapsedMs=39; message=Auth token is invalid.
+2026-06-29 14:22:22.786 [INFO] [t:1] player.schedule.load.start
+2026-06-29 14:22:22.787 [DEBUG] [t:6] request.start command=schedule.real.player.next; requestId=7cc45bae49604eeda1296ea6252f1959; startedUtc=2026-06-29T11:22:22.7872937Z; payloadKeys=1
+2026-06-29 14:22:22.788 [DEBUG] [t:6] request.end command=schedule.real.player.next; requestId=7c999a10ff9345398c882d7f965c820a; status=Unauthorized; success=False; elapsedMs=1; message=Auth token is invalid.
+2026-06-29 14:22:22.788 [INFO] [t:1] player.world_calendar.load.start
+2026-06-29 14:22:22.788 [DEBUG] [t:5] request.start command=world.calendar.player.get; requestId=a91dd59f67d14d94bec6a60a8b110941; startedUtc=2026-06-29T11:22:22.7883600Z; payloadKeys=2
+2026-06-29 14:22:22.788 [DEBUG] [t:4] request.start command=schedule.real.player.list; requestId=b92819b0b9514b7ab2da914e7d9eec1b; startedUtc=2026-06-29T11:22:22.7888854Z; payloadKeys=1
+2026-06-29 14:22:22.790 [DEBUG] [t:4] request.end command=schedule.real.player.list; requestId=a91dd59f67d14d94bec6a60a8b110941; status=Unauthorized; success=False; elapsedMs=1; message=Auth token is invalid.
+2026-06-29 14:22:22.797 [ERROR] [t:5] request.error command=world.calendar.player.get; requestId=a91dd59f67d14d94bec6a60a8b110941; elapsedMs=1 | System.Xml.XmlException: Недопустимая байтовая кодировка.
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.ReadEncoding(Byte b1, Byte b2)
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.ReadEncoding()
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.InitForReading(Stream inputStream, Encoding expectedEncoding)
+   в System.Runtime.Serialization.Json.XmlJsonReader.SetInput(Stream stream, Encoding encoding, XmlDictionaryReaderQuotas quotas, OnXmlDictionaryReaderClose onClose)
+   в System.Runtime.Serialization.Json.DataContractJsonSerializer.ReadObject(Stream stream)
+   в Nri.Shared.Contracts.JsonProtocolSerializer.Deserialize[T](String json) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.Shared\Contracts\Protocol.cs:строка 1121
+   в Nri.PlayerClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 96
+   в Nri.PlayerClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 204
+2026-06-29 14:22:22.798 [ERROR] [t:1] player.world_calendar.load.error | System.Xml.XmlException: Недопустимая байтовая кодировка.
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.ReadEncoding(Byte b1, Byte b2)
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.ReadEncoding()
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.InitForReading(Stream inputStream, Encoding expectedEncoding)
+   в System.Runtime.Serialization.Json.XmlJsonReader.SetInput(Stream stream, Encoding encoding, XmlDictionaryReaderQuotas quotas, OnXmlDictionaryReaderClose onClose)
+   в System.Runtime.Serialization.Json.DataContractJsonSerializer.ReadObject(Stream stream)
+   в Nri.Shared.Contracts.JsonProtocolSerializer.Deserialize[T](String json) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.Shared\Contracts\Protocol.cs:строка 1121
+   в Nri.PlayerClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 96
+   в Nri.PlayerClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 216
+   в Nri.PlayerClient.Networking.CommandApi.WorldCalendarPlayerGet(Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 154
+   в Nri.PlayerClient.ViewModels.PlayerWorldCalendarViewModel.<>c__DisplayClass70_0.<LoadAsync>b__0() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\ViewModels\PlayerWorldCalendarViewModel.cs:строка 108
+   в System.Threading.Tasks.Task`1.InnerInvoke()
+   в System.Threading.Tasks.Task.Execute()
+--- Конец трассировка стека из предыдущего расположения, где возникло исключение ---
+   в System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   в System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   в System.Runtime.CompilerServices.TaskAwaiter`1.GetResult()
+   в Nri.PlayerClient.ViewModels.PlayerWorldCalendarViewModel.<LoadAsync>d__70.MoveNext() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\ViewModels\PlayerWorldCalendarViewModel.cs:строка 108
+2026-06-29 14:22:25.758 [INFO] [t:1] ui.player.dice.button state=enabled reason=ready
+2026-06-29 14:22:26.590 [INFO] [t:1] ui.password.change.opened
+2026-06-29 14:22:28.123 [INFO] [t:1] Login attempt: user=dev_player
+2026-06-29 14:22:28.124 [DEBUG] [t:1] request.start command=auth.login; requestId=fd02eae87dd8423ebb385749f848675d; startedUtc=2026-06-29T11:22:28.1242384Z; payloadKeys=2
+2026-06-29 14:22:28.124 [DEBUG] [t:1] request.end command=auth.login; requestId=b92819b0b9514b7ab2da914e7d9eec1b; status=Unauthorized; success=False; elapsedMs=0; message=Auth token is invalid.
+2026-06-29 14:22:28.124 [WARN] [t:1] Login failed: user=dev_player; message=Auth token is invalid.

@@ -1,0 +1,300 @@
+<UserControl x:Class="Nri.AdminClient.Views.Administration.AdminItemsEquipmentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:administration="clr-namespace:Nri.AdminClient.Views.Administration">
+    <TabControl Margin="8">
+        <TabItem Header="Предметы / экипировка">
+            <Grid DataContext="{Binding ItemsEquipmentCatalog}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="Предметы / экипировка" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBlock Text="Рабочий справочник предметов, оружия, брони, боеприпасов и слотов экипировки. Источник данных: MongoDB unified_definitions."
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <TabControl Grid.Row="1">
+                    <TabItem Header="Предметы">
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <DockPanel>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8">
+                                    <TextBox Width="240" AutomationProperties.AutomationId="Catalog_Items_Search" Text="{Binding ItemSearch, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по коду или названию"/>
+                                    <Button Content="Обновить" Command="{Binding RefreshItemsCommand}" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <DataGrid AutomationProperties.AutomationId="Catalog_Items_Table"
+                                          ItemsSource="{Binding Items}"
+                                          SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                                          AutoGenerateColumns="False"
+                                          IsReadOnly="True"
+                                          SelectionMode="Single">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Код" Binding="{Binding Code}" Width="140"/>
+                                        <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="*"/>
+                                        <DataGridTextColumn Header="Тип" Binding="{Binding MainDetail}" Width="140"/>
+                                        <DataGridTextColumn Header="Видимость" Binding="{Binding VisibilityDisplay}" Width="110"/>
+                                        <DataGridTextColumn Header="Состояние" Binding="{Binding ArchivedDisplay}" Width="90"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Карточка предмета" Style="{StaticResource TitleTextStyle}"/>
+                                    <TextBlock Text="Код" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Item_Code" Text="{Binding ItemEditor.Code, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Название" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Item_DisplayName" Text="{Binding ItemEditor.DisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Описание" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Item_Description" Text="{Binding ItemEditor.Description, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="70" TextWrapping="Wrap"/>
+                                    <TextBlock Text="Тип / категория предмета" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Item_Category" Text="{Binding ItemEditor.ItemKind, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <UniformGrid Columns="3" Margin="0,8,0,0">
+                                        <StackPanel Margin="0,0,6,0"><TextBlock Text="Стек"/><TextBox AutomationProperties.AutomationId="Catalog_Item_StackSize" Text="{Binding ItemEditor.StackSize, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel Margin="0,0,6,0"><TextBlock Text="Вес"/><TextBox AutomationProperties.AutomationId="Catalog_Item_Weight" Text="{Binding ItemEditor.Weight, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel><TextBlock Text="Цена"/><TextBox AutomationProperties.AutomationId="Catalog_Item_Value" Text="{Binding ItemEditor.Value, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                    </UniformGrid>
+                                    <CheckBox AutomationProperties.AutomationId="Catalog_Item_IsPlayerVisible" Content="Видно игрокам" IsChecked="{Binding ItemEditor.IsPlayerVisible}" Margin="0,8,0,0"/>
+                                    <TextBox Text="{Binding ItemEditor.TagsText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Теги через запятую" Margin="0,8,0,0"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button AutomationProperties.AutomationId="Catalog_Item_Create_Button" Content="Создать" Command="{Binding CreateItemCommand}"/>
+                                        <Button AutomationProperties.AutomationId="Catalog_Item_Update_Button" Content="Сохранить" Command="{Binding UpdateItemCommand}" Margin="8,0,0,0"/>
+                                        <Button AutomationProperties.AutomationId="Catalog_Item_Archive_Button" Content="Архивировать" Command="{Binding ArchiveItemCommand}" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock AutomationProperties.AutomationId="Catalog_Item_Status" Text="{Binding ItemStatus}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+
+                    <TabItem Header="Оружие">
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <DockPanel>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8">
+                                    <TextBox Width="240" Text="{Binding WeaponSearch, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск оружия"/>
+                                    <Button Content="Обновить" Command="{Binding RefreshWeaponsCommand}" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <DataGrid AutomationProperties.AutomationId="Catalog_Weapons_Table" ItemsSource="{Binding Weapons}" SelectedItem="{Binding SelectedWeapon, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Код" Binding="{Binding Code}" Width="140"/>
+                                        <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="*"/>
+                                        <DataGridTextColumn Header="Тип" Binding="{Binding MainDetail}" Width="120"/>
+                                        <DataGridTextColumn Header="Урон" Binding="{Binding DamageDraft}" Width="90"/>
+                                        <DataGridTextColumn Header="Видимость" Binding="{Binding VisibilityDisplay}" Width="110"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Карточка оружия" Style="{StaticResource TitleTextStyle}"/>
+                                    <TextBlock Text="Код" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Weapon_Code" Text="{Binding WeaponEditor.Code, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Название" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Weapon_DisplayName" Text="{Binding WeaponEditor.DisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Описание" Margin="0,8,0,2"/>
+                                    <TextBox Text="{Binding WeaponEditor.Description, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="60" TextWrapping="Wrap"/>
+                                    <UniformGrid Columns="2" Margin="0,8,0,0">
+                                        <StackPanel Margin="0,0,6,0"><TextBlock Text="Вид оружия"/><TextBox Text="{Binding WeaponEditor.WeaponKind, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel><TextBlock Text="Тип"/><TextBox Text="{Binding WeaponEditor.WeaponType, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel Margin="0,8,6,0"><TextBlock Text="Урон"/><TextBox AutomationProperties.AutomationId="Catalog_Weapon_DamageDraft" Text="{Binding WeaponEditor.DamageDraft, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel Margin="0,8,0,0"><TextBlock Text="Тип урона"/><TextBox AutomationProperties.AutomationId="Catalog_Weapon_DamageType" Text="{Binding WeaponEditor.DamageType, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel Margin="0,8,6,0"><TextBlock Text="Дистанция"/><TextBox AutomationProperties.AutomationId="Catalog_Weapon_Range" Text="{Binding WeaponEditor.Range, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel Margin="0,8,0,0"><TextBlock Text="Боеприпасы"/><TextBox AutomationProperties.AutomationId="Catalog_Weapon_AmmoType" Text="{Binding WeaponEditor.AmmoType, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                    </UniformGrid>
+                                    <CheckBox Content="Двуручное" IsChecked="{Binding WeaponEditor.IsTwoHanded}" Margin="0,8,0,0"/>
+                                    <CheckBox Content="Видно игрокам" IsChecked="{Binding WeaponEditor.IsPlayerVisible}" Margin="0,4,0,0"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button AutomationProperties.AutomationId="Catalog_Weapon_Create_Button" Content="Создать" Command="{Binding CreateWeaponCommand}"/>
+                                        <Button AutomationProperties.AutomationId="Catalog_Weapon_Update_Button" Content="Сохранить" Command="{Binding UpdateWeaponCommand}" Margin="8,0,0,0"/>
+                                        <Button AutomationProperties.AutomationId="Catalog_Weapon_Archive_Button" Content="Архивировать" Command="{Binding ArchiveWeaponCommand}" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock AutomationProperties.AutomationId="Catalog_Weapon_Status" Text="{Binding WeaponStatus}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+
+                    <TabItem Header="Броня">
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <DockPanel>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8">
+                                    <TextBox Width="240" Text="{Binding ArmorSearch, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск брони"/>
+                                    <Button Content="Обновить" Command="{Binding RefreshArmorCommand}" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <DataGrid AutomationProperties.AutomationId="Catalog_Armor_Table" ItemsSource="{Binding Armor}" SelectedItem="{Binding SelectedArmor, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Код" Binding="{Binding Code}" Width="140"/>
+                                        <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="*"/>
+                                        <DataGridTextColumn Header="Покрытие" Binding="{Binding Coverage}" Width="120"/>
+                                        <DataGridTextColumn Header="Физ." Binding="{Binding PhysicalArmor}" Width="70"/>
+                                        <DataGridTextColumn Header="Маг." Binding="{Binding MagicalArmor}" Width="70"/>
+                                        <DataGridTextColumn Header="Видимость" Binding="{Binding VisibilityDisplay}" Width="110"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Карточка брони" Style="{StaticResource TitleTextStyle}"/>
+                                    <TextBlock Text="Код" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Armor_Code" Text="{Binding ArmorEditor.Code, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Название" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Armor_DisplayName" Text="{Binding ArmorEditor.DisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Описание" Margin="0,8,0,2"/>
+                                    <TextBox Text="{Binding ArmorEditor.Description, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="60" TextWrapping="Wrap"/>
+                                    <UniformGrid Columns="2" Margin="0,8,0,0">
+                                        <StackPanel Margin="0,0,6,0"><TextBlock Text="Тип брони"/><TextBox Text="{Binding ArmorEditor.ArmorKind, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel><TextBlock Text="Покрытие"/><TextBox AutomationProperties.AutomationId="Catalog_Armor_Coverage" Text="{Binding ArmorEditor.Coverage, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel Margin="0,8,6,0"><TextBlock Text="Физическая защита"/><TextBox AutomationProperties.AutomationId="Catalog_Armor_PhysicalArmor" Text="{Binding ArmorEditor.PhysicalArmor, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel Margin="0,8,0,0"><TextBlock Text="Магическая защита"/><TextBox AutomationProperties.AutomationId="Catalog_Armor_MagicalArmor" Text="{Binding ArmorEditor.MagicalArmor, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                    </UniformGrid>
+                                    <TextBlock Text="Совместимые слоты" Margin="0,8,0,2"/>
+                                    <TextBox Text="{Binding ArmorEditor.CompatibleSlots, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <CheckBox Content="Видно игрокам" IsChecked="{Binding ArmorEditor.IsPlayerVisible}" Margin="0,8,0,0"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button AutomationProperties.AutomationId="Catalog_Armor_Create_Button" Content="Создать" Command="{Binding CreateArmorCommand}"/>
+                                        <Button AutomationProperties.AutomationId="Catalog_Armor_Update_Button" Content="Сохранить" Command="{Binding UpdateArmorCommand}" Margin="8,0,0,0"/>
+                                        <Button AutomationProperties.AutomationId="Catalog_Armor_Archive_Button" Content="Архивировать" Command="{Binding ArchiveArmorCommand}" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock AutomationProperties.AutomationId="Catalog_Armor_Status" Text="{Binding ArmorStatus}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+
+                    <TabItem Header="Боеприпасы">
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <DockPanel>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8">
+                                    <TextBox Width="240" Text="{Binding AmmoSearch, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск боеприпасов"/>
+                                    <Button Content="Обновить" Command="{Binding RefreshAmmoCommand}" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <DataGrid AutomationProperties.AutomationId="Catalog_Ammo_Table" ItemsSource="{Binding Ammo}" SelectedItem="{Binding SelectedAmmo, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Код" Binding="{Binding Code}" Width="140"/>
+                                        <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="*"/>
+                                        <DataGridTextColumn Header="Тип" Binding="{Binding AmmoType}" Width="120"/>
+                                        <DataGridTextColumn Header="Стек" Binding="{Binding StackSize}" Width="70"/>
+                                        <DataGridTextColumn Header="Видимость" Binding="{Binding VisibilityDisplay}" Width="110"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Карточка боеприпасов" Style="{StaticResource TitleTextStyle}"/>
+                                    <TextBlock Text="Код" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Ammo_Code" Text="{Binding AmmoEditor.Code, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Название" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Ammo_DisplayName" Text="{Binding AmmoEditor.DisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Описание" Margin="0,8,0,2"/>
+                                    <TextBox Text="{Binding AmmoEditor.Description, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="60" TextWrapping="Wrap"/>
+                                    <UniformGrid Columns="2" Margin="0,8,0,0">
+                                        <StackPanel Margin="0,0,6,0"><TextBlock Text="Тип боеприпасов"/><TextBox AutomationProperties.AutomationId="Catalog_Ammo_AmmoType" Text="{Binding AmmoEditor.AmmoType, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel><TextBlock Text="Стек"/><TextBox AutomationProperties.AutomationId="Catalog_Ammo_StackSize" Text="{Binding AmmoEditor.StackSize, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel Margin="0,8,6,0"><TextBlock Text="Калибр"/><TextBox Text="{Binding AmmoEditor.Caliber, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel Margin="0,8,0,0"><TextBlock Text="Модификатор урона"/><TextBox Text="{Binding AmmoEditor.DamageModifier, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                    </UniformGrid>
+                                    <TextBlock Text="Совместимость" Margin="0,8,0,2"/>
+                                    <TextBox Text="{Binding AmmoEditor.CompatibilityTags, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <CheckBox Content="Видно игрокам" IsChecked="{Binding AmmoEditor.IsPlayerVisible}" Margin="0,8,0,0"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button AutomationProperties.AutomationId="Catalog_Ammo_Create_Button" Content="Создать" Command="{Binding CreateAmmoCommand}"/>
+                                        <Button AutomationProperties.AutomationId="Catalog_Ammo_Update_Button" Content="Сохранить" Command="{Binding UpdateAmmoCommand}" Margin="8,0,0,0"/>
+                                        <Button AutomationProperties.AutomationId="Catalog_Ammo_Archive_Button" Content="Архивировать" Command="{Binding ArchiveAmmoCommand}" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock AutomationProperties.AutomationId="Catalog_Ammo_Status" Text="{Binding AmmoStatus}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+
+                    <TabItem Header="Слоты экипировки">
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <DockPanel>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8">
+                                    <TextBox Width="240" Text="{Binding SlotSearch, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск слотов"/>
+                                    <Button Content="Обновить" Command="{Binding RefreshSlotsCommand}" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <DataGrid AutomationProperties.AutomationId="Catalog_EquipmentSlots_Table" ItemsSource="{Binding EquipmentSlots}" SelectedItem="{Binding SelectedSlot, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Код" Binding="{Binding Code}" Width="140"/>
+                                        <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="*"/>
+                                        <DataGridTextColumn Header="Группа" Binding="{Binding SlotGroup}" Width="120"/>
+                                        <DataGridTextColumn Header="Разрешено" Binding="{Binding AllowedItemCategories}" Width="180"/>
+                                        <DataGridTextColumn Header="Видимость" Binding="{Binding VisibilityDisplay}" Width="110"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Карточка слота экипировки" Style="{StaticResource TitleTextStyle}"/>
+                                    <TextBlock Text="Код / SlotId" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Slot_Code" Text="{Binding SlotEditor.Code, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Название" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Slot_DisplayName" Text="{Binding SlotEditor.DisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Описание" Margin="0,8,0,2"/>
+                                    <TextBox Text="{Binding SlotEditor.Description, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="60" TextWrapping="Wrap"/>
+                                    <TextBlock Text="Группа слота" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Slot_SlotGroup" Text="{Binding SlotEditor.SlotGroup, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Разрешённые категории" Margin="0,8,0,2"/>
+                                    <TextBox AutomationProperties.AutomationId="Catalog_Slot_AllowedCategories" Text="{Binding SlotEditor.AllowedItemCategories, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Разрешённые теги" Margin="0,8,0,2"/>
+                                    <TextBox Text="{Binding SlotEditor.AllowedTags, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Text="Совместимость тела" Margin="0,8,0,2"/>
+                                    <TextBox Text="{Binding SlotEditor.BodyCompatibilityTags, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <CheckBox Content="Эксклюзивный слот" IsChecked="{Binding SlotEditor.IsExclusive}" Margin="0,8,0,0"/>
+                                    <CheckBox Content="Видно игрокам" IsChecked="{Binding SlotEditor.IsPlayerVisible}" Margin="0,4,0,0"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button AutomationProperties.AutomationId="Catalog_Slot_Create_Button" Content="Создать" Command="{Binding CreateSlotCommand}"/>
+                                        <Button AutomationProperties.AutomationId="Catalog_Slot_Update_Button" Content="Сохранить" Command="{Binding UpdateSlotCommand}" Margin="8,0,0,0"/>
+                                        <Button AutomationProperties.AutomationId="Catalog_Slot_Archive_Button" Content="Архивировать" Command="{Binding ArchiveSlotCommand}" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock AutomationProperties.AutomationId="Catalog_Slot_Status" Text="{Binding SlotStatus}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </TabItem>
+
+        <TabItem Header="Крафт">
+            <administration:AdminCraftingView DataContext="{Binding Crafting}"/>
+        </TabItem>
+        <TabItem Header="Инженерия">
+            <administration:AdminEngineeringView DataContext="{Binding Engineering}"/>
+        </TabItem>
+        <TabItem Header="Производство">
+            <administration:AdminProductionView DataContext="{Binding Production}"/>
+        </TabItem>
+    </TabControl>
+</UserControl>

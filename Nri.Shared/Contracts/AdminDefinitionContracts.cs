@@ -139,6 +139,13 @@ public class ClassDefinitionDto
     public string BranchCode { get; set; } = string.Empty;
     public string RootClassCode { get; set; } = string.Empty;
     public string ParentClassCode { get; set; } = string.Empty;
+    public string RequiredHexagonId { get; set; } = "main_development_hexagon";
+    public string RequiredNodeId { get; set; } = string.Empty;
+    public string VisibilityRule { get; set; } = "hexagon-gated";
+    public bool IsPlayerVisible { get; set; }
+    public bool IsLockedOutsideHexagon { get; set; } = true;
+    public List<string> Tags { get; set; } = new List<string>();
+    public int SortOrder { get; set; }
     public int Level { get; set; }
     public int UnlockLevel { get; set; } = 1;
     public int MaxLevel { get; set; } = 1;
@@ -162,6 +169,9 @@ public class SkillDefinitionDto
     public string DisplayGroup { get; set; } = string.Empty;
     public string DefaultAttribute { get; set; } = string.Empty;
     public List<string> AllowedAttributes { get; set; } = new List<string>();
+    public string DefaultSubAttribute { get; set; } = string.Empty;
+    public List<string> AllowedSubAttributes { get; set; } = new List<string>();
+    public string SubAttributeMode { get; set; } = "none";
     public int RankMin { get; set; }
     public int RankMax { get; set; } = 20;
     public bool IsRollable { get; set; } = true;

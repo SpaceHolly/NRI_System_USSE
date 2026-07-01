@@ -1,0 +1,208 @@
+<UserControl x:Class="Nri.AdminClient.Views.Journal.AdminEventJournalView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Nri.AdminClient.ViewModels"
+             AutomationProperties.AutomationId="AdminEventJournal_Tab">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Журнал событий" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Факты кампании и текущей сессии без копирования чата, бросков и Combat Replay." Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                </StackPanel>
+                <WrapPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                    <TextBox AutomationProperties.AutomationId="AdminEventJournal_CampaignId" Width="120" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" ToolTip="CampaignId"/>
+                    <TextBox AutomationProperties.AutomationId="AdminEventJournal_SessionId" Width="120" Margin="6,0,0,0" Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}" ToolTip="SessionId"/>
+                    <ComboBox AutomationProperties.AutomationId="AdminEventJournal_Category" Width="150" Margin="6,0,0,0" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Категория"/>
+                    <TextBox AutomationProperties.AutomationId="AdminEventJournal_Filter_Source" Width="140" Margin="6,0,0,0" Text="{Binding SourceModule, UpdateSourceTrigger=PropertyChanged}" ToolTip="Source module"/>
+                    <CheckBox Content="Архив" Margin="8,4,0,0" IsChecked="{Binding IncludeArchived}"/>
+                </WrapPanel>
+                <WrapPanel Grid.Column="2" HorizontalAlignment="Right">
+                    <Button AutomationProperties.AutomationId="AdminEventJournal_CheckFlags_Button" Content="Проверить flags" Style="{StaticResource GhostButtonStyle}" Command="{Binding RefreshFlagsCommand}"/>
+                    <Button AutomationProperties.AutomationId="AdminEventJournal_Refresh_Button" Content="Обновить" Margin="6,0,0,0" Command="{Binding RefreshCommand}"/>
+                </WrapPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2.1*"/>
+                <ColumnDefinition Width="1.5*"/>
+                <ColumnDefinition Width="1.4*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <DockPanel>
+                        <TextBlock Text="События" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <WrapPanel DockPanel.Dock="Right">
+                            <TextBox AutomationProperties.AutomationId="AdminEventJournal_Search" Width="180" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по видимым полям"/>
+                            <Button AutomationProperties.AutomationId="AdminEventJournal_Search_Button" Content="Найти" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SearchCommand}"/>
+                        </WrapPanel>
+                    </DockPanel>
+                    <DataGrid AutomationProperties.AutomationId="AdminEventJournal_List"
+                              Grid.Row="1"
+                              Margin="0,8,0,0"
+                              ItemsSource="{Binding Entries}"
+                              SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Когда" Binding="{Binding OccurredText}" Width="1.05*"/>
+                            <DataGridTextColumn Header="Заголовок" Binding="{Binding Title}" Width="1.8*"/>
+                            <DataGridTextColumn Header="Категория" Binding="{Binding Category}" Width="1*"/>
+                            <DataGridTextColumn Header="Тип" Binding="{Binding KindText}" Width="1*"/>
+                            <DataGridTextColumn Header="Видимость" Binding="{Binding VisibilityText}" Width="1.1*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Запись" FontWeight="Bold"/>
+                        <TextBlock Text="Ручные записи можно редактировать; автоматические исправляются отдельной коррекцией." Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                        <TextBlock Text="Заголовок"/>
+                        <TextBox AutomationProperties.AutomationId="AdminEventJournal_Title" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Краткая сводка" Margin="0,6,0,0"/>
+                        <TextBox AutomationProperties.AutomationId="AdminEventJournal_Summary" Text="{Binding Summary, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="70" TextWrapping="Wrap"/>
+                        <TextBlock Text="Сводка для игроков" Margin="0,6,0,0"/>
+                        <TextBox AutomationProperties.AutomationId="AdminEventJournal_PlayerVisibleText" Text="{Binding PlayerSummary, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="52" TextWrapping="Wrap"/>
+                        <TextBlock Text="GM details" Margin="0,6,0,0"/>
+                        <TextBox AutomationProperties.AutomationId="AdminEventJournal_GMOnlyDetails" Text="{Binding GMDetails, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="80" TextWrapping="Wrap"/>
+                        <WrapPanel Margin="0,8,0,0">
+                            <ComboBox AutomationProperties.AutomationId="AdminEventJournal_Filter_Type" Width="140" ItemsSource="{Binding EntryCategoryOptions}" SelectedItem="{Binding EntryCategory}" Text="{Binding EntryCategory, UpdateSourceTrigger=PropertyChanged}" IsEditable="True"/>
+                            <ComboBox AutomationProperties.AutomationId="AdminEventJournal_Severity" Width="120" Margin="6,0,0,0" ItemsSource="{Binding SeverityOptions}" SelectedItem="{Binding Severity}" Text="{Binding Severity, UpdateSourceTrigger=PropertyChanged}" IsEditable="True"/>
+                            <ComboBox AutomationProperties.AutomationId="AdminEventJournal_Visibility" Width="145" Margin="6,0,0,0" ItemsSource="{Binding VisibilityOptions}" SelectedItem="{Binding VisibilityMode}" Text="{Binding VisibilityMode, UpdateSourceTrigger=PropertyChanged}" IsEditable="True"/>
+                        </WrapPanel>
+                        <TextBlock Text="Теги" Margin="0,6,0,0"/>
+                        <TextBox AutomationProperties.AutomationId="AdminEventJournal_Tags" Text="{Binding TagsText, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Связанная сущность" Margin="0,8,0,0" FontWeight="SemiBold"/>
+                        <WrapPanel>
+                            <ComboBox AutomationProperties.AutomationId="AdminEventJournal_SubjectType" Width="150" ItemsSource="{Binding EntityTypeOptions}" SelectedItem="{Binding SubjectEntityType}" Text="{Binding SubjectEntityType, UpdateSourceTrigger=PropertyChanged}" IsEditable="True"/>
+                            <TextBox AutomationProperties.AutomationId="AdminEventJournal_SubjectId" Width="135" Margin="6,0,0,0" Text="{Binding SubjectEntityId, UpdateSourceTrigger=PropertyChanged}" ToolTip="EntityId"/>
+                            <TextBox AutomationProperties.AutomationId="AdminEventJournal_SubjectName" Width="150" Margin="6,0,0,0" Text="{Binding SubjectDisplayName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,10,0,0">
+                            <Button AutomationProperties.AutomationId="AdminEventJournal_Create_Button" Content="Создать ручную" Command="{Binding CreateManualCommand}"/>
+                            <Button AutomationProperties.AutomationId="AdminEventJournal_Save_Button" Content="Сохранить ручную" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveManualCommand}"/>
+                            <Button Content="Видимость" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SetVisibilityCommand}"/>
+                        </WrapPanel>
+                        <TextBlock Text="Коррекция" Margin="0,12,0,0" FontWeight="SemiBold"/>
+                        <TextBox Text="{Binding CorrectionSummary, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="48" TextWrapping="Wrap"/>
+                        <Button Content="Создать коррекцию отдельной записью" Margin="0,6,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding CreateCorrectionCommand}"/>
+                        <WrapPanel Margin="0,10,0,0">
+                            <Button AutomationProperties.AutomationId="AdminEventJournal_Archive_Button" Content="Архивировать" Style="{StaticResource GhostButtonStyle}" Command="{Binding ArchiveCommand}"/>
+                            <Button Content="Восстановить" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding RestoreCommand}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Связи и аннотации" FontWeight="Bold"/>
+                        <TextBlock Text="Player-visible связи выдаются игрокам без внутренних ID." Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                    </StackPanel>
+                    <TabControl Grid.Row="1" Margin="0,8,0,0">
+                        <TabItem Header="Связи">
+                            <Grid Margin="4">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <DataGrid ItemsSource="{Binding Links}" SelectedItem="{Binding SelectedLink, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="1.5*"/>
+                                        <DataGridTextColumn Header="Тип" Binding="{Binding EntityType}" Width="1*"/>
+                                        <DataGridTextColumn Header="Роль" Binding="{Binding LinkRole}" Width="1*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <StackPanel Grid.Row="1" Margin="0,8,0,0">
+                                    <ComboBox ItemsSource="{Binding EntityTypeOptions}" SelectedItem="{Binding LinkEntityType}"/>
+                                    <TextBox Margin="0,4,0,0" Text="{Binding LinkEntityId, UpdateSourceTrigger=PropertyChanged}" ToolTip="EntityId"/>
+                                    <TextBox Margin="0,4,0,0" Text="{Binding LinkDisplayName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Display name"/>
+                                    <ComboBox Margin="0,4,0,0" ItemsSource="{Binding LinkRoleOptions}" SelectedItem="{Binding LinkRole}"/>
+                                    <CheckBox Margin="0,4,0,0" Content="Видно игрокам" IsChecked="{Binding LinkPlayerVisible}"/>
+                                    <WrapPanel Margin="0,6,0,0">
+                                        <Button Content="Добавить связь" Command="{Binding AddLinkCommand}"/>
+                                        <Button Content="Удалить" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding RemoveLinkCommand}"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Аннотации">
+                            <Grid Margin="4">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <ListBox ItemsSource="{Binding Annotations}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:EventJournalAnnotationRow}">
+                                            <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="0,0,0,6" Padding="8">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding AuthorDisplayName}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding VisibilityText}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <StackPanel Grid.Row="1" Margin="0,8,0,0">
+                                    <TextBox Text="{Binding AnnotationText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="52" TextWrapping="Wrap"/>
+                                    <CheckBox Content="Аннотация видна игрокам" Margin="0,4,0,0" IsChecked="{Binding AnnotationPlayerVisible}"/>
+                                    <Button Content="Добавить аннотацию" Margin="0,6,0,0" Command="{Binding AddAnnotationCommand}"/>
+                                </StackPanel>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="10" Margin="0,8,0,0">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Очистить ошибку" Style="{StaticResource GhostButtonStyle}" Command="{Binding ClearErrorCommand}"/>
+                <StackPanel>
+                    <TextBlock AutomationProperties.AutomationId="AdminEventJournal_StatusText" Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

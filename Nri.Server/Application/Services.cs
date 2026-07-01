@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Driver;
+using Nri.Server.Application.Services;
 using Nri.Server.Content;
 using Nri.Server.FateEngine;
 using Nri.Server.Infrastructure;
@@ -16,6 +17,8 @@ namespace Nri.Server.Application;
 public partial class ServiceHub
 {
     private readonly INriRepositoryFactory _repositories;
+    private readonly MongoContext _mongo;
+    private readonly Nri.Shared.Configuration.ServerConfig _serverConfig;
     private readonly SessionManager _sessionManager;
     private readonly IServerLogger _logger;
     private readonly FateEngineStateService _fateState;
@@ -26,10 +29,30 @@ public partial class ServiceHub
     private readonly IVisibilityService _visibilityService;
     private readonly ICharacterProfileShadowWriteService _profileShadowWriteService;
     private readonly ICharacterProfileConsistencyService _profileConsistencyService;
+    private readonly ICharacterDetailsProfileBuilder _characterDetailsProfileBuilder;
+    private readonly ICharacterProfileCreationService _characterProfileCreationService;
+    private readonly ICharacterProfileNativeWriteService _profileNativeWriteService;
+    private readonly IInventoryDiagnosticsService? _inventoryDiagnosticsService;
+    private readonly ICombatEncounterManagementService? _combatEncounterManagementService;
+    private readonly ICombatTurnEngineService? _combatTurnEngineService;
+    private readonly ICombatLogReadService? _combatLogReadService;
+    private readonly ICombatSnapshotService? _combatSnapshotService;
+    private readonly ICombatDiagnosticsService? _combatDiagnosticsService;
+    private readonly ICombatActionEconomyService? _combatActionEconomyService;
+    private readonly ICombatAttackRollService? _combatAttackRollService;
+    private readonly ICombatDefenseCalculationService? _combatDefenseCalculationService;
+    private readonly ICombatDamageApplicationService? _combatDamageApplicationService;
+    private readonly ICombatConditionService? _combatConditionService;
+    private readonly ICombatWeaponIntegrationService? _combatWeaponIntegrationService;
+    private readonly ICombatFateHookService? _combatFateHookService;
+    private readonly ICombatMvpSmokeService? _combatMvpSmokeService;
+    private readonly IFeatureFlagProvider _featureFlags;
 
-    public ServiceHub(INriRepositoryFactory repositories, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, GameContentService contentService, string audioFolderPath, SyncEventService syncEvents, IVisibilityService visibilityService, ICharacterProfileShadowWriteService profileShadowWriteService, ICharacterProfileConsistencyService profileConsistencyService)
+    public ServiceHub(INriRepositoryFactory repositories, MongoContext mongo, Nri.Shared.Configuration.ServerConfig serverConfig, SessionManager sessionManager, IServerLogger logger, FateEngineStateService fateState, FateEngineSettingsStore fateSettingsStore, GameContentService contentService, string audioFolderPath, SyncEventService syncEvents, IVisibilityService visibilityService, ICharacterProfileShadowWriteService profileShadowWriteService, ICharacterProfileConsistencyService profileConsistencyService, ICharacterDetailsProfileBuilder characterDetailsProfileBuilder, ICharacterProfileCreationService characterProfileCreationService, ICharacterProfileNativeWriteService profileNativeWriteService, IInventoryDiagnosticsService? inventoryDiagnosticsService = null, ICombatEncounterManagementService? combatEncounterManagementService = null, ICombatTurnEngineService? combatTurnEngineService = null, ICombatLogReadService? combatLogReadService = null, ICombatSnapshotService? combatSnapshotService = null, ICombatDiagnosticsService? combatDiagnosticsService = null, ICombatActionEconomyService? combatActionEconomyService = null, ICombatAttackRollService? combatAttackRollService = null, ICombatDefenseCalculationService? combatDefenseCalculationService = null, ICombatDamageApplicationService? combatDamageApplicationService = null, ICombatConditionService? combatConditionService = null, ICombatWeaponIntegrationService? combatWeaponIntegrationService = null, ICombatFateHookService? combatFateHookService = null, ICombatMvpSmokeService? combatMvpSmokeService = null, IFeatureFlagProvider? featureFlags = null)
     {
         _repositories = repositories;
+        _mongo = mongo;
+        _serverConfig = serverConfig;
         _sessionManager = sessionManager;
         _logger = logger;
         _fateState = fateState;
@@ -40,6 +63,24 @@ public partial class ServiceHub
         _visibilityService = visibilityService;
         _profileShadowWriteService = profileShadowWriteService;
         _profileConsistencyService = profileConsistencyService;
+        _characterDetailsProfileBuilder = characterDetailsProfileBuilder;
+        _characterProfileCreationService = characterProfileCreationService;
+        _profileNativeWriteService = profileNativeWriteService;
+        _inventoryDiagnosticsService = inventoryDiagnosticsService;
+        _combatEncounterManagementService = combatEncounterManagementService;
+        _combatTurnEngineService = combatTurnEngineService;
+        _combatLogReadService = combatLogReadService;
+        _combatSnapshotService = combatSnapshotService;
+        _combatDiagnosticsService = combatDiagnosticsService;
+        _combatActionEconomyService = combatActionEconomyService;
+        _combatAttackRollService = combatAttackRollService;
+        _combatDefenseCalculationService = combatDefenseCalculationService;
+        _combatDamageApplicationService = combatDamageApplicationService;
+        _combatConditionService = combatConditionService;
+        _combatWeaponIntegrationService = combatWeaponIntegrationService;
+        _combatFateHookService = combatFateHookService;
+        _combatMvpSmokeService = combatMvpSmokeService;
+        _featureFlags = featureFlags ?? new RuntimeFeatureFlagProvider(new Nri.Shared.Configuration.ServerConfig(), logger);
     }
 
     public ResponseEnvelope Register(CommandContext context)
@@ -284,8 +325,14 @@ public partial class ServiceHub
 
     public ResponseEnvelope CharacterListMine(CommandContext context)
     {
+        if (CharacterOwnershipPlayerViewEnabled())
+            return CharacterPlayerAssignedList(context);
+
         var actor = GetCurrentAccount(context);
-        var items = _repositories.Characters.Find(Builders<Character>.Filter.Eq(x => x.OwnerUserId, actor.Id)).Select(c => CharacterSummaryPayload(c, actor, actor)).Cast<object>().ToArray();
+        var items = _repositories.Characters.Find(Builders<Character>.Filter.Eq(x => x.OwnerUserId, actor.Id))
+            .Select(c => CharacterDetailsPayloadWithProfileFirst(c, actor, actor, context.Request.RequestId ?? string.Empty))
+            .Cast<object>()
+            .ToArray();
         return Ok("Characters loaded.", new Dictionary<string, object> { { "items", items } });
     }
 
@@ -295,7 +342,10 @@ public partial class ServiceHub
         var ownerId = RequireLength(PayloadReader.GetString(context.Request.Payload, "ownerUserId"), 8, 128, "ownerUserId");
         var owner = GetAccount(ownerId);
         var actor = GetCurrentAccount(context);
-        var items = _repositories.Characters.Find(Builders<Character>.Filter.Eq(x => x.OwnerUserId, ownerId)).Select(c => CharacterSummaryPayload(c, owner, actor)).Cast<object>().ToArray();
+        var items = _repositories.Characters.Find(Builders<Character>.Filter.Eq(x => x.OwnerUserId, ownerId))
+            .Select(c => CharacterDetailsPayloadWithProfileFirst(c, owner, actor, context.Request.RequestId ?? string.Empty))
+            .Cast<object>()
+            .ToArray();
         return Ok("Characters loaded.", new Dictionary<string, object> { { "items", items } });
     }
 
@@ -306,16 +356,7 @@ public partial class ServiceHub
         if (p == null || string.IsNullOrWhiteSpace(p.ActiveCharacterId)) return Ok("No active character.");
         var c = _repositories.Characters.GetById(p.ActiveCharacterId);
         if (c == null || c.Deleted) return Ok("No active character.");
-        return Ok("Active character loaded.", CharacterDetailsPayload(c, actor, actor));
-    }
-
-    public ResponseEnvelope CharacterGetDetails(CommandContext context)
-    {
-        var actor = GetCurrentAccount(context);
-        var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
-        var owner = GetAccount(c.OwnerUserId);
-        if (!CanViewCharacter(actor, owner, c)) throw new UnauthorizedAccessException("Character details unavailable.");
-        return Ok("Character details loaded.", CharacterDetailsPayload(c, owner, actor));
+        return Ok("Active character loaded.", CharacterDetailsPayloadWithProfileFirst(c, actor, actor, context.Request.RequestId ?? string.Empty));
     }
 
     public ResponseEnvelope CharacterGetSummary(CommandContext context)
@@ -324,7 +365,7 @@ public partial class ServiceHub
         var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var owner = GetAccount(c.OwnerUserId);
         if (!CanViewCharacter(actor, owner, c)) throw new UnauthorizedAccessException("Character summary unavailable.");
-        return Ok("Character summary loaded.", CharacterSummaryPayload(c, owner, actor));
+        return Ok("Character summary loaded.", CharacterDetailsPayloadWithProfileFirst(c, owner, actor, context.Request.RequestId ?? string.Empty));
     }
 
     public ResponseEnvelope CharacterGetCompanions(CommandContext context)
@@ -333,9 +374,11 @@ public partial class ServiceHub
         var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var owner = GetAccount(c.OwnerUserId);
         if (!CanViewCharacter(actor, owner, c)) throw new UnauthorizedAccessException("Character companions unavailable.");
-        var payload = CharacterDetailsPayload(c, owner, actor);
-        _logger.Admin($"character.companions.get count={c.Companions.Count}");
-        return Ok("Companions loaded.", new Dictionary<string, object> { { "companions", payload["companions"] } });
+        var payload = CharacterDetailsPayloadWithProfileFirst(c, owner, actor, context.Request.RequestId ?? string.Empty);
+        var companions = payload.ContainsKey("companions") ? payload["companions"] : Array.Empty<object>();
+        if (!IsAdminActor(actor)) companions = PlayerSafeCharacterCollectionPayload(companions);
+        _logger.Admin($"character.companions.get count={CountPayloadItems(companions)} actor={actor.Login} admin={IsAdminActor(actor)}");
+        return Ok("Companions loaded.", new Dictionary<string, object> { { "companions", companions } });
     }
 
     public ResponseEnvelope CharacterGetInventory(CommandContext context)
@@ -344,9 +387,12 @@ public partial class ServiceHub
         var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var owner = GetAccount(c.OwnerUserId);
         if (!CanViewCharacter(actor, owner, c)) throw new UnauthorizedAccessException("Character inventory unavailable.");
-        var payload = CharacterDetailsPayload(c, owner, actor);
-        _logger.Admin($"character.inventory.get count={c.Inventory.Count}");
-        return Ok("Inventory loaded.", new Dictionary<string, object> { { "inventory", payload["inventory"] } });
+        var payload = CharacterDetailsPayloadWithProfileFirst(c, owner, actor, context.Request.RequestId ?? string.Empty);
+        var inventory = payload.ContainsKey("inventory") ? payload["inventory"] : Array.Empty<object>();
+        if (!actor.Roles.Contains(UserRole.Admin) && !actor.Roles.Contains(UserRole.SuperAdmin))
+            inventory = PlayerSafeInventoryPayload(inventory);
+        _logger.Admin($"character.inventory.get count={CountPayloadItems(inventory)}");
+        return Ok("Inventory loaded.", new Dictionary<string, object> { { "inventory", inventory } });
     }
 
     public ResponseEnvelope CharacterGetReputation(CommandContext context)
@@ -355,9 +401,11 @@ public partial class ServiceHub
         var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var owner = GetAccount(c.OwnerUserId);
         if (!CanViewCharacter(actor, owner, c)) throw new UnauthorizedAccessException("Character reputation unavailable.");
-        var payload = CharacterDetailsPayload(c, owner, actor);
-        _logger.Admin($"character.reputation.get count={c.Reputation.Count}");
-        return Ok("Reputation loaded.", new Dictionary<string, object> { { "reputation", payload["reputation"] } });
+        var payload = CharacterDetailsPayloadWithProfileFirst(c, owner, actor, context.Request.RequestId ?? string.Empty);
+        var reputation = payload.ContainsKey("reputation") ? payload["reputation"] : Array.Empty<object>();
+        if (!IsAdminActor(actor)) reputation = PlayerSafeCharacterCollectionPayload(reputation);
+        _logger.Admin($"character.reputation.get count={CountPayloadItems(reputation)} actor={actor.Login} admin={IsAdminActor(actor)}");
+        return Ok("Reputation loaded.", new Dictionary<string, object> { { "reputation", reputation } });
     }
 
     public ResponseEnvelope CharacterGetHoldings(CommandContext context)
@@ -366,9 +414,11 @@ public partial class ServiceHub
         var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var owner = GetAccount(c.OwnerUserId);
         if (!CanViewCharacter(actor, owner, c)) throw new UnauthorizedAccessException("Character holdings unavailable.");
-        var payload = CharacterDetailsPayload(c, owner, actor);
-        _logger.Admin($"character.holdings.get count={c.Holdings.Count}");
-        return Ok("Holdings loaded.", new Dictionary<string, object> { { "holdings", payload["holdings"] } });
+        var payload = CharacterDetailsPayloadWithProfileFirst(c, owner, actor, context.Request.RequestId ?? string.Empty);
+        var holdings = payload.ContainsKey("holdings") ? payload["holdings"] : Array.Empty<object>();
+        if (!IsAdminActor(actor)) holdings = PlayerSafeCharacterCollectionPayload(holdings);
+        _logger.Admin($"character.holdings.get count={CountPayloadItems(holdings)} actor={actor.Login} admin={IsAdminActor(actor)}");
+        return Ok("Holdings loaded.", new Dictionary<string, object> { { "holdings", holdings } });
     }
 
     public ResponseEnvelope CharacterCreate(CommandContext context)
@@ -409,8 +459,23 @@ public partial class ServiceHub
 
             _repositories.Characters.Insert(character);
             WriteAudit("character", actor.Id, "create", character.Id);
+
+            if (IsProfileFirstCharacterCreationEnabled())
+            {
+                var creation = _characterProfileCreationService.CreateProfileBundleForNewCharacterAsync(character, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+                if (!creation.Success)
+                {
+                    _logger.Admin($"{flow}.profileFirst.fail actor={actor.Login} owner={ownerId} characterId={character.Id} reason={creation.ErrorMessage}");
+                    return Error("Character profile creation failed.", ResponseStatus.Error, ErrorCode.InternalError);
+                }
+            }
+            else
+            {
+                TryWriteRaceBodyProfileShadowsAsync(character, actor.Id, context.Request.RequestId ?? string.Empty);
+            }
+
             _logger.Admin($"{flow}.success actor={actor.Login} owner={ownerId} characterId={character.Id}");
-            return Ok("Character created.", CharacterDetailsPayload(character, GetAccount(ownerId), actor));
+            return Ok("Character created.", CharacterDetailsPayloadWithProfileFirst(character, GetAccount(ownerId), actor, context.Request.RequestId ?? string.Empty));
         }
         catch (Exception ex)
         {
@@ -474,13 +539,42 @@ public partial class ServiceHub
         _repositories.Presence.Replace(p);
         _logger.Admin($"character.set.active actor={actor.Login} userId={actor.Id} characterId={characterId} result=ok");
         WriteAudit("character", actor.Id, "setActive", c.Id);
-        return Ok("Active character set.", CharacterDetailsPayload(c, actor, actor));
+        return Ok("Active character set.", CharacterDetailsPayloadWithProfileFirst(c, actor, actor, context.Request.RequestId ?? string.Empty));
     }
 
     public ResponseEnvelope CharacterUpdateBasicInfo(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        if (IsProfileNativeRaceBodyWriteEnabled())
+        {
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "name"), 2, 80, "name");
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "race"), 2, 64, "race");
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "height"), 1, 64, "height");
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 2048, "description");
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
+            var native = UpdateRaceBodyProfilesNativeForEnabledSections(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty);
+            if (native.LegacyFacadeSynced)
+            {
+                var updated = GetCharacter(characterId);
+                updated.Name = RequireLength(PayloadReader.GetString(context.Request.Payload, "name"), 2, 80, "name");
+                if (!IsProfileNativeRaceOrSpeciesWriteEnabled()) updated.Race = RequireLength(PayloadReader.GetString(context.Request.Payload, "race"), 2, 64, "race");
+                if (!IsProfileNativeBodyWriteEnabled())
+                {
+                    updated.Height = RequireLength(PayloadReader.GetString(context.Request.Payload, "height"), 1, 64, "height");
+                    updated.Age = PayloadReader.GetInt(context.Request.Payload, "age");
+                }
+                updated.Description = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 2048, "description");
+                updated.Backstory = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
+                _repositories.Characters.Replace(updated);
+                WriteAudit("character", actor.Id, "updateBasic", updated.Id);
+                return Ok("Character basic info updated.");
+            }
+
+            return Error("Character race/body profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        var c = GetCharacter(characterId);
         c.Name = RequireLength(PayloadReader.GetString(context.Request.Payload, "name"), 2, 80, "name");
         c.Race = RequireLength(PayloadReader.GetString(context.Request.Payload, "race"), 2, 64, "race");
         c.Height = RequireLength(PayloadReader.GetString(context.Request.Payload, "height"), 1, 64, "height");
@@ -488,6 +582,7 @@ public partial class ServiceHub
         c.Backstory = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
         c.Age = PayloadReader.GetInt(context.Request.Payload, "age");
         _repositories.Characters.Replace(c);
+        TryWriteRaceBodyProfileShadowsAsync(c, actor.Id, context.Request.RequestId ?? string.Empty);
         WriteAudit("character", actor.Id, "updateBasic", c.Id);
         return Ok("Character basic info updated.");
     }
@@ -495,7 +590,20 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterUpdateStats(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        if (IsProfileNativeStatsWriteEnabled())
+        {
+            var native = _profileNativeWriteService.UpdateAttributeProfileAsync(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                WriteAudit("character", actor.Id, "updateStats", characterId);
+                return Ok("Character stats updated.");
+            }
+
+            return Error("Character stats profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        var c = GetCharacter(characterId);
         c.Stats.Health = RequireRange(PayloadReader.GetInt(context.Request.Payload, "health"), 0, 999, "health");
         c.Stats.PhysicalArmor = RequireRange(PayloadReader.GetInt(context.Request.Payload, "physicalArmor"), 0, 999, "physicalArmor");
         c.Stats.MagicalArmor = RequireRange(PayloadReader.GetInt(context.Request.Payload, "magicalArmor"), 0, 999, "magicalArmor");
@@ -528,7 +636,22 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterUpdateMoney(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        if (IsProfileNativeWalletWriteEnabled())
+        {
+            var native = _profileNativeWriteService.UpdateWalletProfileAsync(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                var updated = GetCharacter(characterId);
+                _logger.Admin($"character.money.save response=ok profileNative=true");
+                WriteAudit("character", actor.Id, "updateMoney", characterId);
+                return Ok("Character money updated.", new Dictionary<string, object> { { "money", WalletPayload(updated.Wallet) } });
+            }
+
+            return Error("Character wallet profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        var c = GetCharacter(characterId);
         var moneyRawRuntimeType = context.Request.Payload.ContainsKey("money") && context.Request.Payload["money"] != null
             ? context.Request.Payload["money"]!.GetType().FullName ?? context.Request.Payload["money"]!.GetType().Name
             : "null";
@@ -578,23 +701,46 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterUpdateXpCoins(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
         var xpCoins = PayloadReader.GetInt(context.Request.Payload, "xpCoins");
         if (!xpCoins.HasValue)
             throw new ArgumentException("xpCoins is required.");
         if (xpCoins.Value < 0)
             throw new ArgumentException("xpCoins must be >= 0.");
 
-        c.XpCoins = xpCoins.Value;
-        _repositories.Characters.Replace(c);
-        WriteAudit("character", actor.Id, "updateXpCoins", c.Id);
-        return Ok("Character xp coins updated.", new Dictionary<string, object> { { "xpCoins", c.XpCoins } });
+        if (IsProfileNativeWalletWriteEnabled())
+        {
+            var native = _profileNativeWriteService.UpdateWalletProfileAsync(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                var updated = GetCharacter(characterId);
+                WriteAudit("character", actor.Id, "updateXpCoins", characterId);
+                return Ok("Character xp coins updated.", new Dictionary<string, object> { { "xpCoins", updated.XpCoins } });
+            }
+
+            return Error("Character xp profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        return Error("Character xp profile write is disabled.", ResponseStatus.Forbidden, ErrorCode.Forbidden);
     }
 
     public ResponseEnvelope CharacterUpdateInventory(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        if (IsProfileNativeInventoryWriteEnabled())
+        {
+            var native = _profileNativeWriteService.UpdateInventoryProfileNativeAsync(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                WriteAudit("character", actor.Id, "updateInventory", characterId);
+                return Ok("Character inventory updated.");
+            }
+
+            return Error("Character inventory profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        var c = GetCharacter(characterId);
         c.Inventory = ParseInventoryList(PayloadReader.GetList(context.Request.Payload, "inventory"));
         _repositories.Characters.Replace(c);
         TryShadowWrite(() => _profileShadowWriteService.WriteInventoryProfileShadowAsync(c, actor.Id, context.Request.RequestId ?? string.Empty));
@@ -605,20 +751,30 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterUpdateReputation(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
-        c.Reputation = ParseReputationList(PayloadReader.GetList(context.Request.Payload, "reputation"));
-        _repositories.Characters.Replace(c);
-        WriteAudit("character", actor.Id, "updateReputation", c.Id);
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        _ = GetCharacter(characterId);
+        var values = (PayloadReader.GetList(context.Request.Payload, "reputation") ?? new List<object>())
+            .Select(ToStringObjectDictionary)
+            .Where(x => x.Count > 0)
+            .Select(ParseReputationProfileValue)
+            .ToList();
+        SaveReputationProfile(characterId, new ReputationProfile { CharacterId = characterId, RuleSetId = RuleSetIds.FantasyNriDefault, Entries = values, SchemaVersion = 1 });
+        WriteAudit("character", actor.Id, "updateReputationProfile", characterId);
         return Ok("Character reputation updated.");
     }
 
     public ResponseEnvelope CharacterUpdateHoldings(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var c = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
-        c.Holdings = ParseHoldingsList(PayloadReader.GetList(context.Request.Payload, "holdings"));
-        _repositories.Characters.Replace(c);
-        WriteAudit("character", actor.Id, "updateHoldings", c.Id);
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        _ = GetCharacter(characterId);
+        var values = (PayloadReader.GetList(context.Request.Payload, "holdings") ?? new List<object>())
+            .Select(ToStringObjectDictionary)
+            .Where(x => x.Count > 0)
+            .Select(x => ParseHoldingProfileValue(x, characterId))
+            .ToList();
+        SaveHoldingsProfile(characterId, new HoldingsProfile { CharacterId = characterId, RuleSetId = RuleSetIds.FantasyNriDefault, Holdings = values, SchemaVersion = 1 });
+        WriteAudit("character", actor.Id, "updateHoldingsProfile", characterId);
         return Ok("Character holdings updated.");
     }
 
@@ -641,17 +797,35 @@ public partial class ServiceHub
         _logger.Admin($"character.skills.get auth actor={actor.Login} characterId={character.Id} ownerCheck={ownerCheck} allowed={allowed}");
         if (!allowed) throw new UnauthorizedAccessException("Character skills unavailable.");
 
-        _logger.Admin($"character.skills.get actor={actor.Login} characterId={character.Id} count={character.CharacterSkills.Count}");
+        var skillRows = BuildCharacterSkillProfileRows(character, actor, isAdmin);
+        _logger.Admin($"character.skills.get actor={actor.Login} characterId={character.Id} count={skillRows.Count} profileFirst=true");
         return Ok("Character skills loaded.", new Dictionary<string, object>
         {
-            { "items", character.CharacterSkills.Select(CharacterSkillPayload).Cast<object>().ToArray() }
+            { "items", skillRows.Cast<object>().ToArray() },
+            { "sourceOfTruth", "character_skill_profiles" }
         });
     }
 
     public ResponseEnvelope CharacterSkillAdd(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        if (IsProfileNativeSkillWriteEnabled())
+        {
+            var native = _profileNativeWriteService.AddSkillProfileNativeAsync(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                var updated = GetCharacter(characterId);
+                var item = BuildCharacterSkillProfileRows(updated, actor, true).FirstOrDefault(x => string.Equals(Convert.ToString(x["skillCode"]), native.SkillId, StringComparison.OrdinalIgnoreCase));
+                if (item == null) return Error("Character skill profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+                _logger.Admin($"character.skill.add actor={actor.Login} response=ok profileNative=true characterId={characterId} skillCode={native.SkillId}");
+                return Ok("Character skill added.", new Dictionary<string, object> { { "item", item }, { "sourceOfTruth", "character_skill_profiles" } });
+            }
+
+            return Error("Character skill profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        var character = GetCharacter(characterId);
         EnsureCharacterDefaults(character);
         var skillCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "skillCode"), 1, 128, "skillCode");
         if (character.CharacterSkills.Any(x => string.Equals(x.SkillCode, skillCode, StringComparison.OrdinalIgnoreCase)))
@@ -677,7 +851,23 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterSkillUpdateLevel(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        if (IsProfileNativeSkillWriteEnabled())
+        {
+            var native = _profileNativeWriteService.UpdateSkillProfileNativeAsync(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                var updated = GetCharacter(characterId);
+                var item = BuildCharacterSkillProfileRows(updated, actor, true).FirstOrDefault(x => string.Equals(Convert.ToString(x["skillCode"]), native.SkillId, StringComparison.OrdinalIgnoreCase));
+                if (item == null) return Error("Character skill profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+                _logger.Admin($"character.skill.updateLevel actor={actor.Login} response=ok profileNative=true characterId={characterId} skillCode={native.SkillId}");
+                return Ok("Character skill level updated.", new Dictionary<string, object> { { "item", item }, { "sourceOfTruth", "character_skill_profiles" } });
+            }
+
+            return Error("Character skill profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        var character = GetCharacter(characterId);
         EnsureCharacterDefaults(character);
         var skillCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "skillCode"), 1, 128, "skillCode");
         var skill = character.CharacterSkills.FirstOrDefault(x => string.Equals(x.SkillCode, skillCode, StringComparison.OrdinalIgnoreCase))
@@ -695,7 +885,20 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterSkillRemove(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        if (IsProfileNativeSkillWriteEnabled())
+        {
+            var native = _profileNativeWriteService.RemoveSkillProfileNativeAsync(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                _logger.Admin($"character.skill.remove actor={actor.Login} response=ok profileNative=true characterId={characterId} skillCode={native.SkillId}");
+                return Ok("Character skill removed.");
+            }
+
+            return Error("Character skill profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        var character = GetCharacter(characterId);
         EnsureCharacterDefaults(character);
         var skillCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "skillCode"), 1, 128, "skillCode");
         character.CharacterSkills.RemoveAll(x => string.Equals(x.SkillCode, skillCode, StringComparison.OrdinalIgnoreCase));
@@ -708,10 +911,28 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterInventoryItemAdd(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        if (IsProfileNativeInventoryWriteEnabled())
+        {
+            var native = _profileNativeWriteService.AddInventoryItemProfileNativeAsync(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                var updated = GetCharacter(characterId);
+                var updatedItem = updated.Inventory.FirstOrDefault(x => string.Equals(x.Id, native.ItemId, StringComparison.OrdinalIgnoreCase));
+                if (updatedItem == null) return Error("Character inventory profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+                _logger.Admin($"character.inventory.item.add response=ok profileNative=true characterId={characterId} itemId={updatedItem.Id}");
+                return Ok("Character inventory item added.", new Dictionary<string, object> { { "item", InventoryPayload(updatedItem) } });
+            }
+
+            return Error("Character inventory profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        var character = GetCharacter(characterId);
         var item = ParseInventoryItem(PayloadReader.GetDictionary(context.Request.Payload, "item") ?? context.Request.Payload);
         character.Inventory.Add(item);
         _repositories.Characters.Replace(character);
+        var updatedCharacter = GetCharacter(character.Id);
+        TryWriteInventoryProfileShadowAsync(updatedCharacter, actor.Id, context.Request.RequestId ?? string.Empty, CommandNames.CharacterInventoryItemAdd);
         _logger.Admin($"character.inventory.item.add response=ok characterId={character.Id} itemId={item.Id}");
         return Ok("Character inventory item added.", new Dictionary<string, object> { { "item", InventoryPayload(item) } });
     }
@@ -719,7 +940,23 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterInventoryItemUpdate(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        if (IsProfileNativeInventoryWriteEnabled())
+        {
+            var native = _profileNativeWriteService.UpdateInventoryItemProfileNativeAsync(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                var updated = GetCharacter(characterId);
+                var updatedItem = updated.Inventory.FirstOrDefault(x => string.Equals(x.Id, native.ItemId, StringComparison.OrdinalIgnoreCase));
+                if (updatedItem == null) return Error("Character inventory profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+                _logger.Admin($"character.inventory.item.update response=ok profileNative=true characterId={characterId} itemId={updatedItem.Id}");
+                return Ok("Character inventory item updated.", new Dictionary<string, object> { { "item", InventoryPayload(updatedItem) } });
+            }
+
+            return Error("Character inventory profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        var character = GetCharacter(characterId);
         var itemId = RequireLength(PayloadReader.GetString(context.Request.Payload, "itemId"), 1, 128, "itemId");
         var incoming = ParseInventoryItem(PayloadReader.GetDictionary(context.Request.Payload, "item") ?? context.Request.Payload);
         var existing = character.Inventory.FirstOrDefault(x => string.Equals(x.Id, itemId, StringComparison.OrdinalIgnoreCase));
@@ -727,6 +964,8 @@ public partial class ServiceHub
         incoming.Id = existing.Id;
         character.Inventory[character.Inventory.IndexOf(existing)] = incoming;
         _repositories.Characters.Replace(character);
+        var updatedCharacter = GetCharacter(character.Id);
+        TryWriteInventoryProfileShadowAsync(updatedCharacter, actor.Id, context.Request.RequestId ?? string.Empty, CommandNames.CharacterInventoryItemUpdate);
         _logger.Admin($"character.inventory.item.update response=ok characterId={character.Id} itemId={incoming.Id}");
         return Ok("Character inventory item updated.", new Dictionary<string, object> { { "item", InventoryPayload(incoming) } });
     }
@@ -734,10 +973,25 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterInventoryItemRemove(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        if (IsProfileNativeInventoryWriteEnabled())
+        {
+            var native = _profileNativeWriteService.RemoveInventoryItemProfileNativeAsync(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                _logger.Admin($"character.inventory.item.remove response=ok profileNative=true characterId={characterId} itemId={native.ItemId}");
+                return Ok("Character inventory item removed.");
+            }
+
+            return Error("Character inventory profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        var character = GetCharacter(characterId);
         var itemId = RequireLength(PayloadReader.GetString(context.Request.Payload, "itemId"), 1, 128, "itemId");
         character.Inventory.RemoveAll(x => string.Equals(x.Id, itemId, StringComparison.OrdinalIgnoreCase));
         _repositories.Characters.Replace(character);
+        var updatedCharacter = GetCharacter(character.Id);
+        TryWriteInventoryProfileShadowAsync(updatedCharacter, actor.Id, context.Request.RequestId ?? string.Empty, CommandNames.CharacterInventoryItemRemove);
         _logger.Admin($"character.inventory.item.remove response=ok characterId={character.Id} itemId={itemId}");
         return Ok("Character inventory item removed.");
     }
@@ -745,129 +999,165 @@ public partial class ServiceHub
     public ResponseEnvelope CharacterInventoryItemToggleEquip(CommandContext context)
     {
         var actor = RequireAdmin(context);
-        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        if (IsProfileNativeInventoryWriteEnabled())
+        {
+            var native = _profileNativeWriteService.ToggleEquipInventoryItemProfileNativeAsync(characterId, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                var updated = GetCharacter(characterId);
+                var updatedItem = updated.Inventory.FirstOrDefault(x => string.Equals(x.Id, native.ItemId, StringComparison.OrdinalIgnoreCase));
+                if (updatedItem == null) return Error("Character inventory profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+                _logger.Admin($"character.inventory.item.toggleEquip response=ok profileNative=true characterId={characterId} itemId={updatedItem.Id} equipped={updatedItem.IsEquipped}");
+                return Ok("Character inventory item equip status updated.", new Dictionary<string, object> { { "item", InventoryPayload(updatedItem) } });
+            }
+
+            return Error("Character inventory profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        var character = GetCharacter(characterId);
         var itemId = RequireLength(PayloadReader.GetString(context.Request.Payload, "itemId"), 1, 128, "itemId");
         var existing = character.Inventory.FirstOrDefault(x => string.Equals(x.Id, itemId, StringComparison.OrdinalIgnoreCase))
             ?? throw new KeyNotFoundException("Inventory item not found.");
         existing.IsEquipped = !existing.IsEquipped;
         existing.Equipped = existing.IsEquipped;
         _repositories.Characters.Replace(character);
+        var updatedCharacter = GetCharacter(character.Id);
+        TryWriteInventoryProfileShadowAsync(updatedCharacter, actor.Id, context.Request.RequestId ?? string.Empty, CommandNames.CharacterInventoryItemToggleEquip);
         _logger.Admin($"character.inventory.item.toggleEquip response=ok characterId={character.Id} itemId={itemId} equipped={existing.IsEquipped}");
         return Ok("Character inventory item equip status updated.", new Dictionary<string, object> { { "item", InventoryPayload(existing) } });
     }
 
     public ResponseEnvelope CharacterCompanionAdd(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
-        var companion = ParseCompanion(PayloadReader.GetDictionary(context.Request.Payload, "companion") ?? context.Request.Payload);
-        if (string.IsNullOrWhiteSpace(companion.OwnerCharacterId)) companion.OwnerCharacterId = character.Id;
-        if (string.IsNullOrWhiteSpace(companion.Type)) companion.Type = companion.Species;
-        character.Companions.Add(companion);
-        _repositories.Characters.Replace(character);
-        _logger.Admin($"character.companion.add response=ok characterId={character.Id} companionId={companion.Id}");
-        return Ok("Character companion added.", new Dictionary<string, object> { { "companion", CompanionPayload(companion) } });
+        var profile = LoadCompanionProfile(character.Id);
+        var value = ParseCompanionProfileValue(PayloadReader.GetDictionary(context.Request.Payload, "companion") ?? context.Request.Payload, character.Id);
+        profile.Companions.RemoveAll(x => string.Equals(x.CompanionId, value.CompanionId, StringComparison.OrdinalIgnoreCase));
+        profile.Companions.Add(value);
+        SaveCompanionProfile(character.Id, profile);
+        WriteAudit("character", actor.Id, "addCompanionProfile", character.Id);
+        _logger.Admin($"character.companion.add response=ok profileNative=true characterId={character.Id} companionId={value.CompanionId}");
+        return Ok("Character companion added.", new Dictionary<string, object> { { "companion", CompanionProfilePayload(value) } });
     }
 
     public ResponseEnvelope CharacterCompanionUpdate(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var companionId = RequireLength(PayloadReader.GetString(context.Request.Payload, "companionId"), 1, 128, "companionId");
-        var incoming = ParseCompanion(PayloadReader.GetDictionary(context.Request.Payload, "companion") ?? context.Request.Payload);
-        var existing = character.Companions.FirstOrDefault(x => string.Equals(x.Id, companionId, StringComparison.OrdinalIgnoreCase))
+        var profile = LoadCompanionProfile(character.Id);
+        var existing = profile.Companions.FirstOrDefault(x => string.Equals(x.CompanionId, companionId, StringComparison.OrdinalIgnoreCase))
             ?? throw new KeyNotFoundException("Companion not found.");
-        incoming.Id = existing.Id;
+        var incoming = ParseCompanionProfileValue(PayloadReader.GetDictionary(context.Request.Payload, "companion") ?? context.Request.Payload, character.Id);
+        incoming.CompanionId = existing.CompanionId;
         if (string.IsNullOrWhiteSpace(incoming.OwnerCharacterId)) incoming.OwnerCharacterId = existing.OwnerCharacterId;
-        if (string.IsNullOrWhiteSpace(incoming.Type)) incoming.Type = FirstNonEmpty(existing.Type, incoming.Species, existing.Species);
-        character.Companions[character.Companions.IndexOf(existing)] = incoming;
-        _repositories.Characters.Replace(character);
-        _logger.Admin($"character.companion.update response=ok characterId={character.Id} companionId={incoming.Id}");
-        return Ok("Character companion updated.", new Dictionary<string, object> { { "companion", CompanionPayload(incoming) } });
+        profile.Companions[profile.Companions.IndexOf(existing)] = incoming;
+        SaveCompanionProfile(character.Id, profile);
+        WriteAudit("character", actor.Id, "updateCompanionProfile", character.Id);
+        _logger.Admin($"character.companion.update response=ok profileNative=true characterId={character.Id} companionId={incoming.CompanionId}");
+        return Ok("Character companion updated.", new Dictionary<string, object> { { "companion", CompanionProfilePayload(incoming) } });
     }
 
     public ResponseEnvelope CharacterCompanionRemove(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var companionId = RequireLength(PayloadReader.GetString(context.Request.Payload, "companionId"), 1, 128, "companionId");
-        character.Companions.RemoveAll(x => string.Equals(x.Id, companionId, StringComparison.OrdinalIgnoreCase));
-        _repositories.Characters.Replace(character);
-        _logger.Admin($"character.companion.remove response=ok characterId={character.Id} companionId={companionId}");
+        var profile = LoadCompanionProfile(character.Id);
+        profile.Companions.RemoveAll(x => string.Equals(x.CompanionId, companionId, StringComparison.OrdinalIgnoreCase));
+        SaveCompanionProfile(character.Id, profile);
+        WriteAudit("character", actor.Id, "removeCompanionProfile", character.Id);
+        _logger.Admin($"character.companion.remove response=ok profileNative=true characterId={character.Id} companionId={companionId}");
         return Ok("Character companion removed.");
     }
 
     public ResponseEnvelope CharacterHoldingAdd(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
-        var holding = ParseHolding(PayloadReader.GetDictionary(context.Request.Payload, "holding") ?? context.Request.Payload);
-        character.Holdings.Add(holding);
-        _repositories.Characters.Replace(character);
-        _logger.Admin($"character.holding.add response=ok characterId={character.Id} holdingId={holding.Id}");
-        return Ok("Character holding added.", new Dictionary<string, object> { { "holding", HoldingPayload(holding) } });
+        var profile = LoadHoldingsProfile(character.Id);
+        var value = ParseHoldingProfileValue(PayloadReader.GetDictionary(context.Request.Payload, "holding") ?? context.Request.Payload, character.Id);
+        profile.Holdings.RemoveAll(x => string.Equals(x.HoldingId, value.HoldingId, StringComparison.OrdinalIgnoreCase));
+        profile.Holdings.Add(value);
+        SaveHoldingsProfile(character.Id, profile);
+        WriteAudit("character", actor.Id, "addHoldingProfile", character.Id);
+        _logger.Admin($"character.holding.add response=ok profileNative=true characterId={character.Id} holdingId={value.HoldingId}");
+        return Ok("Character holding added.", new Dictionary<string, object> { { "holding", HoldingProfilePayload(value) } });
     }
 
     public ResponseEnvelope CharacterHoldingUpdate(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var holdingId = RequireLength(PayloadReader.GetString(context.Request.Payload, "holdingId"), 1, 128, "holdingId");
-        var incoming = ParseHolding(PayloadReader.GetDictionary(context.Request.Payload, "holding") ?? context.Request.Payload);
-        var existing = character.Holdings.FirstOrDefault(x => string.Equals(x.Id, holdingId, StringComparison.OrdinalIgnoreCase))
+        var profile = LoadHoldingsProfile(character.Id);
+        var existing = profile.Holdings.FirstOrDefault(x => string.Equals(x.HoldingId, holdingId, StringComparison.OrdinalIgnoreCase))
             ?? throw new KeyNotFoundException("Holding not found.");
-        incoming.Id = existing.Id;
-        character.Holdings[character.Holdings.IndexOf(existing)] = incoming;
-        _repositories.Characters.Replace(character);
-        _logger.Admin($"character.holding.update response=ok characterId={character.Id} holdingId={incoming.Id}");
-        return Ok("Character holding updated.", new Dictionary<string, object> { { "holding", HoldingPayload(incoming) } });
+        var incoming = ParseHoldingProfileValue(PayloadReader.GetDictionary(context.Request.Payload, "holding") ?? context.Request.Payload, character.Id);
+        incoming.HoldingId = existing.HoldingId;
+        profile.Holdings[profile.Holdings.IndexOf(existing)] = incoming;
+        SaveHoldingsProfile(character.Id, profile);
+        WriteAudit("character", actor.Id, "updateHoldingProfile", character.Id);
+        _logger.Admin($"character.holding.update response=ok profileNative=true characterId={character.Id} holdingId={incoming.HoldingId}");
+        return Ok("Character holding updated.", new Dictionary<string, object> { { "holding", HoldingProfilePayload(incoming) } });
     }
 
     public ResponseEnvelope CharacterHoldingRemove(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var holdingId = RequireLength(PayloadReader.GetString(context.Request.Payload, "holdingId"), 1, 128, "holdingId");
-        character.Holdings.RemoveAll(x => string.Equals(x.Id, holdingId, StringComparison.OrdinalIgnoreCase));
-        _repositories.Characters.Replace(character);
-        _logger.Admin($"character.holding.remove response=ok characterId={character.Id} holdingId={holdingId}");
+        var profile = LoadHoldingsProfile(character.Id);
+        profile.Holdings.RemoveAll(x => string.Equals(x.HoldingId, holdingId, StringComparison.OrdinalIgnoreCase));
+        SaveHoldingsProfile(character.Id, profile);
+        WriteAudit("character", actor.Id, "removeHoldingProfile", character.Id);
+        _logger.Admin($"character.holding.remove response=ok profileNative=true characterId={character.Id} holdingId={holdingId}");
         return Ok("Character holding removed.");
     }
 
     public ResponseEnvelope CharacterReputationEntryAdd(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
-        var entry = ParseReputationEntry(PayloadReader.GetDictionary(context.Request.Payload, "entry") ?? context.Request.Payload);
-        character.Reputation.Add(entry);
-        _repositories.Characters.Replace(character);
-        _logger.Admin($"character.reputation.entry.add response=ok characterId={character.Id} reputationId={entry.Id}");
-        return Ok("Character reputation entry added.", new Dictionary<string, object> { { "entry", ReputationPayload(entry) } });
+        var profile = LoadReputationProfile(character.Id);
+        var value = ParseReputationProfileValue(PayloadReader.GetDictionary(context.Request.Payload, "entry") ?? context.Request.Payload);
+        profile.Entries.RemoveAll(x => string.Equals(x.EntryId, value.EntryId, StringComparison.OrdinalIgnoreCase));
+        profile.Entries.Add(value);
+        SaveReputationProfile(character.Id, profile);
+        WriteAudit("character", actor.Id, "addReputationProfile", character.Id);
+        _logger.Admin($"character.reputation.entry.add response=ok profileNative=true characterId={character.Id} reputationId={value.EntryId}");
+        return Ok("Character reputation entry added.", new Dictionary<string, object> { { "entry", ReputationProfilePayload(value) } });
     }
 
     public ResponseEnvelope CharacterReputationEntryUpdate(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var entryId = RequireLength(PayloadReader.GetString(context.Request.Payload, "entryId"), 1, 128, "entryId");
-        var incoming = ParseReputationEntry(PayloadReader.GetDictionary(context.Request.Payload, "entry") ?? context.Request.Payload);
-        var existing = character.Reputation.FirstOrDefault(x => string.Equals(x.Id, entryId, StringComparison.OrdinalIgnoreCase))
+        var profile = LoadReputationProfile(character.Id);
+        var existing = profile.Entries.FirstOrDefault(x => string.Equals(x.EntryId, entryId, StringComparison.OrdinalIgnoreCase))
             ?? throw new KeyNotFoundException("Reputation entry not found.");
-        incoming.Id = existing.Id;
-        character.Reputation[character.Reputation.IndexOf(existing)] = incoming;
-        _repositories.Characters.Replace(character);
-        _logger.Admin($"character.reputation.entry.update response=ok characterId={character.Id} reputationId={incoming.Id}");
-        return Ok("Character reputation entry updated.", new Dictionary<string, object> { { "entry", ReputationPayload(incoming) } });
+        var incoming = ParseReputationProfileValue(PayloadReader.GetDictionary(context.Request.Payload, "entry") ?? context.Request.Payload);
+        incoming.EntryId = existing.EntryId;
+        profile.Entries[profile.Entries.IndexOf(existing)] = incoming;
+        SaveReputationProfile(character.Id, profile);
+        WriteAudit("character", actor.Id, "updateReputationProfile", character.Id);
+        _logger.Admin($"character.reputation.entry.update response=ok profileNative=true characterId={character.Id} reputationId={incoming.EntryId}");
+        return Ok("Character reputation entry updated.", new Dictionary<string, object> { { "entry", ReputationProfilePayload(incoming) } });
     }
 
     public ResponseEnvelope CharacterReputationEntryRemove(CommandContext context)
     {
-        _ = RequireAdmin(context);
+        var actor = RequireAdmin(context);
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         var entryId = RequireLength(PayloadReader.GetString(context.Request.Payload, "entryId"), 1, 128, "entryId");
-        character.Reputation.RemoveAll(x => string.Equals(x.Id, entryId, StringComparison.OrdinalIgnoreCase));
-        _repositories.Characters.Replace(character);
-        _logger.Admin($"character.reputation.entry.remove response=ok characterId={character.Id} reputationId={entryId}");
+        var profile = LoadReputationProfile(character.Id);
+        profile.Entries.RemoveAll(x => string.Equals(x.EntryId, entryId, StringComparison.OrdinalIgnoreCase));
+        SaveReputationProfile(character.Id, profile);
+        WriteAudit("character", actor.Id, "removeReputationProfile", character.Id);
+        _logger.Admin($"character.reputation.entry.remove response=ok profileNative=true characterId={character.Id} reputationId={entryId}");
         return Ok("Character reputation entry removed.");
     }
 
@@ -880,7 +1170,7 @@ public partial class ServiceHub
             .Select(c =>
             {
                 EnsureCharacterDefaults(c);
-                return CharacterSummaryPayload(c, GetAccount(c.OwnerUserId), actor);
+                return CharacterDetailsPayloadWithProfileFirst(c, GetAccount(c.OwnerUserId), actor, context.Request.RequestId ?? string.Empty);
             })
             .Cast<object>()
             .ToArray();
@@ -912,7 +1202,7 @@ public partial class ServiceHub
                 var archiveMatch = includeArchived || !c.Archived;
                 return queryMatch && ownerMatch && raceMatch && classMatch && archiveMatch;
             })
-            .Select(c => CharacterSummaryPayload(c, GetAccount(c.OwnerUserId), actor))
+            .Select(c => CharacterDetailsPayloadWithProfileFirst(c, GetAccount(c.OwnerUserId), actor, context.Request.RequestId ?? string.Empty))
             .Cast<object>()
             .ToArray();
 
@@ -935,22 +1225,102 @@ public partial class ServiceHub
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         EnsureCharacterEditAllowed(actor, character.Id);
         EnsureCharacterDefaults(character);
+        var raceCode = (PayloadReader.GetString(context.Request.Payload, "raceCode") ?? string.Empty).Trim();
+        RaceDefinition? raceDefinition = null;
+        if (!string.IsNullOrWhiteSpace(raceCode))
+        {
+            raceDefinition = _repositories.RaceDefinitions.GetByCode(raceCode) ?? throw new ArgumentException("Race definition not found.");
+        }
+
+        if (IsProfileNativeRaceBodyWriteEnabled())
+        {
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "name"), 2, 80, "name");
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "height"), 0, 64, "height");
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 2048, "description");
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
+            var nativePayload = new Dictionary<string, object>(context.Request.Payload);
+            if (raceDefinition != null)
+            {
+                nativePayload["raceCode"] = raceDefinition.Code;
+                nativePayload["race"] = raceDefinition.Name;
+                nativePayload["raceName"] = raceDefinition.Name;
+            }
+
+            var native = UpdateRaceBodyProfilesNativeForEnabledSections(character.Id, nativePayload, actor.Id, context.Request.RequestId ?? string.Empty);
+            if (native.LegacyFacadeSynced)
+            {
+                character = GetCharacter(character.Id);
+                character.Name = RequireLength(PayloadReader.GetString(context.Request.Payload, "name"), 2, 80, "name");
+                if (!IsProfileNativeBodyWriteEnabled())
+                {
+                    character.Height = RequireLength(PayloadReader.GetString(context.Request.Payload, "height"), 0, 64, "height");
+                    character.Age = PayloadReader.GetInt(context.Request.Payload, "age");
+                }
+                if (!IsProfileNativeRaceOrSpeciesWriteEnabled() && raceDefinition != null)
+                {
+                    character.RaceCode = raceDefinition.Code;
+                    character.Race = raceDefinition.Name;
+                }
+                character.Description = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 2048, "description");
+                character.Backstory = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
+                _repositories.Characters.Replace(character);
+                _logger.Admin($"character.admin.save.basic actor={actor.Login} characterId={character.Id} result=ok profileNativeRaceBody=true");
+                return Ok("Character basic saved.", BuildCharacterAggregatePayload(character, actor, includeNotesContext: false));
+            }
+
+            return Error("Character race/body profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
         character.Name = RequireLength(PayloadReader.GetString(context.Request.Payload, "name"), 2, 80, "name");
         character.Height = RequireLength(PayloadReader.GetString(context.Request.Payload, "height"), 0, 64, "height");
         character.Description = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 2048, "description");
         character.Backstory = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
         character.Age = PayloadReader.GetInt(context.Request.Payload, "age");
-        var raceCode = (PayloadReader.GetString(context.Request.Payload, "raceCode") ?? string.Empty).Trim();
-        if (!string.IsNullOrWhiteSpace(raceCode))
+        if (raceDefinition != null)
         {
-            var race = _repositories.RaceDefinitions.GetByCode(raceCode) ?? throw new ArgumentException("Race definition not found.");
-            character.RaceCode = race.Code;
-            character.Race = race.Name;
+            character.RaceCode = raceDefinition.Code;
+            character.Race = raceDefinition.Name;
         }
 
         _repositories.Characters.Replace(character);
+        TryWriteRaceBodyProfileShadowsAsync(character, actor.Id, context.Request.RequestId ?? string.Empty);
         _logger.Admin($"character.admin.save.basic actor={actor.Login} characterId={character.Id} result=ok");
         return Ok("Character basic saved.", BuildCharacterAggregatePayload(character, actor, includeNotesContext: false));
+    }
+
+    public ResponseEnvelope CharacterAdminSaveBiography(CommandContext context)
+    {
+        var actor = RequireAdmin(context);
+        var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
+        EnsureCharacterEditAllowed(actor, character.Id);
+        EnsureCharacterDefaults(character);
+
+        var description = RequireLength(PayloadReader.GetString(context.Request.Payload, "description") ?? character.Description ?? string.Empty, 0, 2048, "description");
+        var backstory = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
+        var nativePayload = new Dictionary<string, object>(context.Request.Payload)
+        {
+            ["description"] = description,
+            ["backstory"] = backstory
+        };
+
+        _logger.Admin($"character.admin.biography.save.start actor={actor.Login} characterId={character.Id} length={backstory.Length}");
+        var native = _profileNativeWriteService.UpdateBiographyProfileNativeAsync(character.Id, nativePayload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+        if (native.BodyProfileWritten && native.LegacyFacadeSynced && !native.UsedFallback)
+        {
+            character = GetCharacter(character.Id);
+            _logger.Admin($"character.admin.biography.save.done actor={actor.Login} characterId={character.Id} length={backstory.Length} profileNative=true fallback=false");
+            return Ok("Character biography saved.", new Dictionary<string, object>
+            {
+                { "characterId", character.Id },
+                { "description", character.Description ?? string.Empty },
+                { "backstory", character.Backstory ?? string.Empty },
+                { "profileNative", true },
+                { "fallback", false }
+            });
+        }
+
+        _logger.Admin($"character.admin.biography.save.failed actor={actor.Login} characterId={character.Id} reason={native.ErrorMessage}");
+        return Error("Character biography profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
     }
 
     public ResponseEnvelope CharacterAdminSaveStats(CommandContext context)
@@ -959,6 +1329,19 @@ public partial class ServiceHub
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         EnsureCharacterEditAllowed(actor, character.Id);
         EnsureCharacterDefaults(character);
+        if (IsProfileNativeStatsWriteEnabled())
+        {
+            var native = _profileNativeWriteService.UpdateAttributeProfileAsync(character.Id, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                character = GetCharacter(character.Id);
+                _logger.Admin($"character.admin.save.stats actor={actor.Login} characterId={character.Id} result=ok profileNative=true");
+                return Ok("Character stats saved.", new Dictionary<string, object> { { "stats", StatsPayload(character.Stats) } });
+            }
+
+            return Error("Character stats profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
         ApplyStatsFromPayload(character, context.Request.Payload);
         _repositories.Characters.Replace(character);
         _logger.Admin($"character.admin.save.stats actor={actor.Login} characterId={character.Id} result=ok");
@@ -971,10 +1354,20 @@ public partial class ServiceHub
         var character = GetCharacter(RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId"));
         EnsureCharacterEditAllowed(actor, character.Id);
         EnsureCharacterDefaults(character);
-        ApplyMoneyFromPayload(character, context.Request.Payload);
-        _repositories.Characters.Replace(character);
-        _logger.Admin($"character.admin.save.money actor={actor.Login} characterId={character.Id} result=ok");
-        return Ok("Character money saved.", BuildMoneyPayload(character));
+        if (IsProfileNativeWalletWriteEnabled())
+        {
+            var native = _profileNativeWriteService.UpdateWalletProfileAsync(character.Id, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                character = GetCharacter(character.Id);
+                _logger.Admin($"character.admin.save.money actor={actor.Login} characterId={character.Id} result=ok profileNative=true");
+                return Ok("Character money saved.", BuildMoneyPayload(character));
+            }
+
+            return Error("Character wallet profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        return Error("Character wallet profile write is disabled.", ResponseStatus.Forbidden, ErrorCode.Forbidden);
     }
 
     public ResponseEnvelope CharacterAdminSaveProgression(CommandContext context)
@@ -984,12 +1377,13 @@ public partial class ServiceHub
         EnsureCharacterEditAllowed(actor, character.Id);
         EnsureCharacterDefaults(character);
 
-        var raceCode = PayloadReader.GetString(context.Request.Payload, "raceCode");
+        var raceCode = (PayloadReader.GetString(context.Request.Payload, "raceCode") ?? string.Empty).Trim();
+        RaceDefinition? raceDefinition = null;
         if (!string.IsNullOrWhiteSpace(raceCode))
         {
-            var race = _repositories.RaceDefinitions.GetByCode(raceCode) ?? throw new ArgumentException("Race definition not found.");
-            character.RaceCode = race.Code;
-            character.Race = race.Name;
+            raceDefinition = _repositories.RaceDefinitions.GetByCode(raceCode) ?? throw new ArgumentException("Race definition not found.");
+            character.RaceCode = raceDefinition.Code;
+            character.Race = raceDefinition.Name;
         }
 
         var xpCoins = PayloadReader.GetInt(context.Request.Payload, "xpCoins");
@@ -1005,9 +1399,31 @@ public partial class ServiceHub
         if (skillList != null) character.CharacterSkills = ParseCharacterSkills(skillList);
         ValidateProgressionState(character);
 
+        if (raceDefinition != null && IsProfileNativeRaceOrSpeciesWriteEnabled())
+        {
+            var nativePayload = new Dictionary<string, object>(context.Request.Payload)
+            {
+                ["raceCode"] = raceDefinition.Code,
+                ["race"] = raceDefinition.Name,
+                ["raceName"] = raceDefinition.Name
+            };
+            var native = _profileNativeWriteService.UpdateRaceOrSpeciesProfileNativeAsync(character.Id, nativePayload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (!native.LegacyFacadeSynced)
+            {
+                return Error("Character race profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+            }
+
+            var synced = GetCharacter(character.Id);
+            synced.XpCoins = character.XpCoins;
+            synced.CharacterClasses = character.CharacterClasses;
+            synced.CharacterSkills = character.CharacterSkills;
+            character = synced;
+        }
+
         _repositories.Characters.Replace(character);
+        TryWriteRaceBodyProfileShadowsAsync(character, actor.Id, context.Request.RequestId ?? string.Empty);
         _logger.Admin($"character.admin.save.progression actor={actor.Login} characterId={character.Id} result=ok");
-        return Ok("Character progression saved.", BuildProgressionPayload(character));
+        return Ok("Character progression saved.", BuildProgressionPayload(character, includeAdmin: true));
     }
 
     public ResponseEnvelope CharacterAdminSaveVisibility(CommandContext context)
@@ -1051,12 +1467,34 @@ public partial class ServiceHub
         var actor = GetCurrentAccount(context);
         var character = ResolveOwnedCharacter(context, actor);
         EnsureCharacterDefaults(character);
+        if (IsProfileNativeBodyWriteEnabled())
+        {
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "name"), 2, 80, "name");
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "height"), 0, 64, "height");
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 2048, "description");
+            _ = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
+            var native = _profileNativeWriteService.UpdateBodyProfileNativeAsync(character.Id, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.LegacyFacadeSynced)
+            {
+                character = GetCharacter(character.Id);
+                character.Name = RequireLength(PayloadReader.GetString(context.Request.Payload, "name"), 2, 80, "name");
+                character.Description = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 2048, "description");
+                character.Backstory = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
+                _repositories.Characters.Replace(character);
+                _logger.Admin($"character.self.save.basic actor={actor.Login} characterId={character.Id} result=ok profileNativeBody=true");
+                return Ok("Character self basic saved.", BuildCharacterAggregatePayload(character, actor, includeNotesContext: false));
+            }
+
+            return Error("Character body profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
         character.Name = RequireLength(PayloadReader.GetString(context.Request.Payload, "name"), 2, 80, "name");
         character.Height = RequireLength(PayloadReader.GetString(context.Request.Payload, "height"), 0, 64, "height");
         character.Description = RequireLength(PayloadReader.GetString(context.Request.Payload, "description"), 0, 2048, "description");
         character.Backstory = RequireLength(PayloadReader.GetString(context.Request.Payload, "backstory"), 0, 4096, "backstory");
         character.Age = PayloadReader.GetInt(context.Request.Payload, "age");
         _repositories.Characters.Replace(character);
+        TryWriteRaceBodyProfileShadowsAsync(character, actor.Id, context.Request.RequestId ?? string.Empty);
         _logger.Admin($"character.self.save.basic actor={actor.Login} characterId={character.Id} result=ok");
         return Ok("Character self basic saved.", BuildCharacterAggregatePayload(character, actor, includeNotesContext: false));
     }
@@ -1066,6 +1504,19 @@ public partial class ServiceHub
         var actor = GetCurrentAccount(context);
         var character = ResolveOwnedCharacter(context, actor);
         EnsureCharacterDefaults(character);
+        if (IsProfileNativeStatsWriteEnabled())
+        {
+            var native = _profileNativeWriteService.UpdateAttributeProfileAsync(character.Id, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                character = GetCharacter(character.Id);
+                _logger.Admin($"character.self.save.stats actor={actor.Login} characterId={character.Id} result=ok profileNative=true");
+                return Ok("Character self stats saved.", new Dictionary<string, object> { { "stats", StatsPayload(character.Stats) } });
+            }
+
+            return Error("Character stats profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
         ApplyStatsFromPayload(character, context.Request.Payload);
         _repositories.Characters.Replace(character);
         _logger.Admin($"character.self.save.stats actor={actor.Login} characterId={character.Id} result=ok");
@@ -1077,10 +1528,20 @@ public partial class ServiceHub
         var actor = GetCurrentAccount(context);
         var character = ResolveOwnedCharacter(context, actor);
         EnsureCharacterDefaults(character);
-        ApplyMoneyFromPayload(character, context.Request.Payload);
-        _repositories.Characters.Replace(character);
-        _logger.Admin($"character.self.save.money actor={actor.Login} characterId={character.Id} result=ok");
-        return Ok("Character self money saved.", BuildMoneyPayload(character));
+        if (IsProfileNativeWalletWriteEnabled())
+        {
+            var native = _profileNativeWriteService.UpdateWalletProfileAsync(character.Id, context.Request.Payload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (native.ProfileWritten && native.LegacyFacadeSynced)
+            {
+                character = GetCharacter(character.Id);
+                _logger.Admin($"character.self.save.money actor={actor.Login} characterId={character.Id} result=ok profileNative=true");
+                return Ok("Character self money saved.", BuildMoneyPayload(character));
+            }
+
+            return Error("Character wallet profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+        }
+
+        return Error("Character wallet profile write is disabled.", ResponseStatus.Forbidden, ErrorCode.Forbidden);
     }
 
     public ResponseEnvelope CharacterSelfGetProgression(CommandContext context)
@@ -1089,7 +1550,7 @@ public partial class ServiceHub
         var character = ResolveOwnedCharacter(context, actor);
         EnsureCharacterDefaults(character);
         _logger.Admin($"character.self.get.progression actor={actor.Login} characterId={character.Id} result=ok");
-        return Ok("Character self progression loaded.", BuildProgressionPayload(character));
+        return Ok("Character self progression loaded.", BuildProgressionPayload(character, includeAdmin: false));
     }
 
     public ResponseEnvelope CharacterLockAcquire(CommandContext context) => CharacterLockExecute(context, CommandNames.LockAcquire);
@@ -1159,17 +1620,20 @@ public partial class ServiceHub
         var entityType = RequireLength(PayloadReader.GetString(context.Request.Payload, "entityType"), 2, 128, "entityType");
         var entityId = RequireLength(PayloadReader.GetString(context.Request.Payload, "entityId"), 4, 128, "entityId");
 
-        var existing = FindActiveLock(entityType, entityId);
-        if (existing != null && existing.LockedByUserId != actor.Id) throw new InvalidOperationException("Entity is already locked.");
+        var existing = FindLockByEntityKey(entityType, entityId);
+        var existingIsActive = existing != null && !existing.Deleted && !existing.Archived && existing.ExpiresUtc > DateTime.UtcNow;
+        if (existingIsActive && existing!.LockedByUserId != actor.Id) throw new InvalidOperationException("Entity is already locked.");
 
         var lockItem = existing ?? new EntityLock { EntityType = entityType, EntityId = entityId, LockedByUserId = actor.Id };
+        lockItem.LockedByUserId = actor.Id;
         lockItem.OwnerLevel = actor.Roles.Contains(UserRole.SuperAdmin) ? LockOwnerLevel.SuperAdmin : LockOwnerLevel.Admin;
         lockItem.IssuedUtc = DateTime.UtcNow;
         lockItem.ExpiresUtc = DateTime.UtcNow.AddHours(1);
         lockItem.Deleted = false;
+        lockItem.Archived = false;
         if (existing == null) _repositories.Locks.Insert(lockItem); else _repositories.Locks.Replace(lockItem);
-        _logger.Admin($"lock.acquire actor={actor.Login} entityType={entityType} entityId={entityId} result={(existing == null ? "new" : "refresh")}");
-        return Ok(existing == null ? "Lock acquired." : "Lock refreshed.", LockPayload(lockItem));
+        _logger.Admin($"lock.acquire actor={actor.Login} entityType={entityType} entityId={entityId} result={(existing == null ? "new" : existingIsActive ? "refresh" : "reactivated")}");
+        return Ok(existing == null || !existingIsActive ? "Lock acquired." : "Lock refreshed.", LockPayload(lockItem));
     }
 
     public ResponseEnvelope LockRelease(CommandContext context)
@@ -1221,6 +1685,13 @@ public partial class ServiceHub
         return lockItem;
     }
 
+    private EntityLock? FindLockByEntityKey(string entityType, string entityId)
+    {
+        return _repositories.Locks.Find(
+            Builders<EntityLock>.Filter.Eq(x => x.EntityType, entityType) &
+            Builders<EntityLock>.Filter.Eq(x => x.EntityId, entityId)).FirstOrDefault();
+    }
+
     private EntityLock RequireLockByEntity(CommandContext context)
     {
         var entityType = RequireLength(PayloadReader.GetString(context.Request.Payload, "entityType"), 2, 128, "entityType");
@@ -1246,8 +1717,129 @@ public partial class ServiceHub
         }
         catch (Exception ex)
         {
-            _logger.Error($"profile.shadow.write.error profile=unknown characterId=unknown message={ex.Message}");
+            _logger.Debug($"profile.shadow.write.error profile=unknown characterId=unknown message={ex.Message}");
         }
+    }
+
+    private void TryWriteRaceBodyProfileShadowsAsync(Character character, string actorUserId, string requestId)
+    {
+        try
+        {
+            TryShadowWrite(() => _profileShadowWriteService.WriteRaceOrSpeciesProfileShadowAsync(character, actorUserId, requestId));
+            TryShadowWrite(() => _profileShadowWriteService.WriteBodyProfileShadowAsync(character, actorUserId, requestId));
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug($"profile.shadow.write.error profile=raceBody characterId={character?.Id ?? string.Empty} message={ex.Message}");
+        }
+        // TODO(F0.5.15): publish character.profile.shadow_written sync events for race/body after profile events stabilize.
+        // TODO(F0.5.15): add read-path-safe audit for race/body profile.shadow.write without duplicating legacy command audit.
+    }
+
+    private void TryWriteInventoryProfileShadowAsync(Character character, string actorUserId, string requestId, string reason)
+    {
+        var characterId = character?.Id ?? string.Empty;
+        if (!IsInventoryProfileShadowWriteEnabled())
+        {
+            _logger.Debug($"inventory.shadow.write.skipped characterId={characterId} reason=flag_disabled command={reason}");
+            return;
+        }
+
+        if (character == null)
+        {
+            _logger.Debug($"inventory.shadow.write.error characterId={characterId} command={reason} message=legacy_character_missing");
+            return;
+        }
+
+        try
+        {
+            _logger.Debug($"inventory.shadow.write.start characterId={characterId} command={reason}");
+            var result = _profileShadowWriteService.WriteInventoryProfileShadowAsync(character, actorUserId, requestId).GetAwaiter().GetResult();
+            if (result.Success)
+            {
+                _logger.Debug($"inventory.shadow.write.done characterId={characterId} command={reason}");
+                return;
+            }
+
+            _logger.Debug($"inventory.shadow.write.error characterId={characterId} command={reason} message={result.ErrorMessage}");
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug($"inventory.shadow.write.error characterId={characterId} command={reason} message={ex.Message}");
+        }
+        // TODO(F0.5.18): publish character.inventory.updated / character.profile.inventory.shadow_written after profile events stabilize.
+    }
+
+    private static bool IsInventoryProfileShadowWriteEnabled()
+    {
+        return ProfileFeatureFlags.UseRuleSetProfilesWriteShadow && ProfileFeatureFlags.UseInventoryProfileShadowWrite;
+    }
+
+    private static bool IsProfileFirstCharacterCreationEnabled()
+    {
+        return ProfileFeatureFlags.UseProfileFirstCharacterCreation;
+    }
+
+    private static bool IsProfileNativeStatsWriteEnabled()
+    {
+        return ProfileFeatureFlags.UseProfileNativeCharacterWrites && ProfileFeatureFlags.UseProfileNativeStatsWrite;
+    }
+
+    private static bool IsProfileNativeWalletWriteEnabled()
+    {
+        return ProfileFeatureFlags.UseProfileNativeCharacterWrites && ProfileFeatureFlags.UseProfileNativeWalletWrite;
+    }
+
+    private static bool IsProfileNativeSkillWriteEnabled()
+    {
+        return ProfileFeatureFlags.UseProfileNativeCharacterWrites && ProfileFeatureFlags.UseProfileNativeSkillWrite;
+    }
+
+    private static bool IsProfileNativeDevelopmentWriteEnabled()
+    {
+        return ProfileFeatureFlags.UseProfileNativeCharacterWrites && ProfileFeatureFlags.UseProfileNativeDevelopmentWrite;
+    }
+
+    private static bool IsProfileNativeInventoryWriteEnabled()
+    {
+        return ProfileFeatureFlags.UseProfileNativeCharacterWrites && ProfileFeatureFlags.UseProfileNativeInventoryWrite;
+    }
+
+    private static bool IsProfileNativeRaceBodyWriteEnabled()
+    {
+        return ProfileFeatureFlags.UseProfileNativeCharacterWrites && ProfileFeatureFlags.UseProfileNativeRaceBodyWrite;
+    }
+
+    private static bool IsProfileNativeRaceOrSpeciesWriteEnabled()
+    {
+        return IsProfileNativeRaceBodyWriteEnabled() && ProfileFeatureFlags.UseProfileNativeRaceOrSpeciesWrite;
+    }
+
+    private static bool IsProfileNativeBodyWriteEnabled()
+    {
+        return IsProfileNativeRaceBodyWriteEnabled() && ProfileFeatureFlags.UseProfileNativeBodyWrite;
+    }
+
+    private ProfileNativeRaceBodyWriteResult UpdateRaceBodyProfilesNativeForEnabledSections(string characterId, Dictionary<string, object> payload, string actorUserId, string requestId)
+    {
+        var raceEnabled = IsProfileNativeRaceOrSpeciesWriteEnabled();
+        var bodyEnabled = IsProfileNativeBodyWriteEnabled();
+        if (raceEnabled && bodyEnabled)
+        {
+            return _profileNativeWriteService.UpdateRaceBodyProfilesNativeAsync(characterId, payload, actorUserId, requestId).GetAwaiter().GetResult();
+        }
+
+        if (raceEnabled)
+        {
+            return _profileNativeWriteService.UpdateRaceOrSpeciesProfileNativeAsync(characterId, payload, actorUserId, requestId).GetAwaiter().GetResult();
+        }
+
+        if (bodyEnabled)
+        {
+            return _profileNativeWriteService.UpdateBodyProfileNativeAsync(characterId, payload, actorUserId, requestId).GetAwaiter().GetResult();
+        }
+
+        return new ProfileNativeRaceBodyWriteResult { CharacterId = characterId ?? string.Empty, UsedFallback = true, ErrorMessage = "flag_disabled", WrittenAtUtc = DateTime.UtcNow };
     }
 
     private bool CanViewCharacter(UserAccount actor, UserAccount owner, Character character)
@@ -1258,60 +1850,94 @@ public partial class ServiceHub
         return true;
     }
 
-    private Dictionary<string, object> CharacterSummaryPayload(Character c, UserAccount owner, UserAccount viewer)
+    private static bool IsAdminActor(UserAccount actor)
     {
-        EnsureCharacterDefaults(c);
-        var dto = new Dictionary<string, object>
-        {
-            { "characterId", c.Id },
-            { "ownerUserId", c.OwnerUserId },
-            { "name", c.Name },
-            { "race", c.Race },
-            { "height", c.Height },
-            { "archived", c.Archived },
-            { "deleted", c.Deleted },
-            { "schemaVersion", c.SchemaVersion }
-        };
-
-        if ((viewer.Id != owner.Id) && !viewer.Roles.Contains(UserRole.Admin) && !viewer.Roles.Contains(UserRole.SuperAdmin) && c.Visibility.HideDescriptionForOthers)
-            dto["description"] = "[hidden]";
-        else
-            dto["description"] = c.Description;
-
-        return dto;
+        return actor.Roles.Contains(UserRole.Admin) || actor.Roles.Contains(UserRole.SuperAdmin);
     }
 
-    private Dictionary<string, object> CharacterDetailsPayload(Character c, UserAccount owner, UserAccount viewer)
+    private Dictionary<string, object> CharacterDetailsPayloadWithProfileFirst(Character c, UserAccount owner, UserAccount viewer, string requestId)
     {
-        // TODO Foundation 0.5.9: optional profile-first CharacterDetails under feature flag after compare mode is stable.
-        EnsureCharacterDefaults(c);
-        var isPrivileged = viewer.Id == owner.Id || viewer.Roles.Contains(UserRole.Admin) || viewer.Roles.Contains(UserRole.SuperAdmin);
-        var details = CharacterSummaryPayload(c, owner, viewer);
-        details["age"] = c.Age.HasValue ? (object)c.Age.Value : string.Empty;
-        details["backstory"] = (!isPrivileged && c.Visibility.HideBackstoryForOthers) ? "[hidden]" : c.Backstory;
-        details["stats"] = (!isPrivileged && c.Visibility.HideStatsForOthers) ? "[hidden]" : (object)StatsPayload(c.Stats);
-        // TODO Foundation 0.5.x: optional wallet-profile shadow compare under feature flag.
-        details["money"] = WalletPayload(c.Wallet);
-        details["currencies"] = CurrencyListPayload(c);
-        // TODO Foundation 0.5.x: optional inventory-profile shadow compare under feature flag.
-        details["inventory"] = c.Inventory.Select(InventoryPayload).Cast<object>().ToArray();
-        // TODO Foundation 0.5.x: optional companion-profile shadow compare under feature flag.
-        details["companions"] = c.Companions.Select(CompanionPayload).Cast<object>().ToArray();
-        // TODO Foundation 0.5.x: optional holdings-profile shadow compare under feature flag.
-        details["holdings"] = c.Holdings.Select(HoldingPayload).Cast<object>().ToArray();
-        // TODO Foundation 0.5.x: optional reputation-profile shadow compare under feature flag.
-        details["reputation"] = (!isPrivileged && c.Visibility.HideReputationForOthers) ? "[hidden]" : (object)c.Reputation.Select(ReputationPayload).Cast<object>().ToArray();
-        // TODO Foundation 0.5.x: optional development-profile shadow compare under feature flag.
-        details["classProgress"] = c.ClassProgress.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "experience", x.Experience } }).Cast<object>().ToArray();
-        details["skills"] = c.Skills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "name", x.Name }, { "description", x.Description }, { "type", x.Type.ToString() }, { "available", x.IsAvailable }, { "reason", x.UnavailableReason } }).Cast<object>().ToArray();
-        details["raceCode"] = c.RaceCode;
-        details["xpCoins"] = c.XpCoins;
-        details["characterClasses"] = c.CharacterClasses.Select(x => new Dictionary<string, object> { { "classCode", x.ClassCode }, { "level", x.Level }, { "learnedUtc", x.LearnedUtc } }).Cast<object>().ToArray();
-        // TODO Foundation 0.5.x: optional skill-profile shadow compare under feature flag.
-        details["characterSkills"] = c.CharacterSkills.Select(x => new Dictionary<string, object> { { "skillCode", x.SkillCode }, { "tier", x.Tier }, { "level", x.Level }, { "learnedUtc", x.LearnedUtc } }).Cast<object>().ToArray();
-        details["visibility"] = VisibilityPayload(c.Visibility);
-        details["notesContext"] = BuildNotesContextPayload(c.Id);
-        return details;
+        if (c == null) throw new InvalidOperationException("Character not found.");
+
+        var identityShell = _characterDetailsProfileBuilder.BuildProfileIdentityShell(c);
+
+        _logger.Debug($"profile.details.profile_path.start characterId={c.Id} requestId={requestId}");
+        try
+        {
+            var result = _characterDetailsProfileBuilder
+                .BuildFromProfilesAsync(c, viewer.Id, requestId, identityShell)
+                .GetAwaiter()
+                .GetResult();
+
+            if (result == null || result.Payload == null)
+            {
+                _logger.Debug($"profile.details.profile_path.done characterId={c.Id} requestId={requestId} profileFirst=false fallback=false reason=null_result");
+                return identityShell;
+            }
+
+            _logger.Debug($"profile.details.profile_path.done characterId={c.Id} requestId={requestId} profileFirst={result.UsedProfileFirst} fallback={result.UsedFallback}");
+            ApplyPlayerSafeCharacterPayload(result.Payload, viewer);
+            return result.Payload;
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug($"profile.details.error characterId={c.Id} requestId={requestId} message={ex.Message}");
+            _logger.Debug($"profile.details.profile_path.done characterId={c.Id} requestId={requestId} profileFirst=false fallback=false reason=wrapper_exception");
+            return identityShell;
+        }
+    }
+
+    private void ApplyPlayerSafeCharacterPayload(Dictionary<string, object> payload, UserAccount viewer)
+    {
+        if (payload == null || IsAdmin(viewer)) return;
+        if (!payload.ContainsKey("inventory")) return;
+
+        var visibleItems = ToInventoryObjectList(payload["inventory"])
+            .Select(AsDictionary)
+            .Where(x => x != null && IsInventoryPayloadVisibleToPlayer(x))
+            .Select(x => (object)x!)
+            .ToArray();
+
+        payload["inventory"] = visibleItems;
+        _logger.Debug($"character.inventory.player_safe.filtered viewer={viewer?.Login ?? string.Empty} visibleCount={visibleItems.Length}");
+    }
+
+    private static bool IsInventoryPayloadVisibleToPlayer(Dictionary<string, object> item)
+    {
+        if (item == null) return false;
+        if (item.ContainsKey("isPlayerVisible") && !PayloadReader.GetBool(item, "isPlayerVisible")) return false;
+        var visibilityMode = (PayloadReader.GetString(item, "visibilityMode") ?? string.Empty).Trim();
+        if (string.Equals(visibilityMode, "gm_only", StringComparison.OrdinalIgnoreCase)) return false;
+        if (string.Equals(visibilityMode, "hidden", StringComparison.OrdinalIgnoreCase)) return false;
+        if (PayloadReader.GetBool(item, "gmOnly")) return false;
+        if (PayloadReader.GetBool(item, "isHidden")) return false;
+        if (PayloadReader.GetBool(item, "archived")) return false;
+        if (PayloadReader.GetBool(item, "deleted")) return false;
+        return true;
+    }
+
+    private static IEnumerable<object> ToInventoryObjectList(object? value)
+    {
+        if (value == null) return Array.Empty<object>();
+        if (value is IEnumerable enumerable && value is not string) return enumerable.Cast<object>();
+        return new[] { value };
+    }
+
+    private static Dictionary<string, object>? AsDictionary(object value)
+    {
+        if (value is Dictionary<string, object> dictionary) return dictionary;
+        if (value is IDictionary raw)
+        {
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (DictionaryEntry entry in raw)
+            {
+                if (entry.Key == null) continue;
+                result[Convert.ToString(entry.Key) ?? string.Empty] = entry.Value ?? string.Empty;
+            }
+            return result;
+        }
+
+        return null;
     }
 
     private static Dictionary<string, object> StatsPayload(CharacterStats s) => new Dictionary<string, object>
@@ -1331,8 +1957,12 @@ public partial class ServiceHub
     {
         { "id", x.Id },
         { "itemCode", x.ItemCode },
+        { "definitionId", x.ItemCode },
+        { "itemDefinitionId", x.ItemCode },
+        { "definitionCode", x.ItemCode },
         { "name", string.IsNullOrWhiteSpace(x.Name) ? x.Label : x.Name },
         { "label", string.IsNullOrWhiteSpace(x.Label) ? x.Name : x.Label },
+        { "displayName", string.IsNullOrWhiteSpace(x.Name) ? x.Label : x.Name },
         { "description", x.Description },
         { "category", x.Category },
         { "quantity", x.Quantity },
@@ -1363,6 +1993,195 @@ public partial class ServiceHub
         { "holdings", c.Holdings.Select(HoldingPayload).Cast<object>().ToArray() },
         { "reputation", c.Reputation.Select(ReputationPayload).Cast<object>().ToArray() }
     };
+
+    private ReputationProfile LoadReputationProfile(string characterId)
+    {
+        var doc = _mongo.CharacterReputationProfiles.Find(Builders<CharacterReputationProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).FirstOrDefault();
+        return doc?.Profile ?? new ReputationProfile { CharacterId = characterId, RuleSetId = RuleSetIds.FantasyNriDefault, Entries = new List<CharacterReputationProfileValue>(), SchemaVersion = 1 };
+    }
+
+    private HoldingsProfile LoadHoldingsProfile(string characterId)
+    {
+        var doc = _mongo.CharacterHoldingsProfiles.Find(Builders<CharacterHoldingsProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).FirstOrDefault();
+        return doc?.Profile ?? new HoldingsProfile { CharacterId = characterId, RuleSetId = RuleSetIds.FantasyNriDefault, Holdings = new List<CharacterHoldingProfileValue>(), SchemaVersion = 1 };
+    }
+
+    private CompanionProfile LoadCompanionProfile(string characterId)
+    {
+        var doc = _mongo.CharacterCompanionProfiles.Find(Builders<CharacterCompanionProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).FirstOrDefault();
+        return doc?.Profile ?? new CompanionProfile { CharacterId = characterId, RuleSetId = RuleSetIds.FantasyNriDefault, Companions = new List<CharacterCompanionProfileValue>(), SchemaVersion = 1 };
+    }
+
+    private void SaveReputationProfile(string characterId, ReputationProfile profile)
+    {
+        profile.CharacterId = characterId;
+        profile.RuleSetId = FirstNonEmpty(profile.RuleSetId, RuleSetIds.FantasyNriDefault);
+        profile.Entries ??= new List<CharacterReputationProfileValue>();
+        UpsertProfile(_mongo.CharacterReputationProfiles, characterId, new CharacterReputationProfileDocument { CharacterId = characterId, Profile = profile });
+    }
+
+    private void SaveHoldingsProfile(string characterId, HoldingsProfile profile)
+    {
+        profile.CharacterId = characterId;
+        profile.RuleSetId = FirstNonEmpty(profile.RuleSetId, RuleSetIds.FantasyNriDefault);
+        profile.Holdings ??= new List<CharacterHoldingProfileValue>();
+        UpsertProfile(_mongo.CharacterHoldingsProfiles, characterId, new CharacterHoldingsProfileDocument { CharacterId = characterId, Profile = profile });
+    }
+
+    private void SaveCompanionProfile(string characterId, CompanionProfile profile)
+    {
+        profile.CharacterId = characterId;
+        profile.RuleSetId = FirstNonEmpty(profile.RuleSetId, RuleSetIds.FantasyNriDefault);
+        profile.Companions ??= new List<CharacterCompanionProfileValue>();
+        UpsertProfile(_mongo.CharacterCompanionProfiles, characterId, new CharacterCompanionProfileDocument { CharacterId = characterId, Profile = profile });
+    }
+
+    private static void UpsertProfile<TDoc>(IMongoCollection<TDoc> collection, string characterId, TDoc doc) where TDoc : EntityBase
+    {
+        var existing = collection.Find(Builders<TDoc>.Filter.Eq("CharacterId", characterId)).FirstOrDefault();
+        if (existing != null)
+        {
+            doc.Id = existing.Id;
+            doc.CreatedUtc = existing.CreatedUtc;
+        }
+
+        doc.UpdatedUtc = DateTime.UtcNow;
+        collection.ReplaceOne(Builders<TDoc>.Filter.Eq("CharacterId", characterId), doc, new ReplaceOptions { IsUpsert = true });
+    }
+
+    private CharacterReputationProfileValue ParseReputationProfileValue(Dictionary<string, object> source)
+    {
+        var targetName = RequireLength(FirstNonEmpty(PayloadReader.GetString(source, "targetName"), PayloadReader.GetString(source, "name"), PayloadReader.GetString(source, "groupKey")), 1, 128, "targetName");
+        var targetId = RequireLength(PayloadReader.GetString(source, "targetId"), 0, 128, "targetId");
+        var id = FirstNonEmpty(PayloadReader.GetString(source, "id"), PayloadReader.GetString(source, "entryId"), targetId, Guid.NewGuid().ToString("N"));
+        return new CharacterReputationProfileValue
+        {
+            EntryId = id,
+            Scope = FirstNonEmpty(PayloadReader.GetString(source, "scope"), "Personal"),
+            ScopeType = FirstNonEmpty(PayloadReader.GetString(source, "scopeType"), "Character"),
+            TargetType = FirstNonEmpty(PayloadReader.GetString(source, "targetType"), "Other"),
+            TargetId = targetId,
+            Name = targetName,
+            Value = PayloadReader.GetInt(source, "value") ?? 0,
+            GroupValue = PayloadReader.GetInt(source, "groupValue") ?? 0,
+            Status = RequireLength(PayloadReader.GetString(source, "status"), 0, 64, "status"),
+            Notes = RequireLength(PayloadReader.GetString(source, "notes"), 0, 1024, "notes"),
+            IsPlayerVisible = GetBoolDefault(source, "isPlayerVisible", !PayloadReader.GetBool(source, "isHiddenForOthers")),
+            IsArchived = PayloadReader.GetBool(source, "archived") || PayloadReader.GetBool(source, "isArchived"),
+            Source = "character_v2_profile_native"
+        };
+    }
+
+    private CharacterHoldingProfileValue ParseHoldingProfileValue(Dictionary<string, object> source, string characterId)
+    {
+        var owners = (PayloadReader.GetList(source, "owners") ?? new List<object>()).Select(x => x?.ToString() ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var ownerCharacters = owners.Count == 0 ? new List<string> { characterId } : owners;
+        return new CharacterHoldingProfileValue
+        {
+            HoldingId = FirstNonEmpty(PayloadReader.GetString(source, "id"), PayloadReader.GetString(source, "holdingId"), Guid.NewGuid().ToString("N")),
+            Name = RequireLength(PayloadReader.GetString(source, "name"), 1, 128, "name"),
+            HoldingType = RequireLength(FirstNonEmpty(PayloadReader.GetString(source, "type"), PayloadReader.GetString(source, "holdingType")), 0, 64, "type"),
+            Description = RequireLength(PayloadReader.GetString(source, "description"), 0, 1024, "description"),
+            LocationId = RequireLength(PayloadReader.GetString(source, "locationId"), 0, 128, "locationId"),
+            LocationName = RequireLength(FirstNonEmpty(PayloadReader.GetString(source, "locationName"), PayloadReader.GetString(source, "location")), 0, 128, "locationName"),
+            OwnerCharacterIds = ownerCharacters,
+            OwnerDisplayName = RequireLength(PayloadReader.GetString(source, "ownerDisplayName"), 0, 128, "ownerDisplayName"),
+            LegalStatus = RequireLength(PayloadReader.GetString(source, "legalStatus"), 0, 64, "legalStatus"),
+            ActualStatus = RequireLength(FirstNonEmpty(PayloadReader.GetString(source, "actualStatus"), PayloadReader.GetString(source, "status")), 0, 64, "status"),
+            Notes = RequireLength(PayloadReader.GetString(source, "notes"), 0, 1024, "notes"),
+            IsPlayerVisible = GetBoolDefault(source, "isPlayerVisible", true),
+            IsArchived = PayloadReader.GetBool(source, "archived") || PayloadReader.GetBool(source, "isArchived"),
+            Source = "character_v2_profile_native"
+        };
+    }
+
+    private CharacterCompanionProfileValue ParseCompanionProfileValue(Dictionary<string, object> source, string characterId)
+    {
+        var type = RequireLength(FirstNonEmpty(PayloadReader.GetString(source, "type"), PayloadReader.GetString(source, "species"), PayloadReader.GetString(source, "companionType")), 0, 64, "type");
+        return new CharacterCompanionProfileValue
+        {
+            CompanionId = FirstNonEmpty(PayloadReader.GetString(source, "id"), PayloadReader.GetString(source, "companionId"), Guid.NewGuid().ToString("N")),
+            Name = RequireLength(PayloadReader.GetString(source, "name"), 1, 128, "name"),
+            CompanionType = type,
+            RaceOrSpeciesId = FirstNonEmpty(PayloadReader.GetString(source, "raceOrSpeciesId"), type),
+            Description = RequireLength(PayloadReader.GetString(source, "description"), 0, 1024, "description"),
+            Notes = RequireLength(PayloadReader.GetString(source, "notes"), 0, 1024, "notes"),
+            OwnerCharacterId = RequireLength(FirstNonEmpty(PayloadReader.GetString(source, "ownerCharacterId"), characterId), 0, 128, "ownerCharacterId"),
+            OwnerDisplayName = RequireLength(PayloadReader.GetString(source, "ownerDisplayName"), 0, 128, "ownerDisplayName"),
+            Status = RequireLength(PayloadReader.GetString(source, "status"), 0, 64, "status"),
+            InitiativeMode = RequireLength(PayloadReader.GetString(source, "initiativeMode"), 0, 64, "initiativeMode"),
+            HasSeparateInventory = PayloadReader.GetBool(source, "hasSeparateInventory"),
+            IsPlayerVisible = GetBoolDefault(source, "isPlayerVisible", true),
+            IsArchived = PayloadReader.GetBool(source, "archived") || PayloadReader.GetBool(source, "isArchived"),
+            Source = "character_v2_profile_native"
+        };
+    }
+
+    private static Dictionary<string, object> ReputationProfilePayload(CharacterReputationProfileValue x) => new Dictionary<string, object>
+    {
+        { "id", x.EntryId },
+        { "scope", x.Scope },
+        { "scopeType", x.ScopeType },
+        { "groupKey", string.Equals(x.ScopeType, "Group", StringComparison.OrdinalIgnoreCase) ? x.Name : string.Empty },
+        { "targetType", x.TargetType },
+        { "targetId", x.TargetId },
+        { "targetName", x.Name },
+        { "value", x.Value },
+        { "groupValue", x.GroupValue },
+        { "status", x.Status },
+        { "notes", x.Notes },
+        { "isPlayerVisible", x.IsPlayerVisible },
+        { "isHiddenForOthers", !x.IsPlayerVisible },
+        { "archived", x.IsArchived },
+        { "isArchived", x.IsArchived },
+        { "source", x.Source }
+    };
+
+    private static Dictionary<string, object> HoldingProfilePayload(CharacterHoldingProfileValue x) => new Dictionary<string, object>
+    {
+        { "id", x.HoldingId },
+        { "name", x.Name },
+        { "type", x.HoldingType },
+        { "holdingType", x.HoldingType },
+        { "description", x.Description },
+        { "locationId", x.LocationId },
+        { "locationName", x.LocationName },
+        { "owners", (x.OwnerCharacterIds ?? new List<string>()).Concat(x.OwnerUserIds ?? new List<string>()).Cast<object>().ToArray() },
+        { "ownerDisplayName", x.OwnerDisplayName },
+        { "status", FirstNonEmpty(x.ActualStatus, x.LegalStatus) },
+        { "legalStatus", x.LegalStatus },
+        { "actualStatus", x.ActualStatus },
+        { "notes", x.Notes },
+        { "isPlayerVisible", x.IsPlayerVisible },
+        { "archived", x.IsArchived },
+        { "isArchived", x.IsArchived },
+        { "source", x.Source }
+    };
+
+    private static Dictionary<string, object> CompanionProfilePayload(CharacterCompanionProfileValue x) => new Dictionary<string, object>
+    {
+        { "id", x.CompanionId },
+        { "name", x.Name },
+        { "type", FirstNonEmpty(x.CompanionType, x.RaceOrSpeciesId) },
+        { "species", FirstNonEmpty(x.RaceOrSpeciesId, x.CompanionType) },
+        { "description", x.Description },
+        { "notes", x.Notes },
+        { "ownerCharacterId", x.OwnerCharacterId },
+        { "ownerDisplayName", x.OwnerDisplayName },
+        { "status", x.Status },
+        { "isPlayerVisible", x.IsPlayerVisible },
+        { "isArchived", x.IsArchived },
+        { "archived", x.IsArchived },
+        { "inventory", Array.Empty<object>() },
+        { "holdings", Array.Empty<object>() },
+        { "reputation", Array.Empty<object>() },
+        { "source", x.Source }
+    };
+
+    private static bool GetBoolDefault(Dictionary<string, object> source, string key, bool defaultValue)
+    {
+        return source.ContainsKey(key) ? PayloadReader.GetBool(source, key) : defaultValue;
+    }
 
     private static Dictionary<string, object> HoldingPayload(HoldingRef x) => new Dictionary<string, object>
     {
@@ -1478,13 +2297,100 @@ public partial class ServiceHub
     private HoldingRef ParseHolding(Dictionary<string, object> source) => ParseHoldingsList(new List<object> { source }).First();
     private ReputationRef ParseReputationEntry(Dictionary<string, object> source) => ParseReputationList(new List<object> { source }).First();
     private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+    private static object[] PlayerSafeInventoryPayload(object? value)
+    {
+        if (value == null || value is string) return Array.Empty<object>();
+        if (value is not IEnumerable enumerable) return Array.Empty<object>();
+
+        var result = new List<object>();
+        foreach (var item in enumerable)
+        {
+            var map = ToStringObjectDictionary(item);
+            if (map.Count == 0) continue;
+
+            map.Remove("itemCode");
+            map.Remove("definitionId");
+            map.Remove("itemDefinitionId");
+            map.Remove("definitionCode");
+            map.Remove("gmNotes");
+            map.Remove("serverOnlyData");
+            map.Remove("notes");
+
+            result.Add(map);
+        }
+
+        return result.ToArray();
+    }
+
+    private static object[] PlayerSafeCharacterCollectionPayload(object? value)
+    {
+        if (value == null || value is string) return Array.Empty<object>();
+        if (value is not IEnumerable enumerable) return Array.Empty<object>();
+
+        var result = new List<object>();
+        foreach (var item in enumerable)
+        {
+            var map = ToStringObjectDictionary(item);
+            if (map.Count == 0) continue;
+
+            var isVisible = !map.TryGetValue("isPlayerVisible", out var visibleValue) || ToBool(visibleValue, defaultValue: true);
+            var hidden = map.TryGetValue("isHiddenForOthers", out var hiddenValue) && ToBool(hiddenValue, defaultValue: false);
+            var archived = (map.TryGetValue("isArchived", out var archivedValue) && ToBool(archivedValue, defaultValue: false))
+                || (map.TryGetValue("archived", out var archivedAltValue) && ToBool(archivedAltValue, defaultValue: false));
+
+            if (!isVisible || hidden || archived) continue;
+
+            map.Remove("gmNotes");
+            map.Remove("serverOnlyData");
+            map.Remove("source");
+            result.Add(map);
+        }
+
+        return result.ToArray();
+    }
+
+    private static bool ToBool(object? value, bool defaultValue)
+    {
+        if (value == null) return defaultValue;
+        if (value is bool b) return b;
+        if (value is string s && bool.TryParse(s, out var parsed)) return parsed;
+        if (value is int i) return i != 0;
+        if (value is long l) return l != 0;
+        return defaultValue;
+    }
+
+    private static Dictionary<string, object> ToStringObjectDictionary(object? value)
+    {
+        if (value is Dictionary<string, object> typed)
+            return new Dictionary<string, object>(typed, StringComparer.OrdinalIgnoreCase);
+        if (value is IDictionary dictionary)
+        {
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                if (entry.Key == null) continue;
+                result[Convert.ToString(entry.Key) ?? string.Empty] = entry.Value ?? string.Empty;
+            }
+            return result;
+        }
+
+        return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static int CountPayloadItems(object? value)
+    {
+        if (value == null || value is string) return 0;
+        if (value is IDictionary<string, object> dict) return dict.Count;
+        if (value is ICollection collection) return collection.Count;
+        return 1;
+    }
     private static ReputationScopeType ParseScopeType(string? value) => Enum.TryParse<ReputationScopeType>(value, true, out var parsed) ? parsed : ReputationScopeType.Character;
     private static ReputationTargetType ParseTargetType(string? value) => Enum.TryParse<ReputationTargetType>(value, true, out var parsed) ? parsed : ReputationTargetType.Other;
 
     private Dictionary<string, object> BuildCharacterAggregatePayload(Character character, UserAccount viewer, bool includeNotesContext)
     {
         var owner = GetAccount(character.OwnerUserId);
-        var payload = CharacterDetailsPayload(character, owner, viewer);
+        var payload = CharacterDetailsPayloadWithProfileFirst(character, owner, viewer, string.Empty);
         if (!includeNotesContext) payload["notesContext"] = new Dictionary<string, object> { { "scopes", Array.Empty<object>() }, { "noteLinks", Array.Empty<object>() } };
         return payload;
     }
@@ -1691,6 +2597,271 @@ public partial class ServiceHub
         { "acquired", skill.Acquired },
         { "learnedUtc", skill.LearnedUtc }
     };
+
+    private List<Dictionary<string, object>> BuildCharacterSkillProfileRows(Character character, UserAccount viewer, bool includeHidden, string requestedSkillCode = "", string requestedSubAttributeId = "")
+    {
+        var definitions = _repositories.DefinitionSkills.GetAll(false)
+            .Where(x => x != null && !string.IsNullOrWhiteSpace(x.Code) && !x.IsArchived && x.Status != DefinitionStatus.Archived)
+            .Select(SkillDefinitionV2Defaults.Normalize)
+            .GroupBy(x => x.Code, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .OrderBy(x => x.DisplayGroup)
+            .ThenBy(x => x.Name)
+            .ThenBy(x => x.Code)
+            .ToList();
+        EnsureStarterSkillSubAttributeBindings(definitions);
+
+        var doc = _mongo.CharacterSkillProfiles.Find(Builders<CharacterSkillProfileDocument>.Filter.Eq(x => x.CharacterId, character.Id)).FirstOrDefault();
+        var profile = doc?.Profile ?? new SkillProfile { CharacterId = character.Id, RuleSetId = RuleSetIds.FantasyNriDefault, Skills = new List<CharacterSkillProfileValue>(), SchemaVersion = 1 };
+        profile.CharacterId = character.Id;
+        if (string.IsNullOrWhiteSpace(profile.RuleSetId)) profile.RuleSetId = RuleSetIds.FantasyNriDefault;
+        if (profile.Skills == null) profile.Skills = new List<CharacterSkillProfileValue>();
+
+        var changed = doc == null;
+        var byId = profile.Skills
+            .Where(x => !string.IsNullOrWhiteSpace(x.SkillId))
+            .GroupBy(x => x.SkillId.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var definition in definitions)
+        {
+            if (byId.ContainsKey(definition.Code)) continue;
+            var row = new CharacterSkillProfileValue
+            {
+                SkillId = definition.Code,
+                Rank = Math.Max(0, definition.RankMin),
+                ManualBonus = 0,
+                TrainingState = "untrained",
+                IsPlayerVisible = !IsHiddenSkillDefinition(definition),
+                IsUnlocked = true,
+                IsLearned = false,
+                Source = "profile_default",
+                LearnedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow
+            };
+            profile.Skills.Add(row);
+            byId[definition.Code] = row;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            var newDoc = doc ?? new CharacterSkillProfileDocument { CharacterId = character.Id };
+            newDoc.CharacterId = character.Id;
+            newDoc.Profile = profile;
+            _mongo.CharacterSkillProfiles.ReplaceOne(
+                Builders<CharacterSkillProfileDocument>.Filter.Eq(x => x.CharacterId, character.Id),
+                newDoc,
+                new ReplaceOptions { IsUpsert = true });
+        }
+
+        var attributeProfile = _mongo.CharacterAttributeProfiles.Find(Builders<CharacterAttributeProfileDocument>.Filter.Eq(x => x.CharacterId, character.Id)).FirstOrDefault()?.Profile;
+        var ruleSetId = FirstNonEmpty(attributeProfile?.RuleSetId, profile.RuleSetId, RuleSetIds.FantasyNriDefault);
+        var attributeMap = (attributeProfile?.Values ?? new List<CharacterAttributeValue>())
+            .Where(x => !string.IsNullOrWhiteSpace(x.AttributeId))
+            .GroupBy(x => x.AttributeId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
+        var subAttributeDefinitions = CharacterSubAttributeRuntime.LoadDefinitions(_mongo, ruleSetId, includeHidden: true)
+            .Where(x => x.AppliesToSkillChecks && x.IsRollableModifier)
+            .GroupBy(x => x.SubAttributeId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.Last(), StringComparer.OrdinalIgnoreCase);
+        var subAttributeValues = CharacterSubAttributeRuntime.BuildValueMap(_mongo, character.Id, ruleSetId);
+
+        var rows = new List<Dictionary<string, object>>();
+        foreach (var definition in definitions)
+        {
+            if (!byId.TryGetValue(definition.Code, out var skill)) continue;
+            if (!includeHidden && (!skill.IsPlayerVisible || IsHiddenSkillDefinition(definition))) continue;
+            var attributeId = FirstNonEmpty(definition.DefaultAttribute, definition.AllowedAttributes.FirstOrDefault() ?? string.Empty);
+            var attributeBonus = ResolveAttributeBonus(attributeMap, attributeId);
+            var subAttributeId = ResolveSkillSubAttributeId(definition, requestedSkillCode, requestedSubAttributeId, includeHidden);
+            var subAttributeBonus = 0;
+            var subAttributeDisplayName = string.Empty;
+            var subAttributeParentAttribute = string.Empty;
+            if (!string.IsNullOrWhiteSpace(subAttributeId))
+            {
+                if (!subAttributeDefinitions.TryGetValue(subAttributeId, out var subDefinition))
+                    throw new KeyNotFoundException("Subattribute definition not found.");
+                if (!includeHidden && !subDefinition.IsPlayerVisible)
+                    throw new UnauthorizedAccessException("Subattribute is hidden.");
+                subAttributeValues.TryGetValue(subAttributeId, out var subValue);
+                if (!includeHidden && subValue != null && !subValue.IsVisibleToPlayer)
+                    throw new UnauthorizedAccessException("Subattribute is hidden.");
+                subAttributeBonus = ResolveSubAttributeBonus(subValue, subDefinition);
+                subAttributeDisplayName = FirstNonEmpty(subDefinition.DisplayName, subDefinition.Code, subDefinition.SubAttributeId);
+                subAttributeParentAttribute = subDefinition.ParentAttributeId;
+            }
+            var total = skill.Rank + skill.ManualBonus + attributeBonus + subAttributeBonus;
+            var displayName = FirstNonEmpty(definition.Name, definition.Code);
+            var breakdown = $"Ранг {skill.Rank} + атрибут {attributeBonus} + ручной бонус {skill.ManualBonus} = {total}";
+            var subAttributeBreakdown = string.IsNullOrWhiteSpace(subAttributeDisplayName) ? string.Empty : $" + подхарактеристика {subAttributeDisplayName} {subAttributeBonus}";
+            breakdown = $"Ранг {skill.Rank} + атрибут {attributeBonus}{subAttributeBreakdown} + ручной бонус {skill.ManualBonus} = {total}";
+            rows.Add(new Dictionary<string, object>
+            {
+                { "skillId", definition.Code },
+                { "skillCode", definition.Code },
+                { "code", definition.Code },
+                { "displayName", displayName },
+                { "name", displayName },
+                { "description", includeHidden ? definition.Description : string.Empty },
+                { "category", FirstNonEmpty(definition.DisplayGroup, definition.SkillCategory.ToString()) },
+                { "tier", definition.Tier },
+                { "rank", skill.Rank },
+                { "level", skill.Rank },
+                { "manualBonus", skill.ManualBonus },
+                { "trainingState", FirstNonEmpty(skill.TrainingState, "trained") },
+                { "isPlayerVisible", skill.IsPlayerVisible && !IsHiddenSkillDefinition(definition) },
+                { "isUnlocked", skill.IsUnlocked },
+                { "isLearned", skill.IsLearned },
+                { "acquired", skill.IsLearned },
+                { "defaultAttribute", attributeId },
+                { "attributeBonus", attributeBonus },
+                { "defaultSubAttribute", definition.DefaultSubAttribute },
+                { "allowedSubAttributes", definition.AllowedSubAttributes.Cast<object>().ToArray() },
+                { "subAttributeId", subAttributeId },
+                { "subAttributeDisplayName", subAttributeDisplayName },
+                { "subAttributeParentAttribute", subAttributeParentAttribute },
+                { "subAttributeBonus", subAttributeBonus },
+                { "totalBonus", total },
+                { "breakdown", breakdown },
+                { "breakdownText", breakdown },
+                { "isRollable", definition.IsRollable },
+                { "source", skill.Source },
+                { "sourceOfTruth", "character_skill_profiles" },
+                { "updatedAtUtc", skill.UpdatedAtUtc == default ? skill.LearnedAtUtc : skill.UpdatedAtUtc },
+                { "learnedUtc", skill.LearnedAtUtc }
+            });
+        }
+
+        return rows;
+    }
+
+    private static bool IsHiddenSkillDefinition(SkillDefinition definition)
+    {
+        var visibility = (definition.VisibilityRule ?? string.Empty).Trim().ToLowerInvariant();
+        return visibility == "hidden" || visibility == "gm_only" || visibility == "server_only";
+    }
+
+    private static int ResolveAttributeBonus(Dictionary<string, CharacterAttributeValue> attributes, string attributeId)
+    {
+        if (string.IsNullOrWhiteSpace(attributeId) || attributes == null || !attributes.TryGetValue(attributeId, out var attribute)) return 0;
+        var value = attribute.CurrentValue != 0 ? attribute.CurrentValue : attribute.BaseValue;
+        return (int)Math.Floor((value - 10) / 2.0) + attribute.ManualModifier;
+    }
+
+    private void EnsureStarterSkillSubAttributeBindings(List<SkillDefinition> definitions)
+    {
+        var byCode = definitions
+            .Where(x => !string.IsNullOrWhiteSpace(x.Code))
+            .GroupBy(x => x.Code, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
+
+        ConfigureSkillSubAttribute(byCode, "athletics", "strength_lifting", new[] { "strength_grip", "strength_lifting", "strength_impact" });
+        ConfigureSkillSubAttribute(byCode, "stealth", "dexterity_stealth", new[] { "dexterity_stealth", "dexterity_reaction" });
+        ConfigureSkillSubAttribute(byCode, "perception", "wisdom_perception", new[] { "wisdom_perception", "wisdom_intuition" });
+        ConfigureSkillSubAttribute(byCode, "engineering", "intellect_engineering", new[] { "intellect_engineering", "intellect_analysis" });
+
+        if (!byCode.TryGetValue("dev_acceptance_skill_01451", out var acceptance))
+        {
+            acceptance = new SkillDefinition
+            {
+                Id = "dev_acceptance_skill_01451",
+                Code = "dev_acceptance_skill_01451",
+                Name = "Проверочный навык 0.14.51",
+                Description = "Acceptance skill for RuleSet-driven subattribute checks.",
+                DisplayGroup = "testing",
+                DefaultAttribute = CharacterAttributeIds.Strength,
+                AllowedAttributes = new List<string> { CharacterAttributeIds.Strength },
+                RankMin = 0,
+                RankMax = 20,
+                IsRollable = true,
+                IsRollableExplicitlySet = true,
+                VisibilityRule = "public",
+                Status = DefinitionStatus.Active,
+                IsActive = true,
+                SchemaVersion = 1
+            };
+            definitions.Add(acceptance);
+            byCode[acceptance.Code] = acceptance;
+        }
+
+        ConfigureSkillSubAttribute(byCode, "dev_acceptance_skill_01451", "dev_acceptance_subattribute_01451", new[] { "dev_acceptance_subattribute_01451", "strength_grip" });
+    }
+
+    private void ConfigureSkillSubAttribute(Dictionary<string, SkillDefinition> byCode, string skillCode, string defaultSubAttribute, IEnumerable<string> allowedSubAttributes)
+    {
+        if (!byCode.TryGetValue(skillCode, out var definition)) return;
+        var allowed = (allowedSubAttributes ?? Array.Empty<string>())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (allowed.Count == 0 && !string.IsNullOrWhiteSpace(defaultSubAttribute)) allowed.Add(defaultSubAttribute);
+
+        var changed = false;
+        if (!string.Equals(definition.DefaultSubAttribute, defaultSubAttribute, StringComparison.OrdinalIgnoreCase))
+        {
+            definition.DefaultSubAttribute = defaultSubAttribute;
+            changed = true;
+        }
+
+        var current = definition.AllowedSubAttributes ?? new List<string>();
+        if (current.Count != allowed.Count || current.Except(allowed, StringComparer.OrdinalIgnoreCase).Any())
+        {
+            definition.AllowedSubAttributes = allowed;
+            changed = true;
+        }
+
+        if (!string.Equals(definition.SubAttributeMode, "defaultFromSkill", StringComparison.OrdinalIgnoreCase))
+        {
+            definition.SubAttributeMode = "defaultFromSkill";
+            changed = true;
+        }
+
+        if (changed)
+        {
+            definition.IsRollable = true;
+            definition.IsRollableExplicitlySet = true;
+            definition.Status = definition.Status == DefinitionStatus.Archived ? DefinitionStatus.Active : definition.Status;
+            definition.IsArchived = false;
+            definition.Archived = false;
+            _repositories.DefinitionSkills.Upsert(definition);
+        }
+    }
+
+    private static string ResolveSkillSubAttributeId(SkillDefinition definition, string requestedSkillCode, string requestedSubAttributeId, bool includeHidden)
+    {
+        var allowed = definition.AllowedSubAttributes ?? new List<string>();
+        var isRequestedSkill = !string.IsNullOrWhiteSpace(requestedSkillCode)
+            && string.Equals(definition.Code, requestedSkillCode, StringComparison.OrdinalIgnoreCase);
+        if (isRequestedSkill && !string.IsNullOrWhiteSpace(requestedSubAttributeId))
+        {
+            if (!allowed.Contains(requestedSubAttributeId, StringComparer.OrdinalIgnoreCase))
+            {
+                if (!includeHidden) throw new UnauthorizedAccessException("Subattribute is not allowed for this skill.");
+                throw new ArgumentException("Subattribute is not allowed for this skill.");
+            }
+
+            return requestedSubAttributeId;
+        }
+
+        var defaultSubAttribute = FirstNonEmpty(definition.DefaultSubAttribute, allowed.FirstOrDefault() ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(defaultSubAttribute)) return string.Empty;
+        return allowed.Count == 0 || allowed.Contains(defaultSubAttribute, StringComparer.OrdinalIgnoreCase)
+            ? defaultSubAttribute
+            : string.Empty;
+    }
+
+    private static int ResolveSubAttributeBonus(CharacterSubAttributeValue? value, SubAttributeDefinitionProjection definition)
+    {
+        if (definition == null) return 0;
+        var current = value == null
+            ? definition.DefaultValue
+            : value.CurrentValue != 0 || value.BaseValue == 0
+                ? value.CurrentValue
+                : value.BaseValue;
+        return current + (value?.ManualBonus ?? 0);
+    }
 
     private Dictionary<string, object> BuildNotesContextPayload(string characterId)
     {
@@ -2379,6 +3550,72 @@ public partial class ServiceHub
         }
     }
 
+    public ResponseEnvelope CharacterSkillCheckRoll(CommandContext context)
+    {
+        var actor = GetCurrentAccount(context);
+        if (actor.Roles.Contains(UserRole.Observer)) throw new UnauthorizedAccessException("Observer cannot create skill checks.");
+        var characterId = RequireLength(PayloadReader.GetString(context.Request.Payload, "characterId"), 8, 128, "characterId");
+        var skillCode = RequireLength(FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "skillCode"), PayloadReader.GetString(context.Request.Payload, "skillId")), 1, 128, "skillCode");
+        var requestedSubAttributeId = PayloadReader.GetString(context.Request.Payload, "subAttributeId") ?? string.Empty;
+        var character = GetCharacter(characterId);
+        var isAdmin = actor.Roles.Contains(UserRole.Admin) || actor.Roles.Contains(UserRole.SuperAdmin);
+        if (character.OwnerUserId != actor.Id && !isAdmin) throw new UnauthorizedAccessException("Character unavailable for skill check.");
+
+        var rows = BuildCharacterSkillProfileRows(character, actor, isAdmin, skillCode, requestedSubAttributeId);
+        var row = rows.FirstOrDefault(x => string.Equals(Convert.ToString(x["skillCode"]), skillCode, StringComparison.OrdinalIgnoreCase))
+            ?? throw new KeyNotFoundException("Skill is unavailable.");
+        var visible = row.ContainsKey("isPlayerVisible") && string.Equals(Convert.ToString(row["isPlayerVisible"]), "True", StringComparison.OrdinalIgnoreCase);
+        if (!isAdmin && !visible) throw new UnauthorizedAccessException("Skill is hidden.");
+
+        var totalBonus = Convert.ToInt32(row["totalBonus"]);
+        var formulaInput = totalBonus >= 0 ? $"1d20+{totalBonus}" : $"1d20{totalBonus}";
+        var formula = DiceFormulaParser.Parse(formulaInput);
+        var result = DiceRollExecutor.Execute(formula, RequestVisibility.Public, actor.Id);
+        if (!FateMvpPipelineEnabled()) ApplyFateToRealDiceRoll(formula, result);
+        var skillName = Convert.ToString(row["displayName"]) ?? skillCode;
+        var description = RequireLength(FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "description"), $"Проверка навыка: {skillName} ({skillCode}). {row["breakdownText"]}"), 0, 1024, "description");
+        var request = new DiceRollRequest
+        {
+            RequestType = "SkillCheck",
+            CreatorUserId = actor.Id,
+            RelatedUserId = actor.Id,
+            CharacterId = characterId,
+            Description = description,
+            RawFormula = formulaInput,
+            Formula = formula,
+            Visibility = RequestVisibility.Public,
+            Status = RequestStatus.Approved,
+            Result = result,
+            PayloadJson = "{}",
+            Fingerprint = BuildFingerprint("skill-check", actor.Id, characterId, $"{skillCode}:{formula.Normalized}:{DateTime.UtcNow.Ticks}")
+        };
+        request.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "CreatedSkillCheck", Comment = formula.Normalized });
+        ApplyFateMvpToDiceRequestIfEnabled(context, actor, request, FateRollTypes.SkillCheck, skillCode, requestedSubAttributeId, new[] { "skill_check", "strength", "physical" });
+        _repositories.DiceRequests.Insert(request);
+        TryPublishSyncEvent(
+            type: "dice.roll.created",
+            scope: SyncScopes.Dice,
+            entityType: "diceRoll",
+            entityId: request.Id,
+            operation: "created",
+            actorUserId: actor.Id,
+            payload: new Dictionary<string, object> { { "rollId", request.Id }, { "createdUtc", request.CreatedUtc }, { "visibility", request.Visibility.ToString() } },
+            requestId: context.Request.RequestId ?? string.Empty);
+        _logger.Admin($"character.skill.check.roll actor={actor.Login} characterId={characterId} skillCode={skillCode} totalBonus={totalBonus} requestId={request.Id}");
+        return Ok("Skill check rolled.", new Dictionary<string, object>
+        {
+            { "skillCode", skillCode },
+            { "displayName", skillName },
+            { "subAttributeId", row.ContainsKey("subAttributeId") ? row["subAttributeId"] : string.Empty },
+            { "subAttributeDisplayName", row.ContainsKey("subAttributeDisplayName") ? row["subAttributeDisplayName"] : string.Empty },
+            { "subAttributeBonus", row.ContainsKey("subAttributeBonus") ? row["subAttributeBonus"] : 0 },
+            { "totalBonus", totalBonus },
+            { "breakdown", row["breakdownText"] },
+            { "formula", formula.Normalized },
+            { "roll", DiceRequestPayload(request, actor) }
+        });
+    }
+
     public ResponseEnvelope DiceRollTest(CommandContext context)
     {
         var actor = GetCurrentAccount(context);
@@ -2497,7 +3734,7 @@ public partial class ServiceHub
         if (!Enum.TryParse(visibilityRaw, true, out RequestVisibility visibility)) visibility = RequestVisibility.Public;
         var formula = DiceFormulaParser.Parse(formulaInput);
         var result = DiceRollExecutor.Execute(formula, visibility, actor.Id);
-        ApplyFateToRealDiceRoll(formula, result);
+        if (!FateMvpPipelineEnabled()) ApplyFateToRealDiceRoll(formula, result);
         var audio = DiceSoundResolver.Resolve(formula, result.Rolls);
         result.SoundKey = audio.SoundKey;
         result.SoundEasterTriggered = audio.EasterTriggered;
@@ -2521,6 +3758,7 @@ public partial class ServiceHub
             Fingerprint = BuildFingerprint(isTestRoll ? "dice-test" : "dice-standard", actor.Id, characterId, formula.Normalized + ":" + visibility)
         };
         request.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = isTestRoll ? "CreatedTest" : "CreatedStandard", Comment = formula.Normalized });
+        ApplyFateMvpToDiceRequestIfEnabled(context, actor, request, FateRollTypes.Dice, string.Empty, string.Empty, new[] { "dice" });
         return request;
     }
 
@@ -2528,6 +3766,9 @@ public partial class ServiceHub
     {
         var actor = GetCurrentAccount(context);
         var requestId = RequireLength(PayloadReader.GetString(context.Request.Payload, "requestId"), 8, 128, "requestId");
+
+        if (PlayerRequestPlayerEnabled() && _repositories.PlayerRequests.GetById(requestId) != null)
+            return PlayerRequestCancel(context);
 
         var dice = _repositories.DiceRequests.GetById(requestId);
         if (dice != null)
@@ -2559,7 +3800,11 @@ public partial class ServiceHub
                 Builders<DiceRollRequest>.Filter.Eq(x => x.CreatorUserId, actor.Id) &
                 Builders<DiceRollRequest>.Filter.Eq(x => x.IsTestRoll, false))
             .Select(x => (object)DiceRequestPayload(x, actor));
-        return Ok("My requests loaded.", new Dictionary<string, object> { { "items", actions.Concat(dice).ToArray() } });
+        var playerRequests = PlayerRequestPlayerEnabled()
+            ? _repositories.PlayerRequests.Find(Builders<PlayerRequestState>.Filter.Eq(x => x.CreatedByUserId, actor.Id))
+                .Select(x => (object)PlayerRequestPayload(x, actor, includeAdminFields: false))
+            : Enumerable.Empty<object>();
+        return Ok("My requests loaded.", new Dictionary<string, object> { { "items", actions.Concat(dice).Concat(playerRequests).ToArray() } });
     }
 
     public ResponseEnvelope RequestListPending(CommandContext context)
@@ -2570,7 +3815,14 @@ public partial class ServiceHub
                 Builders<DiceRollRequest>.Filter.Eq(x => x.Status, RequestStatus.Pending) &
                 Builders<DiceRollRequest>.Filter.Eq(x => x.IsTestRoll, false))
             .Select(x => (object)DiceRequestPayload(x, GetCurrentAccount(context))).Cast<object>();
-        return Ok("Pending requests loaded.", new Dictionary<string, object> { { "items", actions.Concat(dice).ToArray() } });
+        var actor = GetCurrentAccount(context);
+        var playerRequests = PlayerRequestAdminReviewEnabled()
+            ? _repositories.PlayerRequests.Find(
+                    Builders<PlayerRequestState>.Filter.Eq(x => x.Status, PlayerRequestStatusIds.Submitted) |
+                    Builders<PlayerRequestState>.Filter.Eq(x => x.Status, PlayerRequestStatusIds.InReview))
+                .Select(x => (object)PlayerRequestPayload(x, actor, includeAdminFields: true))
+            : Enumerable.Empty<object>();
+        return Ok("Pending requests loaded.", new Dictionary<string, object> { { "items", actions.Concat(dice).Concat(playerRequests).ToArray() } });
     }
 
     public ResponseEnvelope RequestGetDetails(CommandContext context)
@@ -2582,6 +3834,13 @@ public partial class ServiceHub
         {
             EnsureCanViewRequest(actor, action.CreatorUserId);
             return Ok("Request loaded.", RequestPayload(action));
+        }
+
+        var playerRequest = _repositories.PlayerRequests.GetById(requestId);
+        if (playerRequest != null)
+        {
+            if (playerRequest.CreatedByUserId != actor.Id && !IsAdmin(actor)) throw new UnauthorizedAccessException("Request is not visible for current user.");
+            return Ok("Request loaded.", PlayerRequestPayload(playerRequest, actor, includeAdminFields: IsAdmin(actor)));
         }
 
         var dice = _repositories.DiceRequests.GetById(requestId) ?? throw new KeyNotFoundException("Request not found.");
@@ -2607,11 +3866,15 @@ public partial class ServiceHub
             return Ok("Request approved.", RequestPayload(action));
         }
 
+        if (PlayerRequestAdminReviewEnabled() && _repositories.PlayerRequests.GetById(requestId) != null)
+            return AdminPlayerRequestApprove(context);
+
         var dice = _repositories.DiceRequests.GetById(requestId) ?? throw new KeyNotFoundException("Request not found.");
         if (dice.Status != RequestStatus.Pending) throw new InvalidOperationException("Request is not pending.");
         dice.Status = RequestStatus.Approved;
-            dice.Result = DiceRollExecutor.Execute(dice.Formula, dice.Visibility, actor.Id);
-            ApplyFateToRealDiceRoll(dice.Formula, dice.Result);
+        dice.Result = DiceRollExecutor.Execute(dice.Formula, dice.Visibility, actor.Id);
+        if (!FateMvpPipelineEnabled()) ApplyFateToRealDiceRoll(dice.Formula, dice.Result);
+        ApplyFateMvpToDiceRequestIfEnabled(context, actor, dice, FateRollTypes.Dice, string.Empty, string.Empty, new[] { "dice" });
         dice.Decision = new RequestDecision { DecidedByUserId = actor.Id, DecidedAtUtc = DateTime.UtcNow, AdminComment = adminComment };
         dice.History.Add(new RequestHistoryEntry { ActorUserId = actor.Id, Action = "Approved", Comment = adminComment });
         _repositories.DiceRequests.Replace(dice);
@@ -2638,6 +3901,9 @@ public partial class ServiceHub
             return Ok("Request rejected.", RequestPayload(action));
         }
 
+        if (PlayerRequestAdminReviewEnabled() && _repositories.PlayerRequests.GetById(requestId) != null)
+            return AdminPlayerRequestReject(context);
+
         var dice = _repositories.DiceRequests.GetById(requestId) ?? throw new KeyNotFoundException("Request not found.");
         if (dice.Status != RequestStatus.Pending) throw new InvalidOperationException("Request is not pending.");
         dice.Status = RequestStatus.Rejected;
@@ -2663,6 +3929,13 @@ public partial class ServiceHub
         var payload = new List<object>();
         payload.AddRange(actions.Select(x => (object)RequestPayload(x)));
         payload.AddRange(dice.Where(x => includeAll || CanViewDice(actor, x)).Select(x => (object)DiceRequestPayload(x, actor)));
+        if (PlayerRequestsBaseEnabled())
+        {
+            var playerRequests = includeAll
+                ? _repositories.PlayerRequests.Find(FilterDefinition<PlayerRequestState>.Empty)
+                : _repositories.PlayerRequests.Find(Builders<PlayerRequestState>.Filter.Eq(x => x.CreatedByUserId, actor.Id));
+            payload.AddRange(playerRequests.Select(x => (object)PlayerRequestPayload(x, actor, includeAdminFields: includeAll)));
+        }
         return Ok("Request history loaded.", new Dictionary<string, object> { { "items", payload.ToArray() } });
     }
 
@@ -2948,6 +4221,7 @@ public partial class ServiceHub
     };
 
     private static ResponseEnvelope Ok(string message, Dictionary<string, object>? payload = null) => new ResponseEnvelope { Status = ResponseStatus.Ok, Message = message, Payload = payload ?? new Dictionary<string, object>() };
+    private static ResponseEnvelope Error(string message, ResponseStatus status, ErrorCode code) => new ResponseEnvelope { Status = status, ErrorCode = code, Message = message };
 
     private static string RequireLength(string? value, int min, int max, string field)
     {

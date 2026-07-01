@@ -19,6 +19,18 @@ public static class CharacterAttributeIds
     public const string Charisma = "charisma";
 }
 
+public static class CharacterVitalStatIds
+{
+    public const string HealthCurrent = "health_current";
+    public const string HealthMax = "health_max";
+    public const string PhysicalDefense = "physical_defense";
+    public const string MagicalDefense = "magical_defense";
+    public const string Morale = "morale";
+    public const string Initiative = "initiative";
+    public const string Movement = "movement";
+    public const string CarryingCapacity = "carrying_capacity";
+}
+
 // Display groups for skill presentation and filtering.
 public static class SkillDisplayGroups
 {
@@ -44,6 +56,9 @@ public static class SkillDefinitionV2Defaults
         item.DisplayGroup = NormalizeDisplayGroup(item.DisplayGroup);
         item.DefaultAttribute = NormalizeString(item.DefaultAttribute);
         item.AllowedAttributes = NormalizeAllowedAttributes(item.AllowedAttributes, item.DefaultAttribute);
+        item.DefaultSubAttribute = NormalizeString(item.DefaultSubAttribute);
+        item.AllowedSubAttributes = NormalizeAllowedSubAttributes(item.AllowedSubAttributes, item.DefaultSubAttribute);
+        item.SubAttributeMode = NormalizeSubAttributeMode(item.SubAttributeMode, item.DefaultSubAttribute);
         if (item.RankMin < 0) item.RankMin = 0;
         if (item.RankMax <= 0) item.RankMax = 20;
         if (item.RankMax < item.RankMin) item.RankMax = item.RankMin;
@@ -73,6 +88,33 @@ public static class SkillDefinitionV2Defaults
         }
 
         return result;
+    }
+
+    private static List<string> NormalizeAllowedSubAttributes(List<string> source, string defaultSubAttribute)
+    {
+        var result = (source ?? new List<string>())
+            .Select(NormalizeString)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (result.Count == 0 && !string.IsNullOrWhiteSpace(defaultSubAttribute))
+        {
+            result.Add(defaultSubAttribute);
+        }
+
+        return result;
+    }
+
+    private static string NormalizeSubAttributeMode(string value, string defaultSubAttribute)
+    {
+        var normalized = NormalizeString(value).ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return string.IsNullOrWhiteSpace(defaultSubAttribute) ? "none" : "defaultFromSkill";
+        }
+
+        return normalized;
     }
 
     private static string NormalizeString(string value)

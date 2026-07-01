@@ -252,65 +252,57 @@ public partial class ServiceHub
     public ResponseEnvelope BackupCreate(CommandContext context)
     {
         var actor = RequireSuperAdmin(context);
+        if (!BackupBaseEnabled()) return BackupDisabled();
+        if (!BackupManualCreationEnabled()) return BackupFeatureDisabled("Manual backup creation is disabled by feature flags.");
         var label = PayloadReader.GetString(context.Request.Payload, "label") ?? ("backup-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss"));
-
-        var payload = new Dictionary<string, object>
-        {
-            { "characters", _repositories.Characters.Find(FilterDefinition<Character>.Empty).Cast<object>().ToArray() },
-            { "notes", _repositories.Notes.Find(FilterDefinition<Note>.Empty).Cast<object>().ToArray() },
-            { "references", _repositories.References.Find(FilterDefinition<ReferenceEntry>.Empty).Cast<object>().ToArray() },
-            { "audioStates", _repositories.AudioStates.Find(FilterDefinition<SessionAudioState>.Empty).Cast<object>().ToArray() },
-            { "chatSettings", _repositories.SessionChatSettings.Find(FilterDefinition<SessionChatSettings>.Empty).Cast<object>().ToArray() }
-        };
-
-        var backup = new BackupSnapshot { Label = label, CreatedByUserId = actor.Id, DataJson = JsonProtocolSerializer.Serialize(payload) };
-        _repositories.Backups.Insert(backup);
-        WriteAudit("backup", actor.Id, "create", backup.Id);
-        _logger.Admin($"backup.create id={backup.Id} label={label} actor={actor.Id}");
-        return Ok("Backup created.", new Dictionary<string, object> { { "backupId", backup.Id }, { "label", backup.Label } });
+        var description = PayloadReader.GetString(context.Request.Payload, "description") ?? string.Empty;
+        var record = CreateFullServerBackup(actor, label, description, isSafety: false, sourceRestoreOperationId: string.Empty);
+        _logger.Admin($"backup.create id={record.BackupId} label={record.DisplayName} actor={actor.Id}");
+        return Ok("Backup created.", new Dictionary<string, object> { { "item", BackupRecordPayload(record, includeDetails: true) }, { "backupId", record.BackupId }, { "label", record.DisplayName } });
     }
 
     public ResponseEnvelope BackupList(CommandContext context)
     {
         RequireAdmin(context);
-        var items = _repositories.Backups.Find(FilterDefinition<BackupSnapshot>.Empty)
+        if (!BackupBaseEnabled()) return BackupDisabled();
+        var includeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived");
+        var records = _repositories.BackupRecords.Find(FilterDefinition<BackupRecordState>.Empty)
+            .Where(x => includeArchived || !x.IsArchived)
             .OrderByDescending(x => x.CreatedUtc)
-            .Select(x => new Dictionary<string, object>
+            .Take(200)
+            .Select(x => (object)BackupRecordPayload(x, includeDetails: false))
+            .ToArray();
+        var legacy = _repositories.Backups.Find(FilterDefinition<BackupSnapshot>.Empty)
+            .OrderByDescending(x => x.CreatedUtc)
+            .Take(50)
+            .Select(x => (object)new Dictionary<string, object>
             {
-                { "backupId", x.Id }, { "label", x.Label }, { "createdUtc", x.CreatedUtc }, { "createdByUserId", x.CreatedByUserId }
-            }).Cast<object>().ToArray();
+                { "backupId", x.Id },
+                { "displayName", x.Label },
+                { "status", "legacy_snapshot" },
+                { "scope", "legacy" },
+                { "createdAtUtc", x.CreatedUtc },
+                { "createdByUserId", x.CreatedByUserId },
+                { "verificationStatus", "not_supported" },
+                { "isVerified", false },
+                { "documentCount", 0 },
+                { "collectionCount", 0 },
+                { "sizeBytes", 0 }
+            })
+            .ToArray();
+        var items = records.Concat(legacy).ToArray();
         return Ok("Backups loaded.", new Dictionary<string, object> { { "items", items } });
     }
 
     public ResponseEnvelope BackupRestore(CommandContext context)
     {
-        var actor = RequireSuperAdmin(context);
-        var backupId = RequireLength(PayloadReader.GetString(context.Request.Payload, "backupId"), 8, 128, "backupId");
-        var backup = _repositories.Backups.GetById(backupId) ?? throw new KeyNotFoundException("Backup not found.");
-
-        var map = JsonProtocolSerializer.Deserialize<Dictionary<string, object>>(backup.DataJson) ?? new Dictionary<string, object>();
-        RestoreCharacters(map);
-        RestoreNotes(map);
-        RestoreReferences(map);
-        RestoreAudioStates(map);
-        RestoreChatSettings(map);
-
-        WriteAudit("backup", actor.Id, "restore", backup.Id);
-        _logger.Admin($"backup.restore id={backup.Id} actor={actor.Id}");
-        return Ok("Backup restored.");
+        return BackupRestoreExecute(context);
     }
 
     public ResponseEnvelope BackupExport(CommandContext context)
     {
-        var actor = RequireSuperAdmin(context);
-        var backupId = RequireLength(PayloadReader.GetString(context.Request.Payload, "backupId"), 8, 128, "backupId");
-        var backup = _repositories.Backups.GetById(backupId) ?? throw new KeyNotFoundException("Backup not found.");
-        var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "backups");
-        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-        var file = Path.Combine(dir, backup.Label + "-" + backup.Id + ".json");
-        File.WriteAllText(file, backup.DataJson);
-        WriteAudit("backup", actor.Id, "export", backup.Id);
-        return Ok("Backup exported.", new Dictionary<string, object> { { "path", file } });
+        RequireSuperAdmin(context);
+        return Error("Backup export is disabled in Backup / Restore MVP. Use registered server-side backups only.", ResponseStatus.Forbidden, ErrorCode.Forbidden);
     }
 
     public ResponseEnvelope AdminLocksList(CommandContext context)
@@ -402,7 +394,7 @@ public partial class ServiceHub
 
     private Dictionary<string, object> CharacterPublicPayload(Character c, UserAccount owner, UserAccount viewer)
     {
-        var payload = CharacterDetailsPayload(c, owner, viewer);
+        var payload = CharacterDetailsPayloadWithProfileFirst(c, owner, viewer, string.Empty);
         var isPrivileged = viewer.Id == owner.Id || viewer.Roles.Contains(UserRole.Admin) || viewer.Roles.Contains(UserRole.SuperAdmin);
         if (!isPrivileged)
         {

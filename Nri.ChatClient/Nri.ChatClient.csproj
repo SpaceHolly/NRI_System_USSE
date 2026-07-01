@@ -1,11 +1,37 @@
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <UseWPF>true</UseWPF>
-    <RootNamespace>Nri.ChatClient</RootNamespace>
-    <AssemblyName>Nri.ChatClient</AssemblyName>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Nri.Shared\Nri.Shared.csproj" />
-  </ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<UseWPF>true</UseWPF>
+
+		<RootNamespace>Nri.ChatClient</RootNamespace>
+		<AssemblyName>Nri.ChatClient</AssemblyName>
+
+		<Nullable>disable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+
+		<AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+		<AppendRuntimeIdentifierToOutputPath>true</AppendRuntimeIdentifierToOutputPath>
+		<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+		<SignAssembly>False</SignAssembly>
+		<ApplicationIcon>04b5d8d0-fa45-40aa-a061-2eb720078f5c_1.ico</ApplicationIcon>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <DebugType>embedded</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	  <DebugType>embedded</DebugType>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Content Include="04b5d8d0-fa45-40aa-a061-2eb720078f5c_1.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Nri.Shared\Nri.Shared.csproj" />
+	</ItemGroup>
+
 </Project>

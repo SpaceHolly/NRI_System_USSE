@@ -1,0 +1,51 @@
+2026-06-05 22:33:11.575 [INFO] [t:1] Application start: AdminClient
+2026-06-05 22:33:11.575 [INFO] [t:1] Log file path: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\05.06.2026+22.33.11-AdminClient-log.txt
+2026-06-05 22:33:11.575 [INFO] [t:1] AppContext.BaseDirectory: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\
+2026-06-05 22:33:11.575 [INFO] [t:1] PreserveClientLogs: False
+2026-06-05 22:33:11.575 [INFO] [t:1] Config load attempt path=C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\client.config.json
+2026-06-05 22:33:11.575 [INFO] [t:1] Loaded client config: host=127.0.0.1, port=4600, preserveClientLogs=False
+2026-06-05 22:33:11.818 [INFO] [t:1] AdminMainViewModel initialized
+2026-06-05 22:33:11.818 [INFO] [t:1] chat.window.layout fixedHeaderFooter=true
+2026-06-05 22:33:11.841 [INFO] [t:1] ui.navigation.selected item=admin.dashboard target=admin.dashboard
+2026-06-05 22:33:11.866 [INFO] [t:1] Endpoint updated: 26.129.64.85:4600
+2026-06-05 22:33:11.866 [INFO] [t:1] Disconnected from server
+2026-06-05 22:33:11.868 [INFO] [t:1] skillDefinitions.content.new enabled=false
+2026-06-05 22:33:11.868 [INFO] [t:1] skillDefinitions.content.save enabled=false
+2026-06-05 22:33:11.868 [INFO] [t:1] skillDefinitions.content.archive enabled=false
+2026-06-05 22:33:11.868 [INFO] [t:1] skillDefinitions.content.refresh enabled=false
+2026-06-05 22:33:11.874 [INFO] [t:1] ui.admin.dice.panel.loaded
+2026-06-05 22:33:11.874 [INFO] [t:1] people.grid.template fixed=true
+2026-06-05 22:33:11.874 [INFO] [t:1] dice.actor.mode=account
+2026-06-05 22:33:11.875 [DEBUG] [t:1] suppressed repeated log line count=1 message=dice.actor.mode=account
+2026-06-05 22:33:11.875 [INFO] [t:1] ui.admin.dice.button state=disabled reason=Требуется подключение и вход администратора.
+2026-06-05 22:33:12.164 [INFO] [t:1] ui.admin.root-scroll.initialized
+2026-06-05 22:33:12.164 [INFO] [t:1] ui.admin.layout.people-table.fixed
+2026-06-05 22:33:12.164 [INFO] [t:1] ui.admin.layout.dice-panel.separate=true
+2026-06-05 22:33:12.164 [INFO] [t:1] ui.admin.sections.reachable=true
+2026-06-05 22:33:12.173 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=81cc376107bd4e3f80afc9275d990fb2; startedUtc=2026-06-05T19:33:12.1731996Z; payloadKeys=0
+2026-06-05 22:33:12.174 [INFO] [t:1] Connecting to server: 26.129.64.85:4600
+2026-06-05 22:33:12.174 [INFO] [t:1] Disconnected from server
+2026-06-05 22:33:12.178 [INFO] [t:1] Connected to server: 26.129.64.85:4600
+2026-06-05 22:33:17.188 [INFO] [t:1] Disconnected from server
+2026-06-05 22:33:17.202 [ERROR] [t:1] Network send failed for command=system.featureFlags.snapshot | System.IO.IOException: Не удается прочитать данные из транспортного соединения: Попытка установить соединение была безуспешной, т.к. от другого компьютера за требуемое время не получен нужный отклик, или было разорвано уже установленное соединение из-за неверного отклика уже подключенного компьютера. ---> System.Net.Sockets.SocketException: Попытка установить соединение была безуспешной, т.к. от другого компьютера за требуемое время не получен нужный отклик, или было разорвано уже установленное соединение из-за неверного отклика уже подключенного компьютера
+   в System.Net.Sockets.NetworkStream.Read(Byte[] buffer, Int32 offset, Int32 size)
+   --- Конец трассировки внутреннего стека исключений ---
+   в System.Net.Sockets.NetworkStream.Read(Byte[] buffer, Int32 offset, Int32 size)
+   в System.IO.StreamReader.ReadBuffer()
+   в System.IO.StreamReader.ReadLine()
+   в Nri.AdminClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 137
+2026-06-05 22:33:17.202 [ERROR] [t:1] request.error command=system.featureFlags.snapshot; requestId=81cc376107bd4e3f80afc9275d990fb2; elapsedMs=5030 | System.IO.IOException: Transport error while sending system.featureFlags.snapshot to 26.129.64.85:4600. ---> System.IO.IOException: Не удается прочитать данные из транспортного соединения: Попытка установить соединение была безуспешной, т.к. от другого компьютера за требуемое время не получен нужный отклик, или было разорвано уже установленное соединение из-за неверного отклика уже подключенного компьютера. ---> System.Net.Sockets.SocketException: Попытка установить соединение была безуспешной, т.к. от другого компьютера за требуемое время не получен нужный отклик, или было разорвано уже установленное соединение из-за неверного отклика уже подключенного компьютера
+   в System.Net.Sockets.NetworkStream.Read(Byte[] buffer, Int32 offset, Int32 size)
+   --- Конец трассировки внутреннего стека исключений ---
+   в System.Net.Sockets.NetworkStream.Read(Byte[] buffer, Int32 offset, Int32 size)
+   в System.IO.StreamReader.ReadBuffer()
+   в System.IO.StreamReader.ReadLine()
+   в Nri.AdminClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 137
+   --- Конец трассировки внутреннего стека исключений ---
+   в Nri.AdminClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 153
+   в Nri.AdminClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\CommandApi.cs:строка 402
+2026-06-05 22:33:17.209 [INFO] [t:1] admin.room.flags.refresh.start
+2026-06-05 22:33:17.209 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=d866c51a180d41aeb58d4b60dfa2f1d6; startedUtc=2026-06-05T19:33:17.2097862Z; payloadKeys=0
+2026-06-05 22:33:17.209 [INFO] [t:1] Connecting to server: 26.129.64.85:4600
+2026-06-05 22:33:17.209 [INFO] [t:1] Disconnected from server
+2026-06-05 22:33:17.211 [INFO] [t:1] Connected to server: 26.129.64.85:4600

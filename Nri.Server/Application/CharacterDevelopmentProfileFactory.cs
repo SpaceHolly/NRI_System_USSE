@@ -26,7 +26,10 @@ public sealed class CharacterDevelopmentProfileFactory : ICharacterDevelopmentPr
             if (string.IsNullOrWhiteSpace(nodeId)) continue;
             nodes.Add(new CharacterDevelopmentNodeState
             {
+                CharacterId = character.Id,
+                HexagonId = "main_development_hexagon",
                 DevelopmentNodeId = nodeId,
+                ClassId = nodeId,
                 NodeType = DevelopmentNodeTypes.Class,
                 CurrentTier = cls.Level,
                 MaxTier = cls.Level,
@@ -47,7 +50,10 @@ public sealed class CharacterDevelopmentProfileFactory : ICharacterDevelopmentPr
             {
                 nodes.Add(new CharacterDevelopmentNodeState
                 {
+                    CharacterId = character.Id,
+                    HexagonId = "main_development_hexagon",
                     DevelopmentNodeId = nodeId,
+                    ClassId = nodeId,
                     NodeType = DevelopmentNodeTypes.Class,
                     CurrentTier = p.Level,
                     MaxTier = p.Level,
@@ -75,9 +81,36 @@ public sealed class CharacterDevelopmentProfileFactory : ICharacterDevelopmentPr
         {
             CharacterId = characterId ?? string.Empty,
             RuleSetId = string.IsNullOrWhiteSpace(ruleSetId) ? RuleSetIds.FantasyNriDefault : ruleSetId,
-            ActiveHexagonIds = new List<string>(),
+            ActiveHexagonId = DevelopmentHexagonIds.Main,
+            ActiveHexagonIds = new List<string> { DevelopmentHexagonIds.Main, DevelopmentHexagonIds.Magic },
+            Hexagons = new List<CharacterDevelopmentHexagonState>
+            {
+                new CharacterDevelopmentHexagonState
+                {
+                    HexagonId = DevelopmentHexagonIds.Main,
+                    HexagonType = DevelopmentHexagonTypes.Main,
+                    DisplayName = "Основной шестиугольник развития",
+                    IsUnlocked = true,
+                    IsPlayerVisible = true,
+                    IsMain = true,
+                    SortOrder = 1
+                },
+                new CharacterDevelopmentHexagonState
+                {
+                    HexagonId = DevelopmentHexagonIds.Magic,
+                    HexagonType = DevelopmentHexagonTypes.Magic,
+                    DisplayName = "Шестиугольник магии",
+                    IsUnlocked = true,
+                    IsPlayerVisible = true,
+                    IsMain = false,
+                    SortOrder = 2
+                }
+            },
             Nodes = new List<CharacterDevelopmentNodeState>(),
             Vocation = string.Empty,
+            TotalXpSpent = 0,
+            Revision = 1,
+            UpdatedAtUtc = DateTime.UtcNow,
             SchemaVersion = 1
         };
     }

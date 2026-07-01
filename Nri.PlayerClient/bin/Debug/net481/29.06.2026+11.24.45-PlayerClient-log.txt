@@ -1,0 +1,63 @@
+2026-06-29 11:24:45.604 [INFO] [t:1] Application start: PlayerClient
+2026-06-29 11:24:45.604 [INFO] [t:1] Log file path: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\29.06.2026+11.24.45-PlayerClient-log.txt
+2026-06-29 11:24:45.604 [INFO] [t:1] AppContext.BaseDirectory: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\
+2026-06-29 11:24:45.604 [INFO] [t:1] PreserveClientLogs: False
+2026-06-29 11:24:45.604 [INFO] [t:1] Config load attempt path=C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\bin\Debug\net481\client.config.json
+2026-06-29 11:24:45.604 [INFO] [t:1] Loaded client config: host=127.0.0.1, port=4600, preserveClientLogs=False
+2026-06-29 11:24:45.765 [INFO] [t:1] PlayerMainViewModel initialized
+2026-06-29 11:24:45.786 [INFO] [t:1] gameFeed diceMerged=0
+2026-06-29 11:24:45.787 [INFO] [t:1] chat.input.wrap enabled=true
+2026-06-29 11:24:45.787 [INFO] [t:1] dice.layout.movedUnderChat=true
+2026-06-29 11:24:45.949 [INFO] [t:1] ui.player.root-scroll.initialized
+2026-06-29 11:24:45.949 [INFO] [t:1] ui.player.main.loaded scroll=true
+2026-06-29 11:24:45.949 [INFO] [t:1] ui.player.sections.visible chat/create/dice/session
+2026-06-29 11:24:45.949 [INFO] [t:1] ui.player.main-content.reachable=true
+2026-06-29 11:24:45.949 [INFO] [t:1] ui.dice.panel.opened
+2026-06-29 11:24:45.949 [INFO] [t:1] player.layout.bottomSections rearranged=true
+2026-06-29 11:24:45.952 [DEBUG] [t:4] request.start command=system.featureFlags.snapshot; requestId=6b74f80d2f3145e892c0ba1aa26af072; startedUtc=2026-06-29T08:24:45.9529375Z; payloadKeys=0
+2026-06-29 11:24:45.952 [DEBUG] [t:5] request.start command=system.featureFlags.snapshot; requestId=05d21b967c8341b9ba4f16fafb878f43; startedUtc=2026-06-29T08:24:45.9529375Z; payloadKeys=0
+2026-06-29 11:24:45.953 [INFO] [t:4] Connecting to server: 127.0.0.1:4600
+2026-06-29 11:24:45.953 [DEBUG] [t:4] suppressed repeated log line count=1 message=Connecting to server: 127.0.0.1:4600
+2026-06-29 11:24:45.953 [INFO] [t:4] Disconnected from server
+2026-06-29 11:24:45.957 [DEBUG] [t:4] suppressed repeated log line count=1 message=Disconnected from server
+2026-06-29 11:24:45.957 [INFO] [t:4] Connected to server: 127.0.0.1:4600
+2026-06-29 11:24:45.991 [DEBUG] [t:5] suppressed repeated log line count=1 message=Connected to server: 127.0.0.1:4600
+2026-06-29 11:24:45.992 [DEBUG] [t:5] request.end command=system.featureFlags.snapshot; requestId=6b74f80d2f3145e892c0ba1aa26af072; status=Unauthorized; success=False; elapsedMs=39; message=Auth token is invalid.
+2026-06-29 11:24:45.993 [DEBUG] [t:1] suppressed repeated log line count=1 message=request.end command=system.featureFlags.snapshot; requestId=6b74f80d2f3145e892c0ba1aa26af072; status=Unauthorized; success=False; elapsedMs=39; message=Auth token is invalid.
+2026-06-29 11:24:45.993 [INFO] [t:1] player.world_calendar.load.start
+2026-06-29 11:24:45.993 [DEBUG] [t:6] request.start command=world.calendar.player.get; requestId=96776ba77fde49ddbaf7b8fa62281e52; startedUtc=2026-06-29T08:24:45.9939375Z; payloadKeys=2
+2026-06-29 11:24:45.994 [DEBUG] [t:6] request.end command=world.calendar.player.get; requestId=6b74f80d2f3145e892c0ba1aa26af072; status=Unauthorized; success=False; elapsedMs=0; message=Auth token is invalid.
+2026-06-29 11:24:45.995 [INFO] [t:1] player.schedule.load.start
+2026-06-29 11:24:45.995 [DEBUG] [t:4] request.start command=schedule.real.player.next; requestId=c5f39d0a9e914a16a259d24a5b7295af; startedUtc=2026-06-29T08:24:45.9959376Z; payloadKeys=1
+2026-06-29 11:24:46.003 [ERROR] [t:4] request.error command=schedule.real.player.next; requestId=c5f39d0a9e914a16a259d24a5b7295af; elapsedMs=0 | System.Xml.XmlException: Недопустимая байтовая кодировка.
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.ReadEncoding(Byte b1, Byte b2)
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.ReadEncoding()
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.InitForReading(Stream inputStream, Encoding expectedEncoding)
+   в System.Runtime.Serialization.Json.XmlJsonReader.SetInput(Stream stream, Encoding encoding, XmlDictionaryReaderQuotas quotas, OnXmlDictionaryReaderClose onClose)
+   в System.Runtime.Serialization.Json.DataContractJsonSerializer.ReadObject(Stream stream)
+   в Nri.Shared.Contracts.JsonProtocolSerializer.Deserialize[T](String json) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.Shared\Contracts\Protocol.cs:строка 1112
+   в Nri.PlayerClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 96
+   в Nri.PlayerClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 203
+2026-06-29 11:24:46.004 [ERROR] [t:1] player.schedule.load.error | System.Xml.XmlException: Недопустимая байтовая кодировка.
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.ReadEncoding(Byte b1, Byte b2)
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.ReadEncoding()
+   в System.Runtime.Serialization.Json.JsonEncodingStreamWrapper.InitForReading(Stream inputStream, Encoding expectedEncoding)
+   в System.Runtime.Serialization.Json.XmlJsonReader.SetInput(Stream stream, Encoding encoding, XmlDictionaryReaderQuotas quotas, OnXmlDictionaryReaderClose onClose)
+   в System.Runtime.Serialization.Json.DataContractJsonSerializer.ReadObject(Stream stream)
+   в Nri.Shared.Contracts.JsonProtocolSerializer.Deserialize[T](String json) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.Shared\Contracts\Protocol.cs:строка 1112
+   в Nri.PlayerClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\NetworkClient.cs:строка 96
+   в Nri.PlayerClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 215
+   в Nri.PlayerClient.Networking.CommandApi.RealSchedulePlayerNext(Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\Networking\CommandApi.cs:строка 155
+   в Nri.PlayerClient.ViewModels.PlayerRealScheduleViewModel.<>c__DisplayClass51_0.<LoadAsync>b__0() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\ViewModels\PlayerRealScheduleViewModel.cs:строка 92
+   в System.Threading.Tasks.Task`1.InnerInvoke()
+   в System.Threading.Tasks.Task.Execute()
+--- Конец трассировка стека из предыдущего расположения, где возникло исключение ---
+   в System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   в System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   в System.Runtime.CompilerServices.TaskAwaiter`1.GetResult()
+   в Nri.PlayerClient.ViewModels.PlayerRealScheduleViewModel.<LoadAsync>d__51.MoveNext() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.PlayerClient\ViewModels\PlayerRealScheduleViewModel.cs:строка 92
+2026-06-29 11:24:49.076 [INFO] [t:1] ui.password.change.opened
+2026-06-29 11:24:50.690 [INFO] [t:1] Login attempt: user=dev_player
+2026-06-29 11:24:50.690 [DEBUG] [t:1] request.start command=auth.login; requestId=120a429c826840aebcadf91616e1c733; startedUtc=2026-06-29T08:24:50.6906845Z; payloadKeys=2
+2026-06-29 11:24:50.691 [DEBUG] [t:1] request.end command=auth.login; requestId=c5f39d0a9e914a16a259d24a5b7295af; status=Unauthorized; success=False; elapsedMs=0; message=Auth token is invalid.
+2026-06-29 11:24:50.691 [WARN] [t:1] Login failed: user=dev_player; message=Auth token is invalid.

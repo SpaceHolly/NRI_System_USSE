@@ -1,0 +1,80 @@
+2026-05-31 13:46:39.086 [INFO] [t:1] Application start: AdminClient
+2026-05-31 13:46:39.086 [INFO] [t:1] Log file path: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\31.05.2026+13.46.39-AdminClient-log.txt
+2026-05-31 13:46:39.086 [INFO] [t:1] AppContext.BaseDirectory: C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\
+2026-05-31 13:46:39.086 [INFO] [t:1] PreserveClientLogs: False
+2026-05-31 13:46:39.086 [INFO] [t:1] Config load attempt path=C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\bin\Debug\net481\client.config.json
+2026-05-31 13:46:39.086 [INFO] [t:1] Loaded client config: host=127.0.0.1, port=4600, preserveClientLogs=False
+2026-05-31 13:46:39.266 [INFO] [t:1] AdminMainViewModel initialized
+2026-05-31 13:46:39.266 [INFO] [t:1] chat.window.layout fixedHeaderFooter=true
+2026-05-31 13:46:39.279 [INFO] [t:1] ui.navigation.selected item=admin.dashboard target=admin.dashboard
+2026-05-31 13:46:39.299 [INFO] [t:1] Endpoint updated: 26.129.64.85:4600
+2026-05-31 13:46:39.299 [INFO] [t:1] Disconnected from server
+2026-05-31 13:46:39.301 [INFO] [t:1] skillDefinitions.content.new enabled=false
+2026-05-31 13:46:39.301 [INFO] [t:1] skillDefinitions.content.save enabled=false
+2026-05-31 13:46:39.301 [INFO] [t:1] skillDefinitions.content.archive enabled=false
+2026-05-31 13:46:39.301 [INFO] [t:1] skillDefinitions.content.refresh enabled=false
+2026-05-31 13:46:39.313 [INFO] [t:1] ui.admin.dice.panel.loaded
+2026-05-31 13:46:39.313 [INFO] [t:1] people.grid.template fixed=true
+2026-05-31 13:46:39.313 [INFO] [t:1] dice.actor.mode=account
+2026-05-31 13:46:39.313 [DEBUG] [t:1] suppressed repeated log line count=1 message=dice.actor.mode=account
+2026-05-31 13:46:39.313 [INFO] [t:1] ui.admin.dice.button state=disabled reason=Требуется подключение и вход администратора.
+2026-05-31 13:46:39.570 [INFO] [t:1] ui.admin.root-scroll.initialized
+2026-05-31 13:46:39.571 [INFO] [t:1] ui.admin.layout.people-table.fixed
+2026-05-31 13:46:39.571 [INFO] [t:1] ui.admin.layout.dice-panel.separate=true
+2026-05-31 13:46:39.571 [INFO] [t:1] ui.admin.sections.reachable=true
+2026-05-31 13:46:39.579 [DEBUG] [t:1] request.start command=system.featureFlags.snapshot; requestId=a56da3a4bf5542d0bf7bfa35f4313fcf; startedUtc=2026-05-31T10:46:39.5789100Z; payloadKeys=0
+2026-05-31 13:46:39.580 [INFO] [t:1] Connecting to server: 26.129.64.85:4600
+2026-05-31 13:46:39.580 [INFO] [t:1] Disconnected from server
+2026-05-31 13:46:44.579 [ERROR] [t:1] Network connection timeout | System.TimeoutException: Timed out connecting to 26.129.64.85:4600.
+2026-05-31 13:46:44.585 [ERROR] [t:1] request.error command=system.featureFlags.snapshot; requestId=a56da3a4bf5542d0bf7bfa35f4313fcf; elapsedMs=5000 | System.TimeoutException: Timed out connecting to 26.129.64.85:4600.
+   в Nri.AdminClient.Networking.JsonTcpClient.Connect() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 72
+   в Nri.AdminClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 98
+   в Nri.AdminClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\CommandApi.cs:строка 284
+2026-05-31 13:46:44.588 [ERROR] [t:1] Abnormal termination detected: Application.DispatcherUnhandledException | System.TimeoutException: Timed out connecting to 26.129.64.85:4600.
+   в Nri.AdminClient.Networking.JsonTcpClient.Connect() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 72
+   в Nri.AdminClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 98
+   в Nri.AdminClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\CommandApi.cs:строка 296
+   в Nri.AdminClient.Networking.CommandApi.SystemFeatureFlagsSnapshot() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\CommandApi.cs:строка 139
+   в Nri.AdminClient.ViewModels.AdminWorldMapViewModel.RefreshFlags() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\ViewModels\AdminWorldMapViewModel.cs:строка 577
+   в Nri.AdminClient.Views.WorldMap.AdminWorldMapView.OnLoaded(Object sender, RoutedEventArgs e) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Views\WorldMap\AdminWorldMapView.xaml.cs:строка 27
+   в System.Windows.EventRoute.InvokeHandlersImpl(Object source, RoutedEventArgs args, Boolean reRaised)
+   в System.Windows.UIElement.RaiseEventImpl(DependencyObject sender, RoutedEventArgs args)
+   в System.Windows.BroadcastEventHelper.BroadcastEvent(DependencyObject root, RoutedEvent routedEvent)
+   в System.Windows.BroadcastEventHelper.BroadcastLoadedEvent(Object root)
+   в MS.Internal.LoadedOrUnloadedOperation.DoWork()
+   в System.Windows.Media.MediaContext.FireLoadedPendingCallbacks()
+   в System.Windows.Media.MediaContext.FireInvokeOnRenderCallbacks()
+   в System.Windows.Media.MediaContext.RenderMessageHandlerCore(Object resizedCompositionTarget)
+   в System.Windows.Media.MediaContext.RenderMessageHandler(Object resizedCompositionTarget)
+   в System.Windows.Interop.HwndTarget.OnResize()
+   в System.Windows.Interop.HwndTarget.HandleMessage(WindowMessage msg, IntPtr wparam, IntPtr lparam)
+   в System.Windows.Interop.HwndSource.HwndTargetFilterMessage(IntPtr hwnd, Int32 msg, IntPtr wParam, IntPtr lParam, Boolean& handled)
+   в MS.Win32.HwndWrapper.WndProc(IntPtr hwnd, Int32 msg, IntPtr wParam, IntPtr lParam, Boolean& handled)
+   в MS.Win32.HwndSubclass.DispatcherCallbackOperation(Object o)
+   в System.Windows.Threading.ExceptionWrapper.InternalRealCall(Delegate callback, Object args, Int32 numArgs)
+   в System.Windows.Threading.ExceptionWrapper.TryCatchWhen(Object source, Delegate callback, Object args, Int32 numArgs, Delegate catchHandler)
+2026-05-31 13:46:44.588 [ERROR] [t:1] Abnormal termination detected: AppDomain.CurrentDomain.UnhandledException | System.TimeoutException: Timed out connecting to 26.129.64.85:4600.
+   в Nri.AdminClient.Networking.JsonTcpClient.Connect() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 72
+   в Nri.AdminClient.Networking.JsonTcpClient.Send(RequestEnvelope request) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\NetworkClient.cs:строка 98
+   в Nri.AdminClient.Networking.CommandApi.Send(String command, Dictionary`2 payload) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\CommandApi.cs:строка 296
+   в Nri.AdminClient.Networking.CommandApi.SystemFeatureFlagsSnapshot() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Networking\CommandApi.cs:строка 139
+   в Nri.AdminClient.ViewModels.AdminWorldMapViewModel.RefreshFlags() в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\ViewModels\AdminWorldMapViewModel.cs:строка 577
+   в Nri.AdminClient.Views.WorldMap.AdminWorldMapView.OnLoaded(Object sender, RoutedEventArgs e) в C:\Users\Mrhol\source\repos\NRI_System_USSE\Nri.AdminClient\Views\WorldMap\AdminWorldMapView.xaml.cs:строка 27
+   в System.Windows.EventRoute.InvokeHandlersImpl(Object source, RoutedEventArgs args, Boolean reRaised)
+   в System.Windows.UIElement.RaiseEventImpl(DependencyObject sender, RoutedEventArgs args)
+   в System.Windows.BroadcastEventHelper.BroadcastEvent(DependencyObject root, RoutedEvent routedEvent)
+   в System.Windows.BroadcastEventHelper.BroadcastLoadedEvent(Object root)
+   в MS.Internal.LoadedOrUnloadedOperation.DoWork()
+   в System.Windows.Media.MediaContext.FireLoadedPendingCallbacks()
+   в System.Windows.Media.MediaContext.FireInvokeOnRenderCallbacks()
+   в System.Windows.Media.MediaContext.RenderMessageHandlerCore(Object resizedCompositionTarget)
+   в System.Windows.Media.MediaContext.RenderMessageHandler(Object resizedCompositionTarget)
+   в System.Windows.Interop.HwndTarget.OnResize()
+   в System.Windows.Interop.HwndTarget.HandleMessage(WindowMessage msg, IntPtr wparam, IntPtr lparam)
+   в System.Windows.Interop.HwndSource.HwndTargetFilterMessage(IntPtr hwnd, Int32 msg, IntPtr wParam, IntPtr lParam, Boolean& handled)
+   в MS.Win32.HwndWrapper.WndProc(IntPtr hwnd, Int32 msg, IntPtr wParam, IntPtr lParam, Boolean& handled)
+   в MS.Win32.HwndSubclass.DispatcherCallbackOperation(Object o)
+   в System.Windows.Threading.ExceptionWrapper.InternalRealCall(Delegate callback, Object args, Int32 numArgs)
+   в System.Windows.Threading.ExceptionWrapper.TryCatchWhen(Object source, Delegate callback, Object args, Int32 numArgs, Delegate catchHandler)
+   в System.Windows.Threading.Dispatcher.LegacyInvokeImpl(DispatcherPriority priority, TimeSpan timeout, Delegate method, Object args, Int32 numArgs)
+   в MS.Win32.HwndSubclass.SubclassWndProc(IntPtr hwnd, Int32 msg, IntPtr wParam, IntPtr lParam)

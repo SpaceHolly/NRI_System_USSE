@@ -1,0 +1,172 @@
+<UserControl x:Class="Nri.AdminClient.Views.Maps.AdminRoomInteriorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Nri.AdminClient.ViewModels">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="130"/>
+                    <ColumnDefinition Width="130"/>
+                    <ColumnDefinition Width="130"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Помещения / интерьеры" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" Margin="8,0,0,0" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" ToolTip="CampaignId"/>
+                <TextBox Grid.Column="2" Margin="8,0,0,0" Text="{Binding RuleSetId, UpdateSourceTrigger=PropertyChanged}" ToolTip="RuleSetId"/>
+                <TextBox Grid.Column="3" Margin="8,0,0,0" Text="{Binding ParentLocationId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ParentLocationId"/>
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Margin="8,0,0,0">
+                    <Button Content="Flags" Command="{Binding RefreshFlagsCommand}"/>
+                    <Button Content="Обновить" Margin="8,0,0,0" Command="{Binding RefreshRoomsCommand}" IsEnabled="{Binding CanLoadRooms}"/>
+                    <Button Content="Создать помещение" Margin="8,0,0,0" Command="{Binding CreateRoomCommand}" IsEnabled="{Binding CanCreateRoom}"/>
+                    <Button Content="Открыть" Margin="8,0,0,0" Command="{Binding LoadSelectedRoomCommand}" IsEnabled="{Binding CanEditRoom}"/>
+                    <Button Content="Сохранить" Margin="8,0,0,0" Command="{Binding SaveRoomCommand}" IsEnabled="{Binding CanEditRoom}"/>
+                    <Button Content="Архивировать" Margin="8,0,0,0" Command="{Binding ArchiveRoomCommand}" IsEnabled="{Binding CanEditRoom}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.1*"/>
+                <ColumnDefinition Width="1.3*"/>
+                <ColumnDefinition Width="1.6*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Список помещений" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <ListBox Grid.Row="1" Margin="0,8,0,0" ItemsSource="{Binding Rooms}" SelectedItem="{Binding SelectedRoom, Mode=TwoWay}" DisplayMemberPath="Label"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Новое помещение" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBox Margin="0,6,0,0" Text="{Binding NewRoomName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название"/>
+                        <TextBox Margin="0,6,0,0" Text="{Binding NewRoomDescription, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание"/>
+                        <WrapPanel Margin="0,6,0,0">
+                            <ComboBox Width="130" ItemsSource="{Binding RoomTypeOptions}" SelectedItem="{Binding NewRoomType}"/>
+                            <ComboBox Width="130" Margin="6,0,0,0" ItemsSource="{Binding InteriorTypeOptions}" SelectedItem="{Binding NewInteriorType}"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <TextBox Width="70" Text="{Binding NewRoomWidth, UpdateSourceTrigger=PropertyChanged}" ToolTip="Ширина (м)"/>
+                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding NewRoomHeight, UpdateSourceTrigger=PropertyChanged}" ToolTip="Высота (м)"/>
+                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding NewRoomGridCell, UpdateSourceTrigger=PropertyChanged}" ToolTip="Сетка (м)"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <CheckBox Content="Видно игрокам" IsChecked="{Binding NewRoomPlayerVisible}" Margin="0,2,0,0"/>
+                            <TextBox Width="120" Margin="8,0,0,0" Text="{Binding NewRoomVisibilityMode, UpdateSourceTrigger=PropertyChanged}" ToolTip="VisibilityMode"/>
+                        </WrapPanel>
+
+                        <Separator Margin="0,10,0,10"/>
+                        <TextBlock Text="Выбранное помещение" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBox Margin="0,6,0,0" Text="{Binding SelectedRoom.Name, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название"/>
+                        <TextBox Margin="0,6,0,0" Text="{Binding SelectedRoom.Description, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание"/>
+                        <WrapPanel Margin="0,6,0,0">
+                            <ComboBox Width="130" ItemsSource="{Binding RoomTypeOptions}" SelectedItem="{Binding SelectedRoom.RoomType}"/>
+                            <ComboBox Width="130" Margin="6,0,0,0" ItemsSource="{Binding InteriorTypeOptions}" SelectedItem="{Binding SelectedRoom.InteriorType}"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <TextBox Width="70" Text="{Binding SelectedRoom.WidthMeters, UpdateSourceTrigger=PropertyChanged}" ToolTip="Ширина (м)"/>
+                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding SelectedRoom.HeightMeters, UpdateSourceTrigger=PropertyChanged}" ToolTip="Высота (м)"/>
+                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding SelectedRoom.GridCellSizeMeters, UpdateSourceTrigger=PropertyChanged}" ToolTip="Сетка (м)"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <CheckBox Content="Видно игрокам" IsChecked="{Binding SelectedRoom.IsPlayerVisible}" Margin="0,2,0,0"/>
+                            <TextBox Width="120" Margin="8,0,0,0" Text="{Binding SelectedRoom.VisibilityMode, UpdateSourceTrigger=PropertyChanged}" ToolTip="VisibilityMode"/>
+                        </WrapPanel>
+                        <TextBox Margin="0,6,0,0" Text="{Binding SelectedRoom.PublicNotes, UpdateSourceTrigger=PropertyChanged}" ToolTip="Public notes"/>
+                        <TextBox Margin="0,6,0,0" Text="{Binding SelectedRoom.GmNotes, UpdateSourceTrigger=PropertyChanged}" ToolTip="Заметки GM"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Маркеры помещения" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <DataGrid Grid.Row="1" Margin="0,8,0,8" ItemsSource="{Binding Markers}" SelectedItem="{Binding SelectedMarker, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.2*"/>
+                            <DataGridTextColumn Header="Тип" Binding="{Binding MarkerType}" Width="1*"/>
+                            <DataGridTextColumn Header="Коорд." Binding="{Binding Coordinates}" Width="1*"/>
+                            <DataGridTextColumn Header="Привязка" Binding="{Binding BindingDisplay}" Width="1.3*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <StackPanel Grid.Row="2">
+                        <WrapPanel>
+                            <TextBox Width="130" Text="{Binding MarkerName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название"/>
+                            <TextBox Width="120" Margin="6,0,0,0" Text="{Binding MarkerType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип"/>
+                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding MarkerX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X"/>
+                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding MarkerY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <CheckBox Content="Видно игрокам" IsChecked="{Binding MarkerPlayerVisible}" Margin="0,2,0,0"/>
+                            <TextBox Width="120" Margin="8,0,0,0" Text="{Binding MarkerVisibilityMode, UpdateSourceTrigger=PropertyChanged}" ToolTip="VisibilityMode"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <TextBox Width="140" Text="{Binding MarkerLinkedEntityType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип привязки"/>
+                            <TextBox Width="150" Margin="6,0,0,0" Text="{Binding MarkerLinkedEntityId, UpdateSourceTrigger=PropertyChanged}" ToolTip="EntityId"/>
+                        </WrapPanel>
+                        <TextBox Margin="0,6,0,0" Text="{Binding MarkerPublicNotes, UpdateSourceTrigger=PropertyChanged}" ToolTip="Public notes"/>
+                        <TextBox Margin="0,6,0,0" Text="{Binding MarkerGmNotes, UpdateSourceTrigger=PropertyChanged}" ToolTip="Заметки GM"/>
+                        <WrapPanel Margin="0,6,0,0">
+                            <Button Content="Добавить" Command="{Binding AddMarkerCommand}" IsEnabled="{Binding CanEditMarkers}"/>
+                            <Button Content="Переместить" Margin="8,0,0,0" Command="{Binding MoveMarkerCommand}" IsEnabled="{Binding CanEditMarkers}"/>
+                            <Button Content="Сохранить" Margin="8,0,0,0" Command="{Binding SaveMarkerCommand}" IsEnabled="{Binding CanEditMarkers}"/>
+                            <Button Content="Удалить" Margin="8,0,0,0" Command="{Binding RemoveMarkerCommand}" IsEnabled="{Binding CanEditMarkers}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="10" Margin="0,8,0,0">
+            <StackPanel>
+                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding LastRefreshText}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                <TextBlock Text="{Binding WarningMessage}" Foreground="#F59E0B" Margin="0,4,0,0" TextWrapping="Wrap">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasWarning}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="#F87171" Margin="0,4,0,0" TextWrapping="Wrap">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasError}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

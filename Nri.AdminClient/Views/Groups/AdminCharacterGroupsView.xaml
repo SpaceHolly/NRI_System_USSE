@@ -1,0 +1,192 @@
+﻿<UserControl x:Class="Nri.AdminClient.Views.Groups.AdminCharacterGroupsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,8">
+            <DockPanel LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="Активная группа" FontSize="18" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0"/>
+                    <TextBlock Text="{Binding FeatureSummary}" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,2,0,0"/>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <TextBox Width="120" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" ToolTip="CampaignId"/>
+                    <TextBox Width="140" Margin="8,0,0,0" Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}" ToolTip="SessionId, optional"/>
+                    <Button Content="Проверить flags" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding RefreshFlagsCommand}"/>
+                    <Button Content="Обновить" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding RefreshGroupsCommand}" IsEnabled="{Binding CanUseGroups}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="310"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="1.35*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="Группы" FontWeight="SemiBold"/>
+                        <TextBlock Text="Список групп кампании и активный статус." Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,2,0,8"/>
+                        <Button Content="Создать группу" Style="{StaticResource GhostButtonStyle}" Command="{Binding CreateGroupCommand}" IsEnabled="{Binding CanUseGroups}"/>
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}" Margin="0,10,0,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding TypeDisplay}" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                            <TextBlock Text="{Binding VisibilityDisplay}" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                            <TextBlock Text="{Binding ActiveBadge}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                                            <TextBlock Text="{Binding MemberCount}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Карточка группы" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding SelectedGroupSummary}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,8"/>
+                    </StackPanel>
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Название"/>
+                            <TextBox Text="{Binding GroupName, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Тип" Margin="0,8,0,0"/>
+                            <ComboBox ItemsSource="{Binding GroupTypeOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding GroupType}"/>
+                            <TextBlock Text="Статус" Margin="0,8,0,0"/>
+                            <ComboBox ItemsSource="{Binding GroupStatusOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding GroupStatus}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Описание"/>
+                            <TextBox MinHeight="66" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding GroupDescription, UpdateSourceTrigger=PropertyChanged}"/>
+                            <CheckBox Content="Группа видна игрокам" Margin="0,8,0,0" IsChecked="{Binding GroupPlayerVisible}"/>
+                            <TextBlock Text="Видимость" Margin="0,8,0,0"/>
+                            <ComboBox ItemsSource="{Binding VisibilityOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding GroupVisibilityMode}"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Grid.Row="2" Margin="0,12,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Открыть" Style="{StaticResource GhostButtonStyle}" Command="{Binding LoadSelectedGroupCommand}" IsEnabled="{Binding CanEditGroups}"/>
+                            <Button Content="Сохранить" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding SaveGroupCommand}" IsEnabled="{Binding CanEditGroups}"/>
+                            <Button Content="Сделать активной" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding SetActiveCommand}" IsEnabled="{Binding CanUseActiveGroup}"/>
+                            <Button Content="Снять активную" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding ClearActiveCommand}" IsEnabled="{Binding IsActiveGroupEnabled}"/>
+                            <Button Content="Архивировать" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding ArchiveGroupCommand}" IsEnabled="{Binding CanEditGroups}"/>
+                        </StackPanel>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding Members}" SelectedItem="{Binding SelectedMember}" AutoGenerateColumns="False" Margin="0,10,0,0" IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Участник" Binding="{Binding DisplayName}" Width="2*"/>
+                                <DataGridTextColumn Header="Роль" Binding="{Binding RoleDisplay}" Width="*"/>
+                                <DataGridTextColumn Header="Тип" Binding="{Binding EntityType}" Width="*"/>
+                                <DataGridTextColumn Header="Видимость" Binding="{Binding PlayerVisibilityDisplay}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="12">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Участник" FontWeight="SemiBold"/>
+                        <TextBlock Text="MVP использует ручной ID сущности. Выбор из справочников будет добавлен позже." Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                        <TextBlock Text="Тип сущности"/>
+                        <ComboBox ItemsSource="{Binding EntityTypeOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding NewMemberEntityType}"/>
+                        <TextBlock Text="ID сущности" Margin="0,8,0,0"/>
+                        <TextBox Text="{Binding NewMemberEntityId, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Отображаемое имя" Margin="0,8,0,0"/>
+                        <TextBox Text="{Binding NewMemberDisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Роль в группе" Margin="0,8,0,0"/>
+                        <ComboBox ItemsSource="{Binding RoleInGroupOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding NewMemberRoleInGroup}"/>
+                        <TextBlock Text="Быстрые метки" Margin="0,8,0,0"/>
+                        <ItemsControl ItemsSource="{Binding RoleInGroupOptions}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource PanelSoftBrush}"
+                                            BorderBrush="{StaticResource BorderBrushTheme}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="8,3"
+                                            Margin="0,0,6,6">
+                                        <TextBlock Text="{Binding Title}" FontSize="11"/>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="Роль персонажа" Margin="0,8,0,0"/>
+                        <ComboBox ItemsSource="{Binding CharacterRoleOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding NewMemberCharacterRole}"/>
+                        <CheckBox Content="Лидер" Margin="0,8,0,0" IsChecked="{Binding NewMemberIsLeader}"/>
+                        <CheckBox Content="Виден игрокам" Margin="0,4,0,0" IsChecked="{Binding NewMemberPlayerVisible}"/>
+                        <TextBlock Text="Видимость" Margin="0,8,0,0"/>
+                        <ComboBox ItemsSource="{Binding VisibilityOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding NewMemberVisibilityMode}"/>
+                        <TextBlock Text="Публичная заметка" Margin="0,8,0,0"/>
+                        <TextBox MinHeight="56" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding MemberPublicNotes, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Заметки GM" Margin="0,8,0,0"/>
+                        <TextBox MinHeight="56" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding MemberGmNotes, UpdateSourceTrigger=PropertyChanged}"/>
+                        <WrapPanel Margin="0,12,0,0">
+                            <Button Content="Добавить" Style="{StaticResource GhostButtonStyle}" Command="{Binding AddMemberCommand}" IsEnabled="{Binding CanEditMembers}"/>
+                            <Button Content="Сохранить" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding SaveMemberCommand}" IsEnabled="{Binding CanEditMembers}"/>
+                            <Button Content="Удалить" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding RemoveMemberCommand}" IsEnabled="{Binding CanEditMembers}"/>
+                            <Button Content="↑" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding MoveMemberUpCommand}" IsEnabled="{Binding CanEditMembers}"/>
+                            <Button Content="↓" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding MoveMemberDownCommand}" IsEnabled="{Binding CanEditMembers}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8" Margin="0,8,0,0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Text="{Binding LastRefreshText}" Foreground="{StaticResource MutedBrush}"/>
+                <Button DockPanel.Dock="Right" Content="Очистить" Style="{StaticResource GhostButtonStyle}" Command="{Binding ClearErrorCommand}"/>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFFF8A8A" Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" Margin="12,0,0,0"/>
+                <TextBlock Text="{Binding WarningMessage}" Foreground="#FFFFD27A" Visibility="{Binding HasWarning, Converter={StaticResource BoolToVisibility}}" Margin="12,0,0,0"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>
+

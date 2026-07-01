@@ -43,4 +43,5 @@ public sealed class DefinitionUpsertRequest
 public static class DefinitionFeatureFlags
 {
     public const bool UseUnifiedDefinitionServiceV2 = false;
+    public const bool UseDefinitionPackImport = false;
 }

@@ -1,0 +1,182 @@
+<UserControl x:Class="Nri.AdminClient.Views.Calendar.AdminRealScheduleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Language="ru-RU">
+    <Grid AutomationProperties.AutomationId="AdminRealSchedule_Root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}" Padding="14" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Реальное расписание" Style="{StaticResource TitleTextStyle}" FontSize="20" AutomationProperties.AutomationId="AdminRealSchedule_Title"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding DisabledText}" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBox Width="150" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" ToolTip="CampaignId" AutomationProperties.AutomationId="AdminRealSchedule_CampaignId" Margin="0,0,8,0"/>
+                    <Button Content="Проверить flags" Command="{Binding RefreshFlagsCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,0"/>
+                    <Button Content="Обновить" Command="{Binding RefreshCommand}" Style="{StaticResource GhostButtonStyle}" AutomationProperties.AutomationId="AdminRealSchedule_Refresh_Button"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.15*"/>
+                <ColumnDefinition Width="1.2*"/>
+                <ColumnDefinition Width="0.9*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,10,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Ближайшие события" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,8"/>
+                    <ListBox ItemsSource="{Binding Events}" SelectedItem="{Binding SelectedEvent}" BorderThickness="0" Background="Transparent" AutomationProperties.AutomationId="AdminRealSchedule_Events_List">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource SubtleCardStyle}" Padding="10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding LocalStartDisplay}" Foreground="{StaticResource AccentBrush}" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding Meta}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding CountdownText}" Foreground="{StaticResource WarningBrush}" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="0,0,10,0">
+                <Border Style="{StaticResource CardStyle}" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="Карточка события" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Название"/>
+                        <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,8" AutomationProperties.AutomationId="AdminRealSchedule_Title_Input"/>
+                        <TextBlock Text="Описание"/>
+                        <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="54" Margin="0,2,0,8" AutomationProperties.AutomationId="AdminRealSchedule_Description_Input"/>
+                        <TextBlock Text="Тип / статус"/>
+                        <Grid Margin="0,2,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox ItemsSource="{Binding EventTypeOptions}" SelectedItem="{Binding EventType}" AutomationProperties.AutomationId="AdminRealSchedule_EventType"/>
+                            <ComboBox Grid.Column="2" ItemsSource="{Binding StatusOptions}" SelectedItem="{Binding EventStatus}" AutomationProperties.AutomationId="AdminRealSchedule_Status"/>
+                        </Grid>
+                        <TextBlock Text="Начало / конец (локальное время клиента)"/>
+                        <Grid Margin="0,2,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding StartLocal, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:dd.MM.yyyy HH:mm}}" AutomationProperties.AutomationId="AdminRealSchedule_StartLocal"/>
+                            <TextBox Grid.Column="2" Text="{Binding EndLocal, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:dd.MM.yyyy HH:mm}}" AutomationProperties.AutomationId="AdminRealSchedule_EndLocal"/>
+                        </Grid>
+                        <TextBlock Text="Часовой пояс"/>
+                        <TextBox Text="{Binding TimeZoneId, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,8" AutomationProperties.AutomationId="AdminRealSchedule_TimeZone"/>
+                        <TextBlock Text="GM UserId / отображаемое имя GM"/>
+                        <Grid Margin="0,2,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding GMUserId, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="AdminRealSchedule_GMUserId"/>
+                            <TextBox Grid.Column="2" Text="{Binding GMDisplayName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="AdminRealSchedule_GMDisplayName"/>
+                        </Grid>
+                        <TextBlock Text="Организатор"/>
+                        <TextBox Text="{Binding OrganizerDisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,8"/>
+                        <TextBlock Text="SessionId / GroupId"/>
+                        <Grid Margin="0,2,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Grid.Column="2" Text="{Binding GroupId, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                        <TextBlock Text="Связь с календарём мира"/>
+                        <Grid Margin="0,2,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="80"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding LinkedWorldCalendarEventId, UpdateSourceTrigger=PropertyChanged}" ToolTip="WorldCalendarEventId"/>
+                            <TextBox Grid.Column="2" Text="{Binding WorldYear, UpdateSourceTrigger=PropertyChanged}" ToolTip="Год мира"/>
+                            <TextBox Grid.Column="4" Text="{Binding WorldMonthOrder, UpdateSourceTrigger=PropertyChanged}" ToolTip="Месяц"/>
+                            <TextBox Grid.Column="6" Text="{Binding WorldDayOfMonth, UpdateSourceTrigger=PropertyChanged}" ToolTip="День"/>
+                        </Grid>
+                        <TextBlock Text="Место / подключение"/>
+                        <TextBox Text="{Binding LocationText, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,6"/>
+                        <TextBox Text="{Binding ConnectionInfoSummary, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                        <CheckBox Content="Видно игрокам" IsChecked="{Binding IsPlayerVisible}" Margin="0,0,0,6" AutomationProperties.AutomationId="AdminRealSchedule_PlayerVisible"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <CheckBox Content="Напоминание" IsChecked="{Binding ReminderEnabled}" VerticalAlignment="Center"/>
+                            <TextBox Width="80" Text="{Binding ReminderBeforeMinutes, UpdateSourceTrigger=PropertyChanged}" ToolTip="Минут до события"/>
+                            <TextBlock Text="минут до события" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        </StackPanel>
+                        <TextBlock Text="Публичные заметки"/>
+                        <TextBox Text="{Binding PublicNotes, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="54" Margin="0,2,0,8" AutomationProperties.AutomationId="AdminRealSchedule_PublicNotes"/>
+                        <TextBlock Text="Заметки GM"/>
+                        <TextBox Text="{Binding GMNotes, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="54" Margin="0,2,0,10" AutomationProperties.AutomationId="AdminRealSchedule_GMNotes"/>
+                        <WrapPanel>
+                            <Button Content="Создать" Command="{Binding CreateCommand}" Margin="0,0,8,8" AutomationProperties.AutomationId="AdminRealSchedule_Create_Button"/>
+                            <Button Content="Сохранить" Command="{Binding UpdateCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,8"/>
+                            <Button Content="Перенести" Command="{Binding RescheduleCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,8"/>
+                            <Button Content="Отменить" Command="{Binding CancelCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,8"/>
+                            <Button Content="Начать" Command="{Binding StartCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,8"/>
+                            <Button Content="Завершить" Command="{Binding CompleteCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,8"/>
+                            <Button Content="Архив" Command="{Binding ArchiveCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,8"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+            </ScrollViewer>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="12">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Участники" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,8"/>
+                    <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                        <TextBlock Text="UserId"/>
+                        <TextBox Text="{Binding ParticipantUserId, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,6"/>
+                        <TextBlock Text="Отображаемое имя"/>
+                        <TextBox Text="{Binding ParticipantDisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,6"/>
+                        <TextBlock Text="Роль / ответ"/>
+                        <ComboBox ItemsSource="{Binding ParticipantRoleOptions}" SelectedItem="{Binding ParticipantRole}" Margin="0,2,0,6"/>
+                        <ComboBox ItemsSource="{Binding ParticipantResponseOptions}" SelectedItem="{Binding ParticipantResponse}" Margin="0,0,0,6"/>
+                        <CheckBox Content="Виден игрокам" IsChecked="{Binding ParticipantVisible}" Margin="0,0,0,8"/>
+                        <WrapPanel>
+                            <Button Content="Добавить" Command="{Binding AddParticipantCommand}" Margin="0,0,8,8"/>
+                            <Button Content="Сохранить" Command="{Binding UpdateParticipantCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,8"/>
+                            <Button Content="Убрать" Command="{Binding RemoveParticipantCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,8"/>
+                        </WrapPanel>
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding Participants}" SelectedItem="{Binding SelectedParticipant}" BorderThickness="0" Background="Transparent" DisplayMemberPath="Display"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="10" Margin="0,10,0,0">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Очистить ошибку" Command="{Binding ClearErrorCommand}" Style="{StaticResource GhostButtonStyle}"/>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

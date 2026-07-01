@@ -1,5 +1,1440 @@
-<UserControl x:Class="Nri.PlayerClient.Views.Pages.ActiveCharacterView"
- xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
- xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid><TextBlock Text="ActiveCharacterView container"/></Grid>
+﻿<UserControl x:Class="Nri.PlayerClient.Views.Pages.ActiveCharacterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nri.PlayerClient.Views.Controls"
+             Background="{StaticResource BgBrush}"
+             Foreground="{StaticResource TextBrush}">
+                        <Grid Margin="8" Background="{StaticResource BgBrush}">
+                            <TabControl>
+                                <TabItem Header="Обзор">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <Grid Margin="4">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Border Grid.Row="0" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="0,0,0,8">
+                                                <StackPanel AutomationProperties.AutomationId="PlayerCharacter_OwnerGroupStatus_Section">
+                                                    <TextBlock Text="{Binding ActiveCharacterStatusText}" FontWeight="SemiBold"/>
+                                                    <WrapPanel Margin="0,6,0,0">
+                                                        <TextBlock AutomationProperties.AutomationId="PlayerCharacter_Owner_Display"
+                                                                   Text="{Binding CharacterOwnerDisplay, StringFormat=Владелец: {0}}"
+                                                                   Foreground="{StaticResource MutedBrush}"
+                                                                   Margin="0,0,12,0"/>
+                                                        <TextBlock AutomationProperties.AutomationId="PlayerCharacter_Group_Display"
+                                                                   Text="{Binding CharacterGroupDisplay, StringFormat=Группа: {0}}"
+                                                                   Foreground="{StaticResource MutedBrush}"
+                                                                   Margin="0,0,12,0"/>
+                                                        <TextBlock AutomationProperties.AutomationId="PlayerCharacter_Kind_Display"
+                                                                   Text="{Binding CharacterKindDisplay, StringFormat=Тип: {0}}"
+                                                                   Foreground="{StaticResource MutedBrush}"/>
+                                                    </WrapPanel>
+                                                    <TextBox AutomationProperties.AutomationId="PlayerCharacter_OwnerGroupStatus_Probe"
+                                                             Text="{Binding CharacterOwnershipReadOnlySummary, Mode=OneWay}"
+                                                             IsReadOnly="True"
+                                                             BorderThickness="0"
+                                                             Background="Transparent"
+                                                             Foreground="{StaticResource MutedBrush}"
+                                                             Visibility="Collapsed"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="2*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding CharacterNameDisplay}" FontSize="22" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding CharacterRaceDisplay, StringFormat=Раса: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                        <TextBlock Text="{Binding CharacterAgeDisplay, StringFormat=Возраст: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                        <TextBlock Text="{Binding CharacterHeightDisplay, StringFormat=Рост: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1" AutomationProperties.AutomationId="PlayerCharacter_Backstory_Section" AutomationProperties.Name="Предыстория">
+                                                        <TextBlock Text="Предыстория" FontWeight="Bold"/>
+                                                        <TextBlock AutomationProperties.AutomationId="PlayerCharacter_Backstory_Text"
+                                                                   Text="{Binding CharacterBackstoryDisplay}"
+                                                                   TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+
+                                            <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="Показатели" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Витальные" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                <TextBlock Text="Таблица витальных показателей"
+                                                                           FontSize="1"
+                                                                           Opacity="0.01"
+                                                                           Height="1"
+                                                                           AutomationProperties.AutomationId="PlayerCharacter_Vitals_Table"/>
+                                                                <ItemsControl ItemsSource="{Binding CoreStatRows}"
+                                                                              AutomationProperties.AutomationId="PlayerCharacter_Vitals_Table">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <StackPanel Margin="0,2,0,4"
+                                                                                        AutomationProperties.AutomationId="{Binding AttributeGroupAutomationId}">
+                                                                                <DockPanel>
+                                                                                    <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                    <TextBlock Text="{Binding Value}"
+                                                                                               AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                               FontWeight="Bold"
+                                                                                               HorizontalAlignment="Right"/>
+                                                                                </DockPanel>
+                                                                                <ItemsControl ItemsSource="{Binding SubAttributes}" Margin="18,2,0,0">
+                                                                                    <ItemsControl.ItemTemplate>
+                                                                                        <DataTemplate>
+                                                                                            <DockPanel Margin="0,1,0,1">
+                                                                                                <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                                <TextBlock Text="{Binding Value}"
+                                                                                                           AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                                           FontSize="11"
+                                                                                                           FontWeight="SemiBold"
+                                                                                                           HorizontalAlignment="Right"/>
+                                                                                            </DockPanel>
+                                                                                        </DataTemplate>
+                                                                                    </ItemsControl.ItemTemplate>
+                                                                                </ItemsControl>
+                                                                            </StackPanel>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Характеристики" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                <TextBlock Text="Таблица характеристик"
+                                                                           FontSize="1"
+                                                                           Opacity="0.01"
+                                                                           Height="1"
+                                                                           AutomationProperties.AutomationId="PlayerCharacter_Attributes_Table"/>
+                                                                <ItemsControl ItemsSource="{Binding AttributeStatRows}"
+                                                                              AutomationProperties.AutomationId="PlayerCharacter_Attributes_Table">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <StackPanel Margin="0,2,0,4"
+                                                                                        AutomationProperties.AutomationId="{Binding AttributeGroupAutomationId}">
+                                                                                <DockPanel>
+                                                                                    <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                    <TextBlock Text="{Binding Value}"
+                                                                                               AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                               FontWeight="Bold"
+                                                                                               HorizontalAlignment="Right"/>
+                                                                                </DockPanel>
+                                                                                <ItemsControl ItemsSource="{Binding SubAttributes}" Margin="18,2,0,0">
+                                                                                    <ItemsControl.ItemTemplate>
+                                                                                        <DataTemplate>
+                                                                                            <DockPanel Margin="0,1,0,1">
+                                                                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" FontSize="11" DockPanel.Dock="Left"/>
+                                                                                                <TextBlock Text="{Binding Value}"
+                                                                                                           AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                                                                           FontSize="11"
+                                                                                                           HorizontalAlignment="Right"/>
+                                                                                            </DockPanel>
+                                                                                        </DataTemplate>
+                                                                                    </ItemsControl.ItemTemplate>
+                                                                                </ItemsControl>
+                                                                            </StackPanel>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="0,8,0,0">
+                                                        <StackPanel>
+                                                            <TextBlock Text="Производные параметры" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                            <TextBlock Text="Рассчитывается сервером. Если данных нет, значения не подменяются подхарактеристиками."
+                                                                       Foreground="{StaticResource MutedBrush}"
+                                                                       Margin="0,0,0,6"/>
+                                                            <TextBlock Text="Таблица производных параметров"
+                                                                       FontSize="1"
+                                                                       Opacity="0.01"
+                                                                       Height="1"
+                                                                       AutomationProperties.AutomationId="PlayerCharacter_DerivedStats_Table"/>
+                                                            <ItemsControl ItemsSource="{Binding DerivedStatRows}"
+                                                                          AutomationProperties.AutomationId="PlayerCharacter_DerivedStats_Table">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <DockPanel Margin="0,2,0,2">
+                                                                            <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                            <TextBlock Text="{Binding Value}"
+                                                                                       AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                       FontWeight="Bold"
+                                                                                       HorizontalAlignment="Right"/>
+                                                                        </DockPanel>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Row="3" Style="{StaticResource CardStyle}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="3*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="Деньги" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                        <ItemsControl ItemsSource="{Binding MoneyRows}"
+                                                                      AutomationProperties.AutomationId="PlayerCharacter_Currencies_Table">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <UniformGrid Columns="4"/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                            <Ellipse Width="12" Height="12" Fill="{Binding Color}" Margin="0,0,6,0"/>
+                                                                            <TextBlock Text="{Binding Name}" Width="95"/>
+                                                                            <TextBlock Text="{Binding AmountDisplay}"
+                                                                                       AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                       FontWeight="SemiBold"/>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="Монеты опыта" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                            <TextBlock Text="{Binding ExperienceCoinsDisplay}" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+
+                                            <Border Grid.Row="4" Style="{StaticResource CardStyle}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="Инвентарь" FontWeight="Bold"/>
+                                                        <TextBlock Text="Таблица инвентаря"
+                                                                   FontSize="1"
+                                                                   Opacity="0.01"
+                                                                   Height="1"
+                                                                   AutomationProperties.AutomationId="PlayerCharacter_Inventory_Table"/>
+                                                        <ItemsControl ItemsSource="{Binding InventoryItems}"
+                                                                      AutomationProperties.AutomationId="PlayerCharacter_Inventory_Table">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="0,3,0,3">
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="2*"/>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <StackPanel>
+                                                                                <TextBlock Text="{Binding Name}"
+                                                                                           AutomationProperties.AutomationId="{Binding ItemAutomationId}"
+                                                                                           FontWeight="SemiBold"
+                                                                                           TextWrapping="Wrap"/>
+                                                                                <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                                                                <TextBlock Text="{Binding Slot, StringFormat=Слот: {0}}" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                                                            </StackPanel>
+                                                                            <TextBlock Grid.Column="1"
+                                                                                       Text="{Binding QuantityDisplay, StringFormat=x{0}}"
+                                                                                       AutomationProperties.AutomationId="{Binding QuantityAutomationId}"
+                                                                                       Margin="8,0,0,0"
+                                                                                       VerticalAlignment="Center"/>
+                                                                            <TextBlock Grid.Column="2"
+                                                                                       Text="{Binding IsEquipped, StringFormat=Экип.: {0}}"
+                                                                                       AutomationProperties.AutomationId="{Binding EquippedAutomationId}"
+                                                                                       Margin="8,0,0,0"
+                                                                                       VerticalAlignment="Center"/>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="Владения" FontWeight="Bold"/>
+                                                        <ItemsControl ItemsSource="{Binding HoldingsRows}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="Компаньоны" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding CharacterVisibilityDisplay}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,6"/>
+                                                        <ItemsControl ItemsSource="{Binding Companions}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <TextBlock Text="{Binding Name}"/>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </ScrollViewer>
+                                </TabItem>
+
+                                <TabItem Header="Инвентарь" AutomationProperties.AutomationId="PlayerCharacter_Inventory_Tab">
+                                    <Grid Margin="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.2*"/>
+                                            <ColumnDefinition Width="1.4*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Инвентарь" FontWeight="Bold" FontSize="16"/>
+                                                    <TextBlock Text="Предметы и экипировка персонажа." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                                <ListView Grid.Row="1"
+                                                          AutomationProperties.AutomationId="PlayerCharacter_Inventory_Table"
+                                                          x:Name="InventoryList"
+                                                          ItemsSource="{Binding InventoryItems}"
+                                                          SelectedItem="{Binding SelectedInventoryItem, Mode=TwoWay}">
+                                                    <ListView.View>
+                                                        <GridView>
+                                                            <GridViewColumn Header="Имя" Width="180">
+                                                                <GridViewColumn.CellTemplate>
+                                                                    <DataTemplate>
+                                                                        <TextBlock AutomationProperties.AutomationId="{Binding ItemAutomationId}" Text="{Binding Name}"/>
+                                                                    </DataTemplate>
+                                                                </GridViewColumn.CellTemplate>
+                                                            </GridViewColumn>
+                                                            <GridViewColumn Header="Кол-во" Width="68">
+                                                                <GridViewColumn.CellTemplate>
+                                                                    <DataTemplate>
+                                                                        <TextBlock AutomationProperties.AutomationId="{Binding QuantityAutomationId}" Text="{Binding QuantityDisplay}"/>
+                                                                    </DataTemplate>
+                                                                </GridViewColumn.CellTemplate>
+                                                            </GridViewColumn>
+                                                            <GridViewColumn Header="Экип." Width="82">
+                                                                <GridViewColumn.CellTemplate>
+                                                                    <DataTemplate>
+                                                                        <TextBlock AutomationProperties.AutomationId="{Binding EquippedAutomationId}" Text="{Binding IsEquipped}"/>
+                                                                    </DataTemplate>
+                                                                </GridViewColumn.CellTemplate>
+                                                            </GridViewColumn>
+                                                            <GridViewColumn Header="Прочность" Width="86" DisplayMemberBinding="{Binding Durability}"/>
+                                                            <GridViewColumn Header="Категория" Width="120" DisplayMemberBinding="{Binding Category}"/>
+                                                        </GridView>
+                                                    </ListView.View>
+                                                </ListView>
+                                            </Grid>
+                                        </Border>
+                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <StackPanel>
+                                                    <TextBlock Text="Карточка предмета" FontWeight="Bold" FontSize="16"/>
+                                                    <TextBlock Text="{Binding SelectedInventoryItem.Name, TargetNullValue=Предмет не выбран}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="Описание" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="{Binding SelectedInventoryItem.Description, TargetNullValue=Описание отсутствует}" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="Категория" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                    <Border Style="{StaticResource CardStyle}" Background="#FF223452">
+                                                        <TextBlock Text="{Binding SelectedInventoryItem.Category, StringFormat=Категория: {0}, TargetNullValue=Категория не выбрана}" TextWrapping="Wrap"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </ScrollViewer>
+                                        </Border>
+                                    </Grid>
+                                </TabItem>
+
+                                <TabItem Header="Владения">
+                                    <Grid Margin="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.1*"/>
+                                            <ColumnDefinition Width="1.4*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Владения" FontWeight="Bold" FontSize="16"/>
+                                                    <TextBlock Text="Имущество, связи и активы персонажа." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                                <ListView Grid.Row="1"
+                                                          x:Name="HoldingsList"
+                                                          AutomationProperties.AutomationId="PlayerCharacter_Holdings_Table"
+                                                          ItemsSource="{Binding HoldingsItems}"
+                                                          SelectedItem="{Binding SelectedHoldingItem, Mode=TwoWay}">
+                                                    <ListView.ItemContainerStyle>
+                                                        <Style TargetType="{x:Type ListViewItem}">
+                                                            <Setter Property="AutomationProperties.AutomationId" Value="{Binding AutomationId}"/>
+                                                        </Style>
+                                                    </ListView.ItemContainerStyle>
+                                                    <ListView.View>
+                                                        <GridView>
+                                                            <GridViewColumn Header="Название" Width="170" DisplayMemberBinding="{Binding Name}"/>
+                                                            <GridViewColumn Header="Тип" Width="120" DisplayMemberBinding="{Binding Type}"/>
+                                                            <GridViewColumn Header="Статус" Width="90" DisplayMemberBinding="{Binding StatusLabel}"/>
+                                                            <GridViewColumn Header="Описание" Width="260" DisplayMemberBinding="{Binding Preview}"/>
+                                                        </GridView>
+                                                    </ListView.View>
+                                                </ListView>
+                                            </Grid>
+                                        </Border>
+                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <StackPanel>
+                                                    <TextBlock Text="Карточка владения" FontWeight="Bold" FontSize="16"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.Name, TargetNullValue=Владение не выбрано}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="Тип" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.Type, StringFormat=Тип: {0}, TargetNullValue=Тип не указан}" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.OwnersDisplay, StringFormat=Владельцы: {0}, TargetNullValue=Владельцы: —}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.StatusLabel, StringFormat=Статус: {0}, TargetNullValue=Статус: —}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="Описание" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.Description, TargetNullValue=Описание отсутствует}" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="Заметки" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                    <TextBlock Text="{Binding SelectedHoldingItem.Notes, TargetNullValue=Заметок нет}" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </ScrollViewer>
+                                        </Border>
+                                    </Grid>
+                                </TabItem>
+
+                                <TabItem Header="Репутация">
+                                    <Grid Margin="4">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                            <StackPanel>
+                                                <TextBlock Text="Репутация" FontWeight="Bold" FontSize="16"/>
+                                                <TextBlock Text="Отношения с фракциями, локациями и группами." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                                                <ListBox x:Name="ReputationList" AutomationProperties.AutomationId="PlayerCharacter_Reputation_Table" ItemsSource="{Binding ReputationRows}">
+                                                    <ListBox.ItemContainerStyle>
+                                                        <Style TargetType="{x:Type ListBoxItem}">
+                                                            <Setter Property="AutomationProperties.AutomationId" Value="{Binding AutomationId}"/>
+                                                        </Style>
+                                                    </ListBox.ItemContainerStyle>
+                                                    <ListBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,0,0,6">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <StackPanel>
+                                                                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                                        <TextBlock Text="{Binding TargetTypeLabel}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
+                                                                    </StackPanel>
+                                                                    <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                                                        <TextBlock Text="{Binding ValueText}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                                                                        <TextBlock Text="{Binding RelationshipLabel}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right"/>
+                                                                    </StackPanel>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ListBox.ItemTemplate>
+                                                </ListBox>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="Карточка репутации" FontWeight="Bold" FontSize="16"/>
+                                                <TextBlock Text="{Binding ElementName=ReputationList, Path=SelectedItem.Label, TargetNullValue=Репутация не выбрана}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                <TextBlock Text="{Binding ElementName=ReputationList, Path=SelectedItem.TargetTypeLabel, StringFormat=Тип цели: {0}, TargetNullValue=Тип цели: —}" Margin="0,4,0,0"/>
+                                                <TextBlock Text="{Binding ElementName=ReputationList, Path=SelectedItem.ScopeTypeLabel, StringFormat=Область: {0}, TargetNullValue=Область: —}" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{Binding ElementName=ReputationList, Path=SelectedItem.StatusLabel, StringFormat=Статус: {0}, TargetNullValue=Статус: —}" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{Binding ElementName=ReputationList, Path=SelectedItem.RelationshipLabel, StringFormat=Отношение: {0}, TargetNullValue=Отношение: —}" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{Binding ElementName=ReputationList, Path=SelectedItem.NotesPreview, TargetNullValue=Заметок нет}" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                <Border Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,10,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding ElementName=ReputationList, Path=SelectedItem.ValueText, TargetNullValue=—}" FontWeight="SemiBold"/>
+                                                        <ProgressBar Minimum="0"
+                                                                     Maximum="100"
+                                                                     Value="{Binding ElementName=ReputationList, Path=SelectedItem.Percent}"
+                                                                     Foreground="{Binding ElementName=ReputationList, Path=SelectedItem.BarBrush}"
+                                                                     Background="{StaticResource PanelBrush}"
+                                                                     Height="16"
+                                                                     Margin="0,6,0,0"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </TabItem>
+
+                                <TabItem Header="Знания">
+                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="4">
+                                        <StackPanel>
+                                            <TextBlock Text="Знания персонажа" FontWeight="Bold" FontSize="16"/>
+                                            <TextBlock Text="Языки, локации, технологии, рецепты и сведения." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                            <ListBox ItemsSource="{Binding CharacterKnowledgeRows}" MinHeight="260"/>
+                                        </StackPanel>
+                                    </Border>
+                                </TabItem>
+
+                                <TabItem Header="Исследования">
+                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="4">
+                                        <StackPanel>
+                                            <TextBlock Text="Исследования" FontWeight="Bold" FontSize="16"/>
+                                            <TextBlock Text="Активные исследования, чертежи, методики и проекты." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                            <ListBox ItemsSource="{Binding CharacterResearchRows}" MinHeight="260"/>
+                                        </StackPanel>
+                                    </Border>
+                                </TabItem>
+
+                                <TabItem Header="Крафт">
+                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="4">
+                                        <StackPanel>
+                                            <TextBlock Text="Крафт" FontWeight="Bold" FontSize="16"/>
+                                            <TextBlock Text="Рецепты, материалы, активные работы и заявки GM." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                            <ListBox ItemsSource="{Binding CharacterCraftingRows}" MinHeight="260"/>
+                                        </StackPanel>
+                                    </Border>
+                                </TabItem>
+
+                                <TabItem Header="Заметки">
+                                    <Grid Margin="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.1*"/>
+                                            <ColumnDefinition Width="1.4*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                            <StackPanel>
+                                            <TextBlock Text="Локальные заметки" FontWeight="Bold" FontSize="16"/>
+                                                <TextBlock Text="{Binding LocalNoteStatusText}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                                                <ListBox ItemsSource="{Binding LocalNotes}" SelectedItem="{Binding SelectedLocalNote, Mode=TwoWay}" MinHeight="260">
+                                                    <ListBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,0,0,6">
+                                                                <StackPanel>
+                                                            <TextBlock Text="{Binding Title}"
+                                                                       FontWeight="SemiBold"
+                                                                       AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                       AutomationProperties.Name="{Binding Title}"/>
+                                                                    <TextBlock Text="{Binding Preview}" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                                                                    <TextBlock Text="{Binding UpdatedAtLocalText}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ListBox.ItemTemplate>
+                                                </ListBox>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="Редактор заметки" FontWeight="Bold" FontSize="16"/>
+                                                <TextBox Margin="0,8,0,0" Text="{Binding LocalNoteTitle, UpdateSourceTrigger=PropertyChanged}" ToolTip="Заголовок заметки"/>
+                                                <TextBox Margin="0,8,0,0" Height="180" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding LocalNoteText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Текст заметки"/>
+                                                <WrapPanel Margin="0,8,0,0">
+                                                    <Button Content="Добавить заметку" Command="{Binding LocalNoteAddCommand}"/>
+                                                    <Button Content="Сохранить" Command="{Binding LocalNoteSaveCommand}" Margin="6,0,0,0"/>
+                                                    <Button Content="Удалить" Command="{Binding LocalNoteDeleteCommand}" Margin="6,0,0,0"/>
+                                                    <Button Content="Очистить" Command="{Binding LocalNoteClearCommand}" Margin="6,0,0,0"/>
+                                                </WrapPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </TabItem>
+
+                                <TabItem Header="Компаньоны">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="280"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ListBox x:Name="CompanionList"
+                                                 AutomationProperties.AutomationId="PlayerCharacter_Companions_Table"
+                                                 ItemsSource="{Binding Companions}"
+                                                 SelectedItem="{Binding SelectedCompanion, Mode=TwoWay}"
+                                                 DisplayMemberPath="NameDisplay">
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="{x:Type ListBoxItem}">
+                                                    <Setter Property="AutomationProperties.AutomationId" Value="{Binding AutomationId}"/>
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                        </ListBox>
+                                        <TabControl Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedCompanion}">
+                                            <TabItem Header="Обзор">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <Grid Margin="4">
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                        </Grid.RowDefinitions>
+                                                        <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="2*"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="{Binding NameDisplay}" FontSize="22" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding SpeciesDisplay, StringFormat=Тип: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                                    <TextBlock Text="{Binding StatusLabel, StringFormat=Статус: {0}}" Foreground="{StaticResource MutedBrush}"/>
+                                                                    <TextBlock Text="{Binding OwnerCharacterId, StringFormat=Владелец: {0}}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                                                </StackPanel>
+                                                                <StackPanel Grid.Column="1">
+                                                                    <TextBlock Text="Описание" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding Description, TargetNullValue=Описание отсутствует}" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                                                                    <TextBlock Text="Заметки" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding NotesDisplay}" TextWrapping="Wrap"/>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                        <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Показатели" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Border Grid.Column="0" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="Витальные" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                            <ItemsControl ItemsSource="{Binding CoreStatRows}">
+                                                                                <ItemsControl.ItemTemplate>
+                                                                                    <DataTemplate>
+                                                                                        <DockPanel Margin="0,2,0,2">
+                                                                                            <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                            <TextBlock Text="{Binding Value}" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                                        </DockPanel>
+                                                                                    </DataTemplate>
+                                                                                </ItemsControl.ItemTemplate>
+                                                                            </ItemsControl>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="Характеристики" FontWeight="Bold" Margin="0,0,0,6"/>
+                                                                            <TextBlock Text="Таблица характеристик"
+                                                                                       FontSize="1"
+                                                                                       Opacity="0.01"
+                                                                                       Height="1"
+                                                                                       AutomationProperties.AutomationId="PlayerCharacter_Attributes_Table"/>
+                                                                            <ItemsControl ItemsSource="{Binding AttributeStatRows}"
+                                                                                          AutomationProperties.AutomationId="PlayerCharacter_Attributes_Table">
+                                                                                <ItemsControl.ItemTemplate>
+                                                                                    <DataTemplate>
+                                                                                        <StackPanel Margin="0,2,0,4"
+                                                                                                    AutomationProperties.AutomationId="{Binding AttributeGroupAutomationId}">
+                                                                                            <DockPanel>
+                                                                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                                <TextBlock Text="{Binding Value}"
+                                                                                                           AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                                           FontWeight="Bold"
+                                                                                                           HorizontalAlignment="Right"/>
+                                                                                            </DockPanel>
+                                                                                            <ItemsControl ItemsSource="{Binding SubAttributes}" Margin="18,2,0,0">
+                                                                                                <ItemsControl.ItemTemplate>
+                                                                                                    <DataTemplate>
+                                                                                                        <DockPanel Margin="0,1,0,1">
+                                                                                                            <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                                                                            <TextBlock Text="{Binding Value}"
+                                                                                                                       AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                                                       FontSize="11"
+                                                                                                                       FontWeight="SemiBold"
+                                                                                                                       HorizontalAlignment="Right"/>
+                                                                                                        </DockPanel>
+                                                                                                    </DataTemplate>
+                                                                                                </ItemsControl.ItemTemplate>
+                                                                                            </ItemsControl>
+                                                                                        </StackPanel>
+                                                                                    </DataTemplate>
+                                                                                </ItemsControl.ItemTemplate>
+                                                                            </ItemsControl>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </Grid>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Инвентарь" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
+                                                                <TextBlock Text="Предметы и снаряжение компаньона." Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
+                                                                <ListBox ItemsSource="{Binding InventoryRows}"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </ScrollViewer>
+                                            </TabItem>
+                                            <TabItem Header="Владения">
+                                                <Grid Margin="4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="1.1*"/>
+                                                        <ColumnDefinition Width="1.4*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="*"/>
+                                                            </Grid.RowDefinitions>
+                                                            <StackPanel>
+                                                                <TextBlock Text="Владения компаньона" FontWeight="Bold" FontSize="16"/>
+                                                                <TextBlock Text="Имущество и активы, связанные с компаньоном." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                                <ListBox x:Name="CompanionHoldingsList" ItemsSource="{Binding HoldingsRows}"/>
+                                                            </ScrollViewer>
+                                                        </Grid>
+                                                    </Border>
+                                                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Карточка владения" FontWeight="Bold" FontSize="16"/>
+                                                                <TextBlock Text="{Binding ElementName=CompanionHoldingsList, Path=SelectedItem, TargetNullValue=Владение не выбрано}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                                <TextBlock Text="Выберите владение, чтобы увидеть подробности." TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                                            </StackPanel>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </Grid>
+                                            </TabItem>
+                                            <TabItem Header="Навыки">
+                                                <Grid Margin="4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="1.1*"/>
+                                                        <ColumnDefinition Width="1.4*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="*"/>
+                                                            </Grid.RowDefinitions>
+                                                            <StackPanel>
+                                                                <TextBlock Text="Навыки компаньона" FontWeight="Bold" FontSize="16"/>
+                                                                <TextBlock Text="Известные навыки и развитие компаньона." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                                <ListBox x:Name="CompanionSkillsList" ItemsSource="{Binding SkillsRows}"/>
+                                                            </ScrollViewer>
+                                                        </Grid>
+                                                    </Border>
+                                                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Карточка навыка" FontWeight="Bold" FontSize="16"/>
+                                                                <TextBlock Text="{Binding ElementName=CompanionSkillsList, Path=SelectedItem, TargetNullValue=Навык не выбран}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                                <TextBlock Text="Тип" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                                <TextBlock Text="Уровень / ранг / источник"/>
+                                                                <TextBlock Text="Описание" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                                <TextBlock Text="Выберите навык, чтобы увидеть подробности." TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </Grid>
+                                            </TabItem>
+                                            <TabItem Header="Знания">
+                                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="4">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Знания компаньона" FontWeight="Bold" FontSize="16"/>
+                                                        <TextBlock Text="Языки, локации, технологии и сведения компаньона." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <ListBox ItemsSource="{Binding KnowledgeRows}" MinHeight="240"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </TabItem>
+                                            <TabItem Header="Исследования">
+                                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="4">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Исследования компаньона" FontWeight="Bold" FontSize="16"/>
+                                                        <TextBlock Text="Исследования компаньона пока отсутствуют." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <ListBox ItemsSource="{Binding ResearchRows}" MinHeight="240"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </TabItem>
+                                            <TabItem Header="Крафт">
+                                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="4">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Крафт компаньона" FontWeight="Bold" FontSize="16"/>
+                                                        <TextBlock Text="Крафт компаньона будет добавлен позже." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                        <ListBox ItemsSource="{Binding CraftingRows}" MinHeight="240"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </TabItem>
+                                            <TabItem Header="Развитие">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="*"/>
+                                                        </Grid.RowDefinitions>
+                                                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Направления развития компаньона." Foreground="{StaticResource MutedBrush}"/>
+                                                                <controls:ClassHexDirectionView Height="280" Margin="8"
+                                                                                            DirectionSelectCommand="{Binding DataContext.AcquireClassNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Grid Grid.Row="1" Margin="0,8,0,0">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="1.1*"/>
+                                                                <ColumnDefinition Width="1.1*"/>
+                                                                <ColumnDefinition Width="1.4*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                                <Grid>
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                        <RowDefinition Height="*"/>
+                                                                    </Grid.RowDefinitions>
+                                                                    <StackPanel>
+                                                                        <TextBlock Text="Направления" FontWeight="Bold" FontSize="16"/>
+                                                                        <TextBlock Text="{Binding DataContext.SelectedClassDirectionDisplay, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                                                                    </StackPanel>
+                                                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                                        <ListBox ItemsSource="{Binding DataContext.ClassBranches, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                             SelectedItem="{Binding DataContext.SelectedClassBranch, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}">
+                                                                            <ListBox.ItemTemplate>
+                                                                                <DataTemplate>
+                                                                                    <Border Style="{StaticResource CardStyle}" Background="#FF223452">
+                                                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Title}"
+                                                                       FontWeight="SemiBold"
+                                                                       AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                       AutomationProperties.Name="{Binding Title}"/>
+                                                                                            <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                                        </StackPanel>
+                                                                                    </Border>
+                                                                                </DataTemplate>
+                                                                            </ListBox.ItemTemplate>
+                                                                        </ListBox>
+                                                                    </ScrollViewer>
+                                                                </Grid>
+                                                            </Border>
+                                                            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                                <Grid>
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                        <RowDefinition Height="*"/>
+                                                                    </Grid.RowDefinitions>
+                                                                    <StackPanel>
+                                                                        <TextBlock Text="Ветки" FontWeight="Bold" FontSize="16"/>
+                                                                        <TextBlock Text="{Binding DataContext.SelectedClassBranchTitle, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                                                                    </StackPanel>
+                                                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                                        <ListBox ItemsSource="{Binding DataContext.ClassEntries, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                             SelectedItem="{Binding DataContext.SelectedClassEntry, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}">
+                                                                            <ListBox.ItemTemplate>
+                                                                                <DataTemplate>
+                                                                                    <Border Style="{StaticResource CardStyle}" Background="#FF223452">
+                                                                                        <StackPanel>
+                                                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                                                                            <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                                        </StackPanel>
+                                                                                    </Border>
+                                                                                </DataTemplate>
+                                                                            </ListBox.ItemTemplate>
+                                                                        </ListBox>
+                                                                    </ScrollViewer>
+                                                                </Grid>
+                                                            </Border>
+                                                            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                                <StackPanel>
+                                                                    <TextBlock Text="Выбранное развитие" FontWeight="Bold" FontSize="16"/>
+                                                                    <TextBlock Text="{Binding DataContext.SelectedClassEntryTitle, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                                    <TextBlock Text="{Binding DataContext.SelectedClassEntrySummary, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                    <Border Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,10,0,0">
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="Требования" Foreground="{StaticResource MutedBrush}"/>
+                                                                            <TextBlock Text="{Binding DataContext.SelectedClassDirectionDisplay, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="SemiBold"/>
+                                                                            <TextBlock Text="{Binding DataContext.SelectedClassEntryRequirements, RelativeSource={RelativeSource AncestorType=Window}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                    <TextBlock Text="Развитие через клиент игрока пока доступно как просмотр." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </Grid>
+                                                    </Grid>
+                                                </ScrollViewer>
+                                            </TabItem>
+                                        </TabControl>
+                                    </Grid>
+                                </TabItem>
+
+                                <TabItem Header="Навыки" AutomationProperties.AutomationId="PlayerCharacter_Skills_Tab">
+                                    <Grid Margin="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.45*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                            <DockPanel LastChildFill="True">
+                                                <StackPanel DockPanel.Dock="Top">
+                                                    <TextBlock Text="Навыки персонажа" FontWeight="Bold" FontSize="16"/>
+                                                    <TextBlock Text="Показаны только раскрытые игроку навыки. Бонус проверки рассчитывается сервером." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                                <DataGrid x:Name="CharacterSkillsList"
+                                                          AutomationProperties.AutomationId="PlayerCharacter_Skills_Table"
+                                                          HeadersVisibility="Column"
+                                                          ItemsSource="{Binding SkillRows}"
+                                                          SelectedItem="{Binding SelectedSkillRow, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          AutoGenerateColumns="False"
+                                                          IsReadOnly="True"
+                                                          MinHeight="320"
+                                                          HorizontalScrollBarVisibility="Auto">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="Навык" Binding="{Binding DisplayName}" Width="1.4*"/>
+                                                        <DataGridTextColumn Header="Код" Binding="{Binding SkillCode}" Width="1*"/>
+                                                        <DataGridTextColumn Header="Ранг" Binding="{Binding Rank}" Width="70"/>
+                                                        <DataGridTextColumn Header="Бонус" Binding="{Binding TotalBonus}" Width="80"/>
+                                                        <DataGridTextColumn Header="Разбор" Binding="{Binding Breakdown}" Width="2*"/>
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                            </DockPanel>
+                                        </Border>
+                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="Карточка навыка" FontWeight="Bold" FontSize="16"/>
+                                                <TextBlock Text="{Binding SelectedSkillRow.DisplayName, TargetNullValue=Навык не выбран}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                <TextBlock Text="{Binding SelectedSkillRow.SkillCode}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
+                                                <TextBlock Text="Итоговый бонус" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,0"/>
+                                                <TextBlock AutomationProperties.AutomationId="{Binding SelectedSkillRow.SkillCode, StringFormat=PlayerCharacter_Skill_{0}_TotalBonus}" Text="{Binding SelectedSkillRow.TotalBonus, TargetNullValue=—}" FontSize="20" FontWeight="Bold"/>
+                                                <TextBlock Text="Разбор" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,0"/>
+                                                <TextBlock AutomationProperties.AutomationId="{Binding SelectedSkillRow.SkillCode, StringFormat=PlayerCharacter_Skill_{0}_Breakdown}" Text="{Binding SelectedSkillRow.Breakdown, TargetNullValue=—}" TextWrapping="Wrap"/>
+                                                <Button Margin="0,12,0,0"
+                                                        AutomationProperties.AutomationId="PlayerCharacter_SkillCheck_Button"
+                                                        Content="Проверка навыка"
+                                                        Command="{Binding SkillCheckRollCommand}"/>
+                                                <TextBlock Margin="0,8,0,0" Text="{Binding SelectedSkillSummary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </TabItem>
+
+                                <TabItem Header="Развитие" AutomationProperties.AutomationId="PlayerCharacter_Development_Tab">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+                                            <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}"
+                                                    AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_TreeSelector">
+                                                <StackPanel>
+                                                    <TextBlock Text="Шестиугольники развития" FontWeight="Bold" FontSize="16"/>
+                                                    <TextBlock Text="Выберите основной путь или магию. Покупка классов доступна только через узлы развития." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                                                    <ListBox ItemsSource="{Binding DevelopmentHexagons}"
+                                                             SelectedValue="{Binding SelectedDevelopmentHexagonId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             SelectedValuePath="HexagonId"
+                                                             AutomationProperties.AutomationId="PlayerDevelopment_Hexagon_List"
+                                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                        <ListBox.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel/>
+                                                            </ItemsPanelTemplate>
+                                                        </ListBox.ItemsPanel>
+                                                        <ListBox.ItemContainerStyle>
+                                                            <Style TargetType="{x:Type ListBoxItem}">
+                                                                <Setter Property="AutomationProperties.AutomationId" Value="{Binding AutomationId}"/>
+                                                            </Style>
+                                                        </ListBox.ItemContainerStyle>
+                                                        <ListBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Style="{StaticResource CardStyle}" Background="#FF223452" MinWidth="180">
+                                                                    <StackPanel>
+                                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                                        <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ListBox.ItemTemplate>
+                                                    </ListBox>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,0" Background="{StaticResource PanelAltBrush}"
+                                                    AutomationProperties.AutomationId="PlayerDevelopment_Hexagon_View">
+                                                <StackPanel>
+                                                    <TextBlock Text="Направление развития"
+                                                               FontWeight="Bold"
+                                                               FontSize="16"
+                                                               AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_Route"/>
+                                                    <TextBlock Text="{Binding SelectedDevelopmentHexagonDisplay}" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                                                    <TextBlock Text="Выберите направление и доступный узел развития персонажа." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                                                    <WrapPanel Margin="0,0,0,8">
+                                                        <Button Content="Вписать"
+                                                                Command="{Binding FitToViewDevelopmentHexagonCommand}"
+                                                                Click="PlayerDevelopmentHexagonViewer_FitToView_Click"
+                                                                Style="{StaticResource GhostButtonStyle}"
+                                                                AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_FitToView"
+                                                                Margin="0,0,6,6"/>
+                                                        <TextBox Width="220"
+                                                                 Text="{Binding DevelopmentViewerSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                 ToolTip="Поиск по узлам развития"
+                                                                 AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_SearchBox"
+                                                                 Margin="0,0,6,6"/>
+                                                        <Button Content="Очистить"
+                                                                Command="{Binding DevelopmentViewerSearchClearCommand}"
+                                                                Style="{StaticResource GhostButtonStyle}"
+                                                                Margin="0,0,6,6"/>
+                                                        <TextBlock Text="{Binding DevelopmentViewerSearchResultCountText}"
+                                                                   AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_SearchResultCount"
+                                                                   Foreground="{StaticResource MutedBrush}"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,8,6"/>
+                                                        <Button Content="←"
+                                                                Command="{Binding DevelopmentViewerSearchPreviousCommand}"
+                                                                Style="{StaticResource GhostButtonStyle}"
+                                                                Margin="0,0,4,6"/>
+                                                        <Button Content="→"
+                                                                Command="{Binding DevelopmentViewerSearchNextCommand}"
+                                                                Style="{StaticResource GhostButtonStyle}"
+                                                                Margin="0,0,10,6"/>
+                                                        <TextBlock Text="{Binding DevelopmentViewerZoomText}"
+                                                                   Foreground="{StaticResource MutedBrush}"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,12,6"/>
+                                                        <TextBlock Text="{Binding DevelopmentViewerModeText}"
+                                                                   AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_CanonicalHexMode"
+                                                                   Foreground="{StaticResource MutedBrush}"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,12,6"/>
+                                                        <ComboBox Width="210"
+                                                                  ItemsSource="{Binding DevelopmentViewerCanonicalDirections}"
+                                                                  SelectedValue="{Binding DevelopmentViewerFocusedDirectionKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  SelectedValuePath="DirectionId"
+                                                                  DisplayMemberPath="FullDisplayName"
+                                                                  AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_DirectionFocusSelector"
+                                                                  Margin="0,0,8,6"/>
+                                                        <CheckBox Content="Легенда"
+                                                                  IsChecked="{Binding DevelopmentViewerShowLegend, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                  VerticalAlignment="Center"
+                                                                  Margin="0,0,0,6"/>
+                                                    </WrapPanel>
+                                                    <Border Background="#FF142033"
+                                                            BorderBrush="#FF2F4265"
+                                                            BorderThickness="1"
+                                                            CornerRadius="6"
+                                                            Padding="8"
+                                                            Margin="0,0,0,8"
+                                                            Visibility="{Binding DevelopmentViewerLegendVisibility}"
+                                                            AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_LegendPanel_Container">
+                                                        <StackPanel>
+                                                            <TextBlock Text="Легенда"
+                                                                       AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_LegendPanel"
+                                                                       FontWeight="Bold"/>
+                                                            <TextBlock Text="Связь идёт от требования к узлу, который она открывает. Скрытые GM-узлы игроку не передаются."
+                                                                       Foreground="{StaticResource MutedBrush}"
+                                                                       TextWrapping="Wrap"
+                                                                       AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_LinkDirectionText"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <TextBlock Text="Канва развития"
+                                                               Foreground="{StaticResource MutedBrush}"
+                                                               AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_Canvas"
+                                                               Margin="0,0,0,4"/>
+                                                    <Border Background="#FF142033"
+                                                            BorderBrush="#FF2F4265"
+                                                            BorderThickness="1"
+                                                            CornerRadius="6"
+                                                            Padding="8"
+                                                            Margin="0,0,0,8"
+                                                            AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_TreeModeOverlay_Container">
+                                                        <TextBlock Text="{Binding DevelopmentTreeModeOverlayText}"
+                                                                   Foreground="{StaticResource TextBrush}"
+                                                                   TextWrapping="Wrap"
+                                                                   AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_TreeModeOverlay"/>
+                                                    </Border>
+                                                    <Border Background="#FF101827"
+                                                            BorderBrush="#FF2F4265"
+                                                            BorderThickness="1"
+                                                            CornerRadius="6"
+                                                            Padding="8"
+                                                            Margin="0,0,0,10">
+                                                        <ScrollViewer x:Name="PlayerDevelopmentLayoutScrollViewer"
+                                                                      HorizontalScrollBarVisibility="Auto"
+                                                                      VerticalScrollBarVisibility="Auto"
+                                                                      MaxHeight="420"
+                                                                      AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_NodeList">
+                                                            <Grid Width="{Binding DevelopmentViewerWorkspaceWidth}"
+                                                                  Height="{Binding DevelopmentViewerWorkspaceHeight}">
+                                                                <Grid.LayoutTransform>
+                                                                    <ScaleTransform ScaleX="{Binding DevelopmentViewerZoom}" ScaleY="{Binding DevelopmentViewerZoom}"/>
+                                                                </Grid.LayoutTransform>
+                                                                <Grid.RenderTransform>
+                                                                    <TranslateTransform X="{Binding DevelopmentViewerViewportTranslateX}"
+                                                                                        Y="{Binding DevelopmentViewerViewportTranslateY}"/>
+                                                                </Grid.RenderTransform>
+                                                                <Border Width="{Binding DevelopmentViewerWorkspaceWidth}"
+                                                                        Height="{Binding DevelopmentViewerWorkspaceHeight}"
+                                                                        Background="Transparent"
+                                                                        IsHitTestVisible="False"
+                                                                        AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_LinkLayer">
+                                                                    <ItemsControl ItemsSource="{Binding DevelopmentCanvasLinks}"
+                                                                                  IsHitTestVisible="False">
+                                                                        <ItemsControl.ItemsPanel>
+                                                                            <ItemsPanelTemplate>
+                                                                                <Canvas Background="Transparent" ClipToBounds="True"/>
+                                                                            </ItemsPanelTemplate>
+                                                                        </ItemsControl.ItemsPanel>
+                                                                        <ItemsControl.ItemTemplate>
+                                                                            <DataTemplate>
+                                                                                <Canvas>
+                                                                                    <Line X1="{Binding X1}"
+                                                                                          Y1="{Binding Y1}"
+                                                                                          X2="{Binding X2}"
+                                                                                          Y2="{Binding Y2}"
+                                                                                          StrokeThickness="3"
+                                                                                          Stroke="#FF8BC5FF"
+                                                                                          Opacity="0.7"/>
+                                                                                    <Polygon Points="{Binding ArrowPoints}"
+                                                                                             Fill="#FF8BC5FF"
+                                                                                             Opacity="0.9"/>
+                                                                                </Canvas>
+                                                                            </DataTemplate>
+                                                                        </ItemsControl.ItemTemplate>
+                                                                    </ItemsControl>
+                                                                </Border>
+                                                                <ItemsControl ItemsSource="{Binding DevelopmentViewerCanonicalLanes}"
+                                                                              Visibility="{Binding DevelopmentViewerCanonicalLayerVisibility}"
+                                                                              IsHitTestVisible="False">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <Canvas Background="Transparent" ClipToBounds="True"/>
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Line X1="{Binding X1}"
+                                                                                  Y1="{Binding Y1}"
+                                                                                  X2="{Binding X2}"
+                                                                                  Y2="{Binding Y2}"
+                                                                                  Stroke="{Binding StrokeBrush}"
+                                                                                  StrokeThickness="{Binding StrokeThickness}"
+                                                                                  Opacity="{Binding Opacity}"/>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <ItemsControl Width="{Binding DevelopmentViewerWorkspaceWidth}"
+                                                                              Height="{Binding DevelopmentViewerWorkspaceHeight}"
+                                                                              ItemsSource="{Binding VisibleDevelopmentCanvasNodes}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <Canvas Background="Transparent" ClipToBounds="True"/>
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemContainerStyle>
+                                                                    <Style TargetType="{x:Type ContentPresenter}">
+                                                                        <Setter Property="Canvas.Left" Value="{Binding PositionX}"/>
+                                                                        <Setter Property="Canvas.Top" Value="{Binding PositionY}"/>
+                                                                    </Style>
+                                                                </ItemsControl.ItemContainerStyle>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Button Width="{Binding NodeWidth}"
+                                                                                Height="{Binding NodeHeight}"
+                                                                                Opacity="{Binding VisualOpacity}"
+                                                                                Visibility="{Binding VisualVisibility}"
+                                                                                Command="{Binding DataContext.AcquireClassNodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                                CommandParameter="{Binding NodeId}"
+                                                                                AutomationProperties.AutomationId="{Binding NodeId, StringFormat=PlayerDevelopmentHexagonViewer_Node_{0}}"
+                                                                                AutomationProperties.Name="{Binding AccessibleTitle}">
+                                                                            <Button.Style>
+                                                                                <Style TargetType="{x:Type Button}">
+                                                                                    <Setter Property="Background" Value="#FF1D3153"/>
+                                                                                    <Setter Property="BorderBrush" Value="#FF4A6FA8"/>
+                                                                                    <Setter Property="Foreground" Value="#FFE7F0FF"/>
+                                                                                    <Setter Property="Padding" Value="6"/>
+                                                                                    <Setter Property="Margin" Value="0"/>
+                                                                                </Style>
+                                                                            </Button.Style>
+                                                                            <StackPanel>
+                                                                                <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold" TextWrapping="Wrap" MaxHeight="34"/>
+                                                                                <WrapPanel Margin="0,3,0,0">
+                                                                                    <TextBlock Text="{Binding DisplayTypeLabel}" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,6,0"/>
+                                                                                    <TextBlock Text="{Binding DisplayState}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                                                                </WrapPanel>
+                                                                                <TextBlock Text="{Binding CostText}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                                                                <TextBlock Text="{Binding SearchBadgeText}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                                                            </StackPanel>
+                                                                        </Button>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <ItemsControl ItemsSource="{Binding DevelopmentViewerCanonicalDirections}"
+                                                                              Visibility="{Binding DevelopmentViewerCanonicalLayerVisibility}"
+                                                                              IsHitTestVisible="False"
+                                                                              AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_DirectionLabels">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <Canvas Background="Transparent" ClipToBounds="True"/>
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="{x:Type ContentPresenter}">
+                                                                            <Setter Property="Canvas.Left" Value="{Binding AnchorX}"/>
+                                                                            <Setter Property="Canvas.Top" Value="{Binding AnchorY}"/>
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Button Width="{Binding AnchorWidth}"
+                                                                                    Height="{Binding AnchorHeight}"
+                                                                                    Opacity="{Binding VisualOpacity}"
+                                                                                    Padding="0"
+                                                                                    BorderThickness="0"
+                                                                                    Background="Transparent"
+                                                                                    Focusable="False"
+                                                                                    IsHitTestVisible="False"
+                                                                                    AutomationProperties.AutomationId="{Binding PlayerAnchorAutomationId}"
+                                                                                    AutomationProperties.Name="{Binding FullDisplayName}">
+                                                                                <Grid>
+                                                                                    <Polygon Points="{Binding AnchorHexPoints}"
+                                                                                             Fill="#DD1B3556"
+                                                                                             Stroke="#FF9ED8FF"
+                                                                                             StrokeThickness="2.4"/>
+                                                                                    <StackPanel VerticalAlignment="Center"
+                                                                                                HorizontalAlignment="Center"
+                                                                                                Margin="10,0">
+                                                                                        <TextBlock Text="{Binding DisplayName}"
+                                                                                                   FontWeight="SemiBold"
+                                                                                                   Foreground="#FFEAF6FF"
+                                                                                                   TextAlignment="Center"/>
+                                                                                        <TextBlock Text="{Binding AtmosphericName}"
+                                                                                                   Foreground="{StaticResource MutedBrush}"
+                                                                                                   FontSize="11"
+                                                                                                   TextAlignment="Center"/>
+                                                                                    </StackPanel>
+                                                                                </Grid>
+                                                                            </Button>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <ItemsControl ItemsSource="{Binding DevelopmentViewerCanonicalRoots}"
+                                                                              Visibility="{Binding DevelopmentViewerCanonicalLayerVisibility}"
+                                                                              IsHitTestVisible="False">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <Canvas Background="Transparent" ClipToBounds="True"/>
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="{x:Type ContentPresenter}">
+                                                                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                                                                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Button Width="{Binding Width}"
+                                                                                    Height="{Binding Height}"
+                                                                                    Padding="0"
+                                                                                    BorderThickness="0"
+                                                                                    Background="Transparent"
+                                                                                    Focusable="False"
+                                                                                    IsHitTestVisible="False"
+                                                                                    AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                    AutomationProperties.Name="{Binding Label}">
+                                                                                <Grid>
+                                                                                    <Polygon Points="{Binding HexPoints}"
+                                                                                             Fill="#EE214C45"
+                                                                                             Stroke="{StaticResource SuccessBrush}"
+                                                                                             StrokeThickness="4"/>
+                                                                                    <TextBlock Text="{Binding Label}"
+                                                                                               FontSize="24"
+                                                                                               FontWeight="Bold"
+                                                                                               Foreground="#FFFFFFFF"
+                                                                                               HorizontalAlignment="Center"
+                                                                                               VerticalAlignment="Center"
+                                                                                               TextAlignment="Center"
+                                                                                               TextWrapping="Wrap"
+                                                                                               Margin="22,0"/>
+                                                                                </Grid>
+                                                                            </Button>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </Grid>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                    <ItemsControl ItemsSource="{Binding ClassDirections}"
+                                                                  AutomationProperties.AutomationId="PlayerDevelopment_Hexagon">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel/>
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Button Content="{Binding Label}"
+                                                                        Command="{Binding DataContext.AcquireClassNodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding Key}"
+                                                                        AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                        Margin="0,0,8,8"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                        <Button Content="Купить узел"
+                                                                AutomationProperties.AutomationId="PlayerDevelopment_BuyNode_Button"
+                                                                Command="{Binding BuySelectedClassNodeCommand}"
+                                                                IsEnabled="{Binding CanBuySelectedClassNode}"/>
+                                                        <Button Content="Запросить открытие"
+                                                                Margin="8,0,0,0"
+                                                                AutomationProperties.AutomationId="PlayerDevelopment_RequestUnlock_Button"
+                                                                Command="{Binding RequestUnlockNodeCommand}"
+                                                                IsEnabled="{Binding CanRequestSelectedClassNode}"/>
+                                                    </StackPanel>
+                                                    <TextBox AutomationProperties.AutomationId="PlayerDevelopment_Status"
+                                                             Text="{Binding DevelopmentStatusText}"
+                                                             IsReadOnly="True"
+                                                             IsTabStop="False"
+                                                             BorderThickness="0"
+                                                             Background="Transparent"
+                                                             Foreground="{StaticResource MutedBrush}"
+                                                             TextWrapping="Wrap"
+                                                             Margin="0,8,0,0"/>
+                                                    <TextBlock Text="{Binding DevelopmentViewerPurchaseExplanation}"
+                                                               AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_PurchaseExplanation"
+                                                               Foreground="{StaticResource MutedBrush}"
+                                                               TextWrapping="Wrap"
+                                                               Margin="0,6,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Grid Grid.Row="2" Margin="0,8,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="1.1*"/>
+                                                    <ColumnDefinition Width="1.1*"/>
+                                                    <ColumnDefinition Width="1.4*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="*"/>
+                                                        </Grid.RowDefinitions>
+                                                        <StackPanel>
+                                                            <TextBlock Text="Ветки развития" FontWeight="Bold" FontSize="16"/>
+                                                            <TextBlock Text="{Binding SelectedClassDirectionDisplay}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                                                        </StackPanel>
+                                                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                            <ListBox ItemsSource="{Binding ClassBranches}" SelectedItem="{Binding SelectedClassBranch, Mode=TwoWay}">
+                                                                <ListBox.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Border Style="{StaticResource CardStyle}" Background="#FF223452"
+                                                                                AutomationProperties.AutomationId="{Binding AutomationId}">
+                                                                            <StackPanel>
+                                                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                                                                <TextBlock Text="{Binding DisplayStatus}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
+                                                                                <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                            </StackPanel>
+                                                                        </Border>
+                                                                    </DataTemplate>
+                                                                </ListBox.ItemTemplate>
+                                                            </ListBox>
+                                                        </ScrollViewer>
+                                                    </Grid>
+                                                </Border>
+                                                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="*"/>
+                                                        </Grid.RowDefinitions>
+                                                        <StackPanel>
+                                                            <TextBlock Text="Узлы ветки" FontWeight="Bold" FontSize="16"/>
+                                                            <TextBlock Text="{Binding SelectedClassBranchTitle}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                                                        </StackPanel>
+                                                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                            <ListBox ItemsSource="{Binding ClassEntries}" SelectedItem="{Binding SelectedClassEntry, Mode=TwoWay}">
+                                                                <ListBox.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Border Style="{StaticResource CardStyle}" Background="#FF223452"
+                                                                                AutomationProperties.AutomationId="{Binding AutomationId}">
+                                                                            <StackPanel>
+                                                                                <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold"/>
+                                                                                <TextBlock Text="{Binding DisplayStatus}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
+                                                                                <TextBlock Text="{Binding FriendlyMetaText}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0"/>
+                                                                                <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                            </StackPanel>
+                                                                        </Border>
+                                                                    </DataTemplate>
+                                                                </ListBox.ItemTemplate>
+                                                            </ListBox>
+                                                        </ScrollViewer>
+                                                    </Grid>
+                                                </Border>
+                                                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="8,0,0,0"
+                                                        AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_SelectedNodePanel">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Карточка развития" FontWeight="Bold" FontSize="16"/>
+                                                        <TextBlock AutomationProperties.AutomationId="PlayerDevelopment_SelectedNode_Title"
+                                                                   Text="{Binding SelectedClassEntryTitle}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                                                        <TextBlock Text="{Binding SelectedClassEntrySummary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                        <Border Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,10,0,0">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Направление" Foreground="{StaticResource MutedBrush}"/>
+                                                                <TextBlock Text="{Binding SelectedClassDirectionDisplay}" FontWeight="SemiBold"/>
+                                                                <TextBlock Text="Ветка" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                                <TextBlock Text="{Binding SelectedClassBranchTitle}" FontWeight="SemiBold"/>
+                                                                <TextBlock Text="Стоимость" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                                <TextBlock AutomationProperties.AutomationId="PlayerDevelopment_SelectedNode_Cost"
+                                                                           Text="{Binding SelectedClassEntryCost}" FontWeight="SemiBold"/>
+                                                                <TextBlock Text="Тип и доступ" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                                <TextBlock Text="{Binding SelectedClassEntryMeta}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                                <TextBlock Text="Открывает" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                                <TextBlock Text="{Binding SelectedClassEntryUnlock}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                                <TextBlock Text="Статус" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                                                                <TextBlock AutomationProperties.AutomationId="PlayerDevelopment_SelectedNode_State"
+                                                                           Text="{Binding SelectedClassEntryState}" FontWeight="SemiBold"/>
+                                                                <TextBlock AutomationProperties.AutomationId="PlayerDevelopment_SelectedNode_Requirements"
+                                                                           Text="{Binding SelectedClassEntryRequirements}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                                                <TextBlock AutomationProperties.AutomationId="PlayerDevelopment_SelectedNode_Position"
+                                                                           Text="{Binding SelectedClassEntryPosition}" FontSize="1" Height="1" Opacity="0.01"/>
+                                                                <TextBlock AutomationProperties.AutomationId="PlayerDevelopment_SelectedNode_Direction"
+                                                                           Text="{Binding SelectedClassEntryDirection}" FontSize="1" Height="1" Opacity="0.01"/>
+                                                                <TextBlock AutomationProperties.AutomationId="PlayerDevelopment_SelectedNode_RequiredNodeIds"
+                                                                           Text="{Binding SelectedClassEntryRequiredNodeIds}" FontSize="1" Height="1" Opacity="0.01"/>
+                                                                <TextBlock AutomationProperties.AutomationId="PlayerDevelopment_SelectedNode_LayoutVersion"
+                                                                           Text="{Binding SelectedClassEntryLayoutVersion}" FontSize="1" Height="1" Opacity="0.01"/>
+                                                                <TextBlock Text="{Binding SelectedClassEntryReward}" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                          <Button Content="Купить узел"
+                                                                  AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_PurchaseNode"
+                                                                  Command="{Binding BuySelectedClassNodeCommand}"
+                                                                  IsEnabled="{Binding CanBuySelectedClassNode}"/>
+                                                            <Button Content="Запросить открытие"
+                                                                    Margin="8,0,0,0"
+                                                                    AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_RequestUnlock"
+                                                                    Command="{Binding RequestUnlockNodeCommand}"
+                                                                    IsEnabled="{Binding CanRequestSelectedClassNode}"/>
+                                                        </StackPanel>
+                                                        <TextBox AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_StatusText"
+                                                                 Text="{Binding DevelopmentStatusText}"
+                                                                 IsReadOnly="True"
+                                                                 IsTabStop="False"
+                                                                 BorderThickness="0"
+                                                                 Background="Transparent"
+                                                                 Foreground="{StaticResource MutedBrush}"
+                                                                 TextWrapping="Wrap"
+                                                                 Margin="0,10,0,0"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                        </Grid>
+                                    </ScrollViewer>
+                                </TabItem>
+                            </TabControl>
+                        </Grid>
 </UserControl>
+

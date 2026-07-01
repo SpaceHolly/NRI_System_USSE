@@ -16,7 +16,7 @@ public partial class ServiceHub
         var character = ResolveCharacterForClassSkill(context, actor);
         EnsureProgressCollections(character);
         EnsureCharacterDefaults(character);
-        return Ok("Character progression loaded.", BuildProgressionPayload(character));
+        return Ok("Character progression loaded.", BuildProgressionPayload(character, IsAdmin(actor)));
     }
 
     public ResponseEnvelope ProgressionAvailableRaces(CommandContext context)
@@ -39,16 +39,24 @@ public partial class ServiceHub
         var actor = GetCurrentAccount(context);
         var character = ResolveCharacterForClassSkill(context, actor);
         EnsureProgressCollections(character);
+        var includeAdmin = IsAdmin(actor);
+        var unlockedNodeIds = GetUnlockedDevelopmentNodeIds(character);
         var items = _repositories.ClassDefinitions.GetAll(includeArchived: false)
             .Where(x => x.IsActive && x.Status != DefinitionStatus.Archived)
+            .Where(x => includeAdmin || IsClassVisibleThroughUnlockedHexagon(x, unlockedNodeIds))
             .Select(x =>
             {
+                var nodeId = ResolveHexagonNodeForClass(x, string.Empty);
                 var reasons = EvaluateClassRequirements(character, x);
+                if (string.IsNullOrWhiteSpace(nodeId)) reasons.Add("Class is outside Development Hexagon.");
                 return new Dictionary<string, object>
                 {
                     { "code", x.Code }, { "name", x.Name }, { "description", x.Description },
                     { "available", reasons.Count == 0 }, { "reasons", reasons.Cast<object>().ToArray() },
-                    { "xpCoinCost", x.XpCoinCost }, { "maxLevel", x.MaxLevel }, { "unlockLevel", x.UnlockLevel }
+                    { "xpCoinCost", x.XpCoinCost }, { "maxLevel", x.MaxLevel }, { "unlockLevel", x.UnlockLevel },
+                    { "requiredHexagonId", string.IsNullOrWhiteSpace(x.RequiredHexagonId) ? "main_development_hexagon" : x.RequiredHexagonId },
+                    { "requiredNodeId", includeAdmin || unlockedNodeIds.Contains(nodeId) ? nodeId : string.Empty },
+                    { "hexagonGated", true }
                 };
             }).Cast<object>().ToArray();
         _logger.Admin($"progression.available.classes actor={actor.Login} count={items.Length}");
@@ -94,6 +102,10 @@ public partial class ServiceHub
         else if (targetType == "class")
         {
             var definition = _repositories.ClassDefinitions.GetByCode(targetCode) ?? throw new KeyNotFoundException("Class definition not found.");
+            if (!IsAdmin(actor) && !IsClassVisibleThroughUnlockedHexagon(definition, GetUnlockedDevelopmentNodeIds(character)))
+            {
+                throw new KeyNotFoundException("Class not found.");
+            }
             reasons = EvaluateClassRequirements(character, definition);
             cost = definition.XpCoinCost;
             changes.Add($"class:{definition.Code}");
@@ -135,11 +147,35 @@ public partial class ServiceHub
             _logger.Admin($"progression.denied actor={actor.Login} action=setRace character={character.Id} reason=race-inactive code={raceCode}");
             throw new InvalidOperationException("Race is not available.");
         }
-        character.RaceCode = race.Code;
-        character.Race = race.Name;
-        _repositories.Characters.Replace(character);
+        if (IsProfileNativeRaceOrSpeciesWriteEnabled())
+        {
+            var nativePayload = new Dictionary<string, object>(context.Request.Payload)
+            {
+                ["raceCode"] = race.Code,
+                ["race"] = race.Name,
+                ["raceName"] = race.Name
+            };
+            var native = _profileNativeWriteService.UpdateRaceOrSpeciesProfileNativeAsync(character.Id, nativePayload, actor.Id, context.Request.RequestId ?? string.Empty).GetAwaiter().GetResult();
+            if (!native.LegacyFacadeSynced && !native.UsedFallback)
+            {
+                return Error("Character race profile write failed.", ResponseStatus.Error, ErrorCode.InternalError);
+            }
+            character = GetCharacter(character.Id);
+            if (native.UsedFallback)
+            {
+                character.RaceCode = race.Code;
+                character.Race = race.Name;
+                _repositories.Characters.Replace(character);
+            }
+        }
+        else
+        {
+            character.RaceCode = race.Code;
+            character.Race = race.Name;
+            _repositories.Characters.Replace(character);
+        }
         _logger.Admin($"progression.apply actor={actor.Login} action=setRace character={character.Id} race={raceCode}");
-        return Ok("Race set.", BuildProgressionPayload(character));
+        return Ok("Race set.", BuildProgressionPayload(character, IsAdmin(actor)));
     }
 
     public ResponseEnvelope ProgressionLearnClass(CommandContext context)
@@ -150,6 +186,13 @@ public partial class ServiceHub
         EnsureCharacterDefaults(character);
         var classCode = RequireLength(PayloadReader.GetString(context.Request.Payload, "classCode"), 1, 128, "classCode");
         var definition = _repositories.ClassDefinitions.GetByCode(classCode) ?? throw new KeyNotFoundException("Class definition not found.");
+        var unlockedNodeIds = GetUnlockedDevelopmentNodeIds(character);
+        var nodeId = ResolveHexagonNodeForClass(definition, PayloadReader.GetString(context.Request.Payload, "nodeId") ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(nodeId) || !unlockedNodeIds.Contains(nodeId))
+        {
+            _logger.Admin($"progression.denied actor={actor.Login} action=learnClass code={classCode} reason=class-outside-unlocked-hexagon");
+            throw new KeyNotFoundException("Class not found.");
+        }
         var reasons = EvaluateClassRequirements(character, definition);
         if (reasons.Count > 0)
         {
@@ -167,7 +210,7 @@ public partial class ServiceHub
         character.CharacterClasses.Add(new CharacterClassState { ClassCode = classCode, Level = Math.Max(1, definition.UnlockLevel), LearnedUtc = DateTime.UtcNow });
         _repositories.Characters.Replace(character);
         _logger.Admin($"progression.apply actor={actor.Login} action=learnClass code={classCode} xpCost={definition.XpCoinCost}");
-        return Ok("Class learned.", BuildProgressionPayload(character));
+        return Ok("Class learned.", BuildProgressionPayload(character, IsAdmin(actor)));
     }
 
     public ResponseEnvelope ProgressionLearnSkill(CommandContext context)
@@ -195,7 +238,7 @@ public partial class ServiceHub
         character.CharacterSkills.Add(new CharacterSkillState { SkillCode = skillCode, Tier = definition.Tier, Level = 1, Acquired = true, LearnedUtc = DateTime.UtcNow });
         _repositories.Characters.Replace(character);
         _logger.Admin($"progression.apply actor={actor.Login} action=learnSkill code={skillCode} xpCost={definition.XpCoinCost}");
-        return Ok("Skill learned.", BuildProgressionPayload(character));
+        return Ok("Skill learned.", BuildProgressionPayload(character, IsAdmin(actor)));
     }
 
     private static void EnsureProgressCollections(Character character)
@@ -245,15 +288,24 @@ public partial class ServiceHub
         return Math.Max(1, character.CharacterClasses.Max(x => x.Level));
     }
 
-    private static Dictionary<string, object> BuildProgressionPayload(Character character)
+    private Dictionary<string, object> BuildProgressionPayload(Character character, bool includeAdmin)
     {
         EnsureProgressCollections(character);
+        var unlockedNodeIds = GetUnlockedDevelopmentNodeIds(character);
+        var classItems = _repositories.ClassDefinitions.GetAll(includeArchived: false)
+            .Where(x => x.IsActive && x.Status != DefinitionStatus.Archived)
+            .Where(x => includeAdmin || IsClassVisibleThroughUnlockedHexagon(x, unlockedNodeIds))
+            .Select(x => BuildHexagonClassPayload(x, unlockedNodeIds, includeAdmin))
+            .Cast<object>()
+            .ToArray();
         return new Dictionary<string, object>
         {
             { "characterId", character.Id },
             { "raceCode", character.RaceCode },
             { "xpCoins", character.XpCoins },
-            { "classes", character.CharacterClasses.Select(x => new Dictionary<string, object>{{"classCode", x.ClassCode},{"level", x.Level},{"learnedUtc", x.LearnedUtc}}).Cast<object>().ToArray() },
+            { "classes", classItems },
+            { "sourceOfTruth", "character_development_profiles" },
+            { "hexagonGated", true },
             { "skills", character.CharacterSkills.Select(x => new Dictionary<string, object>{{"skillCode", x.SkillCode},{"tier", x.Tier},{"level", x.Level},{"learnedUtc", x.LearnedUtc}}).Cast<object>().ToArray() }
         };
     }

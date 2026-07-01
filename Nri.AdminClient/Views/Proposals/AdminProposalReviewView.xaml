@@ -1,0 +1,127 @@
+<UserControl x:Class="Nri.AdminClient.Views.Proposals.AdminProposalReviewView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Padding="12" CornerRadius="8" Background="#1F2937" BorderBrush="#374151" BorderThickness="1">
+            <DockPanel LastChildFill="True">
+                <Button DockPanel.Dock="Right" Content="Обновить" Command="{Binding RefreshCommand}" Padding="12,6"/>
+                <StackPanel>
+                    <TextBlock Text="Предложения игроков" FontSize="18" FontWeight="SemiBold" Foreground="#F9FAFB"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="#CBD5E1" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.05*"/>
+                <ColumnDefinition Width="1.2*"/>
+                <ColumnDefinition Width="1.05*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Padding="12" CornerRadius="8" Background="#111827" BorderBrush="#374151" BorderThickness="1" Margin="0,0,10,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Inbox" Foreground="#F9FAFB" FontWeight="SemiBold"/>
+                        <DockPanel Margin="0,8,0,0">
+                            <TextBlock Text="Статус" Foreground="#CBD5E1" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding StatusFilter}" Width="170"/>
+                        </DockPanel>
+                    </StackPanel>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Proposals}" SelectedItem="{Binding SelectedProposal, Mode=TwoWay}" DisplayMemberPath="Display" Margin="0,10,0,10"/>
+                    <WrapPanel Grid.Row="2">
+                        <Button Content="Открыть" Command="{Binding LoadSelectedCommand}" Padding="10,6"/>
+                        <Button Content="Проверить" Command="{Binding ValidateCommand}" Padding="10,6" Margin="6,0,0,0"/>
+                        <Button Content="Архив" Command="{Binding ArchiveCommand}" Padding="10,6" Margin="6,0,0,0"/>
+                    </WrapPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Padding="12" CornerRadius="8" Background="#111827" BorderBrush="#374151" BorderThickness="1" Margin="0,0,10,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Карточка предложения" Foreground="#F9FAFB" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding SelectedSummary}" Foreground="#CBD5E1" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                    </StackPanel>
+                    <TabControl Grid.Row="1" Margin="0,10,0,10">
+                        <TabItem Header="Поля">
+                            <ListBox ItemsSource="{Binding StructuredFields}"/>
+                        </TabItem>
+                        <TabItem Header="Проверка">
+                            <ListBox ItemsSource="{Binding ValidationRows}"/>
+                        </TabItem>
+                        <TabItem Header="Ревью">
+                            <ListBox ItemsSource="{Binding ReviewRows}"/>
+                        </TabItem>
+                    </TabControl>
+                    <StackPanel Grid.Row="2">
+                        <TextBox Text="{Binding PlayerComment, UpdateSourceTrigger=PropertyChanged}" ToolTip="Комментарий игроку" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="44"/>
+                        <TextBox Text="{Binding RequestedChanges, UpdateSourceTrigger=PropertyChanged}" ToolTip="Что нужно исправить" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="44" Margin="0,6,0,0"/>
+                        <TextBox Text="{Binding GMComment, UpdateSourceTrigger=PropertyChanged}" ToolTip="Заметки GM, игрокам не показывается" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="44" Margin="0,6,0,0"/>
+                        <WrapPanel Margin="0,8,0,0">
+                            <Button Content="Взять в ревью" Command="{Binding StartReviewCommand}" Padding="10,6"/>
+                            <Button Content="Запросить правки" Command="{Binding RequestChangesCommand}" Padding="10,6" Margin="6,0,0,0"/>
+                            <Button Content="Одобрить" Command="{Binding ApproveCommand}" Padding="10,6" Margin="6,0,0,0"/>
+                            <Button Content="Отклонить" Command="{Binding RejectCommand}" Padding="10,6" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Padding="12" CornerRadius="8" Background="#111827" BorderBrush="#374151" BorderThickness="1">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Конвертация" Foreground="#F9FAFB" FontWeight="SemiBold"/>
+                        <TextBlock Text="GM явно превращает предложение в нужный объект. Автоматическое выполнение результата здесь не происходит." Foreground="#9CA3AF" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                        <WrapPanel>
+                            <Button Content="Research" Command="{Binding ConvertToResearchCommand}" Padding="10,6"/>
+                            <Button Content="Crafting" Command="{Binding ConvertToCraftingCommand}" Padding="10,6" Margin="6,0,0,0"/>
+                            <Button Content="Engineering" Command="{Binding ConvertToEngineeringCommand}" Padding="10,6" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <Button Content="Factory Order" Command="{Binding ConvertToFactoryOrderCommand}" Padding="10,6"/>
+                            <Button Content="Manufacturing" Command="{Binding ConvertToManufacturingCommand}" Padding="10,6" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <Button Content="Legal Check" Command="{Binding ConvertToLegalCheckCommand}" Padding="10,6"/>
+                            <Button Content="License" Command="{Binding ConvertToLicenseApplicationCommand}" Padding="10,6" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <Button Content="Development" Command="{Binding ConvertToDevelopmentCommand}" Padding="10,6"/>
+                            <Button Content="Generic Project" Command="{Binding ConvertToGenericProjectCommand}" Padding="10,6" Margin="6,0,0,0"/>
+                        </WrapPanel>
+
+                        <Border Padding="10" CornerRadius="6" Background="#0F172A" BorderBrush="#334155" BorderThickness="1" Margin="0,14,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Связать с существующим объектом" Foreground="#E5E7EB" FontWeight="SemiBold"/>
+                                <TextBox Text="{Binding TargetEntityType, UpdateSourceTrigger=PropertyChanged}" ToolTip="targetEntityType" Margin="0,8,0,0"/>
+                                <TextBox Text="{Binding TargetEntityId, UpdateSourceTrigger=PropertyChanged}" ToolTip="targetEntityId" Margin="0,6,0,0"/>
+                                <Button Content="Сохранить связь" Command="{Binding LinkExistingCommand}" Padding="10,6" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Padding="10" CornerRadius="8" Background="#3F1D1D" BorderBrush="#7F1D1D" BorderThickness="1" Margin="0,10,0,0">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="#FCA5A5" TextWrapping="Wrap"/>
+        </Border>
+    </Grid>
+</UserControl>

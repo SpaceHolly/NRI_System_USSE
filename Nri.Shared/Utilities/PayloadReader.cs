@@ -61,9 +61,11 @@ public static class PayloadReader
         if (payload[key] is IEnumerable enumerable && payload[key] is not string)
         {
             var result = new Dictionary<string, object>(StringComparer.Ordinal);
+            var sequentialItems = new List<object?>();
             foreach (var item in enumerable)
             {
                 if (item == null) continue;
+                sequentialItems.Add(item);
 
                 if (item is DictionaryEntry entry)
                 {
@@ -92,16 +94,50 @@ public static class PayloadReader
                 var valueType = item.GetType();
                 var keyProperty = valueType.GetProperty("Key");
                 var valueProperty = valueType.GetProperty("Value");
+                if (keyProperty == null || valueProperty == null)
+                {
+                    keyProperty = valueType.GetProperty("Name");
+                    valueProperty = valueType.GetProperty("Value");
+                }
                 if (keyProperty == null || valueProperty == null) continue;
                 var reflectedKey = Convert.ToString(keyProperty.GetValue(item));
                 if (string.IsNullOrWhiteSpace(reflectedKey)) continue;
                 result[reflectedKey] = valueProperty.GetValue(item)!;
             }
 
+            if (result.Count == 0 && sequentialItems.Count % 2 == 0)
+            {
+                for (var i = 0; i < sequentialItems.Count; i += 2)
+                {
+                    var pairKey = Convert.ToString(sequentialItems[i]);
+                    if (string.IsNullOrWhiteSpace(pairKey)) continue;
+                    result[pairKey] = sequentialItems[i + 1]!;
+                }
+            }
+
             return result.Count > 0 ? result : null;
         }
 
-        return null;
+        var reflected = ReflectPublicProperties(payload[key]);
+        return reflected.Count > 0 ? reflected : null;
+    }
+
+    private static Dictionary<string, object> ReflectPublicProperties(object value)
+    {
+        var result = new Dictionary<string, object>(StringComparer.Ordinal);
+        var type = value.GetType();
+        if (type == typeof(string) || type.IsPrimitive) return result;
+
+        foreach (var property in type.GetProperties())
+        {
+            if (property.GetIndexParameters().Length != 0) continue;
+            if (!property.CanRead) continue;
+            var propertyValue = property.GetValue(value);
+            if (propertyValue == null) continue;
+            result[property.Name] = propertyValue;
+        }
+
+        return result;
     }
 
     public static IList<object>? GetList(IDictionary<string, object> payload, string key)

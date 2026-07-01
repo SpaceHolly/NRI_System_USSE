@@ -1,0 +1,150 @@
+<UserControl x:Class="Nri.AdminClient.Views.Administration.AdminCraftingView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}">
+            <StackPanel>
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left">
+                        <TextBlock Text="Крафт / рецепты / резервы" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <Button DockPanel.Dock="Right" Content="Обновить" Command="{Binding RefreshCommand}" Margin="8,0,0,0"/>
+                </DockPanel>
+                <WrapPanel Margin="0,10,0,0">
+                    <StackPanel Width="180" Margin="0,0,8,0">
+                        <TextBlock Text="CampaignId" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBox Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                    <StackPanel Width="180" Margin="0,0,8,0">
+                        <TextBlock Text="RuleSetId" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBox Text="{Binding RuleSetId, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                    <Button Content="Сбросить ошибку" Command="{Binding ClearErrorCommand}" Margin="0,18,0,0"/>
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.1*"/>
+                <ColumnDefinition Width="1.2*"/>
+                <ColumnDefinition Width="1.1*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Рецепты" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="Черновики рецептов, видимость игрокам и будущие требования." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Recipes}" SelectedItem="{Binding SelectedRecipe, Mode=TwoWay}" DisplayMemberPath="Summary" Margin="0,8,0,8"/>
+                    <StackPanel Grid.Row="2">
+                        <TextBox Text="{Binding NewRecipeName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название рецепта"/>
+                        <TextBox Text="{Binding NewRecipeOutputName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название результата" Margin="0,6,0,0"/>
+                        <WrapPanel Margin="0,6,0,0">
+                            <TextBox Width="120" Text="{Binding NewRecipeOutputType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип результата"/>
+                            <TextBox Width="70" Text="{Binding NewRecipeOutputQuantity, UpdateSourceTrigger=PropertyChanged}" ToolTip="Количество" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,8,0,0">
+                            <Button Content="Создать рецепт" Command="{Binding CreateRecipeCommand}"/>
+                            <Button Content="Архивировать" Command="{Binding ArchiveRecipeCommand}" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Крафт-проекты" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="GM создаёт проект из рецепта, запускает работу и подтверждает итог." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedProject, Mode=TwoWay}" DisplayMemberPath="Summary" Margin="0,8,0,8"/>
+                    <StackPanel Grid.Row="2">
+                        <TextBox Text="{Binding ProjectOwnerUserId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ID владельца-игрока"/>
+                        <WrapPanel Margin="0,6,0,0">
+                            <TextBox Width="110" Text="{Binding ProjectActorEntityType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Персонаж / компаньон / группа"/>
+                            <TextBox Width="190" Text="{Binding ProjectActorEntityId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ID действующего лица" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                        <TextBox Text="{Binding ProjectTargetCharacterId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ID персонажа для целевого инвентаря" Margin="0,6,0,0"/>
+                        <WrapPanel Margin="0,8,0,0">
+                            <Button Content="Создать проект" Command="{Binding CreateProjectCommand}"/>
+                            <Button Content="Старт" Command="{Binding StartProjectCommand}" Margin="6,0,0,0"/>
+                            <Button Content="Завершить" Command="{Binding CompleteProjectCommand}" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <TextBox Width="70" Text="{Binding ProgressAmount, UpdateSourceTrigger=PropertyChanged}" ToolTip="Прогресс"/>
+                            <Button Content="+ прогресс" Command="{Binding AddProgressCommand}" Margin="6,0,0,0"/>
+                            <Button Content="Отмена" Command="{Binding CancelProjectCommand}" Margin="6,0,0,0"/>
+                            <Button Content="Провал" Command="{Binding FailProjectCommand}" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Ресурсы и результат" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="Резерв не списывает предметы. Списание и выдача результата выполняются отдельными GM-действиями." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <TabControl Grid.Row="1" Margin="0,8,0,8">
+                        <TabItem Header="Доступность">
+                            <ListBox ItemsSource="{Binding ReservationPreview}" SelectedItem="{Binding SelectedReservation, Mode=TwoWay}" DisplayMemberPath="Summary"/>
+                        </TabItem>
+                        <TabItem Header="Карточка проекта">
+                            <ListBox ItemsSource="{Binding ProjectDetails}"/>
+                        </TabItem>
+                    </TabControl>
+                    <StackPanel Grid.Row="2">
+                        <WrapPanel>
+                            <Button Content="Проверить ресурсы" Command="{Binding PreviewReservationsCommand}"/>
+                            <Button Content="Резерв" Command="{Binding ReserveResourceCommand}" Margin="6,0,0,0"/>
+                            <Button Content="Снять резерв" Command="{Binding ReleaseReservationCommand}" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <TextBox Width="170" Text="{Binding ReserveItemInstanceId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ItemInstanceId"/>
+                            <TextBox Width="70" Text="{Binding ReserveQuantity, UpdateSourceTrigger=PropertyChanged}" ToolTip="Количество" Margin="6,0,0,0"/>
+                            <Button Content="Списать резервы" Command="{Binding ConsumeReservationsCommand}" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,8,0,0">
+                            <TextBox Width="160" Text="{Binding ResultItemDefinitionId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ItemDefinitionId"/>
+                            <TextBox Width="160" Text="{Binding ResultItemName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название результата" Margin="6,0,0,0"/>
+                            <TextBox Width="60" Text="{Binding ResultQuantity, UpdateSourceTrigger=PropertyChanged}" ToolTip="Количество" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <Button Content="Подготовить итог" Command="{Binding PrepareResultCommand}"/>
+                            <Button Content="Принять итог" Command="{Binding AcceptResultCommand}" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,8,0,0">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"/>
+        </Border>
+    </Grid>
+</UserControl>

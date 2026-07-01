@@ -64,7 +64,7 @@ public sealed class CharacterProfileConsistencyService : ICharacterProfileConsis
         }
         catch (Exception ex)
         {
-            _logger.Error($"profile.consistency.error characterId={characterId} message={ex.Message}");
+            _logger.Debug($"profile.consistency.error characterId={characterId} message={ex.Message}");
             return Task.FromResult(new CharacterProfileConsistencyReport { CharacterId = characterId, IsConsistent = false, CheckedAtUtc = DateTime.UtcNow, Notes = "verification_error", TotalDifferenceCount = 1 });
         }
     }
@@ -105,7 +105,9 @@ public sealed class CharacterProfileConsistencyService : ICharacterProfileConsis
         sections.Add(Section("wallet", _mongo.CharacterWalletProfiles.Find(Builders<CharacterWalletProfileDocument>.Filter.Eq(x => x.CharacterId, character.Id)).FirstOrDefault()?.Profile, fresh.WalletProfile, ProfileFeatureFlags.UseWalletProfileShadowWrite));
         sections.Add(Section("skills", _mongo.CharacterSkillProfiles.Find(Builders<CharacterSkillProfileDocument>.Filter.Eq(x => x.CharacterId, character.Id)).FirstOrDefault()?.Profile, fresh.SkillProfile, ProfileFeatureFlags.UseSkillProfileShadowWrite));
         sections.Add(Section("development", _mongo.CharacterDevelopmentProfiles.Find(Builders<CharacterDevelopmentProfileDocument>.Filter.Eq(x => x.CharacterId, character.Id)).FirstOrDefault()?.Profile, fresh.DevelopmentProfile, ProfileFeatureFlags.UseDevelopmentProfileShadowWrite));
-        sections.Add(Section("inventory", _mongo.CharacterInventoryProfiles.Find(Builders<CharacterInventoryProfileDocument>.Filter.Eq(x => x.CharacterId, character.Id)).FirstOrDefault()?.Profile, fresh.InventoryProfile, ProfileFeatureFlags.UseInventoryProfileShadowWrite));
+        sections.Add(InventorySection(character.Id, fresh.InventoryProfile));
+        sections.Add(Section("raceOrSpecies", _mongo.CharacterRaceOrSpeciesProfiles.Find(Builders<CharacterRaceOrSpeciesProfileDocument>.Filter.Eq(x => x.CharacterId, character.Id)).FirstOrDefault()?.Profile, fresh.RaceOrSpeciesProfile, ProfileFeatureFlags.UseRaceOrSpeciesProfileReadShadow));
+        sections.Add(Section("body", _mongo.CharacterBodyProfiles.Find(Builders<CharacterBodyProfileDocument>.Filter.Eq(x => x.CharacterId, character.Id)).FirstOrDefault()?.Profile, fresh.BodyProfile, ProfileFeatureFlags.UseBodyProfileReadShadow));
 
         if (string.IsNullOrWhiteSpace(character?.Id))
             sections.Add(new CharacterProfileConsistencySectionReport { Section = "characterId", HasPersistedProfile = false, IsConsistent = false, DifferenceCount = 1, Differences = new List<string> { "legacy.characterId.empty" }, Severity = "warning" });
@@ -118,7 +120,7 @@ public sealed class CharacterProfileConsistencyService : ICharacterProfileConsis
             CheckedAtUtc = DateTime.UtcNow,
             SectionReports = sections,
             TotalDifferenceCount = totalDiffs,
-            Notes = "read_only_check; TODO(F0.5.11): reputation/holdings/companions sections"
+            Notes = "read_only_check; TODO(F0.5.x): reputation/holdings/companions persisted sections"
         };
     }
 
@@ -144,5 +146,68 @@ public sealed class CharacterProfileConsistencyService : ICharacterProfileConsis
             Differences = new List<string> { "persisted.differs.from.fresh_shadow" },
             Severity = section == "attributes" || section == "wallet" || section == "skills" ? "error" : "warning"
         };
+    }
+
+    private CharacterProfileConsistencySectionReport InventorySection(string characterId, InventoryProfile fresh)
+    {
+        var doc = _mongo.CharacterInventoryProfiles.Find(Builders<CharacterInventoryProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).FirstOrDefault();
+        if (doc == null)
+        {
+            return Section("inventory", null, fresh, ProfileFeatureFlags.UseInventoryProfileShadowWrite);
+        }
+
+        if (!TryGetValidInventoryProfile(doc, characterId, out var persisted, out var invalidReason))
+        {
+            _logger.Debug($"inventory.profile.invalid characterId={characterId} reason={invalidReason}");
+            return new CharacterProfileConsistencySectionReport
+            {
+                Section = "inventory",
+                HasPersistedProfile = true,
+                IsConsistent = false,
+                DifferenceCount = 1,
+                Differences = new List<string> { $"persisted.invalid:{invalidReason}" },
+                Severity = "error"
+            };
+        }
+
+        return Section("inventory", persisted, fresh, ProfileFeatureFlags.UseInventoryProfileShadowWrite);
+    }
+
+    private static bool TryGetValidInventoryProfile(CharacterInventoryProfileDocument doc, string characterId, out InventoryProfile profile, out string reason)
+    {
+        profile = doc?.Profile ?? new InventoryProfile();
+        reason = string.Empty;
+
+        if (doc == null)
+        {
+            reason = "missing_document";
+            return false;
+        }
+
+        if (doc.Profile == null)
+        {
+            reason = "profile_null";
+            return false;
+        }
+
+        if (doc.Profile.SchemaVersion < 1)
+        {
+            reason = "schema_version_invalid";
+            return false;
+        }
+
+        if (!string.Equals(doc.Profile.CharacterId, characterId, StringComparison.Ordinal))
+        {
+            reason = "character_id_mismatch";
+            return false;
+        }
+
+        if (doc.Profile.Items == null)
+        {
+            reason = "items_null";
+            return false;
+        }
+
+        return true;
     }
 }

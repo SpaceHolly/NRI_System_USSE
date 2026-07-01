@@ -35,7 +35,7 @@ public class DefinitionBase
 public static class DefinitionCategoryIds
 {
     public const string Attribute = "attribute";
-    public const string SubAttribute = "subAttribute";
+    public const string SubAttribute = "subattribute";
     public const string DerivedStat = "derivedStat";
     public const string Skill = "skill";
     public const string DevelopmentNode = "developmentNode";
@@ -52,8 +52,12 @@ public static class DefinitionCategoryIds
     public const string Weapon = "weapon";
     public const string Armor = "armor";
     public const string Ammo = "ammo";
+    public const string EquipmentSlot = "equipmentSlot";
     public const string Resource = "resource";
+    public const string Currency = "currency";
     public const string Condition = "condition";
+    public const string ConditionGroup = "conditionGroup";
+    public const string ConditionTag = "conditionTag";
     public const string DamageType = "damageType";
     public const string Spell = "spell";
     public const string Seal = "seal";
@@ -67,16 +71,22 @@ public static class DefinitionCategoryIds
     public const string Specialization = "specialization";
     public const string License = "license";
     public const string Law = "law";
+    public const string Restriction = "restriction";
     public const string Market = "market";
+    public const string MarketTag = "marketTag";
     public const string Faction = "faction";
     public const string Organization = "organization";
     public const string Npc = "npc";
     public const string Continent = "continent";
     public const string Country = "country";
     public const string City = "city";
+    public const string CityState = "cityState";
     public const string Planet = "planet";
     public const string SpaceLocation = "spaceLocation";
     public const string Location = "location";
+    public const string LocationType = "locationType";
+    public const string PointOfInterest = "pointOfInterest";
+    public const string Region = "region";
     public const string Technology = "technology";
     public const string Blueprint = "blueprint";
     public const string ProjectTemplate = "projectTemplate";

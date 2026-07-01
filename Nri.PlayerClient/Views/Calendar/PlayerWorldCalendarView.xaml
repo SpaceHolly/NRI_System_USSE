@@ -1,0 +1,113 @@
+<UserControl x:Class="Nri.PlayerClient.Views.Calendar.PlayerWorldCalendarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Nri.PlayerClient.ViewModels"
+             Loaded="OnLoaded"
+             Language="ru-RU">
+    <Grid Margin="8" AutomationProperties.AutomationId="PlayerWorldCalendar_Root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,8">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="Календарь мира" Style="{StaticResource TitleTextStyle}" FontSize="18" AutomationProperties.AutomationId="PlayerWorldCalendar_Title"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
+                <WrapPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                    <TextBox Width="120" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" ToolTip="CampaignId" AutomationProperties.AutomationId="PlayerWorldCalendar_CampaignId"/>
+                    <Button Content="Flags" Style="{StaticResource GhostButtonStyle}" Command="{Binding RefreshFlagsCommand}"/>
+                    <Button Content="Обновить" Command="{Binding RefreshCommand}" AutomationProperties.AutomationId="PlayerWorldCalendar_Refresh_Button"/>
+                </WrapPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.05*"/>
+                <ColumnDefinition Width="1.35*"/>
+                <ColumnDefinition Width="0.9*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,8,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding CalendarName}" Style="{StaticResource TitleTextStyle}" FontSize="16"/>
+                    <TextBlock Text="{Binding CurrentDisplay}" FontWeight="Bold" FontSize="20" Margin="0,8,0,0" AutomationProperties.AutomationId="PlayerWorldCalendar_CurrentDisplay"/>
+                    <TextBlock Text="{Binding CurrentSeason, StringFormat=Сезон: {0}}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding CurrentWeekDay, StringFormat=День недели: {0}}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,12"/>
+                    <TextBlock Text="Месяцы" FontWeight="SemiBold"/>
+                    <ListBox ItemsSource="{Binding Months}" MinHeight="320" Margin="0,6,0,0" AutomationProperties.AutomationId="PlayerWorldCalendar_Months_List">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Display}" TextWrapping="Wrap"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Раскрытая хроника" Style="{StaticResource TitleTextStyle}" FontSize="16"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Events}" SelectedItem="{Binding SelectedEvent}" Margin="0,8,0,8" AutomationProperties.AutomationId="PlayerWorldCalendar_Events_List">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Padding="8" Margin="0,0,0,6">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Display}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        <TextBlock Text="{Binding StatusDisplay, StringFormat=Статус: {0}}" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Grid.Row="2" Text="Показываются только события, раскрытые игрокам. GM-only версии и скрытая истина сюда не попадают." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource CardStyle}" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="Праздники" Style="{StaticResource TitleTextStyle}" FontSize="16"/>
+                        <ListBox ItemsSource="{Binding Holidays}" Margin="0,8,0,0" MinHeight="260" AutomationProperties.AutomationId="PlayerWorldCalendar_Holidays_List">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,6">
+                                        <TextBlock Text="{Binding Display}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Description}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="12" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Расписание" Style="{StaticResource TitleTextStyle}" FontSize="16"/>
+                        <TextBlock Text="{Binding RealSchedulePlaceholder}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8" Margin="0,8,0,0">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Очистить ошибку" Style="{StaticResource GhostButtonStyle}" Command="{Binding ClearErrorCommand}"/>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

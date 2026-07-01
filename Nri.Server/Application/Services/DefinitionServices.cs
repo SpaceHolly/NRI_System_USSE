@@ -88,6 +88,13 @@ public sealed class ClassDefinitionService
             BranchCode = definition.BranchCode,
             RootClassCode = definition.RootClassCode,
             ParentClassCode = definition.ParentClassCode,
+            RequiredHexagonId = string.IsNullOrWhiteSpace(definition.RequiredHexagonId) ? "main_development_hexagon" : definition.RequiredHexagonId,
+            RequiredNodeId = definition.RequiredNodeId,
+            VisibilityRule = string.IsNullOrWhiteSpace(definition.VisibilityRule) ? "hexagon-gated" : definition.VisibilityRule,
+            IsPlayerVisible = definition.IsPlayerVisible,
+            IsLockedOutsideHexagon = definition.IsLockedOutsideHexagon,
+            Tags = definition.Tags.ToList(),
+            SortOrder = definition.SortOrder,
             Level = definition.Level,
             UnlockLevel = definition.UnlockLevel,
             MaxLevel = definition.MaxLevel,
@@ -114,6 +121,13 @@ public sealed class ClassDefinitionService
         definition.BranchCode = dto.BranchCode ?? string.Empty;
         definition.RootClassCode = dto.RootClassCode ?? string.Empty;
         definition.ParentClassCode = dto.ParentClassCode ?? string.Empty;
+        definition.RequiredHexagonId = string.IsNullOrWhiteSpace(dto.RequiredHexagonId) ? "main_development_hexagon" : dto.RequiredHexagonId;
+        definition.RequiredNodeId = dto.RequiredNodeId ?? string.Empty;
+        definition.VisibilityRule = string.IsNullOrWhiteSpace(dto.VisibilityRule) ? "hexagon-gated" : dto.VisibilityRule;
+        definition.IsPlayerVisible = dto.IsPlayerVisible;
+        definition.IsLockedOutsideHexagon = true;
+        definition.Tags = dto.Tags ?? new List<string>();
+        definition.SortOrder = dto.SortOrder;
         definition.Level = dto.Level;
         definition.UnlockLevel = dto.UnlockLevel;
         definition.MaxLevel = dto.MaxLevel;
@@ -202,6 +216,9 @@ public sealed class SkillDefinitionService
             DisplayGroup = normalized.DisplayGroup,
             DefaultAttribute = normalized.DefaultAttribute,
             AllowedAttributes = normalized.AllowedAttributes.ToList(),
+            DefaultSubAttribute = normalized.DefaultSubAttribute,
+            AllowedSubAttributes = normalized.AllowedSubAttributes.ToList(),
+            SubAttributeMode = normalized.SubAttributeMode,
             RankMin = normalized.RankMin,
             RankMax = normalized.RankMax,
             IsRollable = normalized.IsRollable,
@@ -239,6 +256,9 @@ public sealed class SkillDefinitionService
         definition.DisplayGroup = dto.DisplayGroup ?? string.Empty;
         definition.DefaultAttribute = dto.DefaultAttribute ?? string.Empty;
         definition.AllowedAttributes = dto.AllowedAttributes ?? new List<string>();
+        definition.DefaultSubAttribute = dto.DefaultSubAttribute ?? string.Empty;
+        definition.AllowedSubAttributes = dto.AllowedSubAttributes ?? new List<string>();
+        definition.SubAttributeMode = dto.SubAttributeMode ?? "none";
         definition.RankMin = dto.RankMin;
         definition.RankMax = dto.RankMax;
         definition.IsRollable = dto.IsRollable;

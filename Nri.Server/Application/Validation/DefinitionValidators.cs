@@ -52,6 +52,15 @@ public sealed class SkillDefinitionValidator
         {
             throw new ArgumentException("AllowedAttributes must not contain empty values.");
         }
+        if (!string.IsNullOrWhiteSpace(definition.DefaultSubAttribute) &&
+            definition.AllowedSubAttributes.All(x => !string.Equals(x, definition.DefaultSubAttribute, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ArgumentException("DefaultSubAttribute must be present in AllowedSubAttributes.");
+        }
+        if (definition.AllowedSubAttributes.Any(x => string.IsNullOrWhiteSpace(x)))
+        {
+            throw new ArgumentException("AllowedSubAttributes must not contain empty values.");
+        }
         if (definition.Levels == null || definition.Levels.Count == 0) throw new ArgumentException("Skill levels are required.");
 
         var ordered = definition.Levels.OrderBy(x => x.Level).ToList();

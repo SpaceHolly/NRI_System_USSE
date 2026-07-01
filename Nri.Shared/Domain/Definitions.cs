@@ -63,6 +63,13 @@ public class ClassDefinition : DefinitionDocumentBase
     public string BranchCode { get; set; } = string.Empty;
     public string RootClassCode { get; set; } = string.Empty;
     public string ParentClassCode { get; set; } = string.Empty;
+    public string RequiredHexagonId { get; set; } = "main_development_hexagon";
+    public string RequiredNodeId { get; set; } = string.Empty;
+    public string VisibilityRule { get; set; } = "hexagon-gated";
+    public bool IsPlayerVisible { get; set; }
+    public bool IsLockedOutsideHexagon { get; set; } = true;
+    public List<string> Tags { get; set; } = new List<string>();
+    public int SortOrder { get; set; }
     public int Level { get; set; }
     public int UnlockLevel { get; set; } = 1;
     public int MaxLevel { get; set; } = 1;
@@ -82,6 +89,12 @@ public class SkillDefinition : DefinitionDocumentBase
     public string DefaultAttribute { get; set; } = string.Empty;
     // v2: allowed alternative attributes for this skill.
     public List<string> AllowedAttributes { get; set; } = new List<string>();
+    // v2: optional default subattribute used by server-side skill checks.
+    public string DefaultSubAttribute { get; set; } = string.Empty;
+    // v2: allowed subattributes for player-selected checks.
+    public List<string> AllowedSubAttributes { get; set; } = new List<string>();
+    // v2: subattribute behavior for roll calculation.
+    public string SubAttributeMode { get; set; } = "none";
     // v2: supported rank range for profile-based progression.
     public int RankMin { get; set; }
     public int RankMax { get; set; } = 20;

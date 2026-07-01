@@ -1,6 +1,14 @@
 {
   "Host": "0.0.0.0",
   "Port": 4600,
+  "Environment": "Production",
+  "AllowRuntimeFeatureFlagOverrides": false,
+  "FeatureFlagOverrides": {
+    "Combat.UseCombatSystemV1": false,
+    "Combat.UseCombatEncounterRuntime": false,
+    "Combat.UseCombatReadEndpoints": false,
+    "Combat.UseCombatWriteEndpoints": false
+  },
   "Mongo": {
     "ConnectionString": "mongodb://localhost:27017",
     "DatabaseName": "nri_system"

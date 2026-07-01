@@ -1,14 +1,34 @@
 namespace Nri.Shared.Configuration;
 
+using System.Collections.Generic;
+
 public class ServerConfig
 {
     public string Host { get; set; } = "0.0.0.0";
     public int Port { get; set; } = 4600;
+    public string Environment { get; set; } = "Production";
+    public bool AllowRuntimeFeatureFlagOverrides { get; set; }
+    public Dictionary<string, bool> FeatureFlagOverrides { get; set; } = new Dictionary<string, bool>();
     public MongoConfig Mongo { get; set; } = new MongoConfig();
     public LoggingConfig Logging { get; set; } = new LoggingConfig();
     public TokenConfig Tokens { get; set; } = new TokenConfig();
     public BootstrapAdminConfig BootstrapAdmin { get; set; } = new BootstrapAdminConfig();
     public string AudioFolderPath { get; set; } = "./audio";
+    public BackupStorageConfiguration BackupStorage { get; set; } = new BackupStorageConfiguration();
+}
+
+public class BackupStorageConfiguration
+{
+    public string BackupRootDirectory { get; set; } = "./backups";
+    public string TemporaryDirectory { get; set; } = "./backups/tmp";
+    public int MaxBackupCount { get; set; } = 50;
+    public long MaxBackupSizeBytes { get; set; } = 1073741824;
+    public bool AllowManualBackupCreation { get; set; } = true;
+    public bool AllowRestoreExecution { get; set; }
+    public bool RequireMaintenanceModeForRestore { get; set; } = true;
+    public bool RequirePreRestoreBackup { get; set; } = true;
+    public bool VerificationRequired { get; set; } = true;
+    public List<string> AllowedEnvironments { get; set; } = new List<string>();
 }
 
 public class BootstrapAdminConfig

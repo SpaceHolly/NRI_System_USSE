@@ -1,0 +1,57 @@
+<UserControl x:Class="Nri.AdminClient.Views.Pages.AdminPlaceholderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinHeight="320">
+    <Border Style="{StaticResource CardStyle}" Padding="22" Margin="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       Style="{StaticResource SectionTitleTextStyle}"
+                       FontSize="24"/>
+            <TextBlock Grid.Row="1"
+                       Text="{Binding Description, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       TextWrapping="Wrap"
+                       Margin="0,10,0,0"
+                       MaxWidth="760"/>
+            <UniformGrid Grid.Row="2" Columns="3" Margin="0,18,0,0">
+                <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="Модуль" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="{Binding PlannedModuleName, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="Статус" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="{Binding StatusText, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=Недоступно / Отложено, TargetNullValue=Недоступно / Отложено}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource SubtleCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Foundation" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="{Binding RelatedFoundationStage, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+            <StackPanel Grid.Row="3" Margin="0,22,0,0">
+                <TextBlock Text="Раздел намеренно выключен: он не вызывает серверные команды, не меняет данные и не имитирует готовый модуль."
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           TextWrapping="Wrap"/>
+                <Border Style="{StaticResource HintCardStyle}" Margin="0,12,0,0">
+                    <TextBlock Text="Рабочие действия появятся только после отдельного этапа с GUI acceptance."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"/>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

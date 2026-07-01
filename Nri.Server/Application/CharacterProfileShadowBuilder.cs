@@ -14,6 +14,8 @@ public sealed class CharacterProfileShadowBundle
     public SkillProfile SkillProfile { get; set; } = new SkillProfile();
     public DevelopmentProfile DevelopmentProfile { get; set; } = new DevelopmentProfile();
     public InventoryProfile InventoryProfile { get; set; } = new InventoryProfile();
+    public RaceOrSpeciesProfile RaceOrSpeciesProfile { get; set; } = new RaceOrSpeciesProfile();
+    public BodyProfile BodyProfile { get; set; } = new BodyProfile();
     public ReputationProfile ReputationProfile { get; set; } = new ReputationProfile();
     public HoldingsProfile HoldingsProfile { get; set; } = new HoldingsProfile();
     public CompanionProfile CompanionProfile { get; set; } = new CompanionProfile();
@@ -51,6 +53,8 @@ public sealed class CharacterProfileShadowBuilder : ICharacterProfileShadowBuild
     private readonly ICharacterSkillProfileFactory _skillFactory;
     private readonly ICharacterDevelopmentProfileFactory _developmentFactory;
     private readonly ICharacterInventoryProfileFactory _inventoryFactory;
+    private readonly IRaceOrSpeciesProfileShadowBuilder _raceOrSpeciesBuilder;
+    private readonly IBodyProfileShadowBuilder _bodyBuilder;
     private readonly ICharacterReputationProfileFactory _reputationFactory;
     private readonly ICharacterHoldingsProfileFactory _holdingsFactory;
     private readonly ICharacterCompanionProfileFactory _companionFactory;
@@ -62,6 +66,8 @@ public sealed class CharacterProfileShadowBuilder : ICharacterProfileShadowBuild
         ICharacterSkillProfileFactory skillFactory,
         ICharacterDevelopmentProfileFactory developmentFactory,
         ICharacterInventoryProfileFactory inventoryFactory,
+        IRaceOrSpeciesProfileShadowBuilder raceOrSpeciesBuilder,
+        IBodyProfileShadowBuilder bodyBuilder,
         ICharacterReputationProfileFactory reputationFactory,
         ICharacterHoldingsProfileFactory holdingsFactory,
         ICharacterCompanionProfileFactory companionFactory,
@@ -72,6 +78,8 @@ public sealed class CharacterProfileShadowBuilder : ICharacterProfileShadowBuild
         _skillFactory = skillFactory;
         _developmentFactory = developmentFactory;
         _inventoryFactory = inventoryFactory;
+        _raceOrSpeciesBuilder = raceOrSpeciesBuilder;
+        _bodyBuilder = bodyBuilder;
         _reputationFactory = reputationFactory;
         _holdingsFactory = holdingsFactory;
         _companionFactory = companionFactory;
@@ -91,6 +99,8 @@ public sealed class CharacterProfileShadowBuilder : ICharacterProfileShadowBuild
             SkillProfile = _skillFactory.BuildFromLegacyCharacter(character),
             DevelopmentProfile = _developmentFactory.BuildFromLegacyCharacter(character),
             InventoryProfile = _inventoryFactory.BuildFromLegacyCharacter(character),
+            RaceOrSpeciesProfile = _raceOrSpeciesBuilder.BuildFromLegacyCharacter(character),
+            BodyProfile = _bodyBuilder.BuildFromLegacyCharacter(character),
             ReputationProfile = _reputationFactory.BuildFromLegacyCharacter(character),
             HoldingsProfile = _holdingsFactory.BuildFromLegacyCharacter(character),
             CompanionProfile = _companionFactory.BuildFromLegacyCharacter(character),
@@ -98,7 +108,7 @@ public sealed class CharacterProfileShadowBuilder : ICharacterProfileShadowBuild
             SchemaVersion = 1
         };
 
-        _logger.Debug($"character.shadow.bundle.build characterId={bundle.CharacterId} sections=attributes,wallet,skills,development,inventory,reputation,holdings,companions");
+        _logger.Debug($"character.shadow.bundle.build characterId={bundle.CharacterId} sections=attributes,wallet,skills,development,inventory,raceOrSpecies,body,reputation,holdings,companions");
         return bundle;
     }
 
@@ -114,6 +124,8 @@ public sealed class CharacterProfileShadowBuilder : ICharacterProfileShadowBuild
         sectionResults.Add(ToSectionResult("skills", _skillFactory.CompareLegacyToProfile(character, shadow.SkillProfile).Differences));
         sectionResults.Add(ToSectionResult("development", _developmentFactory.CompareLegacyToProfile(character, shadow.DevelopmentProfile).Differences));
         sectionResults.Add(ToSectionResult("inventory", _inventoryFactory.CompareLegacyToProfile(character, shadow.InventoryProfile).Differences));
+        sectionResults.Add(ToSectionResult("raceOrSpecies", _raceOrSpeciesBuilder.CompareLegacyToProfile(character, shadow.RaceOrSpeciesProfile).Differences));
+        sectionResults.Add(ToSectionResult("body", _bodyBuilder.CompareLegacyToProfile(character, shadow.BodyProfile).Differences));
         sectionResults.Add(ToSectionResult("reputation", _reputationFactory.CompareLegacyToProfile(character, shadow.ReputationProfile).Differences));
         sectionResults.Add(ToSectionResult("holdings", _holdingsFactory.CompareLegacyToProfile(character, shadow.HoldingsProfile).Differences));
         sectionResults.Add(ToSectionResult("companions", _companionFactory.CompareLegacyToProfile(character, shadow.CompanionProfile).Differences));

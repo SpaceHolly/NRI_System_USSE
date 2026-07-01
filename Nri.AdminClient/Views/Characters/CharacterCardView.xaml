@@ -1,0 +1,249 @@
+<UserControl x:Class="Nri.AdminClient.Views.Characters.CharacterCardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
+    <Border Style="{StaticResource CardStyle}">
+        <StackPanel>
+            <DockPanel Margin="0,0,0,10">
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="Карточка персонажа" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="{Binding ModeTitle}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0"/>
+                </StackPanel>
+                <WrapPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                    <Button Content="Загрузить" Command="{Binding LoadCharacterCommand}"/>
+                    <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding RefreshCommand}"/>
+                    <Button Style="{StaticResource GhostButtonStyle}" Content="Редактор GM" Command="{Binding SwitchToGmEditorModeCommand}"/>
+                    <Button Style="{StaticResource GhostButtonStyle}" Content="Вид игрока" Command="{Binding SwitchToPlayerPreviewModeCommand}"/>
+                </WrapPanel>
+            </DockPanel>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="190"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="230"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <Border Height="160" Background="#FF223047" CornerRadius="8" Padding="10">
+                        <TextBlock Text="{Binding PortraitPlaceholderText}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+                    </Border>
+                    <UniformGrid Columns="3" Margin="0,8,0,0">
+                        <Border Height="58" Background="#FF1E293B" CornerRadius="6" Margin="0,0,4,0" Padding="4">
+                            <TextBlock Text="{Binding UserAvatarPlaceholderText}" TextAlignment="Center" FontSize="11" TextWrapping="Wrap"/>
+                        </Border>
+                        <Border Height="58" Background="#FF1E293B" CornerRadius="6" Margin="2,0,2,0" Padding="4">
+                            <TextBlock Text="{Binding CombatTokenPlaceholderText}" TextAlignment="Center" FontSize="11" TextWrapping="Wrap"/>
+                        </Border>
+                        <Border Height="58" Background="#FF1E293B" CornerRadius="6" Margin="4,0,0,0" Padding="4">
+                            <TextBlock Text="{Binding MapTokenPlaceholderText}" TextAlignment="Center" FontSize="11" TextWrapping="Wrap"/>
+                        </Border>
+                    </UniformGrid>
+                    <TextBlock Text="{Binding ImageUploadHint}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="12,0,12,0">
+                    <TextBlock Text="{Binding DisplayName}" FontSize="24" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding CharacterId}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                    <WrapPanel Margin="0,8,0,0">
+                        <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0" Padding="8,4">
+                            <TextBlock Text="{Binding RaceSummary}"/>
+                        </Border>
+                        <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0" Padding="8,4">
+                            <TextBlock Text="{Binding ClassSummary}"/>
+                        </Border>
+                        <Border Style="{StaticResource SubtleCardStyle}" Padding="8,4">
+                            <TextBlock Text="{Binding PlayerOwner}"/>
+                        </Border>
+                    </WrapPanel>
+
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource SubtleCardStyle}" Margin="0,0,6,0">
+                            <StackPanel>
+                                <TextBlock Text="Характеристики" Style="{StaticResource TitleTextStyle}"/>
+                                <ItemsControl ItemsSource="{Binding Attributes}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="0,2">
+                                                <TextBlock Text="{Binding Name}" DockPanel.Dock="Left"/>
+                                                <TextBlock Text="{Binding State}" DockPanel.Dock="Right" FontWeight="SemiBold"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}" Margin="6,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Vitals / Combat" Style="{StaticResource TitleTextStyle}"/>
+                                <ItemsControl ItemsSource="{Binding DerivedStats}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="0,2">
+                                                <TextBlock Text="{Binding Name}" DockPanel.Dock="Left"/>
+                                                <TextBlock Text="{Binding State}" DockPanel.Dock="Right" FontWeight="SemiBold"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="{Binding CombatSummaryText}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                <TextBlock Text="{Binding ConditionsSummaryText}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <Border Style="{StaticResource SubtleCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Биография" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="{Binding BiographyText}" TextWrapping="Wrap" MaxHeight="108"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,8,0,0">
+                        <StackPanel>
+                            <TextBlock Text="GM / Диагностика" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="{Binding NotesText}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding LastLoadedText}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+
+            <TabControl Margin="0,12,0,0">
+                <TabItem Header="Навыки">
+                    <DataGrid ItemsSource="{Binding Skills}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="130">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Навык" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Уровень" Binding="{Binding State}" Width="120"/>
+                            <DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="2*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </TabItem>
+                <TabItem Header="Развитие">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <DataGrid ItemsSource="{Binding Classes}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="130">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Класс" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="Состояние" Binding="{Binding State}" Width="140"/>
+                                <DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="2*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <Border Grid.Column="1" Background="#FF1E293B" CornerRadius="8" Padding="12" Margin="8,0,0,0">
+                            <TextBlock Text="Hexagon развития будет добавлен позднее" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Инвентарь / экипировка">
+                    <TabControl>
+                        <TabItem Header="Экипировка">
+                            <DataGrid ItemsSource="{Binding EquipmentSlotsSummary}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="220" ColumnWidth="SizeToHeader" MinColumnWidth="110">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Слот" Binding="{Binding SlotName}" Width="150"/>
+                                    <DataGridTextColumn Header="Предмет" Binding="{Binding ItemName}" Width="2*"/>
+                                    <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity}" Width="90"/>
+                                    <DataGridTextColumn Header="Прочность" Binding="{Binding Durability}" Width="120"/>
+                                    <DataGridTextColumn Header="Предупреждение" Binding="{Binding Warning}" Width="2*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+                        <TabItem Header="Инвентарь">
+                            <DataGrid ItemsSource="{Binding InventoryItems}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="240" HorizontalScrollBarVisibility="Auto" ColumnWidth="SizeToHeader" MinColumnWidth="110">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="220"/>
+                                    <DataGridTextColumn Header="Тип" Binding="{Binding ItemType}" Width="130"/>
+                                    <DataGridTextColumn Header="Кол-во" Binding="{Binding QuantityDisplay}" Width="90"/>
+                                    <DataGridTextColumn Header="Прочность" Binding="{Binding DurabilityDisplay}" Width="120"/>
+                                    <DataGridCheckBoxColumn Header="Экипирован" Binding="{Binding IsEquipped}" Width="100"/>
+                                    <DataGridTextColumn Header="Слот" Binding="{Binding EquipmentSlotId}" Width="130"/>
+                                    <DataGridTextColumn Header="DefinitionId" Binding="{Binding DefinitionId}" Width="180"/>
+                                    <DataGridTextColumn Header="Теги" Binding="{Binding Tags}" Width="2*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+                        <TabItem Header="Деньги">
+                            <Border Style="{StaticResource SubtleCardStyle}" MinHeight="160">
+                                <ItemsControl ItemsSource="{Binding Currencies}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="0,3">
+                                                <TextBlock Text="{Binding Name}"/>
+                                                <TextBlock Text="{Binding State}" DockPanel.Dock="Right" FontWeight="SemiBold"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </TabItem>
+                        <TabItem Header="Диагностика" Visibility="{Binding ShowGmInventoryDetails, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel>
+                                <WrapPanel Margin="0,0,0,8">
+                                    <Button Content="Проверить инвентарь" Command="{Binding RunInventoryDiagnosticsCommand}"/>
+                                    <TextBlock Margin="10,4,0,0" Text="{Binding InventoryDiagnosticsStatus}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                </WrapPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1.2*"/>
+                                        <ColumnDefinition Width="2*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <DataGrid ItemsSource="{Binding InventoryDiagnosticsSections}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="170">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Секция" Binding="{Binding Name}" Width="*"/>
+                                            <DataGridTextColumn Header="Valid" Binding="{Binding State}" Width="80"/>
+                                            <DataGridTextColumn Header="Сводка" Binding="{Binding Extra}" Width="2*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <DataGrid Grid.Column="1" ItemsSource="{Binding InventoryDiagnosticsIssues}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="170" Margin="8,0,0,0">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Severity" Binding="{Binding Severity}" Width="90"/>
+                                            <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="150"/>
+                                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="2*"/>
+                                            <DataGridTextColumn Header="Item" Binding="{Binding ItemInstanceId}" Width="160"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Grid>
+                            </StackPanel>
+                        </TabItem>
+                    </TabControl>
+                </TabItem>
+                <TabItem Header="Рольплей">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <DataGrid ItemsSource="{Binding Languages}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="130">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Язык" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <DataGrid Grid.Column="1" ItemsSource="{Binding ReputationItems}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="130" Margin="8,0,0,0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Репутация" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="Значение" Binding="{Binding State}" Width="100"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <DataGrid Grid.Column="2" ItemsSource="{Binding HoldingsItems}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="130" Margin="8,0,0,0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Владение" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </StackPanel>
+    </Border>
+</UserControl>

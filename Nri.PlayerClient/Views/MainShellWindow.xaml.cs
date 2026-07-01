@@ -20,7 +20,7 @@ public partial class MainShellWindow : Window
         {
             ClientLogService.Instance.Info("ui.player.root-scroll.initialized");
             ClientLogService.Instance.Info("ui.player.main.loaded scroll=true");
-            ClientLogService.Instance.Info("ui.player.sections.visible chat/create/dice/notes/session");
+            ClientLogService.Instance.Info("ui.player.sections.visible chat/create/dice/session");
             ClientLogService.Instance.Info("ui.player.main-content.reachable=true");
             ClientLogService.Instance.Info("ui.dice.panel.opened");
             ClientLogService.Instance.Info("player.layout.bottomSections rearranged=true");
@@ -31,6 +31,18 @@ public partial class MainShellWindow : Window
     {
         if (DataContext is PlayerMainViewModel vm && sender is PasswordBox box)
             vm.PasswordText = box.Password;
+    }
+
+    private void OnOldPasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is PlayerMainViewModel vm && sender is PasswordBox box)
+            vm.OldPasswordText = box.Password;
+    }
+
+    private void OnNewPasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is PlayerMainViewModel vm && sender is PasswordBox box)
+            vm.NewPasswordText = box.Password;
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)

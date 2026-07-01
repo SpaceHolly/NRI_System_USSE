@@ -51,10 +51,64 @@ public class AbilityRequirementUnlock
 public class ClassNodeDefinition
 {
     public string NodeId { get; set; } = string.Empty;
+    public string HexagonId { get; set; } = "main_development_hexagon";
+    public string HexagonType { get; set; } = "main";
+    public string ClassId { get; set; } = string.Empty;
     public string DirectionId { get; set; } = string.Empty;
     public string BranchId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string PublicName { get; set; } = string.Empty;
+    public string HiddenName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string PublicDescription { get; set; } = string.Empty;
+    public string GMDescription { get; set; } = string.Empty;
+    public string NodeType { get; set; } = DevelopmentNodeTypes.Class;
+    public string NodeRole { get; set; } = DevelopmentNodeRoleIds.MainBranchLevel;
+    public int Tier { get; set; } = 1;
+    public int MaxTier { get; set; } = 20;
+    public int CostExperienceCoins { get; set; } = 1;
+    public bool RequiresGMApproval { get; set; }
+    public bool RequiresPlayerRequest { get; set; }
+    public string UnlockPolicy { get; set; } = DevelopmentUnlockPolicyIds.VisibleByDefault;
+    public string PurchasePolicy { get; set; } = DevelopmentPurchasePolicyIds.AutomaticIfRequirementsMet;
+    public string VisibilityRule { get; set; } = "public";
+    public bool IsHidden { get; set; }
+    public bool IsArchived { get; set; }
+    public string RequirementSummary { get; set; } = string.Empty;
+    public string RewardSummary { get; set; } = string.Empty;
+    public int GridX { get; set; }
+    public int GridY { get; set; }
+    public double Angle { get; set; }
+    public int Ring { get; set; } = 1;
+    public int Sector { get; set; }
+    public int SortOrder { get; set; }
+    public int LayoutVersion { get; set; } = 1;
+    public string LayoutGroup { get; set; } = string.Empty;
+    public int LayoutLayer { get; set; }
+    public string LayoutBranch { get; set; } = string.Empty;
+    public int LayoutWeight { get; set; }
+    public string LayoutGeneratedBy { get; set; } = string.Empty;
+    public DateTime? LayoutGeneratedAtUtc { get; set; }
+    public bool LayoutLockedManualPosition { get; set; }
+    public string LayoutPresetId { get; set; } = string.Empty;
+    public string LayoutSnapshotId { get; set; } = string.Empty;
+    public int LayoutSnapshotPositionX { get; set; }
+    public int LayoutSnapshotPositionY { get; set; }
+    public DateTime? LayoutSnapshotCreatedAtUtc { get; set; }
+    public int Revision { get; set; } = 1;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+    public string UpdatedByUserId { get; set; } = string.Empty;
+    public int SchemaVersion { get; set; } = 1;
+    public string CurrencyId { get; set; } = "xp_coin";
+    public string LinkedDefinitionKind { get; set; } = string.Empty;
+    public string LinkedDefinitionId { get; set; } = string.Empty;
+    public bool IsPlayerVisible { get; set; } = true;
+    public bool IsGMOnly { get; set; }
+    public bool IsPrimaryMagicClass { get; set; }
+    public string PrimaryMagicGroupId { get; set; } = string.Empty;
+    public string MagicRestrictionSummary { get; set; } = string.Empty;
+    public string IconKey { get; set; } = string.Empty;
+    public string ColorKey { get; set; } = string.Empty;
     public List<string> NextNodeIds { get; set; } = new List<string>();
     public List<UnlockRequirement> Requirements { get; set; } = new List<UnlockRequirement>();
     public List<StatBonusDefinition> StatBonuses { get; set; } = new List<StatBonusDefinition>();

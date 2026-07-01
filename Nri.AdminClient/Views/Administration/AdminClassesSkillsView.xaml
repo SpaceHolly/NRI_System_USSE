@@ -1,0 +1,1243 @@
+﻿<UserControl x:Class="Nri.AdminClient.Views.Administration.AdminClassesSkillsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="8">
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Классы / навыки" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Классы доступны игроку только через разблокированные узлы Development Hexagon. Глобальный список классов для PlayerClient не используется."
+                               Foreground="{StaticResource MutedBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,6,0,0"/>
+                    <WrapPanel Margin="0,10,0,0">
+                        <Button Content="Обновить классы" Command="{Binding RefreshDefinitionClassesCommand}"/>
+                        <Button Content="Новый класс" Command="{Binding NewClassDefinitionCommand}"/>
+                        <Button Content="Открыть" Command="{Binding OpenSelectedClassDefinitionCommand}"/>
+                        <Button Content="Сохранить класс" Command="{Binding SaveClassDefinitionCommand}" AutomationProperties.AutomationId="AdminClassHex_SaveClass_Button"/>
+                        <Button Content="Архивировать" Command="{Binding ArchiveClassDefinitionCommand}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.1*"/>
+                    <ColumnDefinition Width="1.4*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top">
+                            <TextBlock Text="Справочник классов" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBox Margin="0,8,0,8" Text="{Binding ClassSearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <DataGrid ItemsSource="{Binding FilteredClassDefinitionRows}"
+                                  SelectedValue="{Binding SelectedClassDefinitionCode, UpdateSourceTrigger=PropertyChanged}"
+                                  SelectedValuePath="Id"
+                                  AutoGenerateColumns="False"
+                                  HeadersVisibility="Column"
+                                  MinHeight="260"
+                                  IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="150"/>
+                                <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="Статус" Binding="{Binding State}" Width="90"/>
+                                <DataGridTextColumn Header="Описание" Binding="{Binding Extra}" Width="2*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Редактор class definition" Style="{StaticResource TitleTextStyle}"/>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="ClassId / Code"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClassHex_ClassCode" Text="{Binding EditClassCode, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Text="Название"/>
+                                <TextBox Text="{Binding EditClassName, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="RequiredHexagonId"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClassHex_RequiredHexagonId" Text="{Binding EditClassRequiredHexagonId, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Text="RequiredNodeId"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClassHex_RequiredNodeId" Text="{Binding EditClassRequiredNodeId, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="VisibilityRule"/>
+                                <TextBox Text="{Binding EditClassVisibilityRule, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Text="SortOrder"/>
+                                <TextBox Text="{Binding EditClassSortOrder, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <TextBlock Text="Описание"/>
+                        <TextBox Text="{Binding EditClassDescription, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="72" TextWrapping="Wrap"/>
+                        <WrapPanel Margin="0,8,0,0">
+                            <CheckBox Content="Игроку виден только после открытия" IsChecked="{Binding EditClassIsPlayerVisible}" Margin="0,0,16,0"/>
+                            <CheckBox Content="Locked outside Hexagon" IsChecked="{Binding EditClassIsLockedOutsideHexagon}" IsEnabled="False"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Style="{StaticResource CardStyle}"
+                    Margin="0,10,0,0"
+                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_Route">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="Визуальный редактор Development Hexagon"
+                                   Style="{StaticResource TitleTextStyle}"
+                                   AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_Route"/>
+                        <TextBlock Text="Перетащите узел мышью, затем сохраните раскладку. Координаты сохраняются в профиле определений и видны PlayerClient после обновления."
+                                   Foreground="{StaticResource MutedBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,4,0,8"/>
+                        <WrapPanel>
+                            <ComboBox Width="260"
+                                      ItemsSource="{Binding DevelopmentLayoutHexagons}"
+                                      SelectedValue="{Binding SelectedDevelopmentLayoutHexagonId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="HexagonId"
+                                      DisplayMemberPath="Summary"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_TreeSelector"
+                                      Margin="0,0,8,8">
+                                <ComboBox.ItemContainerStyle>
+                                    <Style TargetType="{x:Type ComboBoxItem}">
+                                        <Setter Property="AutomationProperties.AutomationId"
+                                                Value="{Binding HexagonId, StringFormat=AdminDevelopmentHexagonEditor_TreeOption_{0}}"/>
+                                    </Style>
+                                </ComboBox.ItemContainerStyle>
+                            </ComboBox>
+                            <Button Content="Основной"
+                                    Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
+                                    CommandParameter="main_development_hexagon"
+                                    Tag="main_development_hexagon"
+                                    Click="SelectDevelopmentHexagonButton_Click"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectTree_main_development_hexagon"
+                                    Margin="0,0,8,8"/>
+                            <Button Content="Магия"
+                                    Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
+                                    CommandParameter="magic_development_hexagon"
+                                    Tag="magic_development_hexagon"
+                                    Click="SelectDevelopmentHexagonButton_Click"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectTree_magic_development_hexagon"
+                                    Margin="0,0,8,8"/>
+                            <Button Content="Большое"
+                                    Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
+                                    CommandParameter="large_development_hexagon_0154"
+                                    Tag="large_development_hexagon_0154"
+                                    Click="SelectDevelopmentHexagonButton_Click"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectTree_large_development_hexagon_0154"
+                                    Margin="0,0,8,8"/>
+                            <Button Content="Обновить"
+                                    Command="{Binding LoadClassTreeCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_Refresh_Button"
+                                    Margin="0,0,8,8"/>
+                            <Button Content="Сохранить визуальную раскладку"
+                                    Command="{Binding SaveDevelopmentHexagonLayoutCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SaveLayout"
+                                    Margin="0,0,8,8"/>
+                            <Button Content="Отменить"
+                                    Command="{Binding CancelDevelopmentHexagonLayoutCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_CancelChanges"
+                                    Margin="0,0,8,8"/>
+                            <Button Content="Проверить"
+                                    Command="{Binding ValidateDevelopmentHexagonLayoutCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ValidateLayout"
+                                    Margin="0,0,8,8"/>
+                            <Button Content="Сбросить"
+                                    Command="{Binding ResetDevelopmentHexagonLayoutCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ResetLayout"
+                                    Margin="0,0,8,8"/>
+                            <Button Content="−"
+                                    Command="{Binding ZoomOutDevelopmentHexagonLayoutCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ZoomOut"
+                                    Margin="0,0,4,8"/>
+                            <Button Content="+"
+                                    Command="{Binding ZoomInDevelopmentHexagonLayoutCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ZoomIn"
+                                    Margin="0,0,8,8"/>
+                            <Button Content="Сбросить вид"
+                                    Command="{Binding ResetViewDevelopmentHexagonLayoutCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ResetView"
+                                    Margin="0,0,8,8"/>
+                            <TextBlock Text="{Binding DevelopmentLayoutZoomText}"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,8"/>
+                            <TextBlock Text="{Binding DevelopmentLayoutDirtyText}"
+                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_DirtyIndicator"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,0,8"/>
+                        </WrapPanel>
+                        <Border Background="#FF101A2A"
+                                BorderBrush="#FF2F4265"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="8"
+                                Margin="0,0,0,8">
+                            <StackPanel>
+                                <TextBlock Text="Раскладка"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource TextBrush}"
+                                           Margin="0,0,0,6"/>
+                                <WrapPanel>
+                                    <ComboBox Width="180"
+                                              SelectedIndex="0"
+                                              AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LayoutPresetSelector"
+                                              Margin="0,0,8,6">
+                                        <ComboBoxItem Content="Базовая 0.15.4"/>
+                                    </ComboBox>
+                                    <Button Content="Предпросмотр базовой раскладки"
+                                            Command="{Binding PreviewBaselineDevelopmentHexagonLayoutCommand}"
+                                            Style="{StaticResource GhostButtonStyle}"
+                                            AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_PreviewBaselineLayout"
+                                            Margin="0,0,8,6"/>
+                                    <Button Content="Применить базовую раскладку"
+                                            Command="{Binding ApplyBaselineDevelopmentHexagonLayoutCommand}"
+                                            Style="{StaticResource GhostButtonStyle}"
+                                            AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ApplyBaselineLayout"
+                                            Margin="0,0,8,6"/>
+                                    <Button Content="Создать снимок раскладки"
+                                            Command="{Binding CreateDevelopmentLayoutSnapshotCommand}"
+                                            Style="{StaticResource GhostButtonStyle}"
+                                            AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_CreateLayoutSnapshot"
+                                            Margin="0,0,8,6"/>
+                                    <Button Content="Восстановить снимок"
+                                            Command="{Binding RestoreDevelopmentLayoutSnapshotCommand}"
+                                            Style="{StaticResource GhostButtonStyle}"
+                                            AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_RestoreLayoutSnapshot"
+                                            Margin="0,0,8,6"/>
+                                    <Button Content="Оценить читаемость"
+                                            Command="{Binding GetDevelopmentLayoutQualityReportCommand}"
+                                            Style="{StaticResource GhostButtonStyle}"
+                                            AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LayoutQualityReport"
+                                            Margin="0,0,8,6"/>
+                                    <Button Content="Зафиксировать выбранный узел"
+                                            Command="{Binding LockSelectedDevelopmentLayoutNodeCommand}"
+                                            Style="{StaticResource GhostButtonStyle}"
+                                            AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LockSelectedNodePosition"
+                                            Margin="0,0,8,6"/>
+                                    <Button Content="Снять фиксацию"
+                                            Command="{Binding UnlockSelectedDevelopmentLayoutNodeCommand}"
+                                            Style="{StaticResource GhostButtonStyle}"
+                                            AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_UnlockSelectedNodePosition"
+                                            Margin="0,0,8,6"/>
+                                </WrapPanel>
+                                <TextBlock Text="{Binding DevelopmentLayoutPreviewText}"
+                                           Foreground="{StaticResource MutedBrush}"
+                                           AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LayoutPreviewStatus"
+                                           TextWrapping="Wrap"
+                                           Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding DevelopmentLayoutSnapshotText}"
+                                           Foreground="{StaticResource MutedBrush}"
+                                           AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LayoutSnapshotStatus"
+                                           TextWrapping="Wrap"
+                                           Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding DevelopmentLayoutQualityText}"
+                                           Foreground="{StaticResource MutedBrush}"
+                                           AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LayoutReadabilityScore"
+                                           TextWrapping="Wrap"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <WrapPanel Margin="0,0,0,8"
+                                   AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ViewModeSelector">
+                            <TextBlock Text="Режим отображения"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,6"/>
+                            <RadioButton Content="Канонический шестиугольник"
+                                         IsChecked="{Binding DevelopmentLayoutCanonicalModeSelected, Mode=TwoWay}"
+                                         AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_CanonicalHexMode"
+                                         GroupName="DevelopmentLayoutViewMode"
+                                         Margin="0,0,12,6"/>
+                            <RadioButton Content="Диагностический граф"
+                                         IsChecked="{Binding DevelopmentLayoutDiagnosticGraphModeSelected, Mode=TwoWay}"
+                                         AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_DiagnosticGraphMode"
+                                         GroupName="DevelopmentLayoutViewMode"
+                                         Margin="0,0,16,6"/>
+                            <CheckBox Content="Показать подписи направлений"
+                                      IsChecked="{Binding DevelopmentLayoutShowDirectionLabels, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_DirectionLabelsToggle"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,12,6"/>
+                            <TextBlock Text="Фокус на направлении"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,6,6"/>
+                            <ComboBox Width="230"
+                                      ItemsSource="{Binding DevelopmentLayoutCanonicalDirections}"
+                                      SelectedValue="{Binding DevelopmentLayoutFocusedDirectionKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="DirectionId"
+                                      DisplayMemberPath="FullDisplayName"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_DirectionFocusSelector"
+                                      Margin="0,0,8,6"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,2,0,8">
+                            <Button Content="Основной"
+                                    Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
+                                    CommandParameter="main_development_hexagon"
+                                    Tag="main_development_hexagon"
+                                    Click="SelectDevelopmentHexagonButton_Click"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ToolbarSelectTree_main_development_hexagon"
+                                    Margin="0,0,6,6"/>
+                            <Button Content="Магия"
+                                    Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
+                                    CommandParameter="magic_development_hexagon"
+                                    Tag="magic_development_hexagon"
+                                    Click="SelectDevelopmentHexagonButton_Click"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ToolbarSelectTree_magic_development_hexagon"
+                                    Margin="0,0,6,6"/>
+                            <Button Content="Большое"
+                                    Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
+                                    CommandParameter="large_development_hexagon_0154"
+                                    Tag="large_development_hexagon_0154"
+                                    Click="SelectDevelopmentHexagonButton_Click"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ToolbarSelectTree_large_development_hexagon_0154"
+                                    Margin="0,0,6,6"/>
+                            <Button Content="Вписать"
+                                    Command="{Binding FitToViewDevelopmentHexagonLayoutCommand}"
+                                    Click="AdminDevelopmentHexagonEditor_FitToView_Click"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_FitToView"
+                                    Margin="0,0,6,6"/>
+                            <CheckBox Content="Сетка"
+                                      IsChecked="{Binding DevelopmentLayoutShowGrid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_GridToggle"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,10,6"/>
+                            <CheckBox Content="Привязка"
+                                      IsChecked="{Binding DevelopmentLayoutSnapToGrid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SnapToggle"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,10,6"/>
+                            <TextBlock Text="{Binding DevelopmentLayoutZoomText}"
+                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ZoomLevelText"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,6"/>
+                            <TextBox Width="210"
+                                     Text="{Binding DevelopmentLayoutSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Поиск по имени, типу, привязке или id"
+                                     AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SearchBox"
+                                     Margin="0,0,6,6"/>
+                            <Button Content="Очистить"
+                                    Command="{Binding SearchDevelopmentHexagonLayoutClearCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SearchClear"
+                                    Margin="0,0,6,6"/>
+                            <TextBlock Text="{Binding DevelopmentLayoutSearchResultCountText}"
+                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SearchResultCount"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,6"/>
+                            <Button Content="←"
+                                    Command="{Binding SearchDevelopmentHexagonLayoutPreviousCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SearchPrevious"
+                                    Margin="0,0,4,6"/>
+                            <Button Content="→"
+                                    Command="{Binding SearchDevelopmentHexagonLayoutNextCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SearchNext"
+                                    Margin="0,0,10,6"/>
+                            <Button Content="Отменить"
+                                    Command="{Binding UndoDevelopmentHexagonLayoutCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_Undo"
+                                    Margin="0,0,4,6"/>
+                            <Button Content="Повторить"
+                                    Command="{Binding RedoDevelopmentHexagonLayoutCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_Redo"
+                                    Margin="0,0,10,6"/>
+                            <Button Content="Сохранить всё"
+                                    Command="{Binding SaveAllDevelopmentHexagonChangesCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SaveAllChanges"
+                                    Margin="0,0,4,6"/>
+                            <Button Content="Отменить всё"
+                                    Command="{Binding DiscardAllDevelopmentHexagonChangesCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_DiscardAllChanges"
+                                    Margin="0,0,10,6"/>
+                            <CheckBox Content="Легенда"
+                                      IsChecked="{Binding DevelopmentLayoutShowLegend, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LegendToggle"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,0,6"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,0,0,8">
+                            <ComboBox Width="150"
+                                      SelectedValue="{Binding DevelopmentLayoutTypeFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Tag"
+                                      IsEditable="False"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_TypeFilter"
+                                      Margin="0,0,6,6">
+                                <ComboBoxItem Tag="all" Content="Все типы"/>
+                                <ComboBoxItem Tag="class" Content="Классы"/>
+                                <ComboBoxItem Tag="skill" Content="Навыки"/>
+                                <ComboBoxItem Tag="magic" Content="Магия"/>
+                                <ComboBoxItem Tag="custom" Content="Другое"/>
+                            </ComboBox>
+                            <ComboBox Width="160"
+                                      SelectedValue="{Binding DevelopmentLayoutVisibilityFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Tag"
+                                      IsEditable="False"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_VisibilityFilter"
+                                      Margin="0,0,6,6">
+                                <ComboBoxItem Tag="all" Content="Вся видимость"/>
+                                <ComboBoxItem Tag="player" Content="Видно игрокам"/>
+                                <ComboBoxItem Tag="hidden" Content="Скрыто"/>
+                                <ComboBoxItem Tag="gm_only" Content="Только GM"/>
+                            </ComboBox>
+                            <ComboBox Width="150"
+                                      SelectedValue="{Binding DevelopmentLayoutStateFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Tag"
+                                      IsEditable="False"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_StateFilter"
+                                      Margin="0,0,6,6">
+                                <ComboBoxItem Tag="all" Content="Все статусы"/>
+                                <ComboBoxItem Tag="available" Content="Доступно"/>
+                                <ComboBoxItem Tag="locked" Content="Недоступно"/>
+                                <ComboBoxItem Tag="taken" Content="Изучено"/>
+                                <ComboBoxItem Tag="layout" Content="Раскладка"/>
+                            </ComboBox>
+                            <ComboBox Width="170"
+                                      SelectedValue="{Binding DevelopmentLayoutLinkedKindFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Tag"
+                                      IsEditable="False"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LinkedKindFilter"
+                                      Margin="0,0,6,6">
+                                <ComboBoxItem Tag="all" Content="Все привязки"/>
+                                <ComboBoxItem Tag="class" Content="Класс"/>
+                                <ComboBoxItem Tag="skill" Content="Навык"/>
+                                <ComboBoxItem Tag="faction" Content="Фракция"/>
+                                <ComboBoxItem Tag="location" Content="Локация"/>
+                                <ComboBoxItem Tag="custom" Content="Другое"/>
+                            </ComboBox>
+                            <Button Content="Сбросить фильтры"
+                                    Command="{Binding ClearDevelopmentHexagonLayoutFiltersCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ClearFilters"
+                                    Margin="0,0,8,6"/>
+                            <TextBlock Text="{Binding SelectedDevelopmentLayoutLinkDirectionText}"
+                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectedLinkDirectionText"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,0,6"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,0,0,8">
+                            <CheckBox Content="Показать только связи выбранного узла"
+                                      IsChecked="{Binding DevelopmentLayoutFocusSelectedNodeLinks, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_FocusSelectedNodeLinksToggle"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,10,6"/>
+                            <CheckBox Content="Диагностика"
+                                      IsChecked="{Binding DevelopmentLayoutShowDiagnostics, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_DiagnosticsToggle"
+                                      ToolTip="Показывает служебные performance/test узлы отдельно от обычной рабочей раскладки."
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,10,6"/>
+                            <Button Content="Показать все связи"
+                                    Command="{Binding ShowAllDevelopmentLayoutLinksCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ShowAllLinks"
+                                    Margin="0,0,10,6"/>
+                            <TextBlock Text="{Binding SelectedDevelopmentLayoutIncomingLinksText}"
+                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectedNodeIncomingLinks"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,6"/>
+                            <TextBlock Text="{Binding SelectedDevelopmentLayoutOutgoingLinksText}"
+                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectedNodeOutgoingLinks"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,0,6"/>
+                        </WrapPanel>
+                        <Border Background="#FF142033"
+                                BorderBrush="#FF2F4265"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="8"
+                                Margin="0,0,0,8"
+                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_TreeModeOverlay_Container">
+                            <TextBlock Text="{Binding DevelopmentLayoutTreeModeOverlayText}"
+                                       Foreground="{StaticResource TextBrush}"
+                                       TextWrapping="Wrap"
+                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_TreeModeOverlay"/>
+                        </Border>
+                        <Border Background="#FF142033"
+                                BorderBrush="#FF2F4265"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="8"
+                                Margin="0,0,0,8"
+                                Visibility="{Binding DevelopmentLayoutLegendVisibility}"
+                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LegendPanel_Container">
+                            <WrapPanel>
+                                <TextBlock Text="Легенда:"
+                                           AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LegendPanel"
+                                           FontWeight="Bold"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Text="Зелёная рамка — выбранный узел; жёлтая — сосед выбранного узла; красная — ошибка или GM-only; яркая стрелка — связь требования."
+                                           Foreground="{StaticResource MutedBrush}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="  Связи: источник → целевой узел"
+                                           AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LinkLegend"
+                                           Foreground="{StaticResource MutedBrush}"
+                                           Margin="10,0,0,0"/>
+                            </WrapPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="280"/>
+                        </Grid.ColumnDefinitions>
+                        <Border BorderBrush="#FF2F4265"
+                                BorderThickness="1"
+                                Background="#FF101827"
+                                Padding="10"
+                                CornerRadius="6">
+                            <Grid>
+                            <ScrollViewer x:Name="AdminDevelopmentLayoutScrollViewer"
+                                          HorizontalScrollBarVisibility="Auto"
+                                          VerticalScrollBarVisibility="Auto"
+                                          MaxHeight="620"
+                                          AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_Canvas">
+                                <Grid Width="{Binding DevelopmentLayoutWorkspaceWidth}"
+                                      Height="{Binding DevelopmentLayoutWorkspaceHeight}">
+                                    <Grid.LayoutTransform>
+                                        <ScaleTransform ScaleX="{Binding DevelopmentLayoutZoom}" ScaleY="{Binding DevelopmentLayoutZoom}"/>
+                                    </Grid.LayoutTransform>
+                                    <Grid.RenderTransform>
+                                        <TranslateTransform X="{Binding DevelopmentLayoutViewportTranslateX}"
+                                                            Y="{Binding DevelopmentLayoutViewportTranslateY}"/>
+                                    </Grid.RenderTransform>
+                                    <Rectangle Width="{Binding DevelopmentLayoutWorkspaceWidth}"
+                                               Height="{Binding DevelopmentLayoutWorkspaceHeight}"
+                                               IsHitTestVisible="False"
+                                               Opacity="{Binding DevelopmentLayoutGridOpacity}">
+                                        <Rectangle.Fill>
+                                            <DrawingBrush TileMode="Tile"
+                                                          Viewport="0,0,50,50"
+                                                          ViewportUnits="Absolute">
+                                                <DrawingBrush.Drawing>
+                                                    <GeometryDrawing Brush="Transparent">
+                                                        <GeometryDrawing.Pen>
+                                                            <Pen Brush="#334A6FA8" Thickness="1"/>
+                                                        </GeometryDrawing.Pen>
+                                                        <GeometryDrawing.Geometry>
+                                                            <GeometryGroup>
+                                                                <LineGeometry StartPoint="0,0" EndPoint="50,0"/>
+                                                                <LineGeometry StartPoint="0,0" EndPoint="0,50"/>
+                                                            </GeometryGroup>
+                                                        </GeometryDrawing.Geometry>
+                                                    </GeometryDrawing>
+                                                </DrawingBrush.Drawing>
+                                            </DrawingBrush>
+                                        </Rectangle.Fill>
+                                    </Rectangle>
+                                    <ItemsControl ItemsSource="{Binding DevelopmentLayoutCanonicalLanes}"
+                                                  Width="{Binding DevelopmentLayoutWorkspaceWidth}"
+                                                  Height="{Binding DevelopmentLayoutWorkspaceHeight}"
+                                                  Visibility="{Binding DevelopmentLayoutCanonicalLayerVisibility}"
+                                                  IsHitTestVisible="False"
+                                                  AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_CanonicalLaneLayer">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas Background="Transparent" ClipToBounds="True"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Line X1="{Binding X1}"
+                                                      Y1="{Binding Y1}"
+                                                      X2="{Binding X2}"
+                                                      Y2="{Binding Y2}"
+                                                      Stroke="{Binding StrokeBrush}"
+                                                      StrokeThickness="{Binding StrokeThickness}"
+                                                      Opacity="{Binding Opacity}"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl ItemsSource="{Binding DevelopmentLayoutLinks}"
+                                                  IsHitTestVisible="False"
+                                                  AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LinkLayer">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas Background="Transparent" ClipToBounds="True"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Canvas>
+                                                    <Path Data="{Binding PathData}"
+                                                          StrokeThickness="{Binding VisualStrokeThickness}"
+                                                          Stroke="{Binding VisualStrokeBrush}"
+                                                          Opacity="{Binding VisualOpacity}"
+                                                          Fill="Transparent"/>
+                                                    <Polygon Points="{Binding ArrowPoints}"
+                                                             Fill="{Binding VisualStrokeBrush}"
+                                                             Opacity="{Binding VisualOpacity}"/>
+                                                </Canvas>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl x:Name="DevelopmentLayoutCanvasItems"
+                                              Width="{Binding DevelopmentLayoutWorkspaceWidth}"
+                                              Height="{Binding DevelopmentLayoutWorkspaceHeight}"
+                                              ItemsSource="{Binding DevelopmentLayoutNodes}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <Canvas Background="Transparent" ClipToBounds="True"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="{x:Type ContentPresenter}">
+                                            <Setter Property="Canvas.Left" Value="{Binding PositionX}"/>
+                                            <Setter Property="Canvas.Top" Value="{Binding PositionY}"/>
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Width="{Binding NodeWidth}"
+                                             Height="{Binding NodeHeight}"
+                                             Opacity="{Binding VisualOpacity}"
+                                             Visibility="{Binding VisualVisibility}"
+                                             Tag="{Binding}"
+                                                    PreviewMouseLeftButtonDown="DevelopmentLayoutNode_MouseLeftButtonDown"
+                                                     PreviewMouseMove="DevelopmentLayoutNode_MouseMove"
+                                                     PreviewMouseLeftButtonUp="DevelopmentLayoutNode_MouseLeftButtonUp"
+                                                     AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                     AutomationProperties.Name="{Binding DisplayTitle}">
+                                                <Button.Style>
+                                                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource GhostButtonStyle}">
+                                                        <Setter Property="Background" Value="#FF1D3153"/>
+                                                        <Setter Property="BorderBrush" Value="#FF4A6FA8"/>
+                                                        <Setter Property="Foreground" Value="#FFE7F0FF"/>
+                                                        <Setter Property="Padding" Value="6"/>
+                                                        <Setter Property="Margin" Value="0"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter Property="Background" Value="#FF214C45"/>
+                                                                <Setter Property="BorderBrush" Value="{StaticResource SuccessBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsHidden}" Value="True">
+                                                                <Setter Property="Background" Value="#FF3C2535"/>
+                                                                <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsSearchMatch}" Value="True">
+                                                                <Setter Property="BorderBrush" Value="{StaticResource WarningBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsFocusNeighbor}" Value="True">
+                                                                <Setter Property="Background" Value="#FF263A5F"/>
+                                                                <Setter Property="BorderBrush" Value="{StaticResource WarningBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsInvalid}" Value="True">
+                                                                <Setter Property="Background" Value="#FF4B1F2C"/>
+                                                                <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <StackPanel ToolTip="{Binding LinkedDefinitionText}">
+                                                    <TextBlock Text="{Binding DisplayTitle}"
+                                                               FontWeight="SemiBold"
+                                                               TextWrapping="Wrap"
+                                                               MaxHeight="34"/>
+                                                    <WrapPanel Margin="0,3,0,0">
+                                                        <TextBlock Text="{Binding DisplayTypeLabel}" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,6,0"/>
+                                                        <TextBlock Text="{Binding DisplayState}" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,6,0"/>
+                                                    </WrapPanel>
+                                                    <TextBlock Text="{Binding DisplayCostText}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                                    <WrapPanel>
+                                                        <TextBlock Text="{Binding VisibilityText}" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,6,0"/>
+                                                        <TextBlock Text="{Binding ValidationBadgeText}" Foreground="{StaticResource WarningBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                                    </WrapPanel>
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl ItemsSource="{Binding DevelopmentLayoutCanonicalDirections}"
+                                                  Width="{Binding DevelopmentLayoutWorkspaceWidth}"
+                                                  Height="{Binding DevelopmentLayoutWorkspaceHeight}"
+                                                  Visibility="{Binding DevelopmentLayoutCanonicalLayerVisibility}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas Background="Transparent" ClipToBounds="True"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle>
+                                            <Style TargetType="{x:Type ContentPresenter}">
+                                                <Setter Property="Canvas.Left" Value="{Binding AnchorX}"/>
+                                                <Setter Property="Canvas.Top" Value="{Binding AnchorY}"/>
+                                            </Style>
+                                        </ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Width="{Binding AnchorWidth}"
+                                                        Height="{Binding AnchorHeight}"
+                                                        Opacity="{Binding VisualOpacity}"
+                                                        Padding="0"
+                                                        BorderThickness="0"
+                                                        Background="Transparent"
+                                                        Focusable="False"
+                                                        IsHitTestVisible="False"
+                                                        AutomationProperties.AutomationId="{Binding AdminAnchorAutomationId}"
+                                                        AutomationProperties.Name="{Binding FullDisplayName}">
+                                                    <Grid>
+                                                        <Polygon Points="{Binding AnchorHexPoints}"
+                                                                 Fill="#DD1B3556"
+                                                                 Stroke="#FF9ED8FF"
+                                                                 StrokeThickness="2.4"/>
+                                                        <StackPanel VerticalAlignment="Center"
+                                                                    HorizontalAlignment="Center"
+                                                                    Margin="10,0">
+                                                            <TextBlock Text="{Binding DisplayName}"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="#FFEAF6FF"
+                                                                       TextAlignment="Center"/>
+                                                            <TextBlock Text="{Binding AtmosphericName}"
+                                                                       Visibility="{Binding DataContext.DevelopmentLayoutDirectionLabelsVisibility, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                       Foreground="{StaticResource MutedBrush}"
+                                                                       FontSize="11"
+                                                                       TextAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl ItemsSource="{Binding DevelopmentLayoutCanonicalRoots}"
+                                                  Width="{Binding DevelopmentLayoutWorkspaceWidth}"
+                                                  Height="{Binding DevelopmentLayoutWorkspaceHeight}"
+                                                  Visibility="{Binding DevelopmentLayoutCanonicalLayerVisibility}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas Background="Transparent" ClipToBounds="True"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle>
+                                            <Style TargetType="{x:Type ContentPresenter}">
+                                                <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                                                <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                                            </Style>
+                                        </ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Width="{Binding Width}"
+                                                        Height="{Binding Height}"
+                                                        Padding="0"
+                                                        BorderThickness="0"
+                                                        Background="Transparent"
+                                                        Focusable="False"
+                                                        IsHitTestVisible="False"
+                                                        AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                        AutomationProperties.Name="{Binding Label}">
+                                                    <Grid>
+                                                        <Polygon Points="{Binding HexPoints}"
+                                                                 Fill="#EE214C45"
+                                                                 Stroke="{StaticResource SuccessBrush}"
+                                                                 StrokeThickness="4"/>
+                                                        <TextBlock Text="{Binding Label}"
+                                                                   FontSize="24"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="#FFFFFFFF"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   TextAlignment="Center"
+                                                                   TextWrapping="Wrap"
+                                                                   Margin="22,0"/>
+                                                    </Grid>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </ScrollViewer>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="1"
+                                Style="{StaticResource CardStyle}"
+                                Background="{StaticResource PanelAltBrush}"
+                                Margin="8,0,0,0"
+                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectedNodePanel">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Выбранный узел" FontWeight="Bold" FontSize="16"/>
+                                    <TextBlock Text="{Binding SelectedDevelopmentLayoutNodeSummary}"
+                                               AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectedNodeSummary"
+                                               TextWrapping="Wrap"
+                                               Margin="0,6,0,10"/>
+                                    <Border Background="#FF142033"
+                                            BorderBrush="#FF2F4265"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Padding="8"
+                                            Margin="0,0,0,10"
+                                            AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ChangedObjectsList_Container">
+                                        <StackPanel>
+                                            <TextBlock Text="Изменённые объекты"
+                                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ChangedObjectsList"
+                                                       FontWeight="Bold"/>
+                                            <ItemsControl ItemsSource="{Binding DevelopmentLayoutChangedObjects}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#FF142033"
+                                            BorderBrush="#FF2F4265"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Padding="8"
+                                            Margin="0,0,0,10"
+                                            AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ValidationPanel_Container">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <TextBlock Text="{Binding DevelopmentLayoutValidationSummary}"
+                                                           AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ValidationPanel"
+                                                           FontWeight="Bold"/>
+                                                <Button Content="Фокус"
+                                                        DockPanel.Dock="Right"
+                                                        Command="{Binding FocusDevelopmentHexagonValidationAffectedCommand}"
+                                                        Style="{StaticResource GhostButtonStyle}"
+                                                        AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ValidationFocusAffected"/>
+                                            </DockPanel>
+                                            <TextBlock Text="Ошибки"
+                                                       Foreground="{StaticResource DangerBrush}"
+                                                       Margin="0,6,0,0"
+                                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ValidationErrors"/>
+                                            <ItemsControl ItemsSource="{Binding DevelopmentLayoutValidationErrors}"
+                                                          AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ValidationErrors_List">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" Foreground="{StaticResource DangerBrush}" Margin="0,3,0,0"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <TextBlock Text="Предупреждения"
+                                                       Foreground="{StaticResource WarningBrush}"
+                                                       Margin="0,6,0,0"
+                                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ValidationWarnings"/>
+                                            <ItemsControl ItemsSource="{Binding DevelopmentLayoutValidationWarnings}"
+                                                          AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ValidationWarnings_List">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" Foreground="{StaticResource WarningBrush}" Margin="0,3,0,0"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                    <TextBlock Text="Название"/>
+                                    <TextBox Text="{Binding NodeName, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_NodeName"/>
+                                    <TextBlock Text="Описание" Margin="0,8,0,0"/>
+                                    <TextBox Text="{Binding NodeDescription, UpdateSourceTrigger=PropertyChanged}"
+                                             AcceptsReturn="True"
+                                             Height="70"
+                                             TextWrapping="Wrap"
+                                             AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_NodeDescription"/>
+                                    <TextBlock Text="Тип" Margin="0,8,0,0"/>
+                                    <ComboBox SelectedValue="{Binding NodeType, UpdateSourceTrigger=PropertyChanged}"
+                                              SelectedValuePath="Tag"
+                                              IsEditable="False"
+                                              AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_NodeType">
+                                        <ComboBoxItem Tag="class" Content="Класс"/>
+                                        <ComboBoxItem Tag="skill" Content="Навык"/>
+                                        <ComboBoxItem Tag="passive" Content="Пассивное развитие"/>
+                                        <ComboBoxItem Tag="magic" Content="Магия"/>
+                                        <ComboBoxItem Tag="custom" Content="Другое"/>
+                                    </ComboBox>
+                                    <TextBlock Text="Видимость" Margin="0,8,0,0"/>
+                                    <ComboBox SelectedValue="{Binding NodeVisibilityRule, UpdateSourceTrigger=PropertyChanged}"
+                                              SelectedValuePath="Tag"
+                                              IsEditable="False"
+                                              AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_NodeVisibility">
+                                        <ComboBoxItem Tag="visible_by_default" Content="Видно игрокам"/>
+                                        <ComboBoxItem Tag="hidden_until_gm_reveal" Content="Скрыто до раскрытия GM"/>
+                                        <ComboBoxItem Tag="gm_only" Content="Только GM"/>
+                                        <ComboBoxItem Tag="public" Content="Открыто"/>
+                                    </ComboBox>
+                                    <UniformGrid Columns="2" Margin="0,8,0,0">
+                                        <StackPanel Margin="0,0,6,0">
+                                            <TextBlock Text="Стоимость"/>
+                                            <TextBox Text="{Binding NodeCost, UpdateSourceTrigger=PropertyChanged}"
+                                                     AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_NodeCostAmount"/>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <TextBlock Text="Валюта"/>
+                                            <TextBox Text="{Binding NodeCurrencyDisplayInput, UpdateSourceTrigger=PropertyChanged}"
+                                                     AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_NodeCostCurrency"/>
+                                        </StackPanel>
+                                    </UniformGrid>
+                                    <TextBlock Text="Привязка к справочнику" Margin="0,8,0,0"/>
+                                    <ComboBox Text="{Binding NodeLinkedDefinitionKind, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEditable="True"
+                                              AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LinkedDefinitionSelector">
+                                        <ComboBoxItem Content="class"/>
+                                        <ComboBoxItem Content="skill"/>
+                                        <ComboBoxItem Content="faction"/>
+                                        <ComboBoxItem Content="location"/>
+                                        <ComboBoxItem Content="custom"/>
+                                    </ComboBox>
+                                    <TextBox Text="{Binding NodeLinkedDefinitionId, UpdateSourceTrigger=PropertyChanged}"
+                                             Margin="0,4,0,0"
+                                             AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LinkedDefinitionId"/>
+                                    <WrapPanel Margin="0,8,0,0">
+                                        <CheckBox Content="Видно игрокам"
+                                                  IsChecked="{Binding NodeIsPlayerVisible, UpdateSourceTrigger=PropertyChanged}"
+                                                  Margin="0,0,8,4"/>
+                                        <CheckBox Content="Скрыто GM"
+                                                  IsChecked="{Binding NodeIsHidden, UpdateSourceTrigger=PropertyChanged}"
+                                                  Margin="0,0,8,4"/>
+                                        <CheckBox Content="Архив"
+                                                  IsChecked="{Binding NodeIsArchived, UpdateSourceTrigger=PropertyChanged}"
+                                                  Margin="0,0,8,4"/>
+                                    </WrapPanel>
+                                    <WrapPanel Margin="0,8,0,0">
+                                        <Button Content="Создать"
+                                                Command="{Binding CreateDevelopmentNodeCommand}"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_CreateNode"
+                                                Margin="0,0,6,6"/>
+                                        <Button Content="Сохранить"
+                                                Command="{Binding SaveDevelopmentNodeCommand}"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SaveNode"
+                                                Margin="0,0,6,6"/>
+                                        <Button Content="Отменить"
+                                                Command="{Binding CancelDevelopmentNodeEditCommand}"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_CancelNodeEdit"
+                                                Margin="0,0,6,6"/>
+                                        <Button Content="Архивировать"
+                                                Command="{Binding ArchiveDevelopmentNodeCommand}"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ArchiveNode"
+                                                Margin="0,0,6,6"/>
+                                        <Button Content="Вернуть"
+                                                Command="{Binding RestoreDevelopmentNodeCommand}"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_RestoreNode"
+                                                Margin="0,0,6,6"/>
+                                    </WrapPanel>
+                                    <Separator Margin="0,10,0,10"/>
+                                    <TextBlock Text="Требования / связи" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding SelectedDevelopmentLayoutLinkSummary}"
+                                               AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectedLinkPanel"
+                                               TextWrapping="Wrap"/>
+                                    <CheckBox Content="Режим связи"
+                                              IsChecked="{Binding DevelopmentLinkModeEnabled, UpdateSourceTrigger=PropertyChanged}"
+                                              AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LinkModeToggle"
+                                              Margin="0,6,0,6"/>
+                                    <TextBlock Text="Источник требования"/>
+                                    <TextBox Text="{Binding RequirementSourceNodeId, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_RequirementSource"/>
+                                    <TextBlock Text="Целевой узел" Margin="0,6,0,0"/>
+                                    <TextBox Text="{Binding RequirementTargetNodeId, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_RequirementTarget"/>
+                                    <TextBox Text="{Binding NodeRequiredNodes, UpdateSourceTrigger=PropertyChanged}"
+                                             Margin="0,6,0,0"
+                                             AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_RequirementsList"/>
+                                    <WrapPanel Margin="0,8,0,0">
+                                        <Button Content="Добавить связь"
+                                                Command="{Binding AddRequirementLinkCommand}"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_AddRequirementLink"
+                                                Margin="0,0,6,6"/>
+                                        <Button Content="Удалить связь"
+                                                Command="{Binding RemoveRequirementLinkCommand}"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_RemoveRequirementLink"
+                                                Margin="0,0,6,6"/>
+                                        <Button Content="Проверить граф"
+                                                Command="{Binding ValidateDevelopmentGraphCommand}"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ValidateGraph"
+                                                Margin="0,0,6,6"/>
+                                    </WrapPanel>
+                                    <TextBlock Text="Выбор дерева"
+                                               FontWeight="Bold"
+                                               Margin="0,8,0,4"/>
+                                    <WrapPanel>
+                                        <Button Content="Основной"
+                                                Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
+                                                CommandParameter="main_development_hexagon"
+                                                Tag="main_development_hexagon"
+                                                Click="SelectDevelopmentHexagonButton_Click"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_StatusSelectTree_main_development_hexagon"
+                                                Margin="0,0,6,6"/>
+                                        <Button Content="Магия"
+                                                Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
+                                                CommandParameter="magic_development_hexagon"
+                                                Tag="magic_development_hexagon"
+                                                Click="SelectDevelopmentHexagonButton_Click"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_StatusSelectTree_magic_development_hexagon"
+                                                Margin="0,0,6,6"/>
+                                        <Button Content="Большое"
+                                                Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
+                                                CommandParameter="large_development_hexagon_0154"
+                                                Tag="large_development_hexagon_0154"
+                                                Click="SelectDevelopmentHexagonButton_Click"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_StatusSelectTree_large_development_hexagon_0154"
+                                                Margin="0,0,6,6"/>
+                                    </WrapPanel>
+                                    <TextBlock Text="{Binding DevelopmentLayoutTreeModeOverlayText}"
+                                               AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_StatusTreeModeOverlay"
+                                               TextWrapping="Wrap"
+                                               Foreground="{StaticResource TextBrush}"
+                                               Margin="0,4,0,0"/>
+                                    <TextBlock Text="{Binding DevelopmentLayoutStatusText}"
+                                               AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_StatusText"
+                                               TextWrapping="Wrap"
+                                               Foreground="{StaticResource MutedBrush}"
+                                               Margin="0,8,0,0"/>
+                                    <TextBlock Text="{Binding NodeLayoutSaveStatus}"
+                                               AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_Archive_Status"
+                                               TextWrapping="Wrap"
+                                               Foreground="{StaticResource MutedBrush}"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </DockPanel>
+            </Border>
+
+            <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.1*"/>
+                    <ColumnDefinition Width="1.4*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top">
+                            <TextBlock Text="Узлы шестиугольника развития" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="GM видит узлы и может открывать или отзывать развитие. Игрок получает только уже разблокированные узлы." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                            <WrapPanel>
+                                <Button Content="Загрузить шестиугольник" Command="{Binding DataContext.LoadClassTreeCommand, RelativeSource={RelativeSource AncestorType=Window}}" AutomationProperties.AutomationId="AdminClasses_Hexagon_Load_Button"/>
+                                <Button Content="Разблокировать узел" Command="{Binding DataContext.AcquireClassNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}" AutomationProperties.AutomationId="AdminClassHex_UnlockNode_Button"/>
+                                <Button Content="Заблокировать узел" Command="{Binding DataContext.RevokeClassNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}" AutomationProperties.AutomationId="AdminClassHex_RevokeNode_Button"/>
+                            </WrapPanel>
+                            <WrapPanel Margin="0,6,0,0">
+                                <Button Content="Покупка" Tag="dev_hex_purchase_node_01446" Click="SelectNodeButton_Click" AutomationProperties.AutomationId="AdminClasses_Node_Select_dev_hex_purchase_node_01446"/>
+                                <Button Content="Класс" Tag="dev_hex_class_node_01446" Click="SelectNodeButton_Click" AutomationProperties.AutomationId="AdminClasses_Node_Select_dev_hex_class_node_01446"/>
+                                <Button Content="Заблокирован" Tag="dev_locked_node_01446" Click="SelectNodeButton_Click" AutomationProperties.AutomationId="AdminClasses_Node_Select_dev_locked_node_01446"/>
+                                <Button Content="Скрытый" Tag="dev_hidden_node_01446" Click="SelectNodeButton_Click" AutomationProperties.AutomationId="AdminClasses_Node_Select_dev_hidden_node_01446"/>
+                                <Button Content="Корень магии" Tag="magic_awakened" Click="SelectNodeButton_Click" AutomationProperties.AutomationId="AdminClasses_Node_Select_magic_awakened"/>
+                                <Button Content="Маг маны" Tag="dev_mana_mage_01448" Click="SelectNodeButton_Click" AutomationProperties.AutomationId="AdminClasses_Node_Select_dev_mana_mage_01448"/>
+                                <Button Content="Маг заклинаний" Tag="dev_spell_mage_01448" Click="SelectNodeButton_Click" AutomationProperties.AutomationId="AdminClasses_Node_Select_dev_spell_mage_01448"/>
+                                <Button Content="Огонь" Tag="dev_magic_fire_element_01448" Click="SelectNodeButton_Click" AutomationProperties.AutomationId="AdminClasses_Node_Select_dev_magic_fire_element_01448"/>
+                            </WrapPanel>
+                            <TextBox x:Name="SelectedClassNodeIdTextBox"
+                                     Margin="0,8,0,0"
+                                     AutomationProperties.AutomationId="AdminClasses_Node_SelectedNodeId"
+                                     Text="{Binding SelectedClassNodeId, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Button Content="Загрузить выбранный узел"
+                                    Click="SelectNodeByInputButton_Click"
+                                    AutomationProperties.AutomationId="AdminClasses_Node_LoadSelected_Button"
+                                    Margin="0,6,0,0"/>
+                        </StackPanel>
+                        <DataGrid ItemsSource="{Binding ClassTreeItems}"
+                                  AutomationProperties.AutomationId="AdminClasses_Hexagon_Nodes_Table"
+                                  AutoGenerateColumns="False"
+                                  HeadersVisibility="Column"
+                                  MinHeight="260"
+                                  IsReadOnly="True"
+                                  Margin="0,8,0,0">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="Выбор" Width="72">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="Открыть"
+                                                    Tag="{Binding Id}"
+                                                    Click="SelectNodeButton_Click"
+                                                    AutomationProperties.AutomationId="{Binding Id, StringFormat=AdminClasses_Node_Select_{0}}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="NodeId" Binding="{Binding Id}" Width="170"/>
+                                <DataGridTextColumn Header="Узел" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="Состояние" Binding="{Binding State}" Width="110"/>
+                                <DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="2*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Редактор раскладки" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="Изменения сохраняются в source-of-truth определений и после refresh доступны PlayerClient." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                        <Button Content="Сохранить раскладку"
+                                HorizontalAlignment="Left"
+                                Click="SaveLayoutButton_Click"
+                                AutomationProperties.AutomationId="AdminClasses_Node_SaveLayout_Top_Button"
+                                Margin="0,0,0,8"/>
+                        <UniformGrid Columns="3">
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="HexagonId"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_HexagonId" Text="{Binding NodeHexagonId, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="HexagonType"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_HexagonType" Text="{Binding NodeHexagonType, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Text="NodeType"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_NodeType" Text="{Binding NodeType, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="NodeRole"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_NodeRole" Text="{Binding NodeRole, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="Позиция X"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_PositionX" Text="{Binding NodePositionX, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="Позиция Y"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_PositionY" Text="{Binding NodePositionY, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Text="Кольцо"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_Ring" Text="{Binding NodeRing, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="Сектор"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_Sector" Text="{Binding NodeSector, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="Направление"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_DirectionCode" Text="{Binding NodeDirectionCode, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Text="Ветка"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_BranchCode" Text="{Binding NodeBranchCode, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="Порядок"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_SortOrder" Text="{Binding NodeSortOrder, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="Стоимость"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_Cost"
+                                         Text="{Binding NodeCost, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Text="Валюта"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_CurrencyId"
+                                         Text="{Binding NodeCurrencyDisplayInput, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <TextBlock Text="Требования"/>
+                        <TextBox AutomationProperties.AutomationId="AdminClasses_Node_RequiredNodes"
+                                 Text="{Binding NodeRequiredNodes, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="NodeId через запятую"
+                                 Margin="0,4,0,8"/>
+                        <TextBlock Text="Linked class"/>
+                        <TextBox AutomationProperties.AutomationId="AdminClasses_Node_LinkedClassId"
+                                 Text="{Binding NodeLinkedClassId, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,4,0,8"/>
+                        <TextBlock Text="Primary magic group"/>
+                        <TextBox AutomationProperties.AutomationId="AdminClasses_Node_PrimaryMagicGroupId"
+                                 Text="{Binding NodePrimaryMagicGroupId, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,4,0,8"/>
+                        <WrapPanel Margin="0,0,0,8">
+                            <CheckBox Content="Первичный магический класс" AutomationProperties.AutomationId="AdminClasses_Node_IsPrimaryMagicClass" IsChecked="{Binding NodeIsPrimaryMagicClass}" Margin="0,0,16,0"/>
+                            <CheckBox Content="Видно игроку" AutomationProperties.AutomationId="AdminClasses_Node_IsPlayerVisible" IsChecked="{Binding NodeIsPlayerVisible}" Margin="0,0,16,0"/>
+                            <CheckBox Content="Узел скрыт" AutomationProperties.AutomationId="AdminClasses_Node_IsHidden" IsChecked="{Binding NodeIsHidden}"/>
+                        </WrapPanel>
+                        <WrapPanel>
+                            <Button Content="Сохранить раскладку"
+                                    Click="SaveLayoutButton_Click"
+                                    AutomationProperties.AutomationId="AdminClasses_Node_SaveLayout_Button"/>
+                            <Button Content="Завершить узел"
+                                    Command="{Binding CompleteClassNodeCommand}"
+                                    AutomationProperties.AutomationId="AdminClasses_Node_Complete_Button"
+                                    Margin="8,0,0,0"/>
+                            <TextBlock Text="{Binding NodeLayoutSaveStatus}"
+                                       AutomationProperties.AutomationId="AdminClasses_Node_SaveLayout_Status"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="10,0,0,0"/>
+                        </WrapPanel>
+                        <TextBlock Text="{Binding NodeLayoutVersion, StringFormat=LayoutVersion: {0}}" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,0"/>
+                        <TextBlock Text="{Binding NodeLayoutUpdatedAt, StringFormat=Обновлено: {0}}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,12"/>
+
+                        <TextBlock Text="Назначение класса через Hexagon" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="Класс назначается только вместе с nodeId. Если класс не привязан к узлу, сервер вернёт NotFound." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                        <UniformGrid Columns="3">
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="ID персонажа"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_CharacterId" Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="ClassCode"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClassHex_AssignClassCode" Text="{Binding AssignClassCode, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Text="NodeId"/>
+                                <TextBox AutomationProperties.AutomationId="AdminClassHex_AssignNodeId" Text="{Binding AssignClassNodeId, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel Width="90" Margin="0,0,8,0">
+                                <TextBlock Text="Уровень"/>
+                                <TextBox Text="{Binding AssignClassLevel, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <Button Content="Назначить класс" Command="{Binding AssignCharacterClassCommand}" AutomationProperties.AutomationId="AdminClassHex_AssignClass_Button" VerticalAlignment="Bottom"/>
+                        </StackPanel>
+                        <TextBlock Text="Классы персонажа" Style="{StaticResource TitleTextStyle}" Margin="0,16,0,8"/>
+                        <DataGrid ItemsSource="{Binding CharacterClassRows}" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" MinHeight="160">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Class" Binding="{Binding Id}" Width="150"/>
+                                <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="Состояние" Binding="{Binding State}" Width="130"/>
+                                <DataGridTextColumn Header="Hexagon" Binding="{Binding Extra}" Width="2*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
