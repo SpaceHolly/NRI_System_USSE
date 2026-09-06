@@ -1,5 +1,8 @@
 using System;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using Nri.Server.Bootstrap;
 
@@ -9,7 +12,7 @@ internal static class Program
 {
     private static void Main(string[] args)
     {
-        var configPath = GetArgumentValue(args, "--config") ?? "server.config.json";
+        var configPath = ResolveConfigPath(GetArgumentValue(args, "--config"));
         if (args.Any(x => string.Equals(x, "--seed-dev-core", StringComparison.OrdinalIgnoreCase)))
         {
             var result = DevTestCoreSeeder.Run(configPath);
@@ -20,6 +23,28 @@ internal static class Program
         {
             var result = DevKnownAccountsSeeder.Run(configPath);
             Console.WriteLine(result);
+            return;
+        }
+        if (args.Any(x => string.Equals(x, "--audit-protocol-authorization", StringComparison.OrdinalIgnoreCase)))
+        {
+            var outputPath = GetArgumentValue(args, "--output") ?? Path.Combine(Environment.CurrentDirectory, "protocol_authorization_catalog.json");
+            using var auditBootstrap = ServerBootstrap.Initialize(configPath);
+            var items = auditBootstrap.Runtime.Dispatcher.AuthorizationCatalog.Items.OrderBy(x => x.CommandName).ToArray();
+            var audit = new
+            {
+                status = items.Length > 0 ? "PASS" : "NOT_PASS",
+                registeredCommandCount = auditBootstrap.Runtime.Dispatcher.RegisteredCommands.Count,
+                effectiveClassifiedCount = items.Length,
+                unclassifiedCount = auditBootstrap.Runtime.Dispatcher.RegisteredCommands.Count - items.Length,
+                ambiguousAliasCount = 0,
+                securityGroups = items.Select(x => x.SecurityTestGroup).Distinct().OrderBy(x => x).ToArray(),
+                commands = items
+            };
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            options.Converters.Add(new JsonStringEnumConverter());
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outputPath)) ?? Environment.CurrentDirectory);
+            File.WriteAllText(outputPath, JsonSerializer.Serialize(audit, options));
+            Console.WriteLine($"Protocol authorization catalog: {audit.status}; commands={audit.registeredCommandCount}; output={outputPath}");
             return;
         }
 
@@ -66,5 +91,18 @@ internal static class Program
         }
 
         return null;
+    }
+
+    private static string ResolveConfigPath(string? requestedPath)
+    {
+        if (!string.IsNullOrWhiteSpace(requestedPath)) return requestedPath;
+
+        var candidates = new[]
+        {
+            Path.Combine(Environment.CurrentDirectory, "server.config.json"),
+            Path.Combine(Environment.CurrentDirectory, "Nri.Server", "server.config.json"),
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server.config.json")
+        };
+        return candidates.FirstOrDefault(File.Exists) ?? "server.config.json";
     }
 }

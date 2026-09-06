@@ -806,7 +806,8 @@ public partial class ServiceHub
 
     private static void ValidatePlayerRequestTransition(string currentStatus, string nextStatus)
     {
-        if (currentStatus == nextStatus) return;
+        if (currentStatus == nextStatus)
+            throw new InvalidOperationException("Request already has the requested status.");
         if (currentStatus == PlayerRequestStatusIds.Archived) throw new InvalidOperationException("Archived request cannot be changed.");
         if (currentStatus == PlayerRequestStatusIds.Approved || currentStatus == PlayerRequestStatusIds.Rejected || currentStatus == PlayerRequestStatusIds.Cancelled || currentStatus == PlayerRequestStatusIds.Fulfilled)
             throw new InvalidOperationException("Terminal request cannot be changed.");

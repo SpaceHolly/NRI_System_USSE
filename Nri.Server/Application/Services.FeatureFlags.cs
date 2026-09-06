@@ -11,9 +11,11 @@ public partial class ServiceHub
 {
     public ResponseEnvelope SystemFeatureFlagsSnapshot(CommandContext context)
     {
-        RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         var snapshot = _featureFlags.GetFeatureFlagSnapshot();
-        return Ok("Feature flag snapshot loaded.", FeatureFlagSnapshotPayload(snapshot));
+        return Ok("Feature flag snapshot loaded.", IsAdmin(actor)
+            ? FeatureFlagSnapshotPayload(snapshot)
+            : FeatureFlagPlayerSnapshotPayload(snapshot));
     }
 
     public ResponseEnvelope FeatureFlagsAdminList(CommandContext context)
@@ -132,8 +134,25 @@ public partial class ServiceHub
         return new Dictionary<string, object>
         {
             { "environment", snapshot.Environment ?? string.Empty },
+            { "profileName", snapshot.ProfileName ?? FeatureProfiles.MinimalSafe },
             { "overridesAllowed", snapshot.OverridesAllowed },
             { "flags", snapshot.Flags.Select(FeatureFlagSnapshotItemPayload).Cast<object>().ToArray() }
+        };
+    }
+
+    private static Dictionary<string, object> FeatureFlagPlayerSnapshotPayload(FeatureFlagSnapshot snapshot)
+    {
+        return new Dictionary<string, object>
+        {
+            {
+                "flags",
+                snapshot.Flags.Select(item => (object)new Dictionary<string, object>
+                {
+                    { "name", item.Name ?? string.Empty },
+                    { "category", item.Category ?? string.Empty },
+                    { "effectiveValue", item.EffectiveValue }
+                }).ToArray()
+            }
         };
     }
 
@@ -142,13 +161,17 @@ public partial class ServiceHub
         return new Dictionary<string, object>
         {
             { "name", item.Name ?? string.Empty },
+            { "canonicalKey", item.CanonicalKey ?? item.Name ?? string.Empty },
             { "category", item.Category ?? string.Empty },
             { "defaultValue", item.DefaultValue },
             { "effectiveValue", item.EffectiveValue },
             { "source", item.Source ?? "default" },
             { "description", item.Description ?? string.Empty },
             { "updatedAtUtc", item.UpdatedAtUtc.HasValue ? (object)item.UpdatedAtUtc.Value : string.Empty },
-            { "updatedByUserId", item.UpdatedByUserId ?? string.Empty }
+            { "updatedByUserId", item.UpdatedByUserId ?? string.Empty },
+            { "aliases", item.Aliases.Cast<object>().ToArray() },
+            { "aliasesDeprecated", item.AliasesDeprecated },
+            { "intendedPreReleaseState", item.IntendedPreReleaseState ?? "intentionally_disabled" }
         };
     }
 

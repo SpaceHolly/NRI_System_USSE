@@ -18,6 +18,14 @@ public sealed class UnifiedDefinitionDocument : EntityBase
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public string SourceDocument { get; set; } = string.Empty;
+    public string ContentStatus { get; set; } = string.Empty;
+    public string DefinitionPackId { get; set; } = string.Empty;
+    public string DefinitionPackVersion { get; set; } = string.Empty;
+    public string StableKey { get; set; } = string.Empty;
+    public string RecordVersion { get; set; } = string.Empty;
+    public string PackRecordChecksum { get; set; } = string.Empty;
+    public string PackAppliedContentChecksum { get; set; } = string.Empty;
+    public DateTime? PackAppliedAtUtc { get; set; }
 }
 
 public sealed class DefinitionQuery

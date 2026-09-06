@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UseWPF>true</UseWPF>
+    <TargetFramework>net481</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Nri.AdminClient\Nri.AdminClient.csproj" />
+    <ProjectReference Include="..\..\Nri.Ui.Wpf\Nri.Ui.Wpf.csproj" />
+    <ProjectReference Include="..\..\Nri.Shared\Nri.Shared.csproj" />
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+</Project>

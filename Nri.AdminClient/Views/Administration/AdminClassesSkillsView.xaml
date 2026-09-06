@@ -1,13 +1,129 @@
-﻿<UserControl x:Class="Nri.AdminClient.Views.Administration.AdminClassesSkillsView"
+<UserControl x:Class="Nri.AdminClient.Views.Administration.AdminClassesSkillsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
              DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <UserControl.Resources>
+        <HierarchicalDataTemplate x:Key="RequirementExpressionNodeTemplate0219" ItemsSource="{Binding Children}">
+            <Border BorderBrush="{StaticResource BorderBrushTheme}" BorderThickness="1" Padding="8" Margin="0,4,0,0" CornerRadius="4">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="210"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0" SelectedValuePath="Tag" SelectedValue="{Binding Kind, UpdateSourceTrigger=PropertyChanged}"
+                                  AutomationProperties.Name="Логика группы требований">
+                            <ComboBoxItem Content="Требуется всё" Tag="all_of"/>
+                            <ComboBoxItem Content="Требуется одно из" Tag="any_of"/>
+                            <ComboBoxItem Content="Минимум N условий" Tag="at_least"/>
+                            <ComboBoxItem Content="Отдельное условие" Tag="leaf"/>
+                        </ComboBox>
+                        <TextBlock Grid.Column="1" Text="{Binding OperatorLabel}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0"/>
+                        <Button Grid.Column="2" Content="Удалить" Command="{Binding RemoveCommand}" Style="{StaticResource GhostButtonStyle}"/>
+                    </Grid>
+                    <StackPanel Visibility="{Binding IsAtLeast, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,8,0,0">
+                        <TextBlock Text="Сколько условий нужно выполнить"/>
+                        <controls:NriIntegerField Text="{Binding RequiredCount, UpdateSourceTrigger=PropertyChanged}" Minimum="1" AccessibleName="Минимальное число условий" Width="120" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                    <Grid Visibility="{Binding IsLeaf, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*"/><ColumnDefinition Width="160"/></Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Тип условия"/>
+                            <ComboBox SelectedValuePath="Tag" SelectedValue="{Binding LeafType, UpdateSourceTrigger=PropertyChanged}">
+                                <ComboBoxItem Content="Узел развития" Tag="development_node"/><ComboBoxItem Content="Путь развития" Tag="development_path"/>
+                                <ComboBoxItem Content="Ранг навыка" Tag="skill_rank"/><ComboBoxItem Content="Уровень мастерства" Tag="mastery_band"/>
+                                <ComboBoxItem Content="Характеристика" Tag="attribute"/><ComboBoxItem Content="Подхарактеристика" Tag="subattribute"/>
+                                <ComboBoxItem Content="Техника" Tag="technique"/><ComboBoxItem Content="Тег снаряжения" Tag="equipment_tag"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                            <TextBlock Text="Объект требования"/>
+                            <controls:NriReferencePicker Options="{Binding DataContext.RequirementReferenceOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                         SelectedId="{Binding TargetId, UpdateSourceTrigger=PropertyChanged}"
+                                                         DisplayName="{Binding PublicLabel, UpdateSourceTrigger=PropertyChanged}"
+                                                         AutomationIdPrefix="AdminRequirementExpression_Reference"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Минимальное значение"/>
+                            <controls:NriIntegerField Text="{Binding MinimumValue, UpdateSourceTrigger=PropertyChanged}" Minimum="0" AccessibleName="Порог требования"/>
+                        </StackPanel>
+                    </Grid>
+                    <WrapPanel Visibility="{Binding IsGroup, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,8,0,0">
+                        <Button Content="Добавить условие" Command="{Binding AddConditionCommand}" Style="{StaticResource GhostButtonStyle}"/>
+                        <Button Content="Добавить вложенную группу" Command="{Binding AddGroupCommand}" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </HierarchicalDataTemplate>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <controls:NriRouteStateHost Grid.Row="1" State="{Binding ClassesRouteState, Mode=OneWay}" ActiveStates="loading,error,permission" Panel.ZIndex="10" AutomationProperties.AutomationId="AdminClasses_StateHost">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
+                <controls:NriRouteStatePresenter State="{Binding ClassesRouteState}" VisibleFor="loading"><controls:NriLoadingOverlay IsLoading="True" ProgressText="Загрузка классов и навыков…" AutomationProperties.AutomationId="AdminClasses_Loading"/></controls:NriRouteStatePresenter>
+                <controls:NriRouteStatePresenter State="{Binding ClassesRouteState}" VisibleFor="empty"><controls:NriEmptyState AutomationProperties.AutomationId="AdminClasses_EmptyState" Title="Записей пока нет" Message="Создайте класс или навык."/></controls:NriRouteStatePresenter>
+                <controls:NriRouteStatePresenter State="{Binding ClassesRouteState}" VisibleFor="no-results"><controls:NriEmptyState AutomationProperties.AutomationId="AdminClasses_NoResults" Title="Ничего не найдено" Message="Измените запрос поиска."/></controls:NriRouteStatePresenter>
+                <controls:NriRouteStatePresenter State="{Binding ClassesRouteState}" VisibleFor="no-selection"><TextBlock Text="Выберите класс или навык." AutomationProperties.AutomationId="AdminClasses_NoSelection"/></controls:NriRouteStatePresenter>
+                <controls:NriRouteStatePresenter State="{Binding ClassesRouteState}" VisibleFor="permission"><controls:NriPermissionState AutomationProperties.AutomationId="AdminClasses_Permission" Explanation="{Binding SectionAccessHint}"/></controls:NriRouteStatePresenter>
+                <controls:NriRouteStatePresenter State="{Binding ClassesRouteState}" VisibleFor="error"><TextBlock AutomationProperties.AutomationId="AdminClasses_Error" Text="{Binding LastErrorMessage}" TextWrapping="Wrap"/></controls:NriRouteStatePresenter>
+            </StackPanel>
+        </controls:NriRouteStateHost>
+        <controls:NriPageHeader Grid.Row="0"
+                                Title="Классы и навыки"
+                                Subtitle="Работа с определениями классов, навыков и шестиугольником развития."
+                                StatusText="{Binding ContentReadinessSummary}"
+                                AutomationProperties.AutomationId="AdminClasses_Header"
+                                Margin="8,8,8,0">
+            <controls:NriPageHeader.PrimaryAction>
+                <Button Content="Обновить классы" Command="{Binding RefreshDefinitionClassesCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" AutomationProperties.AutomationId="AdminClasses_Refresh"/>
+            </controls:NriPageHeader.PrimaryAction>
+            <controls:NriPageHeader.SecondaryActions>
+                <WrapPanel>
+                    <RadioButton Content="Развитие" IsChecked="{Binding AdminDevelopmentWorkspaceSelected, Mode=TwoWay}"
+                                 GroupName="AdminClassesSkillsWorkspace" Margin="0,0,10,0" VerticalAlignment="Center"
+                                 AutomationProperties.Name="Рабочая область развития"
+                                 AutomationProperties.AutomationId="AdminClassesSkills_DevelopmentWorkspaceMode"/>
+                    <RadioButton Content="Справочники" IsChecked="{Binding AdminDefinitionsWorkspaceSelected, Mode=TwoWay}"
+                                 GroupName="AdminClassesSkillsWorkspace" Margin="0,0,12,0" VerticalAlignment="Center"
+                                 AutomationProperties.Name="Справочники классов и навыков"
+                                 AutomationProperties.AutomationId="AdminClassesSkills_DefinitionsWorkspaceMode"/>
+                    <controls:NriStatusBadge Text="{Binding ClassUnsavedSummary}"
+                                             StatusKind="Warning"
+                                             Visibility="{Binding HasClassUnsavedChanges, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                             AutomationProperties.AutomationId="AdminClasses_Unsaved"/>
+                    <controls:NriStatusBadge Text="{Binding ClassValidationSummary}"
+                                             StatusKind="Danger"
+                                             Margin="6,0,0,0"
+                                             Visibility="{Binding HasClassValidationIssues, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                             AutomationProperties.AutomationId="AdminClasses_Validation"/>
+                    <controls:NriToastHost Message="{Binding OperationStatusMessage}"
+                                           IsOpen="{Binding HasOperationStatusMessage}"
+                                           Margin="6,0,0,0"
+                                           AutomationProperties.AutomationId="AdminClasses_Success"/>
+                </WrapPanel>
+            </controls:NriPageHeader.SecondaryActions>
+        </controls:NriPageHeader>
+        <Border Grid.Row="1"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Margin="28,10,0,0"
+                Padding="10,6"
+                Background="#EE142033"
+                BorderBrush="#FF4A6FA8"
+                BorderThickness="1"
+                CornerRadius="4"
+                Panel.ZIndex="20">
+            <TextBlock Text="{Binding DevelopmentLayoutViewModeText}"
+                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_CanvasModeBadge"
+                       Foreground="{StaticResource TextBrush}"
+                       FontWeight="SemiBold"/>
+        </Border>
+    <ScrollViewer Grid.Row="1"
+                  VerticalScrollBarVisibility="Auto"
+                  AutomationProperties.AutomationId="AdminClassesSkills_ContentScroll">
         <StackPanel Margin="8">
-            <Border Style="{StaticResource CardStyle}">
+            <Border Style="{StaticResource CardStyle}" Visibility="{Binding AdminDefinitionsWorkspaceVisibility}">
                 <StackPanel>
                     <TextBlock Text="Классы / навыки" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <TextBlock Text="Классы доступны игроку только через разблокированные узлы Development Hexagon. Глобальный список классов для PlayerClient не используется."
+                    <TextBlock Text="Классы доступны игроку только через разблокированные узлы шестиугольника развития. Глобальный список классов для PlayerClient не используется."
                                Foreground="{StaticResource MutedBrush}"
                                TextWrapping="Wrap"
                                Margin="0,6,0,0"/>
@@ -15,13 +131,13 @@
                         <Button Content="Обновить классы" Command="{Binding RefreshDefinitionClassesCommand}"/>
                         <Button Content="Новый класс" Command="{Binding NewClassDefinitionCommand}"/>
                         <Button Content="Открыть" Command="{Binding OpenSelectedClassDefinitionCommand}"/>
-                        <Button Content="Сохранить класс" Command="{Binding SaveClassDefinitionCommand}" AutomationProperties.AutomationId="AdminClassHex_SaveClass_Button"/>
+                        <Button Content="Сохранить класс" Command="{Binding SaveClassDefinitionCommand}" IsEnabled="{Binding CanSaveClassDraft}" AutomationProperties.AutomationId="AdminClassHex_SaveClass_Button"/>
                         <Button Content="Архивировать" Command="{Binding ArchiveClassDefinitionCommand}"/>
                     </WrapPanel>
                 </StackPanel>
             </Border>
 
-            <Grid Margin="0,10,0,0">
+            <Grid Margin="0,10,0,0" Visibility="{Binding AdminDefinitionsWorkspaceVisibility}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.1*"/>
                     <ColumnDefinition Width="1.4*"/>
@@ -41,7 +157,6 @@
                                   MinHeight="260"
                                   IsReadOnly="True">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="150"/>
                                 <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
                                 <DataGridTextColumn Header="Статус" Binding="{Binding State}" Width="90"/>
                                 <DataGridTextColumn Header="Описание" Binding="{Binding Extra}" Width="2*"/>
@@ -52,94 +167,182 @@
 
                 <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
                     <StackPanel>
-                        <TextBlock Text="Редактор class definition" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="Определение класса" Style="{StaticResource TitleTextStyle}"/>
+                        <Expander Header="Технические идентификаторы" AutomationProperties.AutomationId="AdminClassHex_DefinitionTechnical" IsExpanded="False" Margin="0,8,0,0">
+                            <UniformGrid Columns="2">
+                                <StackPanel Margin="0,0,8,8">
+                                    <TextBlock Text="ClassId / Code"/>
+                                    <TextBox AutomationProperties.AutomationId="AdminClassHex_ClassCode" Text="{Binding EditClassCode, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,0,8">
+                                    <TextBlock Text="Требуемый шестиугольник"/>
+                                    <TextBox AutomationProperties.AutomationId="AdminClassHex_Advanced_RequiredHexagonId" Text="{Binding EditClassRequiredHexagonId, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,8,8">
+                                    <TextBlock Text="Требуемый узел"/>
+                                    <TextBox AutomationProperties.AutomationId="AdminClassHex_Advanced_RequiredNodeId" Text="{Binding EditClassRequiredNodeId, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True"/>
+                                </StackPanel>
+                            </UniformGrid>
+                        </Expander>
                         <UniformGrid Columns="2" Margin="0,8,0,0">
-                            <StackPanel Margin="0,0,8,8">
-                                <TextBlock Text="ClassId / Code"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClassHex_ClassCode" Text="{Binding EditClassCode, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
                             <StackPanel Margin="0,0,0,8">
                                 <TextBlock Text="Название"/>
                                 <TextBox Text="{Binding EditClassName, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,8,8">
-                                <TextBlock Text="RequiredHexagonId"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClassHex_RequiredHexagonId" Text="{Binding EditClassRequiredHexagonId, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Профиль шестиугольника"/>
+                                <controls:NriReferencePicker Options="{Binding DevelopmentLayoutHexagons}"
+
+
+                                          SelectedId="{Binding EditClassRequiredHexagonId, UpdateSourceTrigger=PropertyChanged}"
+                                          AutomationProperties.AutomationId="AdminClassHex_RequiredHexagonPicker"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,0,8">
-                                <TextBlock Text="RequiredNodeId"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClassHex_RequiredNodeId" Text="{Binding EditClassRequiredNodeId, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Требуемый узел"/>
+                                <controls:NriReferencePicker Options="{Binding ClassTreeItems}"
+                                                              SelectedId="{Binding EditClassRequiredNodeId, UpdateSourceTrigger=PropertyChanged}"
+                                                              DisplayName="{Binding SelectedClassNode.Name, TargetNullValue=Узел не выбран}"
+                                                              AutomationIdPrefix="AdminClassHex_RequiredNodePicker"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,8,8">
-                                <TextBlock Text="VisibilityRule"/>
-                                <TextBox Text="{Binding EditClassVisibilityRule, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Правило видимости"/>
+                                <ComboBox SelectedValuePath="Tag" SelectedValue="{Binding EditClassVisibilityRule, UpdateSourceTrigger=PropertyChanged}"><ComboBoxItem Content="Видно по умолчанию" Tag="visible_by_default"/><ComboBoxItem Content="После открытия" Tag="after_unlock"/><ComboBoxItem Content="Только GM" Tag="gm_only"/></ComboBox>
                             </StackPanel>
                             <StackPanel Margin="0,0,0,8">
-                                <TextBlock Text="SortOrder"/>
-                                <TextBox Text="{Binding EditClassSortOrder, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Порядок"/>
+                                <controls:NriIntegerField Text="{Binding EditClassSortOrder, UpdateSourceTrigger=PropertyChanged}" Minimum="0" AccessibleName="Порядок"/>
                             </StackPanel>
                         </UniformGrid>
                         <TextBlock Text="Описание"/>
                         <TextBox Text="{Binding EditClassDescription, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="72" TextWrapping="Wrap"/>
+                        <TextBlock Text="Связанное определение класса" Margin="0,8,0,0"/>
+                        <controls:NriReferencePicker Options="{Binding ClassDefinitionRows}"
+                                                      SelectedId="{Binding SelectedClassDefinitionCode, UpdateSourceTrigger=PropertyChanged}"
+                                                      DisplayName="{Binding EditClassName, TargetNullValue=Класс не выбран}"
+                                                      AutomationIdPrefix="AdminClasses_ClassDefinition"/>
                         <WrapPanel Margin="0,8,0,0">
                             <CheckBox Content="Игроку виден только после открытия" IsChecked="{Binding EditClassIsPlayerVisible}" Margin="0,0,16,0"/>
-                            <CheckBox Content="Locked outside Hexagon" IsChecked="{Binding EditClassIsLockedOutsideHexagon}" IsEnabled="False"/>
+                            <CheckBox Content="Недоступен вне шестиугольника" IsChecked="{Binding EditClassIsLockedOutsideHexagon}" IsEnabled="False"/>
                         </WrapPanel>
                     </StackPanel>
                 </Border>
             </Grid>
 
+            <Border Style="{StaticResource CardStyle}" Margin="0,10,0,0" AutomationProperties.AutomationId="AdminSkillDefinitionEditor"
+                    Visibility="{Binding AdminDefinitionsWorkspaceVisibility}">
+                <StackPanel>
+                    <TextBlock Text="Определение навыка" Style="{StaticResource TitleTextStyle}"/>
+                    <TextBlock Text="Название и параметры навыка редактируются как профильные поля; технический код остаётся в расширенных сведениях." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Навык для редактирования"/>
+                            <ComboBox ItemsSource="{Binding SkillDefinitionRows}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding SelectedSkillDefinitionCode, UpdateSourceTrigger=PropertyChanged}"
+                                      AutomationProperties.Name="Навык для редактирования"
+                                      AutomationProperties.AutomationId="AdminSkillDefinition_Selector"/>
+                        </StackPanel>
+                        <WrapPanel Grid.Column="1" VerticalAlignment="Bottom" Margin="10,0,0,0">
+                            <Button Content="Открыть"
+                                    Command="{Binding OpenSelectedSkillDefinitionCommand}"
+                                    AutomationProperties.AutomationId="AdminSkillDefinition_Open_Button"/>
+                            <Button Content="Обновить"
+                                    Command="{Binding RefreshDefinitionSkillsCommand}"
+                                    Style="{StaticResource GhostButtonStyle}"
+                                    Margin="8,0,0,0"
+                                    AutomationProperties.AutomationId="AdminSkillDefinition_Refresh_Button"/>
+                        </WrapPanel>
+                    </Grid>
+                    <UniformGrid Columns="2">
+                        <StackPanel Margin="0,0,8,8"><TextBlock Text="Название"/><TextBox AutomationProperties.AutomationId="AdminSkillDefinition_Name" Text="{Binding EditSkillName, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                        <StackPanel Margin="0,0,0,8"><TextBlock Text="Категория"/><ComboBox AutomationProperties.AutomationId="AdminSkillDefinition_Category" SelectedValuePath="Tag" SelectedValue="{Binding EditSkillCategory, UpdateSourceTrigger=PropertyChanged}"><ComboBoxItem Content="Общее" Tag="undefined"/><ComboBoxItem Content="Боевая" Tag="combat"/><ComboBoxItem Content="Магическая" Tag="magic"/><ComboBoxItem Content="Социальная" Tag="social"/></ComboBox></StackPanel>
+                        <StackPanel Margin="0,0,8,8"><TextBlock Text="Уровень"/><controls:NriIntegerField AutomationProperties.AutomationId="AdminSkillDefinition_Tier" Text="{Binding EditSkillTier, UpdateSourceTrigger=PropertyChanged}" Minimum="1" AccessibleName="Уровень навыка"/></StackPanel>
+                        <StackPanel Margin="0,0,0,8"><TextBlock Text="Максимальный уровень"/><controls:NriIntegerField AutomationProperties.AutomationId="AdminSkillDefinition_MaxLevel" Text="{Binding EditSkillMaxLevel, UpdateSourceTrigger=PropertyChanged}" Minimum="1" AccessibleName="Максимальный уровень"/></StackPanel>
+                    </UniformGrid>
+                    <TextBlock Text="Описание"/><TextBox AutomationProperties.AutomationId="AdminSkillDefinition_Description" Text="{Binding EditSkillDescription, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72"/>
+                    <Expander Header="Требования к открытию и использованию" IsExpanded="True" Margin="0,10,0,0"
+                              AutomationProperties.AutomationId="AdminRequirementExpression_Editor">
+                        <StackPanel>
+                            <TextBlock Text="Соберите условия группами. Связи на схеме показывают направление, но не задают логику автоматически."
+                                       Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                            <TreeView ItemsSource="{Binding EditSkillRequirementRoot.Children}"
+                                      ItemTemplate="{StaticResource RequirementExpressionNodeTemplate0219}"
+                                      Background="Transparent" BorderThickness="0" Margin="0,6,0,0"
+                                      AutomationProperties.AutomationId="AdminRequirementExpression_Tree"/>
+                            <WrapPanel Margin="0,8,0,0">
+                                <ComboBox Width="210" SelectedValuePath="Tag" SelectedValue="{Binding EditSkillRequirementRoot.Kind, UpdateSourceTrigger=PropertyChanged}"
+                                          AutomationProperties.AutomationId="AdminRequirementExpression_RootOperator">
+                                    <ComboBoxItem Content="Требуется всё" Tag="all_of"/><ComboBoxItem Content="Требуется одно из" Tag="any_of"/><ComboBoxItem Content="Минимум N условий" Tag="at_least"/>
+                                </ComboBox>
+                                <Button Content="Добавить условие" Command="{Binding EditSkillRequirementRoot.AddConditionCommand}" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0"/>
+                                <Button Content="Добавить группу" Command="{Binding EditSkillRequirementRoot.AddGroupCommand}" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0"/>
+                                <Button Content="Проверить" Command="{Binding SaveSkillDefinitionCommand}" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0"/>
+                            </WrapPanel>
+                            <Border Style="{StaticResource CardStyle}" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminRequirementExpression_PlayerPreview">
+                                <StackPanel>
+                                    <TextBlock Text="Предпросмотр для игрока" Style="{StaticResource SectionTitleTextStyle}"/>
+                                    <TextBlock Text="{Binding EditSkillRequirementPreview}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Expander>
+                    <WrapPanel Margin="0,8,0,0"><CheckBox Content="Навык класса" IsChecked="{Binding EditSkillIsClassSkill}" Margin="0,0,16,0"/><ComboBox Width="150" AutomationProperties.AutomationId="AdminSkillDefinition_Status" SelectedValuePath="Tag" SelectedValue="{Binding EditSkillStatus, UpdateSourceTrigger=PropertyChanged}"><ComboBoxItem Content="Черновик" Tag="draft"/><ComboBoxItem Content="Опубликован" Tag="published"/><ComboBoxItem Content="Архив" Tag="archived"/></ComboBox></WrapPanel>
+                    <WrapPanel Margin="0,8,0,0"><Button Content="Сохранить навык" Command="{Binding SaveSkillDefinitionCommand}" AutomationProperties.AutomationId="AdminSkillDefinition_Save_Button"/><Button Content="Архивировать" Style="{StaticResource GhostButtonStyle}" Command="{Binding ArchiveSkillDefinitionCommand}" AutomationProperties.AutomationId="AdminSkillDefinition_Archive_Button" Margin="8,0,0,0"/></WrapPanel>
+                </StackPanel>
+            </Border>
+
             <Border Style="{StaticResource CardStyle}"
                     Margin="0,10,0,0"
+                    Visibility="{Binding AdminDevelopmentWorkspaceVisibility}"
                     AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_Route">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Top">
-                        <TextBlock Text="Визуальный редактор Development Hexagon"
+                    <Grid DockPanel.Dock="Top"
+                          Margin="0,0,0,10"
+                          AutomationProperties.AutomationId="AdminDevelopmentProduct_Header">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{Binding DevelopmentLayoutViewModeText}" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="Пространственное представление развития. Редактор и player-safe предпросмотр используют одну композицию; полный граф вынесен отдельно."
+                                       Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+                            <Button Content="Обзор" Command="{Binding ResetAdminDevelopmentProductFocusCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,8,0"/>
+                            <RadioButton Content="Редактор представления" IsChecked="{Binding DevelopmentLayoutCanonicalModeSelected, Mode=TwoWay}" GroupName="DevelopmentProductMode" Margin="0,0,12,0" VerticalAlignment="Center"
+                                         AutomationProperties.AutomationId="AdminDevelopmentProduct_PresentationEditorMode"/>
+                            <RadioButton Content="Предпросмотр для игрока" IsChecked="{Binding DevelopmentLayoutProductPreviewSelected, Mode=TwoWay}" GroupName="DevelopmentProductMode" Margin="0,0,12,0" VerticalAlignment="Center"
+                                         AutomationProperties.AutomationId="AdminDevelopmentProduct_PlayerPreviewMode"/>
+                            <RadioButton Content="Полный граф" IsChecked="{Binding DevelopmentLayoutDiagnosticGraphModeSelected, Mode=TwoWay}" GroupName="DevelopmentProductMode" VerticalAlignment="Center"
+                                         AutomationProperties.AutomationId="AdminDevelopmentProduct_FullGraphMode"/>
+                        </WrapPanel>
+                    </Grid>
+
+                    <StackPanel DockPanel.Dock="Top" Visibility="{Binding DevelopmentLayoutTechnicalEditorVisibility}">
+                        <TextBlock Text="Визуальный редактор шестиугольника развития"
                                    Style="{StaticResource TitleTextStyle}"
                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_Route"/>
                         <TextBlock Text="Перетащите узел мышью, затем сохраните раскладку. Координаты сохраняются в профиле определений и видны PlayerClient после обновления."
                                    Foreground="{StaticResource MutedBrush}"
                                    TextWrapping="Wrap"
                                    Margin="0,4,0,8"/>
-                        <WrapPanel>
+                        <WrapPanel IsEnabled="{Binding DevelopmentLayoutEditingEnabled}">
                             <ComboBox Width="260"
                                       ItemsSource="{Binding DevelopmentLayoutHexagons}"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectedValuePath="Id"
                                       SelectedValue="{Binding SelectedDevelopmentLayoutHexagonId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      SelectedValuePath="HexagonId"
-                                      DisplayMemberPath="Summary"
                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_TreeSelector"
-                                      Margin="0,0,8,8">
-                                <ComboBox.ItemContainerStyle>
-                                    <Style TargetType="{x:Type ComboBoxItem}">
-                                        <Setter Property="AutomationProperties.AutomationId"
-                                                Value="{Binding HexagonId, StringFormat=AdminDevelopmentHexagonEditor_TreeOption_{0}}"/>
-                                    </Style>
-                                </ComboBox.ItemContainerStyle>
-                            </ComboBox>
-                            <Button Content="Основной"
-                                    Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
-                                    CommandParameter="main_development_hexagon"
-                                    Tag="main_development_hexagon"
-                                    Click="SelectDevelopmentHexagonButton_Click"
-                                    Style="{StaticResource GhostButtonStyle}"
-                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectTree_main_development_hexagon"
-                                    Margin="0,0,8,8"/>
-                            <Button Content="Магия"
-                                    Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
-                                    CommandParameter="magic_development_hexagon"
-                                    Tag="magic_development_hexagon"
-                                    Click="SelectDevelopmentHexagonButton_Click"
-                                    Style="{StaticResource GhostButtonStyle}"
-                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectTree_magic_development_hexagon"
-                                    Margin="0,0,8,8"/>
-                            <Button Content="Большое"
-                                    Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
-                                    CommandParameter="large_development_hexagon_0154"
-                                    Tag="large_development_hexagon_0154"
-                                    Click="SelectDevelopmentHexagonButton_Click"
-                                    Style="{StaticResource GhostButtonStyle}"
-                                    AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_SelectTree_large_development_hexagon_0154"
-                                    Margin="0,0,8,8"/>
+                                      AutomationProperties.Name="Дерево развития"
+                                      VerticalAlignment="Top"
+                                      Margin="0,0,8,8"
+                                      ToolTip="Выберите дерево развития по названию"/>
                             <Button Content="Обновить"
                                     Command="{Binding LoadClassTreeCommand}"
                                     Style="{StaticResource GhostButtonStyle}"
@@ -195,7 +398,8 @@
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="8"
-                                Margin="0,0,0,8">
+                                Margin="0,0,0,8"
+                                IsEnabled="{Binding DevelopmentLayoutEditingEnabled}">
                             <StackPanel>
                                 <TextBlock Text="Раскладка"
                                            FontWeight="Bold"
@@ -205,8 +409,9 @@
                                     <ComboBox Width="180"
                                               SelectedIndex="0"
                                               AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LayoutPresetSelector"
+                                              IsEnabled="False"
                                               Margin="0,0,8,6">
-                                        <ComboBoxItem Content="Базовая 0.15.4"/>
+                                        <ComboBoxItem Content="Базовая раскладка"/>
                                     </ComboBox>
                                     <Button Content="Предпросмотр базовой раскладки"
                                             Command="{Binding PreviewBaselineDevelopmentHexagonLayoutCommand}"
@@ -272,9 +477,14 @@
                                          AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_CanonicalHexMode"
                                          GroupName="DevelopmentLayoutViewMode"
                                          Margin="0,0,12,6"/>
-                            <RadioButton Content="Диагностический граф"
+                            <RadioButton Content="Полный граф / диагностика"
                                          IsChecked="{Binding DevelopmentLayoutDiagnosticGraphModeSelected, Mode=TwoWay}"
                                          AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_DiagnosticGraphMode"
+                                         GroupName="DevelopmentLayoutViewMode"
+                                         Margin="0,0,12,6"/>
+                            <RadioButton Content="Предпросмотр для игрока"
+                                         IsChecked="{Binding DevelopmentLayoutProductPreviewSelected, Mode=TwoWay}"
+                                         AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ProductPreviewMode"
                                          GroupName="DevelopmentLayoutViewMode"
                                          Margin="0,0,16,6"/>
                             <CheckBox Content="Показать подписи направлений"
@@ -294,7 +504,14 @@
                                       AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_DirectionFocusSelector"
                                       Margin="0,0,8,6"/>
                         </WrapPanel>
-                        <WrapPanel Margin="0,2,0,8">
+                        <TextBlock Text="Предпросмотр использует точную player-safe проекцию. Редактирование раскладки в этом режиме отключено."
+                                   Foreground="{StaticResource MutedBrush}"
+                                   TextWrapping="Wrap"
+                                   Visibility="{Binding DevelopmentLayoutProductPreviewVisibility}"
+                                   AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_ProductPreviewReadOnlyNotice"
+                                   Margin="0,0,0,8"/>
+                        <WrapPanel Margin="0,2,0,8"
+                                   IsEnabled="{Binding DevelopmentLayoutEditingEnabled}">
                             <Button Content="Основной"
                                     Command="{Binding SelectDevelopmentLayoutHexagonCommand}"
                                     CommandParameter="main_development_hexagon"
@@ -515,7 +732,218 @@
                         </Border>
                     </StackPanel>
 
-                    <Grid>
+                    <Grid Visibility="{Binding DevelopmentLayoutProductWorkspaceVisibility}"
+                          Height="500"
+                          AutomationProperties.AutomationId="AdminDevelopmentProduct_Workspace">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="#FF091424" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                            <Grid>
+                                <Viewbox Stretch="Uniform" StretchDirection="Both" MaxHeight="460"
+                                         HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8">
+                                    <Canvas Width="1000" Height="600" Background="#FF091424">
+                                        <controls:NriDevelopmentSectorField Width="1000" Height="600" SectorOpacity="0.10"
+                                                                            IsHitTestVisible="False"
+                                                                            AutomationProperties.AutomationId="AdminDevelopmentProduct_SectorField"
+                                                                            AutomationProperties.Name="Шесть направлений развития"/>
+
+                                        <ItemsControl ItemsSource="{Binding AdminDevelopmentProductEdges}" IsHitTestVisible="False">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate><DataTemplate>
+                                                <Line X1="{Binding X1}" Y1="{Binding Y1}" X2="{Binding X2}" Y2="{Binding Y2}" Stroke="{Binding Stroke}" StrokeThickness="{Binding Thickness}" Opacity="0.82"/>
+                                            </DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <ItemsControl ItemsSource="{Binding AdminDevelopmentProductNodes}" Width="1000" Height="600">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding X}"/><Setter Property="Canvas.Top" Value="{Binding Y}"/></Style></ItemsControl.ItemContainerStyle>
+                                            <ItemsControl.ItemTemplate><DataTemplate>
+                                                <Button Width="{Binding Width}" Height="{Binding Height}"
+                                                        IsHitTestVisible="{Binding IsInteractive}" Focusable="{Binding IsInteractive}"
+                                                        Command="{Binding DataContext.SelectAdminDevelopmentProductNodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Padding="0"
+                                                        AutomationProperties.AutomationId="{Binding AutomationId}" AutomationProperties.Name="{Binding Title}">
+                                                    <Grid>
+                                                        <Polygon Visibility="{Binding HexVisibility}" Stretch="Fill" Points="22,0 148,0 170,32 148,64 22,64 0,32" Fill="{Binding FillBrush}" Stroke="{Binding AccentBrush}" StrokeThickness="2"/>
+                                                        <Polygon Visibility="{Binding MilestoneVisibility}" Stretch="Fill" Points="38,0 76,34 38,68 0,34"
+                                                                 Fill="{Binding FillBrush}" Stroke="{Binding AccentBrush}" StrokeThickness="2"/>
+                                                        <Border Visibility="{Binding CardVisibility}" Background="{Binding FillBrush}" BorderBrush="{Binding AccentBrush}" BorderThickness="2" CornerRadius="5"/>
+                                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,5">
+                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="145"/>
+                                                            <TextBlock Text="{Binding Subtitle}" Foreground="{StaticResource MutedBrush}" FontSize="11" TextAlignment="Center" Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0" MinWidth="22" Height="22" CornerRadius="11" Background="{Binding AccentBrush}">
+                                                            <TextBlock Text="{Binding StatusIcon}" Foreground="#FF07101F" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </Button>
+                                            </DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Canvas>
+                                </Viewbox>
+                                <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="14" Padding="10,7" Background="#EE0A1424" BorderBrush="#FF3D5878" BorderThickness="1" CornerRadius="5">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Обзор" Command="{Binding ResetAdminDevelopmentProductFocusCommand}" Style="{StaticResource GhostButtonStyle}" Padding="2"/>
+                                        <TextBlock Text="›" Margin="7,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding AdminDevelopmentProductBreadcrumb}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="14" Padding="10,7" Background="#EE0A1424" BorderBrush="#FF3D5878" BorderThickness="1" CornerRadius="5">
+                                    <TextBlock Text="{Binding AdminDevelopmentProductModeText}"/>
+                                </Border>
+                                <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="14" Padding="9,6" Background="#EE0A1424" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="5">
+                                    <TextBlock Text="✓ изучено   ◎ текущий путь   → доступно   ▣ закрыто   GM решение мастера"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="1" Width="440" Margin="14,0,0,0" Background="{StaticResource NriSecondarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="16"
+                                Visibility="{Binding AdminDevelopmentProductInspectorVisibility}" AutomationProperties.AutomationId="AdminDevelopmentProduct_Inspector">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                          AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_InspectorScroll">
+                            <StackPanel>
+                                <TextBlock Text="{Binding AdminDevelopmentProductInspectorKind}" Foreground="{StaticResource NriAccentBrush}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding AdminDevelopmentProductInspectorTitle}" FontSize="22" FontWeight="Bold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                <TextBlock Text="{Binding AdminDevelopmentProductInspectorSummary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,7,0,0"/>
+                                <Border Background="{StaticResource NriElevatedSurfaceBrush}" CornerRadius="6" Padding="10" Margin="0,16,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Полный путь: 20 ступеней" FontWeight="SemiBold"/>
+                                        <ItemsControl ItemsSource="{Binding AdminDevelopmentProductTiers}" Margin="0,9,0,0">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="20"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate><DataTemplate><Border Height="28" Margin="1" Background="{Binding Fill}" BorderBrush="{Binding Border}" BorderThickness="1" CornerRadius="2"><TextBlock Text="{Binding Text}" FontSize="9" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="Tier 10 — специализация" Margin="0,9,0,0"/>
+                                        <TextBlock Text="Tier 15 — ключевой приём" Margin="0,4,0,0"/>
+                                        <TextBlock Text="Tier 20 — мастерство пути" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="Требования и награды" FontWeight="SemiBold" Margin="0,16,0,0"/>
+                                <TextBlock Text="Выберите путь на карте, чтобы проверить его player-safe представление. Изменения выполняются только в режиме редактора."
+                                           Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                <Border Visibility="{Binding DevelopmentLayoutPresentationEditorVisibility}"
+                                        Background="{StaticResource NriElevatedSurfaceBrush}"
+                                        BorderBrush="{StaticResource NriBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="12"
+                                        Margin="0,16,0,0"
+                                        AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Inspector">
+                                    <StackPanel>
+                                        <TextBlock Text="Представление узла" FontWeight="SemiBold" FontSize="16"/>
+                                        <TextBlock Text="Название" Margin="0,10,0,3"/>
+                                        <TextBox Text="{Binding NodeName, UpdateSourceTrigger=PropertyChanged}"
+                                                 AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Name"/>
+                                        <TextBlock Text="Описание для игрока" Margin="0,9,0,3"/>
+                                        <TextBox Text="{Binding NodeDescription, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="64" AcceptsReturn="True" TextWrapping="Wrap"
+                                                 AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Description"/>
+                                        <TextBlock Text="Роль в развитии" Margin="0,9,0,3"/>
+                                        <ComboBox SelectedValue="{Binding NodeRole, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Tag"
+                                                  AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_SemanticKind">
+                                            <ComboBoxItem Content="Основа" Tag="root"/>
+                                            <ComboBoxItem Content="Направление" Tag="direction"/>
+                                            <ComboBoxItem Content="Путь" Tag="main_branch_level"/>
+                                            <ComboBoxItem Content="Специализация" Tag="specialization"/>
+                                            <ComboBoxItem Content="Смешанный путь" Tag="mixed_path"/>
+                                            <ComboBoxItem Content="Ключевая ступень" Tag="milestone"/>
+                                        </ComboBox>
+                                        <TextBlock Text="Направление" Margin="0,9,0,3"/>
+                                        <ComboBox ItemsSource="{Binding DevelopmentLayoutCanonicalDirections}"
+                                                  SelectedValue="{Binding NodeDirectionCode, UpdateSourceTrigger=PropertyChanged}"
+                                                  SelectedValuePath="DirectionId" DisplayMemberPath="FullDisplayName"
+                                                  AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Sector"/>
+                                        <TextBlock Text="Родительский путь" Margin="0,9,0,3"/>
+                                        <controls:NriReferencePicker Options="{Binding ClassTreeItems}"
+                                                                      SelectedId="{Binding RequirementSourceNodeId, UpdateSourceTrigger=PropertyChanged}"
+                                                                      DisplayName="{Binding RequirementSourceDisplayName}"
+                                                                      AutomationIdPrefix="AdminDevelopmentPresentationEditor_ParentPath"/>
+                                        <TextBlock Text="{Binding DevelopmentPresentationReferenceWarning}"
+                                                   Visibility="{Binding DevelopmentPresentationReferenceWarningVisibility}"
+                                                   Foreground="#FFFFC75A" TextWrapping="Wrap" Margin="0,5,0,0"
+                                                   AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_ReferenceWarning"/>
+                                        <TextBlock Text="Профиль развития" Margin="0,9,0,3"/>
+                                        <ComboBox ItemsSource="{Binding DevelopmentLayoutHexagons}"
+                                                  SelectedValue="{Binding NodeHexagonId, UpdateSourceTrigger=PropertyChanged}"
+                                                  SelectedValuePath="HexagonId" DisplayMemberPath="DisplayName"
+                                                  AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_ProgressionTrack"/>
+                                        <UniformGrid Columns="2" Margin="0,9,0,0">
+                                            <StackPanel Margin="0,0,5,0">
+                                                <TextBlock Text="Порядок"/>
+                                                <controls:NriIntegerField Text="{Binding NodeSortOrder, UpdateSourceTrigger=PropertyChanged}" Minimum="0"
+                                                                          AccessibleName="Порядок узла"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="5,0,0,0">
+                                                <TextBlock Text="Ступень / веха"/>
+                                                <controls:NriIntegerField Text="{Binding NodeRing, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="20"
+                                                                          AccessibleName="Ступень пути или номер вехи"
+                                                                          AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_MilestoneTier"/>
+                                            </StackPanel>
+                                        </UniformGrid>
+                                        <TextBlock Text="Видимость" Margin="0,9,0,3"/>
+                                        <ComboBox SelectedValue="{Binding NodeVisibilityRule, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Tag"
+                                                  AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Visibility">
+                                            <ComboBoxItem Content="Видно игрокам" Tag="visible_by_default"/>
+                                            <ComboBoxItem Content="Скрыто до решения GM" Tag="hidden_until_gm_reveal"/>
+                                            <ComboBoxItem Content="Только GM" Tag="gm_only"/>
+                                        </ComboBox>
+                                        <UniformGrid Columns="2" Margin="0,9,0,0">
+                                            <StackPanel Margin="0,0,5,0">
+                                                <TextBlock Text="Значок"/>
+                                                <TextBlock Text="{Binding DevelopmentPresentationIconText}" FontWeight="SemiBold" Margin="0,4,0,0"
+                                                           AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Icon"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="5,0,0,0">
+                                                <TextBlock Text="Статус для игрока"/>
+                                                <TextBlock Text="{Binding DevelopmentPresentationPlayerStatusText}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,4,0,0"
+                                                           AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_PlayerDisplayStatus"/>
+                                            </StackPanel>
+                                        </UniformGrid>
+                                        <TextBlock Text="{Binding DevelopmentLayoutValidationSummary}" Margin="0,10,0,0" TextWrapping="Wrap"
+                                                   AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Validation"/>
+                                        <Expander Header="Техническое" IsExpanded="False" Margin="0,6,0,0"
+                                                  AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_TechnicalSection">
+                                            <TextBlock Text="Служебные параметры доступны только в полном графе и закрыты в обычном режиме."
+                                                       Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                        </Expander>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                            </ScrollViewer>
+                                <Border Grid.Row="1" Visibility="{Binding DevelopmentLayoutPresentationEditorVisibility}"
+                                        Background="{StaticResource NriSecondarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}"
+                                        BorderThickness="0,1,0,0" Padding="0,10,0,0" Margin="0,8,0,0"
+                                        AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_PinnedActions">
+                                    <WrapPanel>
+                                        <Button Content="Сохранить" Command="{Binding SaveDevelopmentNodeCommand}"
+                                                AutomationProperties.Name="Сохранить представление узла"
+                                                AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Save" Margin="0,0,6,6"/>
+                                        <Button Content="Проверить" Command="{Binding ValidateDevelopmentHexagonLayoutCommand}"
+                                                AutomationProperties.Name="Проверить представление"
+                                                AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Validate" Margin="0,0,6,6"/>
+                                        <RadioButton Content="Предпросмотр" IsChecked="{Binding DevelopmentLayoutProductPreviewSelected, Mode=TwoWay}"
+                                                     GroupName="DevelopmentProductMode" Padding="8,6"
+                                                     AutomationProperties.Name="Открыть предпросмотр для игрока"
+                                                     AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_PlayerPreview" Margin="0,0,6,6"/>
+                                        <Button Content="Создать похожий" Command="{Binding CloneDevelopmentNodeCommand}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Clone" Margin="0,0,6,6"/>
+                                        <Button Content="Архивировать" Command="{Binding ArchiveDevelopmentNodeCommand}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Archive" Margin="0,0,6,6"/>
+                                        <Button Content="Вернуть" Command="{Binding RestoreDevelopmentNodeCommand}"
+                                                AutomationProperties.AutomationId="AdminDevelopmentPresentationEditor_Restore" Margin="0,0,6,6"/>
+                                    </WrapPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Grid Visibility="{Binding DevelopmentLayoutTechnicalEditorVisibility}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="280"/>
@@ -895,28 +1323,32 @@
                                     <UniformGrid Columns="2" Margin="0,8,0,0">
                                         <StackPanel Margin="0,0,6,0">
                                             <TextBlock Text="Стоимость"/>
-                                            <TextBox Text="{Binding NodeCost, UpdateSourceTrigger=PropertyChanged}"
+                                            <controls:NriIntegerField Text="{Binding NodeCost, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                      AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_NodeCostAmount"/>
                                         </StackPanel>
                                         <StackPanel>
                                             <TextBlock Text="Валюта"/>
-                                            <TextBox Text="{Binding NodeCurrencyDisplayInput, UpdateSourceTrigger=PropertyChanged}"
-                                                     AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_NodeCostCurrency"/>
+                                        <controls:NriReferencePicker Options="{Binding CurrencyDefinitionRows}"
+                                                                      SelectedId="{Binding NodeCurrencyId, UpdateSourceTrigger=PropertyChanged}"
+                                                                      DisplayName="{Binding NodeCurrencyDisplayName}"
+                                                                      AutomationIdPrefix="AdminDevelopmentHexagonEditor_NodeCostCurrency"/>
                                         </StackPanel>
                                     </UniformGrid>
                                     <TextBlock Text="Привязка к справочнику" Margin="0,8,0,0"/>
-                                    <ComboBox Text="{Binding NodeLinkedDefinitionKind, UpdateSourceTrigger=PropertyChanged}"
-                                              IsEditable="True"
+                                    <ComboBox SelectedValuePath="Tag"
+                                              SelectedValue="{Binding NodeLinkedDefinitionKind, UpdateSourceTrigger=PropertyChanged}"
                                               AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LinkedDefinitionSelector">
-                                        <ComboBoxItem Content="class"/>
-                                        <ComboBoxItem Content="skill"/>
-                                        <ComboBoxItem Content="faction"/>
-                                        <ComboBoxItem Content="location"/>
-                                        <ComboBoxItem Content="custom"/>
+                                        <ComboBoxItem Content="Класс" Tag="class"/>
+                                        <ComboBoxItem Content="Навык" Tag="skill"/>
+                                        <ComboBoxItem Content="Фракция" Tag="faction"/>
+                                        <ComboBoxItem Content="Локация" Tag="location"/>
+                                        <ComboBoxItem Content="Другое" Tag="custom"/>
                                     </ComboBox>
-                                    <TextBox Text="{Binding NodeLinkedDefinitionId, UpdateSourceTrigger=PropertyChanged}"
-                                             Margin="0,4,0,0"
-                                             AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LinkedDefinitionId"/>
+                                    <controls:NriReferencePicker Options="{Binding ClassDefinitionRows}"
+                                                                  SelectedId="{Binding NodeLinkedDefinitionId, UpdateSourceTrigger=PropertyChanged}"
+                                                                  DisplayName="{Binding SelectedClassDefinition.Name, TargetNullValue=Связь не выбрана}"
+                                                                  AutomationIdPrefix="AdminClasses_LinkedDefinition"
+                                                                  Margin="0,4,0,0"/>
                                     <WrapPanel Margin="0,8,0,0">
                                         <CheckBox Content="Видно игрокам"
                                                   IsChecked="{Binding NodeIsPlayerVisible, UpdateSourceTrigger=PropertyChanged}"
@@ -965,14 +1397,15 @@
                                               AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_LinkModeToggle"
                                               Margin="0,6,0,6"/>
                                     <TextBlock Text="Источник требования"/>
-                                    <TextBox Text="{Binding RequirementSourceNodeId, UpdateSourceTrigger=PropertyChanged}"
-                                             AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_RequirementSource"/>
+                                    <controls:NriReferencePicker Options="{Binding ClassTreeItems}"
+                                                                  SelectedId="{Binding RequirementSourceNodeId, UpdateSourceTrigger=PropertyChanged}"
+                                                                  DisplayName="{Binding SelectedClassNode.Name, TargetNullValue=Узел не выбран}"
+                                                                  AutomationIdPrefix="AdminClasses_RequirementSource"/>
                                     <TextBlock Text="Целевой узел" Margin="0,6,0,0"/>
-                                    <TextBox Text="{Binding RequirementTargetNodeId, UpdateSourceTrigger=PropertyChanged}"
-                                             AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_RequirementTarget"/>
-                                    <TextBox Text="{Binding NodeRequiredNodes, UpdateSourceTrigger=PropertyChanged}"
-                                             Margin="0,6,0,0"
-                                             AutomationProperties.AutomationId="AdminDevelopmentHexagonEditor_RequirementsList"/>
+                                    <controls:NriReferencePicker Options="{Binding ClassTreeItems}"
+                                                                  SelectedId="{Binding RequirementTargetNodeId, UpdateSourceTrigger=PropertyChanged}"
+                                                                  DisplayName="{Binding SelectedClassNode.Name, TargetNullValue=Узел не выбран}"
+                                                                  AutomationIdPrefix="AdminClasses_RequirementTarget"/>
                                     <WrapPanel Margin="0,8,0,0">
                                         <Button Content="Добавить связь"
                                                 Command="{Binding AddRequirementLinkCommand}"
@@ -1041,7 +1474,7 @@
                 </DockPanel>
             </Border>
 
-            <Grid Margin="0,10,0,0">
+            <Grid Margin="0,10,0,0" Visibility="{Binding AdminDefinitionsWorkspaceVisibility}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.1*"/>
                     <ColumnDefinition Width="1.4*"/>
@@ -1067,10 +1500,13 @@
                                 <Button Content="Маг заклинаний" Tag="dev_spell_mage_01448" Click="SelectNodeButton_Click" AutomationProperties.AutomationId="AdminClasses_Node_Select_dev_spell_mage_01448"/>
                                 <Button Content="Огонь" Tag="dev_magic_fire_element_01448" Click="SelectNodeButton_Click" AutomationProperties.AutomationId="AdminClasses_Node_Select_dev_magic_fire_element_01448"/>
                             </WrapPanel>
-                            <TextBox x:Name="SelectedClassNodeIdTextBox"
+                            <controls:NriReferencePicker x:Name="SelectedClassNodePicker"
+                                     Options="{Binding ClassTreeItems}"
+                                     SelectedId="{Binding SelectedClassNodeId, UpdateSourceTrigger=PropertyChanged}"
+                                     DisplayName="{Binding SelectedClassNode.Name, TargetNullValue=Узел не выбран}"
+                                     AutomationIdPrefix="AdminClasses_SelectedNode"
                                      Margin="0,8,0,0"
-                                     AutomationProperties.AutomationId="AdminClasses_Node_SelectedNodeId"
-                                     Text="{Binding SelectedClassNodeId, UpdateSourceTrigger=PropertyChanged}"/>
+                                     />
                             <Button Content="Загрузить выбранный узел"
                                     Click="SelectNodeByInputButton_Click"
                                     AutomationProperties.AutomationId="AdminClasses_Node_LoadSelected_Button"
@@ -1094,8 +1530,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="NodeId" Binding="{Binding Id}" Width="170"/>
-                                <DataGridTextColumn Header="Узел" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
                                 <DataGridTextColumn Header="Состояние" Binding="{Binding State}" Width="110"/>
                                 <DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="2*"/>
                             </DataGrid.Columns>
@@ -1110,85 +1545,99 @@
                         <Button Content="Сохранить раскладку"
                                 HorizontalAlignment="Left"
                                 Click="SaveLayoutButton_Click"
+                                IsEnabled="{Binding CanSaveClassDraft}"
                                 AutomationProperties.AutomationId="AdminClasses_Node_SaveLayout_Top_Button"
                                 Margin="0,0,0,8"/>
-                        <UniformGrid Columns="3">
-                            <StackPanel Margin="0,0,8,8">
-                                <TextBlock Text="HexagonId"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_HexagonId" Text="{Binding NodeHexagonId, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-                            <StackPanel Margin="0,0,8,8">
-                                <TextBlock Text="HexagonType"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_HexagonType" Text="{Binding NodeHexagonType, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
+                                <Expander Header="Технические сведения" AutomationProperties.AutomationId="AdminClasses_Node_Technical" IsExpanded="False" Margin="0,0,0,8">
+                                    <UniformGrid Columns="3">
+                                        <StackPanel Margin="0,0,8,8">
+                                            <TextBlock Text="Шестиугольник"/>
+                                            <TextBox AutomationProperties.AutomationId="AdminClasses_Node_Advanced_HexagonId" Text="{Binding NodeHexagonId, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,8,8">
+                                            <TextBlock Text="Тип шестиугольника"/>
+                                            <TextBox AutomationProperties.AutomationId="AdminClasses_Node_HexagonType" Text="{Binding NodeHexagonType, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True"/>
+                                        </StackPanel>
+                                    </UniformGrid>
+                                </Expander>
+                                <UniformGrid Columns="3">
                             <StackPanel Margin="0,0,0,8">
-                                <TextBlock Text="NodeType"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_NodeType" Text="{Binding NodeType, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Тип узла"/>
+                                <TextBlock AutomationProperties.AutomationId="AdminClasses_Node_NodeType_Summary" Text="{Binding NodeType, StringFormat=Тип узла: {0}}" Foreground="{StaticResource TextSecondaryBrush}"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,8,8">
-                                <TextBlock Text="NodeRole"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_NodeRole" Text="{Binding NodeRole, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Роль узла"/>
+                                <ComboBox AutomationProperties.AutomationId="AdminClasses_Node_NodeRole" SelectedValuePath="Tag" SelectedValue="{Binding NodeRole, UpdateSourceTrigger=PropertyChanged}"><ComboBoxItem Content="Основная ветвь" Tag="main_branch_level"/><ComboBoxItem Content="Поддержка" Tag="support"/><ComboBoxItem Content="Магия" Tag="magic"/></ComboBox>
                             </StackPanel>
                             <StackPanel Margin="0,0,8,8">
                                 <TextBlock Text="Позиция X"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_PositionX" Text="{Binding NodePositionX, UpdateSourceTrigger=PropertyChanged}"/>
+                                <controls:NriIntegerField AutomationProperties.AutomationId="AdminClasses_Node_PositionX" Text="{Binding NodePositionX, UpdateSourceTrigger=PropertyChanged}" AccessibleName="Позиция X"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,8,8">
                                 <TextBlock Text="Позиция Y"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_PositionY" Text="{Binding NodePositionY, UpdateSourceTrigger=PropertyChanged}"/>
+                                <controls:NriIntegerField AutomationProperties.AutomationId="AdminClasses_Node_PositionY" Text="{Binding NodePositionY, UpdateSourceTrigger=PropertyChanged}" AccessibleName="Позиция Y"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,0,8">
                                 <TextBlock Text="Кольцо"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_Ring" Text="{Binding NodeRing, UpdateSourceTrigger=PropertyChanged}"/>
+                                <controls:NriIntegerField AutomationProperties.AutomationId="AdminClasses_Node_Ring" Text="{Binding NodeRing, UpdateSourceTrigger=PropertyChanged}" Minimum="0" AccessibleName="Кольцо"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,8,8">
                                 <TextBlock Text="Сектор"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_Sector" Text="{Binding NodeSector, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-                            <StackPanel Margin="0,0,8,8">
-                                <TextBlock Text="Направление"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_DirectionCode" Text="{Binding NodeDirectionCode, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-                            <StackPanel Margin="0,0,0,8">
-                                <TextBlock Text="Ветка"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_BranchCode" Text="{Binding NodeBranchCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                <controls:NriIntegerField AutomationProperties.AutomationId="AdminClasses_Node_Sector" Text="{Binding NodeSector, UpdateSourceTrigger=PropertyChanged}" Minimum="0" AccessibleName="Сектор"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,8,8">
                                 <TextBlock Text="Порядок"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_SortOrder" Text="{Binding NodeSortOrder, UpdateSourceTrigger=PropertyChanged}"/>
+                                <controls:NriIntegerField AutomationProperties.AutomationId="AdminClasses_Node_SortOrder" Text="{Binding NodeSortOrder, UpdateSourceTrigger=PropertyChanged}" Minimum="0" AccessibleName="Порядок"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,8,8">
                                 <TextBlock Text="Стоимость"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_Cost"
-                                         Text="{Binding NodeCost, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-                            <StackPanel Margin="0,0,0,8">
-                                <TextBlock Text="Валюта"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_CurrencyId"
-                                         Text="{Binding NodeCurrencyDisplayInput, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock AutomationProperties.AutomationId="AdminClasses_Node_Cost_Summary"
+                                           Text="{Binding NodeCost, StringFormat=Стоимость: {0}}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
                             </StackPanel>
                         </UniformGrid>
+                        <Expander Header="Техническое направление и валюта" AutomationProperties.AutomationId="AdminClasses_Node_TechnicalFields" IsExpanded="False" Margin="0,0,0,8">
+                            <UniformGrid Columns="3">
+                                <StackPanel Margin="0,0,8,8">
+                                    <TextBlock Text="Направление"/>
+                                    <ComboBox AutomationProperties.AutomationId="AdminClasses_Node_DirectionCode" SelectedValuePath="Tag" SelectedValue="{Binding NodeDirectionCode, UpdateSourceTrigger=PropertyChanged}"><ComboBoxItem Content="Сила — Натиск" Tag="strength"/><ComboBoxItem Content="Ловкость — Манёвр" Tag="dexterity"/><ComboBoxItem Content="Выносливость — Стойкость" Tag="constitution"/><ComboBoxItem Content="Интеллект — Разум" Tag="intelligence"/><ComboBoxItem Content="Мудрость — Путь" Tag="wisdom"/><ComboBoxItem Content="Харизма — Влияние" Tag="charisma"/></ComboBox>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,8,8">
+                                    <TextBlock Text="Ветка"/>
+                                    <TextBox AutomationProperties.AutomationId="AdminClasses_Node_BranchCode" Text="{Binding NodeBranchCode, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,0,8">
+                                    <TextBlock Text="Валюта"/>
+                                    <TextBlock AutomationProperties.AutomationId="AdminClasses_Node_CurrencyId_Summary" Text="{Binding NodeCurrencyId, StringFormat=Идентификатор валюты: {0}}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </StackPanel>
+                            </UniformGrid>
+                        </Expander>
                         <TextBlock Text="Требования"/>
-                        <TextBox AutomationProperties.AutomationId="AdminClasses_Node_RequiredNodes"
-                                 Text="{Binding NodeRequiredNodes, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="NodeId через запятую"
-                                 Margin="0,4,0,8"/>
-                        <TextBlock Text="Linked class"/>
-                        <TextBox AutomationProperties.AutomationId="AdminClasses_Node_LinkedClassId"
-                                 Text="{Binding NodeLinkedClassId, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,4,0,8"/>
-                        <TextBlock Text="Primary magic group"/>
-                        <TextBox AutomationProperties.AutomationId="AdminClasses_Node_PrimaryMagicGroupId"
-                                 Text="{Binding NodePrimaryMagicGroupId, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,4,0,8"/>
+                            <controls:NriMultiReferencePicker AutomationIdPrefix="AdminClasses_Node_RequiredNodes"
+                                                              Options="{Binding ClassTreeItems}"
+                                      SelectedReferences="{Binding NodeRequiredNodeReferences}"
+                                                              IsMultiple="True"
+                                                          Margin="0,4,0,8"
+                                                          ToolTip="Выберите необходимые узлы по названию"/>
+                        <TextBlock Text="Связанный класс"/>
+                        <controls:NriReferencePicker AutomationIdPrefix="AdminClasses_Node_LinkedClassId"
+                                                     Options="{Binding ClassDefinitionRows}"
+                                                     SelectedId="{Binding NodeLinkedClassId, UpdateSourceTrigger=PropertyChanged}"
+                                                     Margin="0,4,0,8"/>
+                        <TextBlock Text="Основная магическая группа"/>
+                        <controls:NriReferencePicker AutomationIdPrefix="AdminClasses_Node_PrimaryMagicGroupId"
+                                                     Options="{Binding ClassDefinitionRows}"
+                                                     SelectedId="{Binding NodePrimaryMagicGroupId, UpdateSourceTrigger=PropertyChanged}"
+                                                     Margin="0,4,0,8"/>
                         <WrapPanel Margin="0,0,0,8">
                             <CheckBox Content="Первичный магический класс" AutomationProperties.AutomationId="AdminClasses_Node_IsPrimaryMagicClass" IsChecked="{Binding NodeIsPrimaryMagicClass}" Margin="0,0,16,0"/>
-                            <CheckBox Content="Видно игроку" AutomationProperties.AutomationId="AdminClasses_Node_IsPlayerVisible" IsChecked="{Binding NodeIsPlayerVisible}" Margin="0,0,16,0"/>
-                            <CheckBox Content="Узел скрыт" AutomationProperties.AutomationId="AdminClasses_Node_IsHidden" IsChecked="{Binding NodeIsHidden}"/>
+                            <TextBlock AutomationProperties.AutomationId="AdminClasses_Node_IsPlayerVisible_Summary" Text="{Binding NodeIsPlayerVisible, StringFormat=Видно игроку: {0}}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,16,0"/>
+                            <TextBlock AutomationProperties.AutomationId="AdminClasses_Node_IsHidden_Summary" Text="{Binding NodeIsHidden, StringFormat=Скрыт: {0}}" Foreground="{StaticResource TextSecondaryBrush}"/>
                         </WrapPanel>
                         <WrapPanel>
                             <Button Content="Сохранить раскладку"
                                     Click="SaveLayoutButton_Click"
+                                    IsEnabled="{Binding CanSaveClassDraft}"
                                     AutomationProperties.AutomationId="AdminClasses_Node_SaveLayout_Button"/>
                             <Button Content="Завершить узел"
                                     Command="{Binding CompleteClassNodeCommand}"
@@ -1200,39 +1649,55 @@
                                        VerticalAlignment="Center"
                                        Margin="10,0,0,0"/>
                         </WrapPanel>
+                        <TextBlock AutomationProperties.AutomationId="AdminClasses_Unsaved_Status"
+                                   Text="{Binding ClassNodeLayoutUnsavedSummary}"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   Margin="0,4,0,0"/>
                         <TextBlock Text="{Binding NodeLayoutVersion, StringFormat=LayoutVersion: {0}}" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,0"/>
                         <TextBlock Text="{Binding NodeLayoutUpdatedAt, StringFormat=Обновлено: {0}}" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,12"/>
 
+                        <Expander Header="Техническое назначение класса" AutomationProperties.AutomationId="AdminClasses_Assignment_Technical" IsExpanded="False" Margin="0,12,0,8">
+                        <StackPanel>
                         <TextBlock Text="Назначение класса через Hexagon" Style="{StaticResource TitleTextStyle}"/>
-                        <TextBlock Text="Класс назначается только вместе с nodeId. Если класс не привязан к узлу, сервер вернёт NotFound." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                        <TextBlock Text="Класс назначается только вместе с узлом. Если класс не привязан к узлу, сервер сообщит, что запись не найдена." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
                         <UniformGrid Columns="3">
                             <StackPanel Margin="0,0,8,8">
                                 <TextBlock Text="ID персонажа"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClasses_Node_CharacterId" Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"/>
+                                 <controls:NriReferencePicker AutomationIdPrefix="AdminClasses_Node_CharacterId"
+                                                               Options="{Binding Characters}"
+                                                               SelectedId="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"
+                                                               DisplayName="{Binding SelectedCharacter.Name, TargetNullValue=Персонаж не выбран}"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,8,8">
-                                <TextBlock Text="ClassCode"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClassHex_AssignClassCode" Text="{Binding AssignClassCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Код класса"/>
+                                 <controls:NriReferencePicker AutomationIdPrefix="AdminClassHex_AssignClassCode"
+                                                               Options="{Binding ClassDefinitionRows}"
+                                                               SelectedId="{Binding AssignClassCode, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,0,8">
-                                <TextBlock Text="NodeId"/>
-                                <TextBox AutomationProperties.AutomationId="AdminClassHex_AssignNodeId" Text="{Binding AssignClassNodeId, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Узел"/>
+                                 <controls:NriReferencePicker AutomationIdPrefix="AdminClassHex_AssignNodeId"
+                                                               Options="{Binding ClassTreeItems}"
+                                                               SelectedId="{Binding AssignClassNodeId, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                         </UniformGrid>
                         <StackPanel Orientation="Horizontal">
                             <StackPanel Width="90" Margin="0,0,8,0">
                                 <TextBlock Text="Уровень"/>
-                                <TextBox Text="{Binding AssignClassLevel, UpdateSourceTrigger=PropertyChanged}"/>
+                                <controls:NriIntegerField AutomationProperties.AutomationId="AdminClassHex_AssignClass_Level"
+                                                          Text="{Binding AssignClassLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                          Minimum="1"/>
                             </StackPanel>
                             <Button Content="Назначить класс" Command="{Binding AssignCharacterClassCommand}" AutomationProperties.AutomationId="AdminClassHex_AssignClass_Button" VerticalAlignment="Bottom"/>
                         </StackPanel>
+                        </StackPanel>
+                        </Expander>
                         <TextBlock Text="Классы персонажа" Style="{StaticResource TitleTextStyle}" Margin="0,16,0,8"/>
                         <DataGrid ItemsSource="{Binding CharacterClassRows}" AutoGenerateColumns="False" HeadersVisibility="Column" IsReadOnly="True" MinHeight="160">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Class" Binding="{Binding Id}" Width="150"/>
                                 <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
                                 <DataGridTextColumn Header="Состояние" Binding="{Binding State}" Width="130"/>
-                                <DataGridTextColumn Header="Hexagon" Binding="{Binding Extra}" Width="2*"/>
+                                <DataGridTextColumn Header="Шестиугольник" Binding="{Binding Extra}" Width="2*"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </StackPanel>
@@ -1240,4 +1705,5 @@
             </Grid>
         </StackPanel>
     </ScrollViewer>
+    </Grid>
 </UserControl>

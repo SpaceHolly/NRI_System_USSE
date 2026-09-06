@@ -90,6 +90,7 @@ public class DevelopmentNodeDefinition : EntityBase
     public bool IsSubBranch { get; set; }
     public bool IsRepeatable { get; set; }
     public List<DevelopmentRequirement> Requirements { get; set; } = new List<DevelopmentRequirement>();
+    public RequirementExpression? RequirementExpression { get; set; }
     public DevelopmentCost Cost { get; set; } = new DevelopmentCost();
     public int CostExperienceCoins { get; set; }
     public string CostFormulaId { get; set; } = string.Empty;
@@ -243,10 +244,20 @@ public static class DevelopmentUnlockPolicyIds
 public static class DevelopmentPurchasePolicyIds
 {
     public const string AutomaticIfRequirementsMet = "automatic_if_requirements_met";
+    public const string UnavailableUntilDefined = "unavailable_until_defined";
     public const string RequiresGMApproval = "requires_gm_approval";
     public const string RequestOnly = "request_only";
     public const string GMOnly = "gm_only";
     public const string Custom = "custom";
+}
+
+public static class DevelopmentApprovalPolicy
+{
+    public static bool RequiresGMApproval(ClassNodeDefinition node)
+        => node.RequiresGMApproval || string.Equals(node.PurchasePolicy, DevelopmentPurchasePolicyIds.RequiresGMApproval, StringComparison.OrdinalIgnoreCase);
+
+    public static bool RequiresPlayerRequest(ClassNodeDefinition node)
+        => node.RequiresPlayerRequest || string.Equals(node.PurchasePolicy, DevelopmentPurchasePolicyIds.RequestOnly, StringComparison.OrdinalIgnoreCase);
 }
 
 public static class ExperienceCoinLedgerEntryTypeIds

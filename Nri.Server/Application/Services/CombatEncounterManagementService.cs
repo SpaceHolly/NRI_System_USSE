@@ -59,7 +59,7 @@ public sealed class CombatEncounterManagementService : ICombatEncounterManagemen
             RuleSetId = request.RuleSetId.Trim(),
             Name = string.IsNullOrWhiteSpace(request.Name) ? "Combat Encounter" : request.Name.Trim(),
             Status = CombatRuntimeStatuses.Active,
-            RoundNumber = 1,
+            RoundNumber = 0,
             ActiveTurnIndex = 0,
             ActiveParticipantId = string.Empty,
             ParticipantIds = new List<string>(),
@@ -76,7 +76,7 @@ public sealed class CombatEncounterManagementService : ICombatEncounterManagemen
 
         ValidateOrThrow(CombatRuntimeValidator.ValidateEncounter(encounter));
         await _encounters.UpsertAsync(encounter);
-        await WriteLogAsync(encounter, CombatEventTypes.EncounterStarted, "Combat encounter started.", actor, request.RequestId, string.Empty);
+        await WriteLogAsync(encounter, CombatEventTypes.EncounterStarted, "Бой начат.", actor, request.RequestId, string.Empty);
         await WriteReplayEventAsync(encounter, CombatEventTypes.EncounterStarted, actor, request.RequestId, string.Empty);
 
         _logger.Admin($"combat.v1.encounter.create.done encounterId={encounter.Id}");
@@ -106,7 +106,7 @@ public sealed class CombatEncounterManagementService : ICombatEncounterManagemen
             encounter.EndedAtUtc = now;
             encounter.LastUpdatedAtUtc = now;
             await _encounters.UpsertAsync(encounter);
-            await WriteLogAsync(encounter, CombatEventTypes.EncounterEnded, SafeReason("Combat encounter ended.", request.Reason), actor, request.RequestId, string.Empty);
+            await WriteLogAsync(encounter, CombatEventTypes.EncounterEnded, SafeReason("Бой завершён.", request.Reason), actor, request.RequestId, string.Empty);
             await WriteReplayEventAsync(encounter, CombatEventTypes.EncounterEnded, actor, request.RequestId, string.Empty);
         }
 
@@ -128,7 +128,7 @@ public sealed class CombatEncounterManagementService : ICombatEncounterManagemen
             encounter.EndedAtUtc = now;
             encounter.LastUpdatedAtUtc = now;
             await _encounters.UpsertAsync(encounter);
-            await WriteLogAsync(encounter, CombatEventTypes.EncounterCancelled, SafeReason("Combat encounter cancelled.", request.Reason), actor, request.RequestId, string.Empty);
+            await WriteLogAsync(encounter, CombatEventTypes.EncounterCancelled, SafeReason("Бой отменён.", request.Reason), actor, request.RequestId, string.Empty);
             await WriteReplayEventAsync(encounter, CombatEventTypes.EncounterCancelled, actor, request.RequestId, string.Empty);
         }
 
@@ -167,19 +167,28 @@ public sealed class CombatEncounterManagementService : ICombatEncounterManagemen
             IsPlayerControlled = request.IsPlayerControlled,
             Initiative = request.Initiative,
             InitiativeTieBreaker = request.InitiativeTieBreaker,
+            MaxStructure = Math.Max(0, request.MaxStructure),
+            CurrentStructure = Math.Max(0, request.CurrentStructure),
+            FrontProtection = Math.Max(0, request.FrontProtection),
+            SideProtection = Math.Max(0, request.SideProtection),
+            RearProtection = Math.Max(0, request.RearProtection),
             InitiativeGroup = string.Empty,
+            Natural20BonusTurn = request.Initiative == 20,
+            Natural20BonusTurnUsed = false,
+            Natural1FirstTurnPenalty = request.Initiative == 1,
+            Natural1PenaltyConsumed = false,
             IsActive = true,
             IsDefeated = false,
-            IsHidden = false,
+            IsHidden = request.IsHidden,
             HasActedThisRound = false,
-            ActionPoints = 1,
-            MinorActionPoints = 1,
+            ActionPoints = CombatActionEconomyPolicy0219.HalfActionsPerTurn,
+            MinorActionPoints = 0,
             ReactionCount = 0,
-            ReactionLimit = 1,
+            ReactionLimit = CombatActionEconomyPolicy0219.ReactionsPerRound,
             PositionSummary = string.Empty,
             DistanceMeters = 0m,
             CoverState = string.Empty,
-            VisibilityState = CombatVisibilityIds.Public,
+            VisibilityState = request.IsHidden ? CombatVisibilityIds.GmOnly : CombatVisibilityIds.Public,
             Tags = SafeList(request.Tags),
             Notes = request.Notes ?? string.Empty,
             SchemaVersion = 1
@@ -202,7 +211,7 @@ public sealed class CombatEncounterManagementService : ICombatEncounterManagemen
         encounter.LastUpdatedAtUtc = DateTime.UtcNow;
         ValidateOrThrow(CombatRuntimeValidator.ValidateInitiativeOrder(encounter, existingParticipants.Concat(new[] { participant })));
         await _encounters.UpsertAsync(encounter);
-        await WriteLogAsync(encounter, CombatEventTypes.ParticipantAdded, $"Participant added: {participant.DisplayName}", actor, request.RequestId, participant.Id);
+        await WriteLogAsync(encounter, CombatEventTypes.ParticipantAdded, $"Участник добавлен: {participant.DisplayName}", actor, request.RequestId, participant.Id);
         await WriteReplayEventAsync(encounter, CombatEventTypes.ParticipantAdded, actor, request.RequestId, participant.Id);
 
         _logger.Admin($"combat.v1.participant.add.done encounterId={encounter.Id} participantId={participant.Id}");
@@ -233,7 +242,7 @@ public sealed class CombatEncounterManagementService : ICombatEncounterManagemen
             encounter.ActiveParticipantId = string.Empty;
         encounter.LastUpdatedAtUtc = DateTime.UtcNow;
         await _encounters.UpsertAsync(encounter);
-        await WriteLogAsync(encounter, CombatEventTypes.ParticipantRemoved, $"Participant removed: {participant.DisplayName}", actor, request.RequestId, participant.Id);
+        await WriteLogAsync(encounter, CombatEventTypes.ParticipantRemoved, $"Участник удалён: {participant.DisplayName}", actor, request.RequestId, participant.Id);
         await WriteReplayEventAsync(encounter, CombatEventTypes.ParticipantRemoved, actor, request.RequestId, participant.Id);
 
         _logger.Admin($"combat.v1.participant.remove.done encounterId={encounter.Id} participantId={participant.Id}");
@@ -353,7 +362,7 @@ public sealed class CombatEncounterManagementService : ICombatEncounterManagemen
 
     private static string SafeReason(string baseMessage, string reason)
     {
-        return string.IsNullOrWhiteSpace(reason) ? baseMessage ?? string.Empty : $"{baseMessage} Reason: {reason.Trim()}";
+        return string.IsNullOrWhiteSpace(reason) ? baseMessage ?? string.Empty : $"{baseMessage} Причина: {reason.Trim()}";
     }
 
     public static CombatEncounterSummary ToEncounterSummary(CombatEncounterState encounter)
@@ -390,6 +399,11 @@ public sealed class CombatEncounterManagementService : ICombatEncounterManagemen
             IsNpc = participant.IsNpc,
             IsPlayerControlled = participant.IsPlayerControlled,
             Initiative = participant.Initiative,
+            Natural20BonusTurn = participant.Natural20BonusTurn || participant.Initiative == 20,
+            Natural20BonusTurnUsed = participant.Natural20BonusTurnUsed,
+            Natural1FirstTurnPenalty = participant.Natural1FirstTurnPenalty || participant.Initiative == 1,
+            Natural1PenaltyConsumed = participant.Natural1PenaltyConsumed,
+            Natural1PenaltyActive = (participant.Natural1FirstTurnPenalty || participant.Initiative == 1) && !participant.Natural1PenaltyConsumed,
             IsActive = participant.IsActive,
             IsDefeated = participant.IsDefeated,
             IsHidden = participant.IsHidden,
@@ -400,6 +414,12 @@ public sealed class CombatEncounterManagementService : ICombatEncounterManagemen
             ReactionLimit = participant.ReactionLimit,
             MaxHealth = participant.MaxHealth,
             CurrentHealth = participant.CurrentHealth,
+            MaxStructure = participant.MaxStructure,
+            CurrentStructure = participant.CurrentStructure,
+            FrontProtection = participant.FrontProtection,
+            SideProtection = participant.SideProtection,
+            RearProtection = participant.RearProtection,
+            DisabledModuleName = participant.DisabledModuleName,
             TemporaryHealth = participant.TemporaryHealth,
             MaxMorale = participant.MaxMorale,
             CurrentMorale = participant.CurrentMorale,
@@ -415,6 +435,13 @@ public sealed class CombatEncounterManagementService : ICombatEncounterManagemen
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList(),
             PositionSummary = participant.PositionSummary,
+            SceneMapId = participant.SceneMapId,
+            MapTokenId = participant.MapTokenId,
+            MapTokenDisplayName = participant.MapTokenDisplayName,
+            MapTokenVisibility = participant.MapTokenVisibility,
+            MapLinkStatus = participant.MapLinkStatus,
+            MapBadgeText = participant.MapBadgeText,
+            MapBadgeColorKey = participant.MapBadgeColorKey,
             DistanceMeters = participant.DistanceMeters,
             CoverState = participant.CoverState,
             VisibilityState = participant.VisibilityState,

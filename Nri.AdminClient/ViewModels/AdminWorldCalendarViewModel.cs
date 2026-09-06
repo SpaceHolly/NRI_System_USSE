@@ -26,6 +26,7 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
     private int _dayOfMonth = 1;
     private int _hour;
     private int _minute;
+    private int _eventDurationMinutes = 60;
     private string _selectedEra = WorldCalendarEraLabels.CommonEra;
     private int _advanceDays = 1;
     private string _advanceReason = string.Empty;
@@ -40,6 +41,12 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
     private bool _remindersEnabled;
     private bool _playerViewEnabled;
     private bool _futureVisibilityEnabled;
+    private bool _hasUnsavedChanges;
+    private bool _hasRoutePermission;
+    private bool _isLoadingEventDraft;
+    private string _eventSearchText = string.Empty;
+    private string _selectedParticipantId = string.Empty;
+    private string _selectedLocationId = string.Empty;
     private CalendarEventRow? _selectedEvent;
     private HolidayRow? _selectedHoliday;
     private ReminderRow? _selectedReminder;
@@ -70,8 +77,8 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
         RefreshCommand = new RelayCommand(LoadCalendar);
         SetDateCommand = new RelayCommand(SetDate);
         AdvanceTimeCommand = new RelayCommand(AdvanceTime);
-        CreateEventCommand = new RelayCommand(CreateEvent);
-        UpdateEventCommand = new RelayCommand(UpdateEvent);
+        CreateEventCommand = new RelayCommand(CreateEvent, () => CanSaveEventDraft);
+        UpdateEventCommand = new RelayCommand(UpdateEvent, () => CanSaveEventDraft && SelectedEvent != null);
         CancelEventCommand = new RelayCommand(CancelEvent);
         ArchiveEventCommand = new RelayCommand(ArchiveEvent);
         AddVersionCommand = new RelayCommand(AddVersion);
@@ -86,11 +93,18 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
     public ObservableCollection<CalendarEventRow> Events { get; } = new();
     public ObservableCollection<HolidayRow> Holidays { get; } = new();
     public ObservableCollection<ReminderRow> Reminders { get; } = new();
+    public ObservableCollection<object> ChronicleParticipantOptions { get; } = new();
+    public ObservableCollection<object> SelectedParticipantReferences { get; } = new();
+    public ObservableCollection<string> EraOptions { get; } = new()
+    {
+        WorldCalendarEraLabels.CommonEra,
+        WorldCalendarEraLabels.BeforeCommonEra
+    };
+    public ObservableCollection<object> ChronicleLocationOptions { get; } = new();
     public ObservableCollection<string> EventTypeOptions { get; } = new() { WorldCalendarEventTypeIds.Fixed, WorldCalendarEventTypeIds.Flexible, WorldCalendarEventTypeIds.Conditional, WorldCalendarEventTypeIds.Optional, WorldCalendarEventTypeIds.Cancelled };
     public ObservableCollection<string> EventStatusOptions { get; } = new() { WorldCalendarEventStatusIds.Planned, WorldCalendarEventStatusIds.Upcoming, WorldCalendarEventStatusIds.Occurred, WorldCalendarEventStatusIds.Resolved, WorldCalendarEventStatusIds.Cancelled };
     public ObservableCollection<string> RevealPolicyOptions { get; } = new() { WorldCalendarRevealPolicyIds.Manual, WorldCalendarRevealPolicyIds.Immediate, WorldCalendarRevealPolicyIds.AtDate, WorldCalendarRevealPolicyIds.Hidden };
     public ObservableCollection<string> VersionTypeOptions { get; } = new() { WorldCalendarVersionTypeIds.OfficialHistory, WorldCalendarVersionTypeIds.PlayerVisible, WorldCalendarVersionTypeIds.GmOnly, WorldCalendarVersionTypeIds.Alternative, WorldCalendarVersionTypeIds.Custom };
-    public ObservableCollection<string> EraOptions { get; } = new() { WorldCalendarEraLabels.CommonEra, WorldCalendarEraLabels.BeforeCommonEra };
 
     public ICommand RefreshFlagsCommand { get; }
     public ICommand EnsureCalendarCommand { get; }
@@ -135,11 +149,13 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
     public int DayOfMonth { get => _dayOfMonth; set { if (_dayOfMonth != value) { _dayOfMonth = value; Notify(); } } }
     public int Hour { get => _hour; set { if (_hour != value) { _hour = value; Notify(); } } }
     public int Minute { get => _minute; set { if (_minute != value) { _minute = value; Notify(); } } }
+    public int EventDurationMinutes { get => _eventDurationMinutes; set { if (_eventDurationMinutes != value) { _eventDurationMinutes = value; Notify(); MarkDirty(); } } }
     public int AdvanceDays { get => _advanceDays; set { if (_advanceDays != value) { _advanceDays = value; Notify(); } } }
     public string AdvanceReason { get => _advanceReason; set { if (_advanceReason != value) { _advanceReason = value; Notify(); } } }
-    public string StatusMessage { get => _statusMessage; private set { if (_statusMessage != value) { _statusMessage = value; Notify(); } } }
-    public string ErrorMessage { get => _errorMessage; private set { if (_errorMessage != value) { _errorMessage = value; Notify(); Notify(nameof(HasError)); } } }
-    public bool IsLoading { get => _isLoading; private set { if (_isLoading != value) { _isLoading = value; Notify(); } } }
+    public string StatusMessage { get => _statusMessage; private set { if (_statusMessage != value) { _statusMessage = value; Notify(); Notify(nameof(HasStatusMessage)); } } }
+    public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
+    public string ErrorMessage { get => _errorMessage; private set { if (_errorMessage != value) { _errorMessage = value; Notify(); Notify(nameof(HasError)); Notify(nameof(RouteState)); } } }
+    public bool IsLoading { get => _isLoading; private set { if (_isLoading != value) { _isLoading = value; Notify(); Notify(nameof(RouteState)); Notify(nameof(CanSaveEventDraft)); RaiseEventCommandStates(); } } }
     public bool CalendarEnabled { get => _calendarEnabled; private set { if (_calendarEnabled != value) { _calendarEnabled = value; Notify(); Notify(nameof(DisabledText)); } } }
     public bool CurrentDateEnabled { get => _currentDateEnabled; private set { if (_currentDateEnabled != value) { _currentDateEnabled = value; Notify(); } } }
     public bool EventsEnabled { get => _eventsEnabled; private set { if (_eventsEnabled != value) { _eventsEnabled = value; Notify(); } } }
@@ -150,6 +166,29 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
     public bool FutureVisibilityEnabled { get => _futureVisibilityEnabled; private set { if (_futureVisibilityEnabled != value) { _futureVisibilityEnabled = value; Notify(); } } }
     public string DisabledText => CalendarEnabled ? string.Empty : "Календарь мира выключен флагами функций.";
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+    public bool HasRoutePermission { get => _hasRoutePermission; set { if (_hasRoutePermission == value) return; _hasRoutePermission = value; Notify(); Notify(nameof(PermissionState)); Notify(nameof(RouteState)); Notify(nameof(CanSaveEventDraft)); RaiseEventCommandStates(); } }
+    public string PermissionState => HasRoutePermission ? "Раздел доступен." : "Войдите администратором, чтобы открыть хронику.";
+    public string EventSearchText { get => _eventSearchText; set { if (_eventSearchText == value) return; _eventSearchText = value ?? string.Empty; Notify(); Notify(nameof(FilteredEvents)); Notify(nameof(RouteState)); } }
+    public IEnumerable<CalendarEventRow> FilteredEvents => Events.Where(item =>
+        string.IsNullOrWhiteSpace(EventSearchText)
+        || item.Title.IndexOf(EventSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+        || item.StatusDisplay.IndexOf(EventSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+        || item.EventTypeDisplay.IndexOf(EventSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+    public bool HasUnsavedChanges { get => _hasUnsavedChanges; private set { if (_hasUnsavedChanges == value) return; _hasUnsavedChanges = value; Notify(); Notify(nameof(UnsavedChangesSummary)); Notify(nameof(HasValidationIssues)); Notify(nameof(ValidationSummary)); Notify(nameof(CanSaveEventDraft)); RaiseEventCommandStates(); } }
+    public bool HasValidationIssues => HasUnsavedChanges && string.IsNullOrWhiteSpace(EventTitle);
+    public string ValidationSummary => HasValidationIssues ? "Укажите название события." : string.Empty;
+    public bool CanSaveEventDraft => HasRoutePermission && !IsLoading && !HasValidationIssues;
+    public string RouteState => AdminRouteStateResolver.ResolveCollection(
+        HasRoutePermission,
+        IsLoading,
+        HasError,
+        !string.IsNullOrWhiteSpace(EventSearchText),
+        FilteredEvents.Any(),
+        true,
+        SelectedEvent != null || HasUnsavedChanges);
+    public string UnsavedChangesSummary => HasUnsavedChanges ? "Есть несохранённые изменения хроники." : "Изменений хроники нет.";
+    public string SelectedParticipantId { get => _selectedParticipantId; set { if (_selectedParticipantId != value) { _selectedParticipantId = value ?? string.Empty; Notify(); MarkDirty(); } } }
+    public string SelectedLocationId { get => _selectedLocationId; set { if (_selectedLocationId != value) { _selectedLocationId = value ?? string.Empty; Notify(); MarkDirty(); } } }
 
     public CalendarEventRow? SelectedEvent
     {
@@ -159,8 +198,12 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
             if (_selectedEvent == value) return;
             _selectedEvent = value;
             Notify();
+            Notify(nameof(RouteState));
+            Notify(nameof(CanSaveEventDraft));
+            RaiseEventCommandStates();
             if (value != null)
             {
+                _isLoadingEventDraft = true;
                 EventTitle = value.Title;
                 EventSummary = value.PublicSummary;
                 EventGmSummary = value.GmSummary;
@@ -171,15 +214,17 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
                 ApplySignedYear(value.Year);
                 MonthOrder = value.MonthOrder;
                 DayOfMonth = value.DayOfMonth;
+                _isLoadingEventDraft = false;
+                HasUnsavedChanges = false;
             }
         }
     }
 
     public HolidayRow? SelectedHoliday { get => _selectedHoliday; set { if (_selectedHoliday != value) { _selectedHoliday = value; Notify(); } } }
     public ReminderRow? SelectedReminder { get => _selectedReminder; set { if (_selectedReminder != value) { _selectedReminder = value; Notify(); } } }
-    public string EventTitle { get => _eventTitle; set { if (_eventTitle != value) { _eventTitle = value; Notify(); } } }
-    public string EventSummary { get => _eventSummary; set { if (_eventSummary != value) { _eventSummary = value; Notify(); } } }
-    public string EventGmSummary { get => _eventGmSummary; set { if (_eventGmSummary != value) { _eventGmSummary = value; Notify(); } } }
+    public string EventTitle { get => _eventTitle; set { if (_eventTitle != value) { _eventTitle = value; Notify(); MarkDirty(); Notify(nameof(HasValidationIssues)); Notify(nameof(ValidationSummary)); Notify(nameof(CanSaveEventDraft)); RaiseEventCommandStates(); } } }
+    public string EventSummary { get => _eventSummary; set { if (_eventSummary != value) { _eventSummary = value; Notify(); MarkDirty(); } } }
+    public string EventGmSummary { get => _eventGmSummary; set { if (_eventGmSummary != value) { _eventGmSummary = value; Notify(); MarkDirty(); } } }
     public string EventType { get => _eventType; set { if (_eventType != value) { _eventType = value; Notify(); } } }
     public string EventStatus { get => _eventStatus; set { if (_eventStatus != value) { _eventStatus = value; Notify(); } } }
     public string EventRevealPolicy { get => _eventRevealPolicy; set { if (_eventRevealPolicy != value) { _eventRevealPolicy = value; Notify(); } } }
@@ -244,6 +289,7 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
             { "eventType", EventType },
             { "status", EventStatus },
             { "revealPolicy", EventRevealPolicy },
+            { "durationMinutes", EventDurationMinutes },
             { "isPlayerVisible", EventPlayerVisible },
             { "visibilityMode", EventPlayerVisible ? WorldCalendarVisibilityModeIds.PlayerVisible : WorldCalendarVisibilityModeIds.GmOnly }
         })), "admin.world_calendar.event.create");
@@ -261,6 +307,7 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
             { "eventType", EventType },
             { "status", EventStatus },
             { "revealPolicy", EventRevealPolicy },
+            { "durationMinutes", EventDurationMinutes },
             { "isPlayerVisible", EventPlayerVisible },
             { "visibilityMode", EventPlayerVisible ? WorldCalendarVisibilityModeIds.PlayerVisible : WorldCalendarVisibilityModeIds.GmOnly }
         })), "admin.world_calendar.event.update");
@@ -338,6 +385,7 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
                 return;
             }
             ApplyCalendarPayload(response.Payload);
+            HasUnsavedChanges = false;
             StatusMessage = Friendly(response, "Календарь обновлён.");
             ClientLogService.Instance.Info($"{logKey}.done");
         }
@@ -350,6 +398,17 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
         {
             IsLoading = false;
         }
+    }
+
+    private void MarkDirty()
+    {
+        if (!_isLoadingEventDraft) HasUnsavedChanges = true;
+    }
+
+    private void RaiseEventCommandStates()
+    {
+        ((RelayCommand)CreateEventCommand).RaiseCanExecuteChanged();
+        ((RelayCommand)UpdateEventCommand).RaiseCanExecuteChanged();
     }
 
     private void SendAndRefresh(Func<ResponseEnvelope> sender, string logKey)
@@ -382,6 +441,8 @@ public sealed class AdminWorldCalendarViewModel : ViewModelBase
         foreach (var month in Dicts(Get(payload, "months"))) Months.Add(CalendarMonthRow.From(month));
         Events.Clear();
         foreach (var item in Dicts(Get(payload, "events"))) Events.Add(CalendarEventRow.From(item));
+        Notify(nameof(FilteredEvents));
+        Notify(nameof(RouteState));
         Holidays.Clear();
         foreach (var item in Dicts(Get(payload, "holidays"))) Holidays.Add(HolidayRow.From(item));
         Reminders.Clear();

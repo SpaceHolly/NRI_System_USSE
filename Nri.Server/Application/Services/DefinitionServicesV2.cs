@@ -152,7 +152,7 @@ public sealed class DefinitionServiceV2 : IDefinitionServiceV2
     {
         try
         {
-            _sync.Publish("definitions.updated", SyncScopes.Definitions, "definition", id, operation, actorUserId, new Dictionary<string, object> { { "category", category }, { "definitionId", id }, { "operation", operation }, { "updatedUtc", DateTime.UtcNow } }, requestId);
+            _sync.PublishGlobal("definitions.updated", "definition", id, operation, actorUserId, new Dictionary<string, object> { { "category", category }, { "definitionId", id }, { "operation", operation }, { "updatedUtc", DateTime.UtcNow } }, requestId);
         }
         catch (Exception ex)
         {

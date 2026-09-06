@@ -308,7 +308,11 @@ public sealed class AdminGMNotesViewModel : ViewModelBase
         });
     }
 
-    private void Archive() => NoteStateChange(_api.GMNoteArchive, "Заметка отправлена в архив.");
+    private void Archive()
+    {
+        if (!Confirm("Архивировать заметку", "Заметка будет убрана из рабочего списка и сохранена в архиве. Продолжить?")) return;
+        NoteStateChange(_api.GMNoteArchive, "Заметка отправлена в архив.");
+    }
     private void Restore() => NoteStateChange(_api.GMNoteRestore, "Заметка восстановлена.");
     private void Pin() => NoteStateChange(_api.GMNotePin, "Заметка закреплена.");
     private void Unpin() => NoteStateChange(_api.GMNoteUnpin, "Закрепление снято.");
@@ -377,6 +381,7 @@ public sealed class AdminGMNotesViewModel : ViewModelBase
     private void ArchiveFolder()
     {
         if (SelectedFolder == null) return;
+        if (!Confirm("Архивировать папку", "Папка будет убрана из рабочего списка. Продолжить?")) return;
         Safe("admin.gmnotes.folder.archive", () =>
         {
             var response = _api.GMNoteFolderArchive(new Dictionary<string, object> { { "folderId", SelectedFolder.FolderId } });
@@ -408,6 +413,7 @@ public sealed class AdminGMNotesViewModel : ViewModelBase
     private void RemoveLink()
     {
         if (SelectedLink == null || !LinksEnabled) return;
+        if (!Confirm("Удалить привязку", "Привязка заметки к выбранному объекту будет удалена. Продолжить?")) return;
         Safe("admin.gmnotes.link.remove", () =>
         {
             var response = _api.GMNoteLinkRemove(new Dictionary<string, object> { { "linkId", SelectedLink.LinkId } });
@@ -416,6 +422,10 @@ public sealed class AdminGMNotesViewModel : ViewModelBase
             StatusMessage = "Привязка удалена.";
         });
     }
+
+    private static bool Confirm(string title, string message)
+        => System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning)
+           == System.Windows.MessageBoxResult.Yes;
 
     private void LoadFolders()
     {

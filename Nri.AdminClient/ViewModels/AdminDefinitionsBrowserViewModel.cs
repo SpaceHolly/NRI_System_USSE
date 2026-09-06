@@ -54,11 +54,11 @@ public sealed class AdminDefinitionsBrowserViewModel : ViewModelBase
     {
         _api = api;
         _packPath = ResolveDefaultPackPath();
-        SourceOptions.Add("Starter pack dry-run");
-        SourceOptions.Add("Imported definitions (недоступно)");
+        SourceOptions.Add("Стартовый набор (проверка)");
+        SourceOptions.Add("Импортированные справочники (недоступно)");
 
         LoadFromDryRunPackCommand = new RelayCommand(LoadFromDryRunPack);
-        LoadFromServerDefinitionsCommand = new RelayCommand(() => WarningMessage = "Mongo definitions read endpoint пока недоступен; используйте Starter pack dry-run.");
+        LoadFromServerDefinitionsCommand = new RelayCommand(() => WarningMessage = "Загрузка справочников из MongoDB пока недоступна; используйте стартовый набор.");
         RefreshCommand = new RelayCommand(LoadFromDryRunPack);
         SearchCommand = new RelayCommand(ApplyFilters);
         ClearSearchCommand = new RelayCommand(() => { SearchText = string.Empty; ApplyFilters(); });
@@ -93,9 +93,9 @@ public sealed class AdminDefinitionsBrowserViewModel : ViewModelBase
             {
                 _selectedSource = value;
                 Notify();
-                if (value != "Starter pack dry-run")
+                if (value != "Стартовый набор (проверка)")
                 {
-                    WarningMessage = "Mongo definitions read endpoint пока недоступен; browser остаётся read-only.";
+                    WarningMessage = "Загрузка справочников из MongoDB пока недоступна; раздел доступен только для просмотра.";
                 }
             }
         }
@@ -258,7 +258,7 @@ public sealed class AdminDefinitionsBrowserViewModel : ViewModelBase
             var response = _api.DefinitionsPackDryRun(PackPath);
             if (response.Status != Nri.Shared.Contracts.ResponseStatus.Ok)
             {
-                WarningMessage = $"Dry-run endpoint недоступен или вернул ошибку: {response.Message}";
+                WarningMessage = "Проверка стартового набора недоступна или завершилась ошибкой.";
                 return;
             }
 
@@ -278,6 +278,7 @@ public sealed class AdminDefinitionsBrowserViewModel : ViewModelBase
                 ValidationFiles.Add(new DefinitionFileValidationUiItem
                 {
                     Category = Str(item, "category"),
+                    CategoryLabel = DefinitionLabels.Category(Str(item, "category")),
                     Path = Str(item, "path"),
                     DefinitionCount = Int(item, "definitionCount"),
                     Errors = AsList(Get(item, "errors")).Count,
@@ -287,7 +288,7 @@ public sealed class AdminDefinitionsBrowserViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            WarningMessage = $"Dry-run endpoint недоступен: {ex.Message}. Локальный pack preview всё равно может быть загружен.";
+            WarningMessage = "Проверка стартового набора недоступна. Локальный набор всё равно можно загрузить.";
             ClientLogService.Instance.Warn($"definitions.ui.dry_run.error message={ex.Message}");
         }
     }
@@ -619,7 +620,44 @@ public sealed class DefinitionListUiItem
     public Dictionary<string, object> ExtraData { get; set; } = new Dictionary<string, object>();
     public bool ServerOnlyDataPresent { get; set; }
     public string ServerOnlyDataText => ServerOnlyDataPresent ? "present: yes" : "present: no";
+    public string RuleSetDisplayName => FormatRuleSets(RuleSetIds);
+    public string PublicTags => FormatPublicTags(Tags);
+    public string StatusLabel => Archived ? "В архиве" : FormatVisibility(Visibility);
+    public string ValidationWarningText => ServerOnlyDataPresent ? "Проверьте видимость записи" : "—";
     public void RefreshComputedFields() => ArchivedText = Archived ? "Да" : "Нет";
+
+    private static string FormatRuleSets(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value == "—") return "Профиль правил не указан";
+        return string.Join(", ", value.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(FormatRuleSet));
+    }
+
+    private static string FormatRuleSet(string value)
+        => value.Trim().ToLowerInvariant() switch
+        {
+            "fantasy_nri_default" => "Фэнтези · базовый профиль",
+            "sci_fi_nri_default" => "Научная фантастика · базовый профиль",
+            "hybrid_nri_default" => "Гибридный · базовый профиль",
+            _ => "Профиль правил"
+        };
+
+    private static string FormatPublicTags(string value)
+        => string.Join(", ", (value ?? string.Empty).Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => !x.StartsWith("foundation_", StringComparison.OrdinalIgnoreCase)
+                        && !x.StartsWith("dev", StringComparison.OrdinalIgnoreCase)
+                        && !x.StartsWith("test", StringComparison.OrdinalIgnoreCase)
+                        && !x.EndsWith("_definition", StringComparison.OrdinalIgnoreCase)));
+
+    private static string FormatVisibility(string value)
+        => value?.ToLowerInvariant() switch
+        {
+            "player_visible" => "Видно игрокам",
+            "public" => "Публично",
+            "gm_only" => "Только мастер",
+            "hidden" => "Скрыто",
+            _ => "Проверяется"
+        };
 }
 
 public sealed class DefinitionDetailsUiItem
@@ -631,12 +669,14 @@ public sealed class DefinitionDetailsUiItem
     public string RuleSetIds { get; set; } = "—";
     public string Tags { get; set; } = "—";
     public string Visibility { get; set; } = string.Empty;
+    public string VisibilityLabel => FormatVisibility(Visibility);
     public int SchemaVersion { get; set; }
     public string ArchivedText { get; set; } = string.Empty;
     public string PublicDescription { get; set; } = string.Empty;
     public string GMDescription { get; set; } = string.Empty;
     public string SourcePath { get; set; } = string.Empty;
     public string ServerOnlyDataText { get; set; } = "present: no";
+    public string StatusLabel => string.Equals(ArchivedText, "Да", StringComparison.OrdinalIgnoreCase) ? "В архиве" : VisibilityLabel;
     public ObservableCollection<DefinitionKeyValueUiItem> ExtraDataRows { get; } = new ObservableCollection<DefinitionKeyValueUiItem>();
     public ObservableCollection<DefinitionKeyValueUiItem> PreviewRows { get; } = new ObservableCollection<DefinitionKeyValueUiItem>();
 
@@ -722,6 +762,16 @@ public sealed class DefinitionDetailsUiItem
         return false;
     }
 
+    private static string FormatVisibility(string value)
+        => value?.ToLowerInvariant() switch
+        {
+            "player_visible" => "Видно игрокам",
+            "public" => "Публично",
+            "gm_only" => "Только мастер",
+            "hidden" => "Скрыто",
+            _ => "Проверяется"
+        };
+
     private static string SafeValue(object? value)
     {
         if (value == null) return "—";
@@ -742,12 +792,14 @@ public sealed class DefinitionDetailsUiItem
 public sealed class DefinitionKeyValueUiItem
 {
     public string Key { get; set; } = string.Empty;
+    public string DisplayKey => DefinitionLabels.Field(Key);
     public string Value { get; set; } = string.Empty;
 }
 
 public sealed class DefinitionFileValidationUiItem
 {
     public string Category { get; set; } = string.Empty;
+    public string CategoryLabel { get; set; } = string.Empty;
     public string Path { get; set; } = string.Empty;
     public int DefinitionCount { get; set; }
     public int Errors { get; set; }

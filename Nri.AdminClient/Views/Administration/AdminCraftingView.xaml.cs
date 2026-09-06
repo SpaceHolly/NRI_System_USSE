@@ -14,10 +14,16 @@ public partial class AdminCraftingView : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (DataContext is AdminCraftingViewModel)
+        if (DataContext is AdminCraftingViewModel current)
+        {
+            current.RefreshCommand.Execute(null);
             return;
+        }
 
         if (Window.GetWindow(this)?.DataContext is AdminMainViewModel shell)
+        {
             DataContext = shell.Crafting;
+            shell.Crafting.RefreshCommand.Execute(null);
+        }
     }
 }

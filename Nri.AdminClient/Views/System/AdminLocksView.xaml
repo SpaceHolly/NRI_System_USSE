@@ -1,0 +1,73 @@
+<UserControl x:Class="Nri.AdminClient.Views.SystemViews.AdminLocksView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminLocks_Route">
+    <patterns:NriQueueWorkspaceHost AutomationProperties.AutomationId="AdminLocks_QueueHost" QueueWidth="520">
+        <patterns:NriQueueWorkspaceHost.Header>
+            <DockPanel Margin="8,8,8,12">
+                <StackPanel>
+                    <TextBlock Text="Активные блокировки" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Сущности, которые сейчас редактируются. Принудительное снятие требует подтверждения."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+                <Button DockPanel.Dock="Right"
+                        Content="Обновить"
+                        Style="{StaticResource GhostButtonStyle}"
+                        Command="{Binding RefreshPeopleSectionCommand}"
+                        IsEnabled="{Binding IsIdle}"
+                        AutomationProperties.AutomationId="AdminLocks_Refresh"/>
+            </DockPanel>
+        </patterns:NriQueueWorkspaceHost.Header>
+        <patterns:NriQueueWorkspaceHost.Toolbar>
+            <TextBox Text="{Binding LocksSearchText, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Поиск по сущности, владельцу или типу"
+                     Margin="8,0,8,0"
+                     AutomationProperties.AutomationId="AdminLocks_Search"/>
+        </patterns:NriQueueWorkspaceHost.Toolbar>
+        <patterns:NriQueueWorkspaceHost.Queue>
+            <DataGrid ItemsSource="{Binding FilteredLockRows}"
+                      SelectedValuePath="Id"
+                      SelectedValue="{Binding SelectedLockId, UpdateSourceTrigger=PropertyChanged}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      AutomationProperties.AutomationId="AdminLocks_List">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Владелец" Binding="{Binding Name}" Width="1.4*"/>
+                    <DataGridTextColumn Header="Тип" Binding="{Binding State}" Width="*"/>
+                    <DataGridTextColumn Header="Сущность и срок" Binding="{Binding Extra}" Width="2.4*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </patterns:NriQueueWorkspaceHost.Queue>
+        <patterns:NriQueueWorkspaceHost.Workspace>
+            <StackPanel>
+                <TextBlock Text="Карточка блокировки" Style="{StaticResource SectionTitleTextStyle}"/>
+                <TextBlock Text="{Binding SelectedLockSummary}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                <Border Style="{StaticResource SubtleCardStyle}" Margin="0,14,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Принудительное снятие" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="Используйте только когда владелец больше не может освободить сущность. Действие подтверждается перед отправкой серверной команды."
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,10"/>
+                        <TextBlock Text="Причина *"
+                                   FontWeight="SemiBold"/>
+                        <TextBox Text="{Binding ForceUnlockReason, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Причина будет показана в подтверждении и журнале клиента."
+                                 Margin="0,4,0,10"
+                                 AutomationProperties.AutomationId="AdminLocks_ForceUnlockReason"/>
+                        <Button Content="Снять блокировку"
+                                Command="{Binding ForceUnlockCommand}"
+                                IsEnabled="{Binding CanManageSelectedLock}"
+                                HorizontalAlignment="Left"
+                                AutomationProperties.AutomationId="AdminLocks_ForceUnlock"/>
+                    </StackPanel>
+                </Border>
+                <Expander Header="Технические сведения" Margin="0,14,0,0">
+                    <TextBlock Text="{Binding SelectedLock.Id}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                </Expander>
+            </StackPanel>
+        </patterns:NriQueueWorkspaceHost.Workspace>
+    </patterns:NriQueueWorkspaceHost>
+</UserControl>

@@ -111,6 +111,7 @@ public class ClassNodeDefinition
     public string ColorKey { get; set; } = string.Empty;
     public List<string> NextNodeIds { get; set; } = new List<string>();
     public List<UnlockRequirement> Requirements { get; set; } = new List<UnlockRequirement>();
+    public RequirementExpression? RequirementExpression { get; set; }
     public List<StatBonusDefinition> StatBonuses { get; set; } = new List<StatBonusDefinition>();
     public List<PassiveEffectDefinition> PassiveEffects { get; set; } = new List<PassiveEffectDefinition>();
     public List<string> UnlockSkillIds { get; set; } = new List<string>();
@@ -145,9 +146,45 @@ public class SkillDefinitionRecord : EntityBase
     public string Description { get; set; } = string.Empty;
     public SkillType Type { get; set; }
     public List<SkillRequirement> Requirements { get; set; } = new List<SkillRequirement>();
+    public RequirementExpression? RequirementExpression { get; set; }
     public SkillActivationCondition Activation { get; set; } = new SkillActivationCondition();
     public string UsageDescription { get; set; } = string.Empty;
+    public string DefaultAttribute { get; set; } = string.Empty;
+    public string DefaultSubAttribute { get; set; } = string.Empty;
     public List<string> Tags { get; set; } = new List<string>();
+    public int RankMin { get; set; }
+    public int RankMax { get; set; } = 20;
+    public List<SkillRankMilestoneDefinition> RankMilestones { get; set; } = new List<SkillRankMilestoneDefinition>();
+    public List<SkillTechniqueDefinition> Techniques { get; set; } = new List<SkillTechniqueDefinition>();
+}
+
+public sealed class SkillRankMilestoneDefinition
+{
+    public int Rank { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public string PublicDescription { get; set; } = string.Empty;
+    public string GMDescription { get; set; } = string.Empty;
+    public RequirementExpression? RequirementExpression { get; set; }
+}
+
+public sealed class SkillTechniqueDefinition : EntityBase
+{
+    public string DisplayName { get; set; } = string.Empty;
+    public string SkillId { get; set; } = string.Empty;
+    public int MinimumRank { get; set; }
+    public int? MaximumRank { get; set; }
+    public string ActionDefinitionId { get; set; } = string.Empty;
+    public List<string> RequiredEquipmentTags { get; set; } = new List<string>();
+    public string RequiredAbilityId { get; set; } = string.Empty;
+    public string RequiredStateId { get; set; } = string.Empty;
+    public int HalfActionCost { get; set; } = 1;
+    public int ReactionCost { get; set; }
+    public string PublicDescription { get; set; } = string.Empty;
+    public string GMDescription { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = "fantasy_nri_default";
+    public int Revision { get; set; } = 1;
+    public bool IsArchived { get; set; }
+    public RequirementExpression? RequirementExpression { get; set; }
 }
 
 public class CharacterClassNodeState

@@ -104,6 +104,7 @@ public sealed class ClassDefinitionService
             RequiredSkillCodes = definition.RequiredSkillCodes.ToList(),
             RequiredCharacterLevel = definition.RequiredCharacterLevel,
             XpCoinCost = definition.XpCoinCost,
+            RequirementExpression = definition.RequirementExpression,
             IsActive = definition.IsActive,
             Status = definition.Status,
             CreatedUtc = definition.CreatedUtc,
@@ -137,6 +138,7 @@ public sealed class ClassDefinitionService
         definition.RequiredSkillCodes = dto.RequiredSkillCodes ?? new List<string>();
         definition.RequiredCharacterLevel = dto.RequiredCharacterLevel;
         definition.XpCoinCost = dto.XpCoinCost;
+        definition.RequirementExpression = dto.RequirementExpression;
         definition.IsActive = dto.IsActive;
         definition.Status = dto.Status;
         return definition;
@@ -233,6 +235,7 @@ public sealed class SkillDefinitionService
             RequiredSkillCodes = normalized.RequiredSkillCodes.ToList(),
             RequiredCharacterLevel = normalized.RequiredCharacterLevel,
             XpCoinCost = normalized.XpCoinCost,
+            RequirementExpression = normalized.RequirementExpression,
             Levels = normalized.Levels.Select(level => new SkillLevelDefinition
             {
                 Level = level.Level,
@@ -240,6 +243,8 @@ public sealed class SkillDefinitionService
                 Requirements = level.Requirements.ToList(),
                 Effects = level.Effects.ToList()
             }).ToList(),
+            RankMilestones = normalized.RankMilestones.ToList(),
+            Techniques = normalized.Techniques.ToList(),
             IsActive = normalized.IsActive,
             Status = normalized.Status,
             CreatedUtc = normalized.CreatedUtc,
@@ -274,7 +279,10 @@ public sealed class SkillDefinitionService
         definition.RequiredSkillCodes = dto.RequiredSkillCodes ?? new List<string>();
         definition.RequiredCharacterLevel = dto.RequiredCharacterLevel;
         definition.XpCoinCost = dto.XpCoinCost;
+        definition.RequirementExpression = dto.RequirementExpression;
         definition.Levels = dto.Levels ?? new List<SkillLevelDefinition>();
+        definition.RankMilestones = dto.RankMilestones ?? new List<SkillRankMilestoneDefinition>();
+        definition.Techniques = dto.Techniques ?? new List<SkillTechniqueDefinition>();
         definition.IsActive = dto.IsActive;
         definition.Status = dto.Status;
         return SkillDefinitionV2Defaults.Normalize(definition);

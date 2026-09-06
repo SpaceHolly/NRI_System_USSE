@@ -32,6 +32,7 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
     private readonly IItemEquipmentDefinitionResolver _definitionResolver;
     private readonly ICombatDefenseCalculationService? _defenseCalculationService;
     private readonly ICombatFateHookService? _fateHookService;
+    private readonly ICombatCoreResolutionProfileService0219 _coreProfiles;
     private readonly IServerLogger _logger;
 
     public CombatAttackRollService(
@@ -45,7 +46,8 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
         IItemEquipmentDefinitionResolver definitionResolver,
         IServerLogger logger,
         ICombatDefenseCalculationService? defenseCalculationService = null,
-        ICombatFateHookService? fateHookService = null)
+        ICombatFateHookService? fateHookService = null,
+        ICombatCoreResolutionProfileService0219? coreProfiles = null)
     {
         _encounters = encounters;
         _participants = participants;
@@ -57,6 +59,7 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
         _definitionResolver = definitionResolver;
         _defenseCalculationService = defenseCalculationService;
         _fateHookService = fateHookService;
+        _coreProfiles = coreProfiles ?? throw new ArgumentNullException(nameof(coreProfiles));
         _logger = logger;
     }
 
@@ -66,14 +69,20 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
     public async Task<CombatAttackResultResponse> DeclareAttackAsync(CombatAttackDeclareRequest request, UserAccount actor)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
+        if (string.IsNullOrWhiteSpace(request.RequestId)) throw new ArgumentException("operation_id_required", nameof(request));
         _logger.Debug($"combat.attack.roll.start encounterId={request.EncounterId} actor={request.ActorParticipantId} target={request.TargetParticipantId}");
 
         var encounter = await RequireEncounterAsync(request.EncounterId);
         if (!string.Equals(encounter.Status, CombatRuntimeStatuses.Active, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("encounter_not_active");
 
+        var replayAction = await _actions.GetByRequestIdAsync(encounter.Id, request.RequestId, request.ActorParticipantId);
+        if (replayAction != null && string.Equals(replayAction.ActionType, CombatActionTypes.Attack, StringComparison.OrdinalIgnoreCase))
+            return await BuildReplayResponseAsync(encounter, replayAction, actor);
+
         var attacker = await RequireParticipantAsync(request.ActorParticipantId, encounter.Id, "attacker");
         var target = await RequireParticipantAsync(request.TargetParticipantId, encounter.Id, "target");
+        EnsureActorCanControl(attacker, actor);
         EnsureParticipantCanAttack(attacker, "attacker");
         EnsureParticipantCanAttack(target, "target");
         if (!string.IsNullOrWhiteSpace(encounter.ActiveParticipantId)
@@ -98,7 +107,7 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
                     EncounterId = encounter.Id,
                     ParticipantId = attacker.Id,
                     ActionPointCost = 1,
-                    Reason = "Attack action point cost.",
+                    Reason = "Потрачена половина действия на атаку.",
                     RequestId = request.RequestId
                 }, actor);
             }
@@ -130,6 +139,7 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
             ActorParticipantId = attacker.Id,
             TargetParticipantId = target.Id,
             WeaponDefinitionId = request.WeaponDefinitionId ?? string.Empty,
+            AttackProfileId = request.AttackProfileId ?? string.Empty,
             Roll = roll.Roll,
             NaturalRoll = roll.NaturalRoll,
             AttackTotal = roll.AttackTotal,
@@ -140,6 +150,7 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
             IsFumble = roll.IsFumble,
             IsNaturalCritical = roll.IsNaturalCritical,
             IsNaturalFumble = roll.IsNaturalFumble,
+            DegreeOfSuccess = roll.DegreeOfSuccess,
             Modifiers = roll.Modifiers,
             Fate = CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatFateBreakdownInResponse)) ? roll.Fate : new CombatFateHookResult(),
             Message = message,
@@ -183,18 +194,25 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(request.AttackSkillId) || !string.IsNullOrWhiteSpace(request.AttackAttributeId))
-            warnings.Add("skill_attribute_bonus_not_resolved");
+        var encounter = await RequireEncounterAsync(request.EncounterId);
+        var profileResolution = _coreProfiles.Resolve(attacker, request.AttackAttributeId, request.AttackSkillId, encounter.RuleSetId);
+        warnings.AddRange(profileResolution.Warnings);
+        var trustedAdmin = actor?.Roles?.Any(role => role == UserRole.Admin || role == UserRole.SuperAdmin) == true;
+        if (!trustedAdmin && request.AttackBonus != 0) warnings.Add("client_attack_bonus_ignored");
+        if (!trustedAdmin && request.WeaponAccuracyBonus != 0) warnings.Add("client_weapon_accuracy_ignored");
+        if (!trustedAdmin && request.SituationalModifier != 0) warnings.Add("client_situational_modifier_ignored");
+        if (!trustedAdmin && request.TargetDefenseOverride.HasValue) warnings.Add("client_target_defense_ignored");
+        if (!trustedAdmin && request.CoverModifier != 0) warnings.Add("client_cover_modifier_ignored");
 
         var modifiers = new CombatAttackModifierBreakdown
         {
-            AttackBonus = request.AttackBonus,
-            WeaponAccuracyBonus = request.WeaponAccuracyBonus,
-            SkillBonus = 0,
-            AttributeBonus = 0,
+            AttackBonus = trustedAdmin ? request.AttackBonus : 0,
+            WeaponAccuracyBonus = trustedAdmin ? request.WeaponAccuracyBonus : 0,
+            SkillBonus = profileResolution.ProficiencyBonus,
+            AttributeBonus = profileResolution.AbilityModifier,
             DistanceModifier = CalculateDistanceModifier(request.DistanceMeters),
-            CoverModifier = request.CoverModifier,
-            SituationalModifier = request.SituationalModifier,
+            CoverModifier = trustedAdmin ? request.CoverModifier : 0,
+            SituationalModifier = trustedAdmin ? request.SituationalModifier : 0,
             FateModifier = fateModifier
         };
         modifiers.TotalModifier = modifiers.AttackBonus
@@ -206,9 +224,12 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
             + modifiers.SituationalModifier
             + modifiers.FateModifier;
 
-        var targetDefense = CalculateTargetDefense(request, target, warnings);
+        var trustedRequest = trustedAdmin ? request : WithoutClientAuthority(request);
+        var targetDefense = 0;
+        var authoritativeDefenseResolved = false;
         if (AttackDefenseIntegrationEnabled && _defenseCalculationService != null)
         {
+            var vehicleTarget = string.Equals(target.ParticipantType, CombatParticipantTypes.Vehicle, StringComparison.OrdinalIgnoreCase);
             var defenseRequest = new CombatDefenseCalculationRequest
             {
                 EncounterId = request.EncounterId ?? string.Empty,
@@ -217,12 +238,12 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
                 AttackType = CombatActionTypes.Attack,
                 WeaponDefinitionId = request.WeaponDefinitionId ?? string.Empty,
                 DistanceMeters = request.DistanceMeters,
-                CoverModifierOverride = request.CoverModifier == 0 ? (int?)null : request.CoverModifier,
-                TargetDefenseOverride = request.TargetDefenseOverride,
-                IncludeArmor = true,
-                IncludeShield = true,
-                IncludeCover = true,
-                IncludeDistance = true,
+                CoverModifierOverride = trustedRequest.CoverModifier == 0 ? (int?)null : trustedRequest.CoverModifier,
+                TargetDefenseOverride = trustedRequest.TargetDefenseOverride,
+                IncludeArmor = !vehicleTarget,
+                IncludeShield = !vehicleTarget,
+                IncludeCover = trustedRequest.CoverModifier != 0,
+                IncludeDistance = request.DistanceMeters > 0,
                 RequestId = request.RequestId ?? string.Empty
             };
             var defense = await _defenseCalculationService.CalculateDefenseAsync(defenseRequest, null);
@@ -242,12 +263,21 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
                     + modifiers.SituationalModifier
                     + modifiers.FateModifier;
                 targetDefense = defense.TargetDefense;
+                authoritativeDefenseResolved = true;
                 _logger.Debug($"combat.attack.defense.integration.used encounterId={request.EncounterId}");
             }
         }
+        if (!authoritativeDefenseResolved)
+            targetDefense = CalculateTargetDefense(trustedRequest, target, warnings);
 
         var attackTotal = CalculateAttackTotal(naturalRoll, modifiers);
         var result = ClassifyHitResult(naturalRoll, attackTotal, targetDefense, CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatCriticalRulesMvp)));
+        var degree = string.Equals(result, CombatHitResultIds.Hit, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(result, CombatHitResultIds.CriticalHit, StringComparison.OrdinalIgnoreCase)
+            ? CoreResolutionPolicy0219.ClassifyDegree(attackTotal - targetDefense)
+            : CoreResolutionDegreeIds.Failure;
+        if (naturalRoll == 20 && degree == CoreResolutionDegreeIds.Ordinary) degree = CoreResolutionDegreeIds.Strong;
+        else if (naturalRoll == 20 && degree == CoreResolutionDegreeIds.Strong) degree = CoreResolutionDegreeIds.Exceptional;
         return new CombatAttackRollComputation
         {
             NaturalRoll = naturalRoll,
@@ -261,9 +291,27 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
             IsFumble = string.Equals(result, CombatHitResultIds.Fumble, StringComparison.OrdinalIgnoreCase),
             IsNaturalCritical = naturalRoll == 20,
             IsNaturalFumble = naturalRoll == 1,
+            DegreeOfSuccess = degree,
             Modifiers = modifiers,
             Fate = fate,
             Warnings = warnings
+        };
+    }
+
+    private static CombatAttackDeclareRequest WithoutClientAuthority(CombatAttackDeclareRequest source)
+    {
+        return new CombatAttackDeclareRequest
+        {
+            EncounterId = source.EncounterId,
+            ActorParticipantId = source.ActorParticipantId,
+            TargetParticipantId = source.TargetParticipantId,
+            WeaponDefinitionId = source.WeaponDefinitionId,
+            AttackAttributeId = source.AttackAttributeId,
+            AttackSkillId = source.AttackSkillId,
+            DistanceMeters = source.DistanceMeters,
+            SpendActionPoint = source.SpendActionPoint,
+            UseFateEngine = source.UseFateEngine,
+            RequestId = source.RequestId
         };
     }
 
@@ -312,7 +360,16 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
     {
         var attackerName = string.IsNullOrWhiteSpace(attacker.DisplayName) ? attacker.Id : attacker.DisplayName;
         var targetName = string.IsNullOrWhiteSpace(target.DisplayName) ? target.Id : target.DisplayName;
-        return $"{attackerName} attacks {targetName}: {hitResult}.";
+        return $"{attackerName} атакует {targetName}: {DisplayHitResult(hitResult)}.";
+    }
+
+    private static void EnsureActorCanControl(CombatParticipantState participant, UserAccount actor)
+    {
+        var isAdmin = actor?.Roles?.Any(role => role == UserRole.Admin || role == UserRole.SuperAdmin) == true;
+        if (isAdmin) return;
+        if (actor == null || string.IsNullOrWhiteSpace(participant.ControllerUserId) ||
+            !string.Equals(participant.ControllerUserId, actor.Id, StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("combat_participant_control_forbidden");
     }
 
     private async Task ResolveWeaponWarningsAsync(CombatAttackDeclareRequest request, string ruleSetId, List<string> warnings)
@@ -420,7 +477,9 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
             { "attackTotal", roll.AttackTotal },
             { "targetDefense", roll.TargetDefense },
             { "hitResult", roll.HitResult },
+            { "degreeOfSuccess", roll.DegreeOfSuccess },
             { "weaponDefinitionId", request.WeaponDefinitionId ?? string.Empty },
+            { "attackProfileId", request.AttackProfileId ?? string.Empty },
             { "fateApplied", roll.Fate.Applied },
             { "fateModifier", roll.Fate.FateModifier },
             { "fateSummary", CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatFateLogging)) ? roll.Fate.FateSummary ?? string.Empty : string.Empty },
@@ -437,6 +496,80 @@ public sealed class CombatAttackRollService : ICombatAttackRollService
                     { "totalModifier", roll.Modifiers.TotalModifier }
                 }
             }
+        };
+    }
+
+    private async Task<CombatAttackResultResponse> BuildReplayResponseAsync(CombatEncounterState encounter, CombatActionState action, UserAccount actor)
+    {
+        var payload = action.PayloadSummary ?? new Dictionary<string, object>();
+        var modifiers = payload.TryGetValue("modifiers", out var rawModifiers) && rawModifiers is Dictionary<string, object> dictionary
+            ? dictionary
+            : new Dictionary<string, object>();
+        var natural = ReadInt(payload, "naturalRoll");
+        var hitResult = ReadString(payload, "hitResult", CombatHitResultIds.Miss);
+        var snapshot = await _snapshotService.BuildFullSnapshotAsync(new CombatFullSnapshotRequest
+        {
+            EncounterId = encounter.Id,
+            IncludeParticipants = true,
+            IncludeTurns = true,
+            IncludeRounds = true,
+            IncludeActions = true,
+            IncludeLogs = true,
+            LimitActions = 100,
+            LimitLogs = 100,
+            RequestId = action.RequestId
+        }, actor);
+        return new CombatAttackResultResponse
+        {
+            EncounterId = encounter.Id,
+            ActionId = action.Id,
+            ActorParticipantId = action.ActorParticipantId,
+            TargetParticipantId = action.TargetParticipantIds.FirstOrDefault() ?? string.Empty,
+            WeaponDefinitionId = ReadString(payload, "weaponDefinitionId"),
+            AttackProfileId = ReadString(payload, "attackProfileId"),
+            Roll = ReadInt(payload, "roll"),
+            NaturalRoll = natural,
+            AttackTotal = ReadInt(payload, "attackTotal"),
+            TargetDefense = ReadInt(payload, "targetDefense"),
+            HitResult = hitResult,
+            IsHit = hitResult == CombatHitResultIds.Hit || hitResult == CombatHitResultIds.CriticalHit,
+            IsCritical = hitResult == CombatHitResultIds.CriticalHit,
+            IsFumble = hitResult == CombatHitResultIds.Fumble,
+            IsNaturalCritical = natural == 20,
+            IsNaturalFumble = natural == 1,
+            DegreeOfSuccess = ReadString(payload, "degreeOfSuccess", CoreResolutionDegreeIds.Failure),
+            Modifiers = new CombatAttackModifierBreakdown
+            {
+                AttackBonus = ReadInt(modifiers, "attackBonus"), WeaponAccuracyBonus = ReadInt(modifiers, "weaponAccuracyBonus"),
+                SkillBonus = ReadInt(modifiers, "skillBonus"), AttributeBonus = ReadInt(modifiers, "attributeBonus"),
+                DistanceModifier = ReadInt(modifiers, "distanceModifier"), CoverModifier = ReadInt(modifiers, "coverModifier"),
+                SituationalModifier = ReadInt(modifiers, "situationalModifier"), FateModifier = ReadInt(modifiers, "fateModifier"),
+                TotalModifier = ReadInt(modifiers, "totalModifier")
+            },
+            AlreadyApplied = true,
+            Message = "Attack result restored from the existing operation.",
+            Warnings = new List<string> { "idempotent_replay" },
+            Snapshot = snapshot
+        };
+    }
+
+    private static int ReadInt(IDictionary<string, object> source, string key)
+    {
+        if (!source.TryGetValue(key, out var value) || value == null) return 0;
+        try { return Convert.ToInt32(value); } catch { return 0; }
+    }
+
+    private static string ReadString(IDictionary<string, object> source, string key, string fallback = "")
+        => source.TryGetValue(key, out var value) && value != null ? value.ToString() ?? fallback : fallback;
+
+    private static string DisplayHitResult(string hitResult)
+    {
+        return hitResult switch
+        {
+            CombatHitResultIds.CriticalHit => "критическое попадание",
+            CombatHitResultIds.Hit => "попадание",
+            CombatHitResultIds.Fumble => "критическая неудача",
+            _ => "промах"
         };
     }
 

@@ -111,9 +111,14 @@ public sealed class CombatDamageApplicationService : ICombatDamageApplicationSer
     public async Task<CombatDamageResultResponse> ApplyDamageAsync(CombatDamageApplyRequest request, UserAccount actor)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
+        if (string.IsNullOrWhiteSpace(request.RequestId)) throw new ArgumentException("operation_id_required", nameof(request));
         _logger.Debug($"combat.damage.apply.start encounterId={request.EncounterId} target={request.TargetParticipantId}");
 
         var encounter = await RequireEncounterAsync(request.EncounterId);
+        var replayAction = await _actions.GetByRequestIdAsync(encounter.Id, request.RequestId, request.AttackerParticipantId);
+        if (replayAction != null && string.Equals(replayAction.ActionType, CombatActionTypes.Damage, StringComparison.OrdinalIgnoreCase))
+            return await BuildReplayResponseAsync(encounter, replayAction, actor);
+
         var target = await RequireParticipantAsync(request.TargetParticipantId, encounter.Id, "target_missing");
         if (!string.IsNullOrWhiteSpace(request.AttackerParticipantId))
             await RequireParticipantAsync(request.AttackerParticipantId, encounter.Id, "attacker_missing");
@@ -145,6 +150,38 @@ public sealed class CombatDamageApplicationService : ICombatDamageApplicationSer
         return result;
     }
 
+    private async Task<CombatDamageResultResponse> BuildReplayResponseAsync(CombatEncounterState encounter, CombatActionState action, UserAccount actor)
+    {
+        var payload = action.PayloadSummary ?? new Dictionary<string, object>();
+        var response = new CombatDamageResultResponse
+        {
+            EncounterId = encounter.Id,
+            SourceActionId = Text(payload, "sourceActionId"),
+            AttackerParticipantId = Text(payload, "attackerParticipantId"),
+            TargetParticipantId = Text(payload, "targetParticipantId"),
+            DamageAmount = Number(payload, "damageAmount"),
+            DamageApplied = Number(payload, "damageApplied"),
+            DamagePrevented = Number(payload, "damagePrevented"),
+            DamageType = Text(payload, "damageType"),
+            PreviousHealth = Number(payload, "previousHealth"),
+            CurrentHealth = Number(payload, "currentHealth"),
+            ResourceType = Text(payload, "resourceType"),
+            PreviousResource = Number(payload, "previousResource"),
+            CurrentResource = Number(payload, "currentResource"),
+            PreviousTemporaryHealth = Number(payload, "previousTemporaryHealth"),
+            CurrentTemporaryHealth = Number(payload, "currentTemporaryHealth"),
+            TargetDefeated = Flag(payload, "targetDefeated"),
+            DefeatedReason = Text(payload, "defeatedReason"),
+            ActionId = action.Id,
+            AlreadyApplied = true,
+            Message = "Урон уже был применён; возвращён сохранённый результат без повторного списания."
+        };
+        response.Warnings.Add("damage_idempotent_replay_no_reapply");
+        response.Snapshot = await SnapshotAsync(encounter.Id, actor);
+        _logger.Debug($"combat.damage.apply.replay actionId={action.Id} requestId={action.RequestId}");
+        return response;
+    }
+
     public CombatDamageResultResponse CalculateDamageApplication(CombatDamageApplyRequest request, CombatParticipantState target)
     {
         var damageType = NormalizeDamageType(request.DamageType);
@@ -155,7 +192,9 @@ public sealed class CombatDamageApplicationService : ICombatDamageApplicationSer
         if (!TemporaryHealthEnabled && target.TemporaryHealth > 0 && !request.IgnoreTemporaryHealth)
             warnings.Add("temporary_health_disabled");
 
+        var vehicle = string.Equals(target.ParticipantType, CombatParticipantTypes.Vehicle, StringComparison.OrdinalIgnoreCase);
         var previousHealth = Math.Max(0, target.CurrentHealth);
+        var previousResource = vehicle ? Math.Max(0, target.CurrentStructure) : previousHealth;
         var previousTemporaryHealth = Math.Max(0, target.TemporaryHealth);
         var remaining = Math.Max(0, request.DamageAmount);
         var prevented = 0;
@@ -167,8 +206,9 @@ public sealed class CombatDamageApplicationService : ICombatDamageApplicationSer
             remaining -= prevented;
         }
 
-        var healthDamage = Math.Min(previousHealth, remaining);
-        var currentHealth = Math.Max(0, previousHealth - remaining);
+        var healthDamage = Math.Min(previousResource, remaining);
+        var currentResource = Math.Max(0, previousResource - remaining);
+        var currentHealth = vehicle ? previousHealth : currentResource;
         var applied = prevented + healthDamage;
         return new CombatDamageResultResponse
         {
@@ -182,6 +222,9 @@ public sealed class CombatDamageApplicationService : ICombatDamageApplicationSer
             DamageType = damageType,
             PreviousHealth = previousHealth,
             CurrentHealth = currentHealth,
+            ResourceType = vehicle ? "structure" : "health",
+            PreviousResource = previousResource,
+            CurrentResource = currentResource,
             PreviousTemporaryHealth = previousTemporaryHealth,
             CurrentTemporaryHealth = currentTemporaryHealth,
             Warnings = warnings
@@ -190,12 +233,14 @@ public sealed class CombatDamageApplicationService : ICombatDamageApplicationSer
 
     public void MarkDefeatedIfNeeded(CombatDamageApplyRequest request, CombatParticipantState target, CombatDamageResultResponse result)
     {
-        if (result.CurrentHealth > 0) return;
+        if (result.CurrentResource > 0) return;
         if (AutoDefeatEnabled && request.AllowAutoDefeat)
         {
             target.IsDefeated = true;
             if (!target.DefeatedAtUtc.HasValue) target.DefeatedAtUtc = DateTime.UtcNow;
-            target.DefeatedReason = string.IsNullOrWhiteSpace(request.Reason) ? "health_zero" : request.Reason.Trim();
+            target.DefeatedReason = string.IsNullOrWhiteSpace(request.Reason)
+                ? (string.Equals(result.ResourceType, "structure", StringComparison.OrdinalIgnoreCase) ? "structure_zero" : "health_zero")
+                : request.Reason.Trim();
             result.TargetDefeated = true;
             result.DefeatedReason = target.DefeatedReason;
         }
@@ -217,7 +262,7 @@ public sealed class CombatDamageApplicationService : ICombatDamageApplicationSer
             TurnIndex = Math.Max(0, encounter.ActiveTurnIndex),
             ActorParticipantId = request.AttackerParticipantId ?? string.Empty,
             ActionType = CombatActionTypes.Damage,
-            ActionName = "Apply Damage",
+            ActionName = "Применение урона",
             TargetParticipantIds = new List<string> { request.TargetParticipantId ?? string.Empty }.Where(x => !string.IsNullOrWhiteSpace(x)).ToList(),
             Status = CombatActionStatuses.Resolved,
             RequestId = request.RequestId ?? string.Empty,
@@ -230,14 +275,25 @@ public sealed class CombatDamageApplicationService : ICombatDamageApplicationSer
     public string BuildDamageLogMessage(CombatParticipantState target, CombatDamageResultResponse result)
     {
         var targetName = string.IsNullOrWhiteSpace(target.DisplayName) ? target.Id : target.DisplayName;
-        var message = $"{targetName} takes {result.DamageApplied} {result.DamageType} damage. HP: {result.PreviousHealth} -> {result.CurrentHealth}.";
-        if (result.TargetDefeated) message += " Target defeated.";
+        var resourceName = string.Equals(result.ResourceType, "structure", StringComparison.OrdinalIgnoreCase) ? "Структура" : "Здоровье";
+        var damageType = (result.DamageType ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "physical" => "физического",
+            "magical" => "магического",
+            "energy" => "энергетического",
+            _ => ""
+        };
+        var message = $"{targetName} получает {result.DamageApplied} {damageType} урона. {resourceName}: {result.PreviousResource} → {result.CurrentResource}.";
+        if (result.TargetDefeated) message += " Цель выведена из боя.";
         return message;
     }
 
     private void ApplyCalculatedDamage(CombatDamageApplyRequest request, CombatParticipantState target, CombatDamageResultResponse result)
     {
-        target.CurrentHealth = result.CurrentHealth;
+        if (string.Equals(result.ResourceType, "structure", StringComparison.OrdinalIgnoreCase))
+            target.CurrentStructure = result.CurrentResource;
+        else
+            target.CurrentHealth = result.CurrentHealth;
         target.TemporaryHealth = result.CurrentTemporaryHealth;
         target.LastDamageTaken = result.DamageApplied;
         target.LastDamageType = result.DamageType;
@@ -357,10 +413,32 @@ public sealed class CombatDamageApplicationService : ICombatDamageApplicationSer
             { "damageType", result.DamageType },
             { "previousHealth", result.PreviousHealth },
             { "currentHealth", result.CurrentHealth },
+            { "resourceType", result.ResourceType },
+            { "previousResource", result.PreviousResource },
+            { "currentResource", result.CurrentResource },
             { "previousTemporaryHealth", result.PreviousTemporaryHealth },
             { "currentTemporaryHealth", result.CurrentTemporaryHealth },
             { "targetDefeated", result.TargetDefeated },
             { "defeatedReason", result.DefeatedReason ?? string.Empty }
         };
+    }
+
+    private static string Text(IDictionary<string, object> payload, string key)
+    {
+        return payload.TryGetValue(key, out var value) ? Convert.ToString(value) ?? string.Empty : string.Empty;
+    }
+
+    private static int Number(IDictionary<string, object> payload, string key)
+    {
+        if (!payload.TryGetValue(key, out var value) || value == null) return 0;
+        try { return Convert.ToInt32(value); }
+        catch { return 0; }
+    }
+
+    private static bool Flag(IDictionary<string, object> payload, string key)
+    {
+        if (!payload.TryGetValue(key, out var value) || value == null) return false;
+        try { return Convert.ToBoolean(value); }
+        catch { return false; }
     }
 }

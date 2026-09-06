@@ -15,6 +15,7 @@ public class CharacterAttributeProfileDocument : EntityBase
 {
     public string CharacterId { get; set; } = string.Empty;
     public AttributeProfile Profile { get; set; } = new AttributeProfile();
+    public long EntityRevision { get; set; } = 1;
 }
 
 public class CharacterSkillProfileDocument : EntityBase
@@ -27,6 +28,7 @@ public class CharacterSubAttributeProfileDocument : EntityBase
 {
     public string CharacterId { get; set; } = string.Empty;
     public SubAttributeProfile Profile { get; set; } = new SubAttributeProfile();
+    public long EntityRevision { get; set; } = 1;
 }
 
 public class CharacterDevelopmentProfileDocument : EntityBase
@@ -69,12 +71,14 @@ public class CharacterRaceOrSpeciesProfileDocument : EntityBase
 {
     public string CharacterId { get; set; } = string.Empty;
     public RaceOrSpeciesProfile Profile { get; set; } = new RaceOrSpeciesProfile();
+    public long EntityRevision { get; set; } = 1;
 }
 
 public class CharacterBodyProfileDocument : EntityBase
 {
     public string CharacterId { get; set; } = string.Empty;
     public BodyProfile Profile { get; set; } = new BodyProfile();
+    public long EntityRevision { get; set; } = 1;
 }
 
 public class CharacterKnowledgeProfileDocument : EntityBase

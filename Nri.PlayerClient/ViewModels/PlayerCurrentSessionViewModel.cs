@@ -198,7 +198,13 @@ public sealed class PlayerCurrentSessionViewModel : ViewModelBase
         }
     }
     private static bool Flag(IEnumerable<Dictionary<string, object>> flags, string name)
-        => flags.Any(flag => string.Equals(Str(Get(flag, "name")), name, StringComparison.OrdinalIgnoreCase) && Bool(Get(flag, "effective")));
+        => flags.Any(flag =>
+        {
+            var key = FirstNonEmpty(Str(Get(flag, "canonicalKey")), Str(Get(flag, "name")));
+            var matches = string.Equals(key, name, StringComparison.OrdinalIgnoreCase)
+                || key.EndsWith("." + name, StringComparison.OrdinalIgnoreCase);
+            return matches && Bool(Get(flag, "effectiveValue"), Bool(Get(flag, "effective")));
+        });
     private static string DisplayStatus(string status) => status switch
     {
         CurrentSessionStatusIds.Planned => "Планируется",

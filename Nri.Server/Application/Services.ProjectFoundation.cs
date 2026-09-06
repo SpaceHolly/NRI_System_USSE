@@ -878,7 +878,7 @@ public partial class ServiceHub
     {
         var text = (value ?? string.Empty).Trim();
         if (allowEmpty && string.IsNullOrWhiteSpace(text)) return string.Empty;
-        var allowed = new[] { ProjectTypeIds.Research, ProjectTypeIds.Crafting, ProjectTypeIds.EngineeringDesign, ProjectTypeIds.Manufacturing, ProjectTypeIds.FactoryOrder, ProjectTypeIds.Construction, ProjectTypeIds.Repair, ProjectTypeIds.Modification, ProjectTypeIds.ReverseEngineering, ProjectTypeIds.ProductionBatch, ProjectTypeIds.CustomProposal, ProjectTypeIds.Generic };
+        var allowed = new[] { ProjectTypeIds.Research, ProjectTypeIds.ResearchTheory, ProjectTypeIds.Crafting, ProjectTypeIds.EngineeringDesign, ProjectTypeIds.Manufacturing, ProjectTypeIds.FactoryOrder, ProjectTypeIds.Construction, ProjectTypeIds.Repair, ProjectTypeIds.Modification, ProjectTypeIds.ReverseEngineering, ProjectTypeIds.ProductionBatch, ProjectTypeIds.CustomProposal, ProjectTypeIds.Generic };
         return allowed.Contains(text, StringComparer.OrdinalIgnoreCase) ? text : ProjectTypeIds.Generic;
     }
 
@@ -982,6 +982,7 @@ public partial class ServiceHub
         => type switch
         {
             ProjectTypeIds.Research => "Исследование",
+            ProjectTypeIds.ResearchTheory => "Исследование теории",
             ProjectTypeIds.Crafting => "Крафт",
             ProjectTypeIds.EngineeringDesign => "Инженерный проект",
             ProjectTypeIds.Manufacturing => "Производство",

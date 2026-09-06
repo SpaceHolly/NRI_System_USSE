@@ -14,7 +14,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteList(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var campaignId = ReadCampaignId(payload);
@@ -37,7 +37,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteSearch(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         if (!GMNoteSearchEnabled()) return GMNotesFeatureDisabled("Поиск по заметкам GM выключен feature flags.");
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
@@ -58,7 +58,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteCreate(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var isQuick = PayloadReader.GetBool(payload, "isQuickNote");
@@ -100,7 +100,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteGet(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         var note = RequireGMNote(context, actor, canEdit: false);
         return Ok("GM note loaded.", new Dictionary<string, object> { { "item", GMNotePayload(note) } });
@@ -108,7 +108,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteUpdate(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         var note = RequireGMNote(context, actor, canEdit: true);
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
@@ -149,7 +149,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteMove(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         if (!GMNoteFoldersEnabled()) return GMNotesFeatureDisabled("Папки заметок GM выключены feature flags.");
         var note = RequireGMNote(context, actor, canEdit: true);
@@ -166,7 +166,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteFolderList(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         if (!GMNoteFoldersEnabled()) return GMNotesFeatureDisabled("Папки заметок GM выключены feature flags.");
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
@@ -185,7 +185,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteFolderCreate(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         if (!GMNoteFoldersEnabled()) return GMNotesFeatureDisabled("Папки заметок GM выключены feature flags.");
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
@@ -212,7 +212,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteFolderUpdate(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         if (!GMNoteFoldersEnabled()) return GMNotesFeatureDisabled("Папки заметок GM выключены feature flags.");
         var folder = RequireGMNoteFolder(context, actor);
@@ -237,7 +237,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteFolderArchive(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         if (!GMNoteFoldersEnabled()) return GMNotesFeatureDisabled("Папки заметок GM выключены feature flags.");
         var folder = RequireGMNoteFolder(context, actor);
@@ -250,7 +250,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteLinkList(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         if (!GMNoteEntityLinksEnabled()) return GMNotesFeatureDisabled("Привязки заметок GM выключены feature flags.");
         var note = RequireGMNote(context, actor, canEdit: false);
@@ -262,7 +262,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteLinkAdd(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         if (!GMNoteEntityLinksEnabled()) return GMNotesFeatureDisabled("Привязки заметок GM выключены feature flags.");
         var note = RequireGMNote(context, actor, canEdit: true);
@@ -288,7 +288,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteLinkRemove(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         if (!GMNoteEntityLinksEnabled()) return GMNotesFeatureDisabled("Привязки заметок GM выключены feature flags.");
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
@@ -306,7 +306,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GMNoteAuditList(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         if (!GMNoteAuditEnabled()) return GMNotesFeatureDisabled("Аудит заметок GM выключен feature flags.");
         var note = RequireGMNote(context, actor, canEdit: false);
@@ -321,7 +321,7 @@ public partial class ServiceHub
 
     private ResponseEnvelope SetGMNoteArchived(CommandContext context, bool archived)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         var note = RequireGMNote(context, actor, canEdit: true);
         note.IsArchived = archived;
@@ -337,7 +337,7 @@ public partial class ServiceHub
 
     private ResponseEnvelope SetGMNotePinned(CommandContext context, bool pinned)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!GMNotesEnabled()) return GMNotesDisabled();
         var note = RequireGMNote(context, actor, canEdit: true);
         note.IsPinned = pinned;
@@ -393,7 +393,6 @@ public partial class ServiceHub
     private bool CanViewGMNote(UserAccount actor, GMNoteState note)
     {
         if (actor.Roles.Contains(UserRole.SuperAdmin)) return true;
-        if (!actor.Roles.Contains(UserRole.Admin)) return false;
         if (note.VisibilityMode == GMNoteVisibilityModeIds.AuthorOnly) return note.AuthorUserId == actor.Id;
         if (note.VisibilityMode == GMNoteVisibilityModeIds.GMTeam) return true;
         return false;
@@ -403,13 +402,12 @@ public partial class ServiceHub
     {
         if (actor.Roles.Contains(UserRole.SuperAdmin)) return true;
         if (note.AuthorUserId == actor.Id) return true;
-        return actor.Roles.Contains(UserRole.Admin) && note.VisibilityMode == GMNoteVisibilityModeIds.GMTeam;
+        return note.VisibilityMode == GMNoteVisibilityModeIds.GMTeam;
     }
 
     private bool CanViewGMNoteFolder(UserAccount actor, GMNoteFolderState folder)
     {
         if (actor.Roles.Contains(UserRole.SuperAdmin)) return true;
-        if (!actor.Roles.Contains(UserRole.Admin)) return false;
         if (folder.VisibilityMode == GMNoteVisibilityModeIds.AuthorOnly) return folder.OwnerUserId == actor.Id || folder.CreatedByUserId == actor.Id;
         if (folder.VisibilityMode == GMNoteVisibilityModeIds.GMTeam) return true;
         return false;

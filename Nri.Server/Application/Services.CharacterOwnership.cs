@@ -523,13 +523,18 @@ public partial class ServiceHub
 
     private Dictionary<string, object> PlayerAssignedCharacterPayload(CharacterOwnershipState ownership, Character? character, UserAccount actor, string requestId)
     {
-        var card = character == null
-            ? new Dictionary<string, object>()
-            : CharacterDetailsPayloadWithProfileFirst(character, TryGetAccount(character.OwnerUserId) ?? actor, actor, requestId);
+        var archivedForPlayer = ownership.IsArchived || character?.Archived == true || character?.Deleted == true;
+        var profileReady = character != null
+            && !archivedForPlayer
+            && _characterDetailsProfileBuilder.CanBuildFromProfilesAsync(character.Id).GetAwaiter().GetResult();
+        var card = profileReady
+            ? CharacterDetailsPayloadWithProfileFirst(character!, TryGetAccount(character!.OwnerUserId) ?? actor, actor, requestId)
+            : new Dictionary<string, object>();
         var stats = ClientMap(card.TryGetValue("stats", out var statsRaw) ? statsRaw : null);
 
         return new Dictionary<string, object>
         {
+            { "campaignId", ownership.CampaignId ?? string.Empty },
             { "characterId", ownership.CharacterId ?? string.Empty },
             { "displayName", FirstOwnershipNonEmpty(ClientString(card, "name"), ownership.CharacterDisplayName, "Без имени") },
             { "name", FirstOwnershipNonEmpty(ClientString(card, "name"), ownership.CharacterDisplayName, "Без имени") },
@@ -544,11 +549,16 @@ public partial class ServiceHub
             { "controlledByDisplayName", ownership.ControlledByDisplayName ?? string.Empty },
             { "isAssigned", !string.IsNullOrWhiteSpace(ownership.OwnerUserId) },
             { "isActive", ownership.IsActive },
-            { "isArchived", ownership.IsArchived },
-            { "archived", ownership.IsArchived },
+            { "isArchived", archivedForPlayer },
+            { "archived", archivedForPlayer },
+            { "isPlayerVisible", ownership.IsPlayerVisible },
+            { "isSelectable", profileReady && ownership.IsActive && !archivedForPlayer },
+            { "profileState", archivedForPlayer ? CharacterStatusIds.Archived : profileReady ? ApplicationContextStates.Ready : ApplicationContextStates.ProfileMigrationRequired },
+            { "availabilityMessage", archivedForPlayer ? "Персонаж находится в архиве." : profileReady ? string.Empty : "Данные персонажа временно недоступны. Обратитесь к мастеру." },
             { "race", FirstOwnershipNonEmpty(ClientString(card, "race"), "—") },
             { "height", FirstOwnershipNonEmpty(ClientString(card, "height"), "—") },
             { "description", ClientString(card, "description") },
+            { "selectedTitle", ClientString(card, "selectedTitle") },
             { "xpCoins", card.TryGetValue("xpCoins", out var xpCoins) ? xpCoins : 0 },
             { "stats", stats },
             { "profileSource", ClientString(card, "profileSource") },

@@ -1,0 +1,168 @@
+<UserControl x:Class="Nri.PlayerClient.Views.Engineering.PlayerAssetConfiguratorsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:nri="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             xmlns:asset="clr-namespace:Nri.AssetConfigurators.Wpf.Views;assembly=Nri.AssetConfigurators.Wpf"
+             Background="{StaticResource NriApplicationBackgroundBrush}"
+             Foreground="{StaticResource TextBrush}"
+             AutomationProperties.AutomationId="PlayerAssetConfigurators_Route">
+    <patterns:NriOperationalWorkspaceHost Margin="10">
+        <patterns:NriOperationalWorkspaceHost.Header>
+            <nri:NriPageHeader Breadcrumbs="Персонаж"
+                               Title="Конструкторы активов"
+                               Subtitle="Соберите корабль, технику или здание и сохраните собственный чертёж."
+                               StatusText="{Binding StatusMessage}">
+                <nri:NriPageHeader.PrimaryAction>
+                    <WrapPanel>
+                        <Button Content="Новый"
+                                Style="{StaticResource NriSecondaryButtonStyle}"
+                                Command="{Binding NewCommand}"
+                                AutomationProperties.AutomationId="PlayerAssetBlueprint_New"/>
+                        <Button Content="Сохранить"
+                                Command="{Binding SaveCommand}"
+                                Margin="8,0,0,0"
+                                AutomationProperties.AutomationId="PlayerAssetBlueprint_Save"/>
+                    </WrapPanel>
+                </nri:NriPageHeader.PrimaryAction>
+            </nri:NriPageHeader>
+        </patterns:NriOperationalWorkspaceHost.Header>
+
+        <TabControl AutomationProperties.AutomationId="PlayerAssetConfigurators_ModeTabs">
+            <TabItem Header="Конструктор"
+                     AutomationProperties.AutomationId="PlayerAssetConfiguratorWorkspace_Tab">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Состояние" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding StatusOptions}"
+                                      SelectedItem="{Binding SelectedStatusOption, Mode=TwoWay}"
+                                      DisplayMemberPath="Label"
+                                      AutomationProperties.AutomationId="PlayerAssetBlueprint_Status"/>
+                            <TextBlock Grid.Column="3" Text="Доступ" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox Grid.Column="4"
+                                      ItemsSource="{Binding VisibilityOptions}"
+                                      SelectedItem="{Binding SelectedVisibilityOption, Mode=TwoWay}"
+                                      DisplayMemberPath="Label"
+                                      AutomationProperties.AutomationId="PlayerAssetBlueprint_Visibility"/>
+                            <TextBlock Grid.Column="6"
+                                       Text="{Binding UnsavedStateText}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.AutomationId="PlayerAssetBlueprint_UnsavedState"/>
+                        </Grid>
+                    </Border>
+                    <asset:AssetConfiguratorWorkspaceView Grid.Row="1" DataContext="{Binding Workspace}"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Мои чертежи"
+                     AutomationProperties.AutomationId="PlayerAssetBlueprints_Tab">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="360"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CardStyle}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Top"
+                                    Content="Обновить"
+                                    Command="{Binding RefreshCommand}"
+                                    Margin="0,0,0,8"
+                                    AutomationProperties.AutomationId="PlayerAssetBlueprints_Refresh"/>
+                            <ListBox ItemsSource="{Binding Blueprints}"
+                                     SelectedItem="{Binding SelectedBlueprint, Mode=TwoWay}"
+                                     HorizontalContentAlignment="Stretch"
+                                     AutomationProperties.AutomationId="PlayerAssetBlueprints_List">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="AutomationProperties.Name"
+                                                Value="{Binding AccessibleSummary}"/>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="5"
+                                                    AutomationProperties.Name="{Binding AccessibleSummary}">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding ConfiguratorKindLabel}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding StatusLabel}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding UpdatedText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="{Binding SelectedBlueprint.Name}"
+                                           FontSize="22"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.ConfiguratorKindLabel}" Margin="0,8,0,0"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.StatusLabel}"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.ValidationText}"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.ReadableSummary}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,12,0,0"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.CostText}" Margin="0,10,0,0"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.EnergyText}"/>
+                                <ItemsControl ItemsSource="{Binding SelectedBlueprint.Breakdown}" Margin="0,10,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <WrapPanel Margin="0,14,0,0">
+                                    <Button Content="Открыть"
+                                            Command="{Binding OpenCommand}"
+                                            AutomationProperties.AutomationId="PlayerAssetBlueprints_Open"/>
+                                    <Button Content="Создать копию"
+                                            Style="{StaticResource NriSecondaryButtonStyle}"
+                                            Command="{Binding DuplicateCommand}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerAssetBlueprints_Duplicate"/>
+                                    <Button Content="В архив"
+                                            Style="{StaticResource NriSecondaryButtonStyle}"
+                                            Command="{Binding ArchiveCommand}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerAssetBlueprints_Archive"/>
+                                    <Button Content="Копировать сводку"
+                                            Style="{StaticResource NriSecondaryButtonStyle}"
+                                            Command="{Binding CopySummaryCommand}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerAssetBlueprints_CopySummary"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <patterns:NriOperationalWorkspaceHost.Status>
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="{StaticResource DangerBrush}"
+                       TextWrapping="Wrap"
+                       AutomationProperties.AutomationId="PlayerAssetBlueprints_Error"/>
+        </patterns:NriOperationalWorkspaceHost.Status>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

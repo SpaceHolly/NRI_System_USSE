@@ -1,0 +1,70 @@
+<UserControl x:Class="Nri.PlayerClient.Views.Shops.PlayerShopView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:AutomationProperties="clr-namespace:System.Windows.Automation;assembly=UIAutomationTypes"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="PlayerShop_Route">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="PlayerShop_Workspace">
+      <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,8">
+            <TextBlock Text="Магазины" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Button Content="Обновить" Command="{Binding RefreshCommand}" Margin="16,0,0,0"/>
+            <TextBlock Text="{Binding StatusMessage}" Margin="16,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </DockPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0" Margin="0,0,10,0">
+                <TextBlock DockPanel.Dock="Top" Text="Доступные витрины" FontWeight="SemiBold"/>
+                <ListBox ItemsSource="{Binding Shops}" SelectedItem="{Binding SelectedShop}" DisplayMemberPath="Summary" AutomationProperties.AutomationId="PlayerShop_List"/>
+            </DockPanel>
+
+            <Grid Grid.Column="1" Margin="0,0,10,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <DataGrid Grid.Row="0" ItemsSource="{Binding Offers}" SelectedItem="{Binding SelectedOffer}" AutoGenerateColumns="False" IsReadOnly="True" AutomationProperties.AutomationId="PlayerShop_OfferList">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="*"/>
+                        <DataGridTextColumn Header="Цена" Binding="{Binding FinalUnitPrice}" Width="80"/>
+                        <DataGridTextColumn Header="Наличие" Binding="{Binding Availability}" Width="120"/>
+                        <DataGridTextColumn Header="Остаток" Binding="{Binding StockDisplay}" Width="120"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <StackPanel Grid.Row="1" Margin="0,8,0,0" AutomationProperties.AutomationId="PlayerShop_OfferDetails">
+                    <TextBlock Text="{Binding SelectedOffer.DisplayName}" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding SelectedOffer.PublicDescription}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding SelectedOffer.FinalUnitPrice, StringFormat=Цена: {0}}" AutomationProperties.AutomationId="PlayerShop_Price"/>
+                    <TextBlock Text="{Binding SelectedOffer.AvailabilityLabel, StringFormat=Доступность: {0}}" AutomationProperties.AutomationId="PlayerShop_Availability"/>
+                    <TextBlock Text="{Binding SelectedOffer.LegalSummary}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding SelectedOffer.RiskSummary}" TextWrapping="Wrap"/>
+                    <UniformGrid Columns="2" Margin="0,6,0,0">
+                        <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Text="{Binding Comment, UpdateSourceTrigger=PropertyChanged}"/>
+                    </UniformGrid>
+                    <Button Content="Запросить покупку" Command="{Binding RequestPurchaseCommand}" AutomationProperties.AutomationId="PlayerShop_RequestPurchase" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Grid>
+
+            <DockPanel Grid.Column="2" AutomationProperties.AutomationId="PlayerShop_PurchaseHistory">
+                <TextBlock DockPanel.Dock="Top" Text="История покупок" FontWeight="SemiBold"/>
+                <ListBox ItemsSource="{Binding History}" DisplayMemberPath="Summary" AutomationProperties.AutomationId="PlayerShop_Receipt"/>
+            </DockPanel>
+        </Grid>
+
+        <TextBlock Grid.Row="2" Text="Показаны доступные вам витрины, предложения и квитанции." AutomationProperties.AutomationId="PlayerShop_VisibilityHint" Margin="0,8,0,0"/>
+      </Grid>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

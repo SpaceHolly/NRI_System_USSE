@@ -90,6 +90,8 @@ public sealed class AdminRoomInteriorViewModel : ViewModelBase
 
     public string CampaignId { get => _campaignId; set { if (_campaignId != value) { _campaignId = value; Notify(); Notify(nameof(CanLoadRooms)); } } }
     public string RuleSetId { get => _ruleSetId; set { if (_ruleSetId != value) { _ruleSetId = value; Notify(); Notify(nameof(CanCreateRoom)); } } }
+    public string CampaignContextSummary => "Кампания: текущий контекст";
+    public string RuleSetContextSummary => "Набор правил: текущий контекст";
     public string ParentLocationId { get => _parentLocationId; set { if (_parentLocationId != value) { _parentLocationId = value; Notify(); } } }
     public string ParentSceneMapId { get => _parentSceneMapId; set { if (_parentSceneMapId != value) { _parentSceneMapId = value; Notify(); } } }
     public string StatusMessage { get => _statusMessage; private set { if (_statusMessage != value) { _statusMessage = value; Notify(); } } }

@@ -1,19 +1,69 @@
-﻿<UserControl x:Class="Nri.AdminClient.Views.Characters.AdminCharacterWorkspaceView"
+<UserControl x:Class="Nri.AdminClient.Views.Characters.AdminCharacterWorkspaceView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:characters="clr-namespace:Nri.AdminClient.Views.Characters">
-                        <Grid Margin="8" IsEnabled="{Binding ArePrivilegedSectionsEnabled}">
+             xmlns:characters="clr-namespace:Nri.AdminClient.Views.Characters"
+             xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <controls:NriPageHeader Grid.Row="0"
+                                Title="Персонажи"
+                                Subtitle="Профили, принадлежность, состояние и игровые данные персонажей."
+                                StatusText="{Binding OwnershipSummary}"
+                                AutomationProperties.AutomationId="AdminCharacters_Header"
+                                Margin="8,8,8,0">
+            <controls:NriPageHeader.PrimaryAction>
+                <Button Content="Обновить выбранного"
+                        Command="{Binding RefreshSelectedCharacterCommand}"
+                        IsEnabled="{Binding ArePrivilegedSectionsEnabled}"
+                        AutomationProperties.AutomationId="AdminCharacters_Refresh"/>
+            </controls:NriPageHeader.PrimaryAction>
+            <controls:NriPageHeader.SecondaryActions>
+                <WrapPanel>
+                    <controls:NriStatusBadge Text="{Binding CharacterUnsavedChangesSummary}"
+                                             StatusKind="Warning"
+                                             Visibility="{Binding CharacterHasUnsavedChanges, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                             AutomationProperties.AutomationId="AdminCharacters_Unsaved"/>
+                    <controls:NriStatusBadge Text="{Binding CharacterValidationSummary}"
+                                             StatusKind="Danger"
+                                             Margin="6,0,0,0"
+                                             Visibility="{Binding CharacterHasValidationIssues, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                             AutomationProperties.AutomationId="AdminCharacters_Validation"/>
+                    <controls:NriToastHost Message="{Binding OperationStatusMessage}"
+                                           IsOpen="{Binding HasOperationStatusMessage}"
+                                           Margin="6,0,0,0"
+                                           AutomationProperties.AutomationId="AdminCharacters_Success"/>
+                </WrapPanel>
+            </controls:NriPageHeader.SecondaryActions>
+        </controls:NriPageHeader>
+        <Grid Grid.Row="1" Margin="8" IsEnabled="{Binding ArePrivilegedSectionsEnabled}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="340"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
+                        <controls:NriRouteStateHost Grid.ColumnSpan="2" State="{Binding CharactersRouteState, Mode=OneWay}" ActiveStates="loading,empty,no-results,no-selection,error,permission" Panel.ZIndex="10" AutomationProperties.AutomationId="AdminCharacters_StateHost">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
+                    <controls:NriRouteStatePresenter State="{Binding CharactersRouteState}" VisibleFor="loading"><controls:NriLoadingOverlay IsLoading="True" ProgressText="Загрузка персонажей…" AutomationProperties.AutomationId="AdminCharacters_Loading"/></controls:NriRouteStatePresenter>
+                    <controls:NriRouteStatePresenter State="{Binding CharactersRouteState}" VisibleFor="empty"><controls:NriEmptyState AutomationProperties.AutomationId="AdminCharacters_EmptyState" Title="Персонажей пока нет" Message="Создайте или загрузите персонажа."/></controls:NriRouteStatePresenter>
+                    <controls:NriRouteStatePresenter State="{Binding CharactersRouteState}" VisibleFor="no-results"><controls:NriEmptyState AutomationProperties.AutomationId="AdminCharacters_NoResults" Title="Ничего не найдено" Message="Измените запрос поиска."/></controls:NriRouteStatePresenter>
+                    <controls:NriRouteStatePresenter State="{Binding CharactersRouteState}" VisibleFor="no-selection"><TextBlock AutomationProperties.AutomationId="AdminCharacters_NoSelection" Text="Выберите персонажа." TextWrapping="Wrap"/></controls:NriRouteStatePresenter>
+                    <controls:NriRouteStatePresenter State="{Binding CharactersRouteState}" VisibleFor="permission"><controls:NriPermissionState AutomationProperties.AutomationId="AdminCharacters_Permission" Explanation="{Binding SectionAccessHint}"/></controls:NriRouteStatePresenter>
+                    <controls:NriRouteStatePresenter State="{Binding CharactersRouteState}" VisibleFor="error"><TextBlock AutomationProperties.AutomationId="AdminCharacters_Error" Text="{Binding LastErrorMessage}" TextWrapping="Wrap"/></controls:NriRouteStatePresenter>
+                </StackPanel>
+            </controls:NriRouteStateHost>
 
                             <Border Grid.Column="0" Style="{StaticResource CardStyle}">
                                 <DockPanel LastChildFill="True">
                                     <StackPanel DockPanel.Dock="Top">
                                         <TextBlock Text="Персонажи" Style="{StaticResource SectionTitleTextStyle}"/>
                                         <TextBlock Text="Карточки персонажей и редактор профиля персонажа." Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
-                                        <TextBox Text="{Binding CharactersSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по имени, ID или владельцу" Margin="0,0,0,8"/>
+                                        <TextBox Text="{Binding CharactersSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="Поиск по имени, ID или владельцу"
+                                                 Margin="0,0,0,8"
+                                                 AutomationProperties.AutomationId="AdminCharacterEditor_Search"
+                                                 AutomationProperties.Name="Поиск персонажа"/>
                                     </StackPanel>
 
                                     <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
@@ -24,7 +74,7 @@
                                             <TextBlock Text="Выберите персонажа, чтобы открыть редактор профиля." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
                                     </StackPanel>
 
-                                    <DataGrid ItemsSource="{Binding FilteredCharacters}"
+                                    <DataGrid IsReadOnly="True" ItemsSource="{Binding FilteredCharacters}"
                                               AutomationProperties.AutomationId="AdminCharacters_List"
                                               AutomationProperties.Name="Список персонажей"
                                               SelectedValuePath="Id"
@@ -34,10 +84,9 @@
                                               HorizontalScrollBarVisibility="Auto"
                                               ColumnWidth="SizeToHeader"
                                               MinColumnWidth="120">
-                                        <DataGrid.Columns>
+                        <DataGrid.Columns>
                                             <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="160"/>
                                             <DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="220"/>
-                                            <DataGridTextColumn Header="Технический ID" Binding="{Binding Id}" Width="220"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </DockPanel>
@@ -65,11 +114,17 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                             <TextBlock Text="Владелец" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                            <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_OwnerUserId"
-                                                     Text="{Binding OwnershipOwnerUserId, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <controls:NriReferencePicker AutomationIdPrefix="AdminCharacterEditor_OwnerUserId"
+                                                                         Options="{Binding Players}"
+                                                                         SelectedId="{Binding OwnershipOwnerUserId, UpdateSourceTrigger=PropertyChanged}"
+                                                                         DisplayName="{Binding OwnershipOwnerDisplayName}"
+                                                                         ToolTip="Найдите владельца по логину"/>
                                             <TextBlock Text="Управляет" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
-                                            <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_ControlledByUserId"
-                                                     Text="{Binding OwnershipControlledByUserId, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <controls:NriReferencePicker AutomationIdPrefix="AdminCharacterEditor_ControlledByUserId"
+                                                                         Options="{Binding Players}"
+                                                                         SelectedId="{Binding OwnershipControlledByUserId, UpdateSourceTrigger=PropertyChanged}"
+                                                                         DisplayName="{Binding OwnershipControlledByDisplayName}"
+                                                                         ToolTip="Найдите управляющего по логину"/>
                                             <TextBlock Text="Причина" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
                                             <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Archive_Reason"
                                                      Text="{Binding OwnershipReason, UpdateSourceTrigger=PropertyChanged}"/>
@@ -85,8 +140,11 @@
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Margin="0,0,8,0">
                                             <TextBlock Text="Группа" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                            <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_GroupId"
-                                                     Text="{Binding OwnershipGroupId, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <controls:NriReferencePicker AutomationIdPrefix="AdminCharacterEditor_GroupId"
+                                                                         Options="{Binding CharacterGroups.Groups}"
+                                                                         SelectedId="{Binding OwnershipGroupId, UpdateSourceTrigger=PropertyChanged}"
+                                                                         DisplayName="{Binding OwnershipGroupDisplayName}"
+                                                                         ToolTip="Найдите группу по названию"/>
                                             <TextBlock Text="{Binding OwnershipGroupName, StringFormat=Текущая: {0}, TargetNullValue=Текущая: —}"
                                                        Foreground="{StaticResource TextSecondaryBrush}"
                                                        Margin="0,6,0,0"
@@ -100,15 +158,17 @@
                                         <StackPanel Grid.Column="2">
                                             <TextBlock Text="Тип персонажа" Foreground="{StaticResource TextSecondaryBrush}"/>
                                             <ComboBox AutomationProperties.AutomationId="AdminCharacterEditor_CharacterKind"
+                                                      AutomationProperties.Name="{Binding OwnershipKindDisplayName}"
                                                       SelectedValuePath="Tag"
                                                       SelectedValue="{Binding OwnershipKind, UpdateSourceTrigger=PropertyChanged}">
                                                 <ComboBoxItem Content="Персонаж игрока" Tag="player_character"/>
-                                                <ComboBoxItem Content="NPC" Tag="npc"/>
+                                                <ComboBoxItem Content="Неигровой персонаж" Tag="npc"/>
                                                 <ComboBoxItem Content="Компаньон" Tag="companion"/>
                                                 <ComboBoxItem Content="Другое" Tag="custom"/>
                                             </ComboBox>
                                             <TextBlock Text="Статус" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
                                             <ComboBox AutomationProperties.AutomationId="AdminCharacterEditor_Status"
+                                                      AutomationProperties.Name="{Binding OwnershipStatusDisplayName}"
                                                       SelectedValuePath="Tag"
                                                       SelectedValue="{Binding OwnershipStatus, UpdateSourceTrigger=PropertyChanged}">
                                                 <ComboBoxItem Content="Активен" Tag="active"/>
@@ -147,6 +207,11 @@
                                                TextWrapping="Wrap"/>
                                     <TextBlock Text="{Binding OwnershipMessage}"
                                                AutomationProperties.AutomationId="AdminCharacterEditor_Archive_Status"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding CharacterUnsavedChangesSummary}"
+                                               AutomationProperties.AutomationId="AdminCharacterEditor_Unsaved_Status"
                                                Foreground="{StaticResource TextSecondaryBrush}"
                                                Margin="0,4,0,0"
                                                TextWrapping="Wrap"/>
@@ -197,12 +262,14 @@
                                                                        FontSize="11"
                                                                        TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
-                                                        <TextBox Grid.Column="1"
-                                                                 Height="28"
-                                                                 AutomationProperties.AutomationId="{Binding AutomationId}"
-                                                                 AutomationProperties.Name="{Binding DisplayName}"
-                                                                 IsEnabled="{Binding IsEditableByGM}"
-                                                                 Text="{Binding Amount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                        <controls:NriIntegerField Grid.Column="1"
+                                                                                   Height="28"
+                                                                                   AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                   AutomationProperties.Name="{Binding DisplayName}"
+                                                                                   IsEnabled="{Binding IsEditableByGM}"
+                                                                                   Value="{Binding Amount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                   Minimum="0"
+                                                                                   AccessibleName="{Binding DisplayName}"/>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
@@ -236,13 +303,16 @@
                                                             <ColumnDefinition Width="120"/>
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Grid.Column="0" Text="{Binding DisplayName}" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                                                        <TextBox Grid.Column="1"
-                                                                 Height="30"
-                                                                 Focusable="True"
-                                                                 AutomationProperties.AutomationId="{Binding AutomationId}"
-                                                                 AutomationProperties.Name="{Binding DisplayName}"
-                                                                 IsEnabled="{Binding IsEditableByGM}"
-                                                                 Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                         <controls:NriIntegerField Grid.Column="1"
+                                                                                   Height="30"
+                                                                                   Focusable="True"
+                                                                                   AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                   AutomationProperties.Name="{Binding DisplayName}"
+                                                                                   IsEnabled="{Binding IsEditableByGM}"
+                                                                                   Value="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                   Minimum="{Binding MinValue}"
+                                                                                   Maximum="{Binding MaxValue}"
+                                                                                   AccessibleName="{Binding DisplayName}"/>
                                                         <TextBlock Grid.Column="2" Margin="10,0,0,0" Text="{Binding RangeText}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                                     </Grid>
                                                     <ItemsControl ItemsSource="{Binding SubAttributes}" Margin="18,4,0,0">
@@ -261,13 +331,16 @@
                                                                                VerticalAlignment="Center"
                                                                                TextWrapping="Wrap"
                                                                                Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                                    <TextBox Grid.Column="1"
-                                                                             Height="26"
-                                                                             FontSize="12"
-                                                                             AutomationProperties.AutomationId="{Binding AutomationId}"
-                                                                             AutomationProperties.Name="{Binding DisplayName}"
-                                                                             IsEnabled="{Binding IsEditableByGM}"
-                                                                             Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                     <controls:NriIntegerField Grid.Column="1"
+                                                                                               Height="26"
+                                                                                               FontSize="12"
+                                                                                               AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                               AutomationProperties.Name="{Binding DisplayName}"
+                                                                                               IsEnabled="{Binding IsEditableByGM}"
+                                                                                               Value="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                               Minimum="{Binding MinValue}"
+                                                                                               Maximum="{Binding MaxValue}"
+                                                                                               AccessibleName="{Binding DisplayName}"/>
                                                                     <TextBlock Grid.Column="2"
                                                                                Margin="8,0,0,0"
                                                                                FontSize="11"
@@ -340,13 +413,22 @@
                                                     <StackPanel>
                                                         <TextBlock Text="Основные данные" Style="{StaticResource TitleTextStyle}"/>
                                                         <TextBlock Text="Имя" Margin="0,6,0,0"/>
-                                                        <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"/>
+                                                        <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                                                 AutomationProperties.AutomationId="AdminCharacterEditor_Name"/>
+                                                        <TextBlock Text="{Binding CharacterNameValidationMessage}"
+                                                                   AutomationProperties.AutomationId="AdminCharacterEditor_Name_Validation"
+                                                                   Foreground="{StaticResource DangerBrush}"
+                                                                   Visibility="{Binding CharacterHasValidationIssues, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                   TextWrapping="Wrap"/>
                                                         <TextBlock Text="Раса" Margin="0,6,0,0"/>
-                                                        <TextBox Text="{Binding EditRace, UpdateSourceTrigger=PropertyChanged}"/>
+                                                        <controls:NriReferencePicker Options="{Binding CharacterRaceOptions}"
+                                                                                      SelectedId="{Binding EditRace, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                      DisplayName="{Binding SelectedRaceDefinition.Name, TargetNullValue=Раса не выбрана}"
+                                                                                      AutomationIdPrefix="AdminCharacterEditor_Race"/>
                                                         <TextBlock Text="Рост / возраст" Margin="0,6,0,0"/>
                                                         <WrapPanel>
-                                                            <TextBox Width="140" Text="{Binding EditHeight, UpdateSourceTrigger=PropertyChanged}" ToolTip="Рост"/>
-                                                            <TextBox Width="100" Margin="8,0,0,0" Text="{Binding EditAge, UpdateSourceTrigger=PropertyChanged}" ToolTip="Возраст"/>
+<controls:NriIntegerField Width="140" Value="{Binding EditHeight, UpdateSourceTrigger=PropertyChanged}" Minimum="0" ToolTip="Рост" AccessibleName="Рост" AutomationProperties.AutomationId="AdminCharacterEditor_Height"/>
+                                                            <controls:NriIntegerField Width="100" Margin="8,0,0,0" Value="{Binding EditAge, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" ToolTip="Возраст" AccessibleName="Возраст" AutomationProperties.AutomationId="AdminCharacterEditor_Age"/>
                                                         </WrapPanel>
                                                         <TextBlock Text="Описание" Margin="0,6,0,0"/>
                                                         <TextBox Height="70" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}"/>
@@ -371,7 +453,12 @@
                                                                  AcceptsTab="True"
                                                                  VerticalScrollBarVisibility="Auto"
                                                                  Text="{Binding EditBackstory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                                        <Button Margin="0,8,0,0" HorizontalAlignment="Left" Content="Сохранить основные данные" Command="{Binding SaveBasicInfoCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
+                                                        <Button Margin="0,8,0,0"
+                                                                HorizontalAlignment="Left"
+                                                                Content="Сохранить основные данные"
+                                                                Command="{Binding SaveBasicInfoCommand}"
+                                                                IsEnabled="{Binding CanSaveCharacterDraft}"
+                                                                AutomationProperties.AutomationId="AdminCharacterEditor_SaveBasic_Button"/>
                                                     </StackPanel>
                                                 </Border>
 
@@ -424,12 +511,14 @@
                                                                         <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextWrapping="Wrap"/>
                                                                         <TextBlock Text="{Binding VisibilityText}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
                                                                     </StackPanel>
-                                                                    <TextBox Grid.Column="1"
+                                                        <controls:NriIntegerField Grid.Column="1"
                                                                              Height="30"
                                                                              AutomationProperties.AutomationId="{Binding AutomationId}"
                                                                              AutomationProperties.Name="{Binding DisplayName}"
                                                                              IsEnabled="{Binding IsEditableByGM}"
-                                                                             Text="{Binding Amount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                             Value="{Binding Amount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                             Minimum="0"
+                                                                             AccessibleName="{Binding DisplayName}"/>
                                                                     <TextBlock Grid.Column="2"
                                                                                Margin="8,0,0,0"
                                                                                Text="{Binding RangeText}"
@@ -481,12 +570,15 @@
                                                                             <ColumnDefinition Width="120"/>
                                                                         </Grid.ColumnDefinitions>
                                                                         <TextBlock Grid.Column="0" Text="{Binding DisplayName}" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                                                                        <TextBox Grid.Column="1"
+                                                                        <controls:NriIntegerField Grid.Column="1"
                                                                                  Height="30"
                                                                                  AutomationProperties.AutomationId="{Binding AutomationId}"
                                                                                  AutomationProperties.Name="{Binding DisplayName}"
                                                                                  IsEnabled="{Binding IsEditableByGM}"
-                                                                                 Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                 Value="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                 Minimum="{Binding MinValue}"
+                                                                 Maximum="{Binding MaxValue}"
+                                                                 AccessibleName="{Binding DisplayName}"/>
                                                                         <TextBlock Grid.Column="2" Margin="10,0,0,0" Text="{Binding RangeText}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                                                     </Grid>
                                                                     <ItemsControl ItemsSource="{Binding SubAttributes}" Margin="18,4,0,0">
@@ -505,13 +597,13 @@
                                                                                                VerticalAlignment="Center"
                                                                                                TextWrapping="Wrap"
                                                                                                Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                                                    <TextBox Grid.Column="1"
+                                                                    <controls:NriIntegerField Grid.Column="1"
                                                                                              Height="26"
                                                                                              FontSize="12"
                                                                                              AutomationProperties.AutomationId="{Binding AutomationId}"
                                                                                              AutomationProperties.Name="{Binding DisplayName}"
                                                                                              IsEnabled="{Binding IsEditableByGM}"
-                                                                                             Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                                             Value="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                                                                     <TextBlock Grid.Column="2"
                                                                                                Margin="8,0,0,0"
                                                                                                FontSize="11"
@@ -550,12 +642,15 @@
                                                                         <ColumnDefinition Width="120"/>
                                                                     </Grid.ColumnDefinitions>
                                                                     <TextBlock Grid.Column="0" Text="{Binding DisplayName}" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                                                                    <TextBox Grid.Column="1"
+                                                                    <controls:NriIntegerField Grid.Column="1"
                                                                              Height="30"
                                                                              AutomationProperties.AutomationId="{Binding AutomationId}"
                                                                              AutomationProperties.Name="{Binding DisplayName}"
                                                                              IsEnabled="{Binding IsEditableByGM}"
-                                                                             Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                             Value="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                             Minimum="{Binding MinValue}"
+                                                                             Maximum="{Binding MaxValue}"
+                                                                             AccessibleName="{Binding DisplayName}"/>
                                                                     <TextBlock Grid.Column="2" Margin="10,0,0,0" Text="{Binding RangeText}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                                                 </Grid>
                                                             </DataTemplate>
@@ -577,12 +672,15 @@
                                                                             <ColumnDefinition Width="120"/>
                                                                         </Grid.ColumnDefinitions>
                                                                         <TextBlock Grid.Column="0" Text="{Binding DisplayName}" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                                                                        <TextBox Grid.Column="1"
-                                                                                 Height="30"
-                                                                                 AutomationProperties.AutomationId="{Binding AutomationId}"
-                                                                                 AutomationProperties.Name="{Binding DisplayName}"
-                                                                                 IsEnabled="{Binding IsEditableByGM}"
-                                                                                 Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                         <controls:NriIntegerField Grid.Column="1"
+                                                                                                   Height="30"
+                                                                                                   AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                                   AutomationProperties.Name="{Binding DisplayName}"
+                                                                                                   IsEnabled="{Binding IsEditableByGM}"
+                                                    Value="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                                   Minimum="{Binding MinValue}"
+                                                                                                   Maximum="{Binding MaxValue}"
+                                                                                                   AccessibleName="{Binding DisplayName}"/>
                                                                         <TextBlock Grid.Column="2" Margin="10,0,0,0" Text="{Binding RangeText}" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                                                     </Grid>
                                                                     <ItemsControl ItemsSource="{Binding SubAttributes}" Margin="18,4,0,0">
@@ -601,13 +699,16 @@
                                                                                                VerticalAlignment="Center"
                                                                                                TextWrapping="Wrap"
                                                                                                Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                                                    <TextBox Grid.Column="1"
-                                                                                             Height="26"
-                                                                                             FontSize="12"
-                                                                                             AutomationProperties.AutomationId="{Binding AutomationId}"
-                                                                                             AutomationProperties.Name="{Binding DisplayName}"
-                                                                                             IsEnabled="{Binding IsEditableByGM}"
-                                                                                             Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                     <controls:NriIntegerField Grid.Column="1"
+                                                                                               Height="26"
+                                                                                               FontSize="12"
+                                                                                               AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                                               AutomationProperties.Name="{Binding DisplayName}"
+                                                                                               IsEnabled="{Binding IsEditableByGM}"
+                                                Value="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                               Minimum="{Binding MinValue}"
+                                                                                               Maximum="{Binding MaxValue}"
+                                                                                               AccessibleName="{Binding DisplayName}"/>
                                                                                     <TextBlock Grid.Column="2"
                                                                                                Margin="8,0,0,0"
                                                                                                FontSize="11"
@@ -700,12 +801,14 @@
                                                                                        FontSize="11"
                                                                                        TextTrimming="CharacterEllipsis"/>
                                                                         </StackPanel>
-                                                                        <TextBox Grid.Column="1"
+                                                                        <controls:NriIntegerField Grid.Column="1"
                                                                                  Height="28"
                                                                                  AutomationProperties.AutomationId="{Binding AutomationId}"
                                                                                  AutomationProperties.Name="{Binding DisplayName}"
                                                                                  IsEnabled="{Binding IsEditableByGM}"
-                                                                                 Text="{Binding Amount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                                 Value="{Binding Amount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                 Minimum="0"
+                                                                                 AccessibleName="{Binding DisplayName}"/>
                                                                     </Grid>
                                                                 </Border>
                                                             </DataTemplate>
@@ -727,110 +830,6 @@
                                                                    Text="{Binding CharacterMoneySaveStatus}"
                                                                    Foreground="{StaticResource TextSecondaryBrush}"/>
                                                     </WrapPanel>
-                                                    <Separator Margin="0,10,0,8"/>
-                                                    <DockPanel>
-                                                        <TextBlock Text="Инвентарь"
-                                                                   Style="{StaticResource SectionTitleTextStyle}"
-                                                                   DockPanel.Dock="Left"/>
-                                                        <Button DockPanel.Dock="Right"
-                                                                Style="{StaticResource GhostButtonStyle}"
-                                                                Content="Обновить"
-                                                                Command="{Binding InventoryReloadCommand}"
-                                                                IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                    </DockPanel>
-                                                    <Grid Margin="0,6,0,0">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="1.1*"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <DataGrid Grid.Column="0"
-                                                                  AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Table"
-                                                                  ItemsSource="{Binding InventoryItems}"
-                                                                  SelectedItem="{Binding SelectedInventoryItem, UpdateSourceTrigger=PropertyChanged}"
-                                                                  AutoGenerateColumns="False"
-                                                                  MinHeight="180"
-                                                                  HorizontalScrollBarVisibility="Auto">
-                                                            <DataGrid.Columns>
-                                                                <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="1.4*"/>
-                                                                <DataGridTextColumn Header="Категория" Binding="{Binding CategoryDisplay}" Width="1*"/>
-                                                                <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity}" Width="70"/>
-                                                                <DataGridTextColumn Header="Слот" Binding="{Binding SlotDisplay}" Width="80"/>
-                                                                <DataGridCheckBoxColumn Header="Надето" Binding="{Binding IsEquipped}" Width="70"/>
-                                                                <DataGridCheckBoxColumn Header="Игрокам" Binding="{Binding IsPlayerVisible}" Width="70"/>
-                                                            </DataGrid.Columns>
-                                                        </DataGrid>
-                                                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                                            <TextBlock Text="Карточка предмета" FontWeight="SemiBold"/>
-                                                            <TextBlock Text="Название" Margin="0,5,0,0"/>
-                                                            <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Name"
-                                                                     Text="{Binding InventoryName, UpdateSourceTrigger=PropertyChanged}"/>
-                                                            <TextBlock Text="Категория / тип" Margin="0,5,0,0"/>
-                                                            <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Category"
-                                                                     Text="{Binding InventoryCategory, UpdateSourceTrigger=PropertyChanged}"/>
-                                                            <TextBlock Text="Количество / прочность / боезапас" Margin="0,5,0,0"/>
-                                                            <WrapPanel>
-                                                                <TextBox Width="70"
-                                                                         AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Quantity"
-                                                                         Text="{Binding InventoryQuantity, UpdateSourceTrigger=PropertyChanged}"/>
-                                                                <TextBox Width="80"
-                                                                         Margin="6,0,0,0"
-                                                                         AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Durability"
-                                                                         Text="{Binding InventoryDurabilityOrHealth, UpdateSourceTrigger=PropertyChanged}"/>
-                                                                <TextBox Width="70"
-                                                                         Margin="6,0,0,0"
-                                                                         AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Ammo"
-                                                                         Text="{Binding InventoryAmmo, UpdateSourceTrigger=PropertyChanged}"/>
-                                                            </WrapPanel>
-                                                            <TextBlock Text="Слот / состояние" Margin="0,5,0,0"/>
-                                                            <WrapPanel>
-                                                                <TextBox Width="100"
-                                                                         AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Slot"
-                                                                         Text="{Binding InventorySlot, UpdateSourceTrigger=PropertyChanged}"/>
-                                                                <TextBox Width="120"
-                                                                         Margin="6,0,0,0"
-                                                                         Text="{Binding InventoryCondition, UpdateSourceTrigger=PropertyChanged}"/>
-                                                            </WrapPanel>
-                                                            <CheckBox AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Equipped"
-                                                                      Content="Экипировано"
-                                                                      IsChecked="{Binding InventoryIsEquipped, UpdateSourceTrigger=PropertyChanged}"
-                                                                      Margin="0,5,0,0"/>
-                                                            <CheckBox AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_IsPlayerVisible"
-                                                                      Content="Видно игрокам"
-                                                                      IsChecked="{Binding InventoryIsPlayerVisible, UpdateSourceTrigger=PropertyChanged}"/>
-                                                            <TextBlock Text="Описание" Margin="0,5,0,0"/>
-                                                            <TextBox Height="54"
-                                                                     AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Description"
-                                                                     TextWrapping="Wrap"
-                                                                     AcceptsReturn="True"
-                                                                     Text="{Binding InventoryDescription, UpdateSourceTrigger=PropertyChanged}"/>
-                                                            <WrapPanel Margin="0,6,0,0">
-                                                                <Button AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Add_Button"
-                                                                        Content="Добавить"
-                                                                        Command="{Binding InventoryAddItemCommand}"
-                                                                        IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                                <Button AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Update_Button"
-                                                                        Style="{StaticResource GhostButtonStyle}"
-                                                                        Content="Сохранить"
-                                                                        Command="{Binding InventoryUpdateItemCommand}"
-                                                                        IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                                <Button AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_ToggleEquip_Button"
-                                                                        Style="{StaticResource GhostButtonStyle}"
-                                                                        Content="Экипировать"
-                                                                        Command="{Binding InventoryToggleEquipCommand}"
-                                                                        IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                                <Button AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Remove_Button"
-                                                                        Style="{StaticResource GhostButtonStyle}"
-                                                                        Content="Удалить"
-                                                                        Command="{Binding InventoryRemoveItemCommand}"
-                                                                        IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                            </WrapPanel>
-                                                            <TextBlock AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Status"
-                                                                       Text="{Binding InventoryStatus}"
-                                                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                                                       TextWrapping="Wrap"
-                                                                       Margin="0,6,0,0"/>
-                                                        </StackPanel>
-                                                    </Grid>
                                                 </StackPanel>
                                             </Border>
 <Grid Margin="0,8,0,0">
@@ -856,12 +855,14 @@
                                                                             <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/>
                                                                             <TextBlock Text="{Binding VisibilityText}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
                                                                         </StackPanel>
-                                                                        <TextBox Grid.Column="1"
+                                                                        <controls:NriIntegerField Grid.Column="1"
                                                                                  Height="30"
                                                                                  AutomationProperties.AutomationId="{Binding AutomationId}"
                                                                                  AutomationProperties.Name="{Binding DisplayName}"
                                                                                  IsEnabled="{Binding IsEditableByGM}"
-                                                                                 Text="{Binding Amount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                                 Value="{Binding Amount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                 Minimum="0"
+                                                                                 AccessibleName="{Binding DisplayName}"/>
                                                                         <TextBlock Grid.Column="2"
                                                                                    Margin="8,0,0,0"
                                                                                    Text="{Binding RangeText}"
@@ -898,11 +899,12 @@
                                                                 <DataTemplate>
                                                                     <DockPanel Margin="0,3,0,3">
                                                                         <TextBlock Text="{Binding DisplayName}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
-                                                                        <TextBox Width="82"
+                                                                        <controls:NriIntegerField Width="82"
                                                                                  HorizontalAlignment="Right"
                                                                                  AutomationProperties.AutomationId="{Binding AutomationId}"
                                                                                  AutomationProperties.Name="{Binding DisplayName}"
-                                                                                 Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                                 Value="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                 AccessibleName="{Binding DisplayName}"/>
                                                                     </DockPanel>
                                                                 </DataTemplate>
                                                             </ItemsControl.ItemTemplate>
@@ -917,82 +919,6 @@
                                                 </Border>
                                             </Grid>
 
-                                            <Grid Margin="0,8,0,0">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0">
-                                                    <StackPanel>
-                                                        <TextBlock Text="Репутация" Style="{StaticResource TitleTextStyle}"/>
-                                                        <DataGrid AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Table" ItemsSource="{Binding ReputationItems}" SelectedItem="{Binding SelectedReputationItem, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="130">
-                                                            <DataGrid.Columns>
-                                                                <DataGridTextColumn Header="Цель" Binding="{Binding TargetName}" Width="1.4*"/>
-                                                                <DataGridTextColumn Header="Значение" Binding="{Binding Value}" Width="90"/>
-                                                                <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="1*"/>
-                                                            </DataGrid.Columns>
-                                                        </DataGrid>
-                                                        <WrapPanel Margin="0,6,0,0">
-                                                            <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Target" Width="150" Text="{Binding ReputationTargetNameInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Цель"/>
-                                                            <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Value" Width="70" Margin="8,0,0,0" Text="{Binding ReputationValueInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Значение"/>
-                                                            <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Status" Width="110" Margin="8,0,0,0" Text="{Binding ReputationStatusInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Статус"/>
-                                                        </WrapPanel>
-                                                        <CheckBox AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Visible" Content="Видно игрокам" IsChecked="{Binding ReputationIsPlayerVisibleInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0"/>
-                                                        <WrapPanel Margin="0,6,0,0">
-                                                            <Button AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Add_Button" Content="Добавить" Command="{Binding ReputationAddCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                            <Button AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Update_Button" Style="{StaticResource GhostButtonStyle}" Content="Сохранить" Command="{Binding ReputationUpdateCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                            <Button AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Remove_Button" Style="{StaticResource GhostButtonStyle}" Content="Удалить" Command="{Binding ReputationRemoveCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                        </WrapPanel>
-                                                    </StackPanel>
-                                                </Border>
-                                                <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0">
-                                                    <StackPanel>
-                                                        <TextBlock Text="Владения" Style="{StaticResource TitleTextStyle}"/>
-                                                        <DataGrid AutomationProperties.AutomationId="AdminCharacterEditor_Holdings_Table" ItemsSource="{Binding HoldingsItems}" SelectedItem="{Binding SelectedHoldingItem, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="130">
-                                                            <DataGrid.Columns>
-                                                                <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.4*"/>
-                                                                <DataGridTextColumn Header="Тип" Binding="{Binding Type}" Width="1*"/>
-                                                                <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="1*"/>
-                                                            </DataGrid.Columns>
-                                                        </DataGrid>
-                                                        <WrapPanel Margin="0,6,0,0">
-                                                            <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Name" Width="145" Text="{Binding HoldingName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название"/>
-                                                            <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Type" Width="105" Margin="8,0,0,0" Text="{Binding HoldingType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип"/>
-                                                            <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Status" Width="105" Margin="8,0,0,0" Text="{Binding HoldingStatus, UpdateSourceTrigger=PropertyChanged}" ToolTip="Статус"/>
-                                                        </WrapPanel>
-                                                        <CheckBox AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Visible" Content="Видно игрокам" IsChecked="{Binding HoldingIsPlayerVisible, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0"/>
-                                                        <WrapPanel Margin="0,6,0,0">
-                                                            <Button AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Add_Button" Content="Добавить" Command="{Binding HoldingAddCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                            <Button AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Update_Button" Style="{StaticResource GhostButtonStyle}" Content="Сохранить" Command="{Binding HoldingUpdateCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                            <Button AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Remove_Button" Style="{StaticResource GhostButtonStyle}" Content="Удалить" Command="{Binding HoldingRemoveCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                        </WrapPanel>
-                                                    </StackPanel>
-                                                </Border>
-                                                <Border Grid.Column="2" Style="{StaticResource SubtleCardStyle}">
-                                                    <StackPanel>
-                                                        <TextBlock Text="Компаньоны" Style="{StaticResource TitleTextStyle}"/>
-                                                        <DataGrid AutomationProperties.AutomationId="AdminCharacterEditor_Companions_Table" ItemsSource="{Binding CompanionItems}" SelectedItem="{Binding SelectedCompanionItem, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="130">
-                                                            <DataGrid.Columns>
-                                                                <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="1.4*"/>
-                                                                <DataGridTextColumn Header="Тип" Binding="{Binding Type}" Width="1*"/>
-                                                                <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="1*"/>
-                                                            </DataGrid.Columns>
-                                                        </DataGrid>
-                                                        <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Companion_Name" Margin="0,6,0,0" Text="{Binding CompanionNameInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Имя"/>
-                                                        <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Companion_Type" Margin="0,6,0,0" Text="{Binding CompanionTypeInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип"/>
-                                                        <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Companion_StatusField" Margin="0,6,0,0" Text="{Binding CompanionStatusInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Статус"/>
-                                                        <TextBlock AutomationProperties.AutomationId="AdminCharacterEditor_Companion_Status" Text="{Binding CompanionStatusInput, StringFormat=Статус: {0}}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
-                                                        <CheckBox AutomationProperties.AutomationId="AdminCharacterEditor_Companion_Visible" Content="Видно игрокам" IsChecked="{Binding CompanionIsPlayerVisibleInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0"/>
-                                                        <WrapPanel Margin="0,6,0,0">
-                                                            <Button AutomationProperties.AutomationId="AdminCharacterEditor_Companion_Add_Button" Content="Добавить" Command="{Binding CompanionAddCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                            <Button AutomationProperties.AutomationId="AdminCharacterEditor_Companion_Update_Button" Style="{StaticResource GhostButtonStyle}" Content="Сохранить" Command="{Binding CompanionUpdateCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                            <Button AutomationProperties.AutomationId="AdminCharacterEditor_Companion_Remove_Button" Style="{StaticResource GhostButtonStyle}" Content="Удалить" Command="{Binding CompanionRemoveCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
-                                                        </WrapPanel>
-                                                    </StackPanel>
-                                                </Border>
-                                            </Grid>
-
                                             <TabControl Margin="0,8,0,0">
                                                 <TabItem Header="Инвентарь">
                                                     <Grid Margin="4">
@@ -1000,7 +926,7 @@
                                                         <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0">
                                                             <DockPanel LastChildFill="True">
                                                                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8"><TextBlock Text="Предметы" Style="{StaticResource TitleTextStyle}"/><Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding InventoryReloadCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/></DockPanel>
-                                                                <DataGrid AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Table" ItemsSource="{Binding InventoryItems}" SelectedItem="{Binding SelectedInventoryItem, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="260" HorizontalScrollBarVisibility="Auto">
+                                                                <DataGrid IsReadOnly="True" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Table" ItemsSource="{Binding InventoryItems}" SelectedItem="{Binding SelectedInventoryItem, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="260" HorizontalScrollBarVisibility="Auto">
                                                                     <DataGrid.Columns><DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="1.4*"/><DataGridTextColumn Header="Категория" Binding="{Binding CategoryDisplay}" Width="1*"/><DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity}" Width="80"/><DataGridTextColumn Header="Прочность" Binding="{Binding DurabilityOrHealth}" Width="90"/><DataGridTextColumn Header="Слот" Binding="{Binding SlotDisplay}" Width="80"/><DataGridCheckBoxColumn Header="Надето" Binding="{Binding IsEquipped}" Width="80"/><DataGridCheckBoxColumn Header="Игрокам" Binding="{Binding IsPlayerVisible}" Width="80"/></DataGrid.Columns>
                                                                 </DataGrid>
                                                             </DockPanel>
@@ -1009,8 +935,8 @@
                                                             <StackPanel>
                                                                 <TextBlock Text="Карточка предмета" Style="{StaticResource TitleTextStyle}"/>
                                                                 <TextBlock Text="Название" Margin="0,6,0,0"/><TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Name" Text="{Binding InventoryName, UpdateSourceTrigger=PropertyChanged}"/>
-                                                                <TextBlock Text="Категория / тип" Margin="0,6,0,0"/><TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Category" Text="{Binding InventoryCategory, UpdateSourceTrigger=PropertyChanged}"/>
-                                                                <TextBlock Text="Количество / прочность / боезапас" Margin="0,6,0,0"/><WrapPanel><TextBox Width="90" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Quantity" Text="{Binding InventoryQuantity, UpdateSourceTrigger=PropertyChanged}"/><TextBox Width="100" Margin="8,0,0,0" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Durability" Text="{Binding InventoryDurabilityOrHealth, UpdateSourceTrigger=PropertyChanged}"/><TextBox Width="90" Margin="8,0,0,0" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Ammo" Text="{Binding InventoryAmmo, UpdateSourceTrigger=PropertyChanged}"/></WrapPanel>
+                                                                <TextBlock Text="Категория / тип" Margin="0,6,0,0"/><controls:NriOptionField AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Category" ItemsSource="{Binding InventoryCategoryOptions}" SelectedValuePath="Value" SelectedValue="{Binding InventoryCategory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="DisplayName" AccessibleName="Категория предмета"/>
+                                                                <TextBlock Text="Количество / прочность / боезапас" Margin="0,6,0,0"/><WrapPanel><controls:NriIntegerField Width="90" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Quantity" Text="{Binding InventoryQuantity, UpdateSourceTrigger=PropertyChanged}" AccessibleName="Количество"/><controls:NriIntegerField Width="100" Margin="8,0,0,0" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Durability" Text="{Binding InventoryDurabilityOrHealth, UpdateSourceTrigger=PropertyChanged}" AccessibleName="Прочность или здоровье"/><controls:NriIntegerField Width="90" Margin="8,0,0,0" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Ammo" Text="{Binding InventoryAmmo, UpdateSourceTrigger=PropertyChanged}" AccessibleName="Боезапас"/></WrapPanel>
                                                                 <TextBlock Text="Слот / состояние" Margin="0,6,0,0"/><WrapPanel><TextBox Width="120" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Slot" Text="{Binding InventorySlot, UpdateSourceTrigger=PropertyChanged}"/><TextBox Width="140" Margin="8,0,0,0" Text="{Binding InventoryCondition, UpdateSourceTrigger=PropertyChanged}"/></WrapPanel>
                                                                 <CheckBox AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_Equipped" Content="Экипировано" IsChecked="{Binding InventoryIsEquipped, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0"/>
                                                                 <CheckBox AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_Selected_IsPlayerVisible" Content="Видно игрокам" IsChecked="{Binding InventoryIsPlayerVisible, UpdateSourceTrigger=PropertyChanged}"/>
@@ -1022,16 +948,16 @@
                                                                         <TextBlock Text="Добавить из справочника" FontWeight="SemiBold"/>
                                                                         <WrapPanel Margin="0,6,0,0">
                                                                             <TextBox Width="150" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_CatalogSearch" Text="{Binding InventoryCatalogSearch, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск определения"/>
-                                                                            <ComboBox Width="110" Margin="6,0,0,0" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_CatalogCategoryFilter" Text="{Binding InventoryCatalogCategoryFilter, UpdateSourceTrigger=PropertyChanged}" IsEditable="True"><ComboBoxItem Content="all"/><ComboBoxItem Content="item"/><ComboBoxItem Content="weapon"/><ComboBoxItem Content="armor"/><ComboBoxItem Content="ammo"/></ComboBox>
+                                                                            <ComboBox Width="110" Margin="6,0,0,0" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_CatalogCategoryFilter" Text="{Binding InventoryCatalogCategoryFilter, UpdateSourceTrigger=PropertyChanged}" IsEditable="True"><ComboBoxItem Content="Все"/><ComboBoxItem Content="Предметы"/><ComboBoxItem Content="Оружие"/><ComboBoxItem Content="Броня"/><ComboBoxItem Content="Боеприпасы"/></ComboBox>
                                                                             <Button Margin="6,0,0,0" Content="Выбрать определение" Command="{Binding InventoryLoadCatalogCommand}"/>
                                                                         </WrapPanel>
-                                                                        <DataGrid Margin="0,6,0,0" MinHeight="80" MaxHeight="130" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_CatalogDefinitions_Table" ItemsSource="{Binding InventoryCatalogDefinitions}" SelectedItem="{Binding SelectedInventoryCatalogDefinition, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False">
-                                                                            <DataGrid.Columns><DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="1.4*"/><DataGridTextColumn Header="Категория" Binding="{Binding Category}" Width="90"/><DataGridTextColumn Header="Код" Binding="{Binding Code}" Width="1.2*"/></DataGrid.Columns>
+                                                                        <DataGrid IsReadOnly="True" Margin="0,6,0,0" MinHeight="80" MaxHeight="130" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_CatalogDefinitions_Table" ItemsSource="{Binding InventoryCatalogDefinitions}" SelectedItem="{Binding SelectedInventoryCatalogDefinition, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False">
+                                                                            <DataGrid.Columns><DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="1.4*"/><DataGridTextColumn Header="Категория" Binding="{Binding Category}" Width="90"/></DataGrid.Columns>
                                                                         </DataGrid>
                                                                         <TextBlock Margin="0,4,0,0" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_SelectedCatalogDefinition" Text="{Binding InventorySelectedCatalogDefinitionSummary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
                                                                         <WrapPanel Margin="0,6,0,0">
                                                                             <TextBlock Text="Количество" VerticalAlignment="Center"/>
-                                                                            <TextBox Width="60" Margin="6,0,0,0" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_AddFromCatalog_Quantity" Text="{Binding InventoryCatalogQuantity, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                            <controls:NriIntegerField Width="60" Margin="6,0,0,0" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_AddFromCatalog_Quantity" Text="{Binding InventoryCatalogQuantity, UpdateSourceTrigger=PropertyChanged}" AccessibleName="Количество предметов"/>
                                                                             <CheckBox Margin="8,0,0,0" Content="Экипировано" IsChecked="{Binding InventoryCatalogIsEquipped, UpdateSourceTrigger=PropertyChanged}"/>
                                                                             <CheckBox Margin="8,0,0,0" Content="Видно игроку" IsChecked="{Binding InventoryCatalogIsPlayerVisible, UpdateSourceTrigger=PropertyChanged}"/>
                                                                             <Button Margin="8,0,0,0" AutomationProperties.AutomationId="AdminCharacterEditor_Inventory_AddFromCatalog_Button" Content="Добавить из справочника" Command="{Binding InventoryAddFromCatalogCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
@@ -1045,13 +971,75 @@
                                                         </Border>
                                                     </Grid>
                                                 </TabItem>
+                                                <TabItem Header="Языки" AutomationProperties.AutomationId="AdminCharacterEditor_Languages_Tab">
+                                                    <Grid Margin="4" DataContext="{Binding LanguageWorkspace}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="280"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="360"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Grid.Column="0" Style="{StaticResource SubtleCardStyle}">
+                                                            <DockPanel>
+                                                                <StackPanel DockPanel.Dock="Top">
+                                                                    <TextBlock Text="Языковой профиль" Style="{StaticResource TitleTextStyle}"/>
+                                                                    <TextBlock Text="Владение языками Character v2" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,8"/>
+                                                                </StackPanel>
+                                                                <ListBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" AutomationProperties.AutomationId="AdminLanguages_CharacterList">
+                                                                    <ListBox.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <StackPanel Margin="4">
+                                                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                                                <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                                                            </StackPanel>
+                                                                        </DataTemplate>
+                                                                    </ListBox.ItemTemplate>
+                                                                </ListBox>
+                                                            </DockPanel>
+                                                        </Border>
+                                                        <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}" Margin="8,0">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Изменение владения" Style="{StaticResource TitleTextStyle}"/>
+                                                                <TextBlock Text="Выберите язык и итоговый уровень. Причина попадёт в аудит GM." Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,12" TextWrapping="Wrap"/>
+                                                                <TextBlock Text="Язык"/>
+                                                                <controls:NriReferencePicker AutomationIdPrefix="AdminLanguages_GrantLanguage" Options="{Binding Languages}" SelectedId="{Binding SelectedLanguageId, Mode=TwoWay}" DisplayName="{Binding SelectedLanguage.Name, TargetNullValue=Язык не выбран}" ToolTip="Выберите язык по названию"/>
+                                                                <TextBlock Text="Уровень" Margin="0,10,0,4"/>
+                                                                <controls:NriOptionField ItemsSource="{Binding Levels}" SelectedItem="{Binding SelectedLevel, Mode=TwoWay}" AccessibleName="Уровень владения языком" AutomationProperties.AutomationId="AdminLanguages_GrantLevel"/>
+                                                                <TextBlock Text="Причина изменения" Margin="0,10,0,4"/>
+                                                                <TextBox Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AutomationProperties.AutomationId="AdminLanguages_GrantReason"/>
+                                                                <Button Content="Применить уровень" Command="{Binding GrantCommand}" HorizontalAlignment="Left" Margin="0,10,0,0" AutomationProperties.AutomationId="AdminLanguages_Grant"/>
+                                                                <Button Content="Обновить профиль" Command="{Binding RefreshCommand}" Style="{StaticResource GhostButtonStyle}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                                                                <TextBlock Text="{Binding Status}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,10,0,0" TextWrapping="Wrap" AutomationProperties.AutomationId="AdminLanguages_Status"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Grid.Column="2" Style="{StaticResource SubtleCardStyle}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Обучение" Style="{StaticResource TitleTextStyle}"/>
+                                                                <TextBlock Text="Активный проект" Margin="0,8,0,4"/>
+                                                                <ComboBox ItemsSource="{Binding ActiveTraining}" SelectedItem="{Binding SelectedTraining, Mode=TwoWay}" DisplayMemberPath="LanguageName" AutomationProperties.AutomationId="AdminLanguages_TrainingProject"/>
+                                                                <TextBlock Text="{Binding SelectedTraining.Summary, TargetNullValue=Активного проекта нет}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                                                <TextBlock Text="Подтверждённые учебные часы" Margin="0,12,0,4"/>
+                                                                <controls:NriIntegerField Value="{Binding StudyHours, Mode=TwoWay}" Minimum="1" Maximum="10000" AccessibleName="Учебные часы" AutomationProperties.AutomationId="AdminLanguages_StudyHours"/>
+                                                                <TextBlock Text="Основание по игровому времени" Margin="0,10,0,4"/>
+                                                                <TextBox Text="{Binding WorldTimeReference, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" ToolTip="Ссылка на уже прошедшее игровое время или downtime" AutomationProperties.AutomationId="AdminLanguages_WorldTimeReference"/>
+                                                                <Button Content="Учесть часы" Command="{Binding CreditCommand}" HorizontalAlignment="Left" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminLanguages_Credit"/>
+                                                                <Separator Margin="0,14,0,10"/>
+                                                                <TextBlock Text="Решение по источнику"/>
+                                                                <TextBox Text="{Binding SourceDecisionReason, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                                                <WrapPanel Margin="0,8,0,0">
+                                                                    <Button Content="Подтвердить" Command="{Binding ApproveSourceCommand}" AutomationProperties.AutomationId="AdminLanguages_ApproveSource"/>
+                                                                    <Button Content="Отклонить" Command="{Binding RejectSourceCommand}" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" AutomationProperties.AutomationId="AdminLanguages_RejectSource"/>
+                                                                </WrapPanel>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </TabItem>
                                                 <TabItem Header="Навыки" AutomationProperties.AutomationId="AdminCharacterEditor_Skills_Tab">
                                                     <Grid Margin="4">
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition Height="*"/>
                                                             <RowDefinition Height="Auto"/>
                                                         </Grid.RowDefinitions>
-                                                        <DataGrid AutomationProperties.AutomationId="AdminCharacterEditor_Skills_Table"
+                                                        <DataGrid IsReadOnly="True" AutomationProperties.AutomationId="AdminCharacterEditor_Skills_Table"
                                                                   ItemsSource="{Binding SkillRows}"
                                                                   SelectedValue="{Binding SelectedSkillId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                                   SelectedValuePath="Id"
@@ -1060,7 +1048,6 @@
                                                                   HorizontalScrollBarVisibility="Auto">
                                                             <DataGrid.Columns>
                                                                 <DataGridTextColumn Header="Навык" Binding="{Binding Name}" Width="1.5*"/>
-                                                                <DataGridTextColumn Header="Код" Binding="{Binding Id}" Width="1*"/>
                                                                 <DataGridTextColumn Header="Категория" Binding="{Binding Category}" Width="1*"/>
                                                                 <DataGridTextColumn Header="Атрибут" Binding="{Binding Attribute}" Width="90"/>
                                                                 <DataGridTextColumn Header="Ранг" Binding="{Binding Rank, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
@@ -1072,10 +1059,12 @@
                                                             </DataGrid.Columns>
                                                         </DataGrid>
                                                         <WrapPanel Grid.Row="1" Margin="0,8,0,0">
-                                                            <TextBox Width="150"
-                                                                     AutomationProperties.AutomationId="AdminCharacterEditor_Skill_SelectedSkillId"
-                                                                     Text="{Binding CharacterSkillSelectedSkillIdInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                     ToolTip="Код навыка"/>
+                                                            <controls:NriReferencePicker Width="220"
+                                                                                          AutomationIdPrefix="AdminCharacterEditor_Skill_SelectedSkill"
+                                                                                          Options="{Binding CharacterSkillOptions}"
+                                                                                          SelectedId="{Binding CharacterSkillSelectedSkillIdInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                          DisplayName="{Binding SelectedSkillDefinition.Name, TargetNullValue=Навык не выбран}"
+                                                                                          ToolTip="Выберите навык по отображаемому имени"/>
                                                             <TextBox Width="70"
                                                                      Margin="8,0,0,0"
                                                                      AutomationProperties.AutomationId="{Binding CharacterSkillSelectedSkillIdInput, StringFormat=AdminCharacterEditor_Skill_{0}_Rank}"
@@ -1086,11 +1075,15 @@
                                                                      AutomationProperties.AutomationId="{Binding CharacterSkillSelectedSkillIdInput, StringFormat=AdminCharacterEditor_Skill_{0}_ManualBonus}"
                                                                      Text="{Binding CharacterSkillManualBonusText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                                      ToolTip="Ручной бонус"/>
-                                                            <TextBox Width="110"
-                                                                     Margin="8,0,0,0"
-                                                                     AutomationProperties.AutomationId="AdminCharacterEditor_Skill_TrainingState"
-                                                                     Text="{Binding CharacterSkillTrainingStateInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                     ToolTip="Состояние обучения"/>
+                                                            <controls:NriOptionField Width="140"
+                                                                                      Margin="8,0,0,0"
+                                                                                      AutomationProperties.AutomationId="AdminCharacterEditor_Skill_TrainingState"
+                                                                                      ItemsSource="{Binding CharacterTrainingStateOptions}"
+                                                                                      SelectedValuePath="Value"
+                                                                                      SelectedValue="{Binding CharacterSkillTrainingStateInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                      DisplayMemberPath="DisplayName"
+                                                                                      AccessibleName="Состояние обучения"
+                                                                                      ToolTip="Выберите состояние обучения"/>
                                                             <CheckBox Margin="8,0,0,0"
                                                                       AutomationProperties.AutomationId="AdminCharacterEditor_Skill_IsPlayerVisible"
                                                                       Content="Видно игрокам"
@@ -1131,7 +1124,7 @@
                                                                     <TextBlock Text="Репутация" Style="{StaticResource TitleTextStyle}"/>
                                                                     <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding ReputationReloadCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
                                                                 </DockPanel>
-                                                                <DataGrid AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Table" ItemsSource="{Binding ReputationItems}" SelectedItem="{Binding SelectedReputationItem, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="160">
+                                                                <DataGrid IsReadOnly="True" AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Table" ItemsSource="{Binding ReputationItems}" SelectedItem="{Binding SelectedReputationItem, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="160">
                                                                     <DataGrid.Columns>
                                                                         <DataGridTextColumn Header="Цель" Binding="{Binding TargetName}" Width="1.4*"/>
                                                                         <DataGridTextColumn Header="Тип" Binding="{Binding TargetType}" Width="1*"/>
@@ -1143,8 +1136,8 @@
                                                                     <ComboBox Width="120" ItemsSource="{Binding ReputationScopeTypeOptions}" SelectedItem="{Binding ReputationScopeTypeInput, UpdateSourceTrigger=PropertyChanged}"/>
                                                                     <ComboBox Width="130" Margin="8,0,0,0" ItemsSource="{Binding ReputationTargetTypeOptions}" SelectedItem="{Binding ReputationTargetTypeInput, UpdateSourceTrigger=PropertyChanged}"/>
                                                                     <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Target" Width="160" Margin="8,0,0,0" Text="{Binding ReputationTargetNameInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название цели"/>
-                                                                    <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Value" Width="70" Margin="8,0,0,0" Text="{Binding ReputationValueInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Значение"/>
-                                                                    <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Status" Width="130" Margin="8,0,0,0" Text="{Binding ReputationStatusInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Статус"/>
+                                                                    <controls:NriBoundedNumberField AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Value" Width="70" Margin="8,0,0,0" Value="{Binding ReputationValueInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="-100" Maximum="100" ToolTip="Значение" AccessibleName="Значение репутации"/>
+                                                                    <controls:NriOptionField AutomationProperties.AutomationId="AdminCharacterEditor_Reputation_Status" Width="130" Margin="8,0,0,0" ItemsSource="{Binding ReputationStatusOptions}" SelectedValuePath="Value" SelectedValue="{Binding ReputationStatusInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="DisplayName" AccessibleName="Статус репутации"/>
                                                                 </WrapPanel>
                                                                 <TextBox Margin="0,6,0,0" Height="50" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding ReputationNotesInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Заметка"/>
                                                                 <WrapPanel Margin="0,6,0,0">
@@ -1164,7 +1157,7 @@
                                                                     <TextBlock Text="Владения" Style="{StaticResource TitleTextStyle}"/>
                                                                     <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding HoldingsReloadCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
                                                                 </DockPanel>
-                                                                <DataGrid AutomationProperties.AutomationId="AdminCharacterEditor_Holdings_Table" ItemsSource="{Binding HoldingsItems}" SelectedItem="{Binding SelectedHoldingItem, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="160">
+                                                                <DataGrid IsReadOnly="True" AutomationProperties.AutomationId="AdminCharacterEditor_Holdings_Table" ItemsSource="{Binding HoldingsItems}" SelectedItem="{Binding SelectedHoldingItem, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="160">
                                                                     <DataGrid.Columns>
                                                                         <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.4*"/>
                                                                         <DataGridTextColumn Header="Тип" Binding="{Binding Type}" Width="1*"/>
@@ -1174,9 +1167,9 @@
                                                                 </DataGrid>
                                                                 <WrapPanel Margin="0,6,0,0">
                                                                     <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Name" Width="160" Text="{Binding HoldingName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название"/>
-                                                                    <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Type" Width="120" Margin="8,0,0,0" Text="{Binding HoldingType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип"/>
+                                                                    <controls:NriOptionField AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Type" Width="120" Margin="8,0,0,0" ItemsSource="{Binding HoldingTypeOptions}" SelectedValuePath="Value" SelectedValue="{Binding HoldingType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="DisplayName" AccessibleName="Тип владения"/>
                                                                     <TextBox Width="150" Margin="8,0,0,0" Text="{Binding HoldingLocationName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Локация"/>
-                                                                    <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Status" Width="130" Margin="8,0,0,0" Text="{Binding HoldingStatus, UpdateSourceTrigger=PropertyChanged}" ToolTip="Статус"/>
+                                                                    <controls:NriOptionField AutomationProperties.AutomationId="AdminCharacterEditor_Holding_Status" Width="130" Margin="8,0,0,0" ItemsSource="{Binding HoldingStatusOptions}" SelectedValuePath="Value" SelectedValue="{Binding HoldingStatus, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="DisplayName" AccessibleName="Статус владения"/>
                                                                 </WrapPanel>
                                                                 <TextBox Margin="0,6,0,0" Text="{Binding HoldingOwners, UpdateSourceTrigger=PropertyChanged}" ToolTip="Владельцы через запятую"/>
                                                                 <TextBox Margin="0,6,0,0" Height="50" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding HoldingDescription, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание"/>
@@ -1203,7 +1196,7 @@
                                                                     <TextBlock Text="Компаньоны" Style="{StaticResource TitleTextStyle}"/>
                                                                     <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding CompanionsReloadCommand}" IsEnabled="{Binding CanManageSelectedCharacter}"/>
                                                                 </DockPanel>
-                                                                <DataGrid AutomationProperties.AutomationId="AdminCharacterEditor_Companions_Table" ItemsSource="{Binding CompanionItems}" SelectedItem="{Binding SelectedCompanionItem, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="220">
+                                                                <DataGrid IsReadOnly="True" AutomationProperties.AutomationId="AdminCharacterEditor_Companions_Table" ItemsSource="{Binding CompanionItems}" SelectedItem="{Binding SelectedCompanionItem, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" MinHeight="220">
                                                                     <DataGrid.Columns>
                                                                         <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="1.4*"/>
                                                                         <DataGridTextColumn Header="Тип" Binding="{Binding Type}" Width="1*"/>
@@ -1217,10 +1210,10 @@
                                                             <StackPanel>
                                                                 <TextBlock Text="Карточка компаньона" Style="{StaticResource TitleTextStyle}"/>
                                                                 <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Companion_Name" Margin="0,6,0,0" Text="{Binding CompanionNameInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Имя"/>
-                                                                <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Companion_Type" Margin="0,6,0,0" Text="{Binding CompanionTypeInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип"/>
-                                                                <TextBox Margin="0,6,0,0" Text="{Binding CompanionOwnerCharacterIdInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="ID персонажа-владельца"/>
+                                                                <controls:NriOptionField AutomationProperties.AutomationId="AdminCharacterEditor_Companion_Type" Margin="0,6,0,0" ItemsSource="{Binding CompanionTypeOptions}" SelectedValuePath="Value" SelectedValue="{Binding CompanionTypeInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="DisplayName" AccessibleName="Тип компаньона"/>
+                                                                <controls:NriReferencePicker AutomationIdPrefix="AdminCharacterEditor_Companion_Owner" AutomationProperties.Name="Владелец компаньона" Options="{Binding CharacterOwnerOptions}" SelectedId="{Binding CompanionOwnerCharacterIdInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayName="{Binding CompanionOwnerDisplayNameInput, TargetNullValue=Владелец не выбран}" ToolTip="Выберите персонажа-владельца"/>
                                                                 <TextBox Margin="0,6,0,0" Text="{Binding CompanionOwnerDisplayNameInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Владелец"/>
-                                                                <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_Companion_StatusField" Margin="0,6,0,0" Text="{Binding CompanionStatusInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Статус"/>
+                                                                <controls:NriOptionField AutomationProperties.AutomationId="AdminCharacterEditor_Companion_StatusField" Margin="0,6,0,0" ItemsSource="{Binding CompanionStatusOptions}" SelectedValuePath="Value" SelectedValue="{Binding CompanionStatusInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="DisplayName" AccessibleName="Статус компаньона"/>
                                                                 <TextBlock AutomationProperties.AutomationId="AdminCharacterEditor_Companion_Status" Text="{Binding CompanionStatusInput, StringFormat=Статус: {0}}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
                                                                 <TextBox Margin="0,6,0,0" Height="70" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding CompanionDescriptionInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание"/>
                                                                 <TextBox Margin="0,6,0,0" Height="55" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding CompanionNotesInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Заметки"/>
@@ -1249,7 +1242,7 @@
                                             <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,8">
                                                 <StackPanel>
                                                     <TextBlock Text="Player Preview" Style="{StaticResource TitleTextStyle}"/>
-                                                    <TextBlock Text="Предпросмотр для игрока без заметок GM, сырого payload и ServerOnlyData." Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                                                    <TextBlock Text="Предпросмотр для игрока без заметок GM, служебных данных." Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
                                                     <Button HorizontalAlignment="Left" Content="Открыть player-safe вид" Command="{Binding CharacterCard.SwitchToPlayerPreviewModeCommand}"/>
                                                 </StackPanel>
                                             </Border>
@@ -1261,5 +1254,6 @@
                             </DockPanel>
                             </ScrollViewer>
                         </Grid>
+    </Grid>
 </UserControl>
 

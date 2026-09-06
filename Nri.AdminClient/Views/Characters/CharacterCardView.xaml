@@ -46,7 +46,6 @@
 
                 <StackPanel Grid.Column="1" Margin="12,0,12,0">
                     <TextBlock Text="{Binding DisplayName}" FontSize="24" FontWeight="Bold"/>
-                    <TextBlock Text="{Binding CharacterId}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
                     <WrapPanel Margin="0,8,0,0">
                         <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0" Padding="8,4">
                             <TextBlock Text="{Binding RaceSummary}"/>
@@ -56,6 +55,10 @@
                         </Border>
                         <Border Style="{StaticResource SubtleCardStyle}" Padding="8,4">
                             <TextBlock Text="{Binding PlayerOwner}"/>
+                        </Border>
+                        <Border Style="{StaticResource SubtleCardStyle}" Margin="8,0,0,0" Padding="8,4">
+                            <TextBlock Text="{Binding SelectedTitleDisplay, StringFormat=Титул: {0}}"
+                                       AutomationProperties.AutomationId="AdminCharacterCard_SelectedTitle"/>
                         </Border>
                     </WrapPanel>
 
@@ -81,7 +84,7 @@
                         </Border>
                         <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}" Margin="6,0,0,0">
                             <StackPanel>
-                                <TextBlock Text="Vitals / Combat" Style="{StaticResource TitleTextStyle}"/>
+                                <TextBlock Text="Жизненные и боевые показатели" Style="{StaticResource TitleTextStyle}"/>
                                 <ItemsControl ItemsSource="{Binding DerivedStats}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -132,16 +135,13 @@
                             <ColumnDefinition Width="2*"/>
                             <ColumnDefinition Width="1*"/>
                         </Grid.ColumnDefinitions>
-                        <DataGrid ItemsSource="{Binding Classes}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="130">
+                        <DataGrid Grid.ColumnSpan="2" ItemsSource="{Binding Classes}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="130">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Класс" Binding="{Binding Name}" Width="*"/>
                                 <DataGridTextColumn Header="Состояние" Binding="{Binding State}" Width="140"/>
                                 <DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="2*"/>
                             </DataGrid.Columns>
                         </DataGrid>
-                        <Border Grid.Column="1" Background="#FF1E293B" CornerRadius="8" Padding="12" Margin="8,0,0,0">
-                            <TextBlock Text="Hexagon развития будет добавлен позднее" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
                     </Grid>
                 </TabItem>
                 <TabItem Header="Инвентарь / экипировка">
@@ -165,8 +165,7 @@
                                     <DataGridTextColumn Header="Кол-во" Binding="{Binding QuantityDisplay}" Width="90"/>
                                     <DataGridTextColumn Header="Прочность" Binding="{Binding DurabilityDisplay}" Width="120"/>
                                     <DataGridCheckBoxColumn Header="Экипирован" Binding="{Binding IsEquipped}" Width="100"/>
-                                    <DataGridTextColumn Header="Слот" Binding="{Binding EquipmentSlotId}" Width="130"/>
-                                    <DataGridTextColumn Header="DefinitionId" Binding="{Binding DefinitionId}" Width="180"/>
+                                    <DataGridTextColumn Header="Слот" Binding="{Binding SlotDisplayName}" Width="150"/>
                                     <DataGridTextColumn Header="Теги" Binding="{Binding Tags}" Width="2*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
@@ -199,16 +198,16 @@
                                     <DataGrid ItemsSource="{Binding InventoryDiagnosticsSections}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="170">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="Секция" Binding="{Binding Name}" Width="*"/>
-                                            <DataGridTextColumn Header="Valid" Binding="{Binding State}" Width="80"/>
+                                            <DataGridTextColumn Header="Состояние" Binding="{Binding State}" Width="100"/>
                                             <DataGridTextColumn Header="Сводка" Binding="{Binding Extra}" Width="2*"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                     <DataGrid Grid.Column="1" ItemsSource="{Binding InventoryDiagnosticsIssues}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="170" Margin="8,0,0,0">
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="Severity" Binding="{Binding Severity}" Width="90"/>
-                                            <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="150"/>
-                                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="2*"/>
-                                            <DataGridTextColumn Header="Item" Binding="{Binding ItemInstanceId}" Width="160"/>
+                                            <DataGridTextColumn Header="Уровень" Binding="{Binding Severity}" Width="90"/>
+                                            <DataGridTextColumn Header="Код" Binding="{Binding Code}" Width="150"/>
+                                            <DataGridTextColumn Header="Сообщение" Binding="{Binding Message}" Width="2*"/>
+                                            <DataGridTextColumn Header="Экземпляр предмета" Binding="{Binding ItemInstanceId}" Width="180"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </Grid>

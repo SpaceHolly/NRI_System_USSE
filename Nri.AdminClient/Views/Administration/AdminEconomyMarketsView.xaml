@@ -1,36 +1,37 @@
 <UserControl x:Class="Nri.AdminClient.Views.Administration.AdminEconomyMarketsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Border Style="{StaticResource CardStyle}" Margin="8" Padding="22">
-            <StackPanel>
-                <TextBlock Text="Экономика / рынки" Style="{StaticResource SectionTitleTextStyle}" FontSize="22"/>
-                <TextBlock Text="Статус: недоступно / отложено" Style="{StaticResource TitleTextStyle}" Margin="0,12,0,0"/>
-                <TextBlock Text="Экономическая симуляция, рынки, цены и законы не являются Working MVP ветки 0.14. Финансы персонажа остаются в карточке персонажа и не смешиваются с этим модулем."
-                           Foreground="{StaticResource TextSecondaryBrush}"
-                           TextWrapping="Wrap"
-                           Margin="0,8,0,0"/>
-                <UniformGrid Columns="3" Margin="0,18,0,0">
-                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0">
-                        <StackPanel>
-                            <TextBlock Text="Причина" Style="{StaticResource TitleTextStyle}"/>
-                            <TextBlock Text="Для рынков нужен отдельный доменный слой и acceptance." TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0">
-                        <StackPanel>
-                            <TextBlock Text="Целевой этап" Style="{StaticResource TitleTextStyle}"/>
-                            <TextBlock Text="post-1.0 или отдельный этап" TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource SubtleCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Действия" Style="{StaticResource TitleTextStyle}"/>
-                            <TextBlock Text="Рабочие кнопки скрыты до готовности модуля." TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                </UniformGrid>
-            </StackPanel>
-        </Border>
-    </ScrollViewer>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminEconomy_Route">
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <controls:NriPageHeader Grid.Row="0"
+                                Title="Экономика и рынки"
+                                Subtitle="Справочник экономики и рынков"
+                                StatusText="Недоступно в текущем профиле сервера"
+                                AutomationProperties.AutomationId="AdminEconomy_Header"
+                                Margin="8,8,8,0"/>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <Border Style="{StaticResource CardStyle}" Margin="8" Padding="22">
+                <StackPanel>
+                    <TextBlock Text="Экономика и рынки" Style="{StaticResource SectionTitleTextStyle}" FontSize="22"/>
+        <controls:NriRouteStateHost State="{Binding EconomyRouteState, Mode=OneWay}" ActiveStates="unavailable" Panel.ZIndex="10" AutomationProperties.AutomationId="AdminEconomy_StateHost">
+                        <controls:NriRouteStatePresenter State="{Binding EconomyRouteState}" VisibleFor="unavailable">
+                    <TextBlock AutomationProperties.AutomationId="AdminEconomy_UnavailableState"
+                               Visibility="Visible"
+                               Text="{Binding EconomyUnavailableStateMessage}"
+                               Style="{StaticResource TitleTextStyle}"
+                               Margin="0,12,0,0"
+                               TextWrapping="Wrap"/>
+                        </controls:NriRouteStatePresenter>
+                    </controls:NriRouteStateHost>
+                    <TextBlock AutomationProperties.AutomationId="AdminEconomy_UnavailableExplanation"
+                               Text="Редактор появится после подключения зарегистрированного серверного профиля. Кошелёк персонажа остаётся отдельным разделом."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,8,0,0"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

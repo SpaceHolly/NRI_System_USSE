@@ -35,7 +35,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope AudioModeSet(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         var sessionId = ReadAudioSessionId(context.Request.Payload);
         var modeRaw = FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "mode"), SessionAudioMode.Manual.ToString());
         var categoryRaw = FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "category"), "custom");
@@ -58,7 +58,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope AudioOverrideClear(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         var sessionId = ReadAudioSessionId(context.Request.Payload);
         var state = EnsureAudioState(sessionId, actor.Id);
         state.Mode = SessionAudioMode.Auto;
@@ -89,7 +89,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope AudioTrackSelect(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         var sessionId = ReadAudioSessionId(context.Request.Payload);
         var trackId = RequireLength(PayloadReader.GetString(context.Request.Payload, "trackId"), 1, 128, "trackId");
         var playRequest = new Dictionary<string, object>(context.Request.Payload ?? new Dictionary<string, object>())
@@ -102,13 +102,13 @@ public partial class ServiceHub
 
     public ResponseEnvelope AudioTrackNext(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         return NextTrack(actor, context.Request.Payload ?? new Dictionary<string, object>());
     }
 
     public ResponseEnvelope AudioTrackReload(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         EnsureAudioLibraryLoaded(force: true);
         WriteAudit("audio", actor.Id, "track.reload", "library");
         _logger.Admin($"audio.library.reload actor={actor.Login}");
@@ -172,7 +172,7 @@ public partial class ServiceHub
     public ResponseEnvelope AudioAdminTracksList(CommandContext context)
     {
         if (!AudioAdminEnabled()) return AudioDisabled(context.Request.Command);
-        RequireAdmin(context);
+        GetCurrentAccount(context);
         EnsureAudioLibraryLoaded();
         var includeArchived = PayloadReader.GetBool(context.Request.Payload, "includeArchived");
         var tracks = _repositories.AudioTracks.Find(FilterDefinition<AudioTrackDefinition>.Empty)
@@ -186,7 +186,7 @@ public partial class ServiceHub
     public ResponseEnvelope AudioAdminTracksCreateOrUpdate(CommandContext context)
     {
         if (!AudioAdminEnabled()) return AudioDisabled(context.Request.Command);
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var trackId = FirstNonEmpty(PayloadReader.GetString(payload, "trackId"), PayloadReader.GetString(payload, "id"));
         var existing = string.IsNullOrWhiteSpace(trackId) ? null : FindAudioTrack(trackId);
@@ -229,7 +229,7 @@ public partial class ServiceHub
     public ResponseEnvelope AudioAdminStateGet(CommandContext context)
     {
         if (!AudioAdminEnabled()) return AudioDisabled(context.Request.Command);
-        RequireAdmin(context);
+        GetCurrentAccount(context);
         var state = EnsureAudioState(ReadAudioSessionId(context.Request.Payload), null);
         return Ok("Admin audio state loaded.", AudioStatePayload(state, playerSafe: false));
     }
@@ -237,14 +237,14 @@ public partial class ServiceHub
     public ResponseEnvelope AudioAdminStatePlay(CommandContext context)
     {
         if (!AudioAdminEnabled()) return AudioDisabled(context.Request.Command);
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         return PlayTrack(actor, context.Request.Payload ?? new Dictionary<string, object>(), "audio.track.played");
     }
 
     public ResponseEnvelope AudioAdminStatePause(CommandContext context)
     {
         if (!AudioAdminEnabled()) return AudioDisabled(context.Request.Command);
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         var state = EnsureAudioState(ReadAudioSessionId(context.Request.Payload), actor.Id);
         state.PositionSeconds = ResolvePositionSeconds(state);
         state.StartOffsetSeconds = state.PositionSeconds;
@@ -260,7 +260,7 @@ public partial class ServiceHub
     public ResponseEnvelope AudioAdminStateStop(CommandContext context)
     {
         if (!AudioAdminEnabled()) return AudioDisabled(context.Request.Command);
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         var state = EnsureAudioState(ReadAudioSessionId(context.Request.Payload), actor.Id);
         state.PositionSeconds = 0;
         state.StartOffsetSeconds = 0;
@@ -276,14 +276,14 @@ public partial class ServiceHub
     public ResponseEnvelope AudioAdminStateNext(CommandContext context)
     {
         if (!AudioAdminEnabled()) return AudioDisabled(context.Request.Command);
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         return NextTrack(actor, context.Request.Payload ?? new Dictionary<string, object>());
     }
 
     public ResponseEnvelope AudioAdminStateSetCategory(CommandContext context)
     {
         if (!AudioAdminEnabled()) return AudioDisabled(context.Request.Command);
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         if (!TryNormalizeAudioCategory(FirstNonEmpty(PayloadReader.GetString(payload, "category"), "custom"), out var category)) return AudioValidation("Unsupported audio category.");
         var state = EnsureAudioState(ReadAudioSessionId(payload), actor.Id);
@@ -303,7 +303,7 @@ public partial class ServiceHub
     public ResponseEnvelope AudioAdminStateSetLoopMode(CommandContext context)
     {
         if (!AudioAdminEnabled()) return AudioDisabled(context.Request.Command);
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var loopMode = NormalizeLoopMode(PayloadReader.GetString(payload, "loopMode"));
         if (loopMode == null) return AudioValidation("Unsupported audio loop mode.");
@@ -317,7 +317,7 @@ public partial class ServiceHub
     public ResponseEnvelope AudioAdminStateSetFade(CommandContext context)
     {
         if (!AudioAdminEnabled()) return AudioDisabled(context.Request.Command);
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var fade = PayloadReader.GetDouble(payload, "fadeSeconds") ?? 1.8;
         if (fade < 0 || fade > 30) return AudioValidation("fadeSeconds must be between 0 and 30.");
@@ -332,7 +332,7 @@ public partial class ServiceHub
     public ResponseEnvelope AudioAdminStateResync(CommandContext context)
     {
         if (!AudioAdminEnabled()) return AudioDisabled(context.Request.Command);
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         var state = EnsureAudioState(ReadAudioSessionId(context.Request.Payload), actor.Id);
         TouchAudioState(state, actor);
         SaveAudioState(state);

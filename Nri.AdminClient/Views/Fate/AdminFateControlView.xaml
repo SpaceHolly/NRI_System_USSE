@@ -1,7 +1,9 @@
 <UserControl x:Class="Nri.AdminClient.Views.Fate.AdminFateControlView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:AutomationProperties="clr-namespace:System.Windows.Automation;assembly=UIAutomationTypes">
+             xmlns:AutomationProperties="clr-namespace:System.Windows.Automation;assembly=UIAutomationTypes"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminFate_OperationalHost">
     <Grid Margin="8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -26,10 +28,6 @@
                             AutomationProperties.AutomationId="FateControl_Refresh_Button"
                             Style="{StaticResource GhostButtonStyle}"
                             Command="{Binding RefreshCommand}"/>
-                    <Button Content="Подготовить acceptance"
-                            AutomationProperties.AutomationId="FateControl_SeedAcceptance_Button"
-                            Style="{StaticResource GhostButtonStyle}"
-                            Command="{Binding SeedAcceptanceCommand}"/>
                     <Button Content="Сохранить состояние"
                             AutomationProperties.AutomationId="FateControl_SaveState_Button"
                             Command="{Binding SaveStateCommand}"/>
@@ -51,13 +49,16 @@
                         <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,8,0"
                                 AutomationProperties.AutomationId="FateControl_Panel_EngineState">
                             <StackPanel>
-                                <TextBlock Text="Engine State" Style="{StaticResource TitleTextStyle}"/>
+                                <TextBlock Text="Состояние движка" Style="{StaticResource TitleTextStyle}"/>
                                 <CheckBox Content="Fate Engine включён"
                                           AutomationProperties.AutomationId="FateControl_EngineEnabled"
                                           IsChecked="{Binding EngineEnabled, Mode=TwoWay}"/>
                                 <TextBlock Text="Активный профиль" Margin="0,8,0,2"/>
-                                <TextBox AutomationProperties.AutomationId="FateControl_ActiveProfile"
-                                         Text="{Binding ActiveProfileId, UpdateSourceTrigger=PropertyChanged}"/>
+                                <ComboBox AutomationProperties.AutomationId="FateControl_ActiveProfile"
+                                          ItemsSource="{Binding Profiles}"
+                                          DisplayMemberPath="Name"
+                                          SelectedValuePath="Id"
+                                          SelectedValue="{Binding ActiveProfileId, Mode=TwoWay}"/>
                                 <TextBlock Text="Местность" Margin="0,8,0,2"/>
                                 <ComboBox AutomationProperties.AutomationId="FateControl_TerrainProfile"
                                           ItemsSource="{Binding TerrainOptions}"
@@ -72,7 +73,7 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Text="Active Profile" Style="{StaticResource TitleTextStyle}"/>
+                                <TextBlock Text="Доступные профили" Style="{StaticResource TitleTextStyle}"/>
                                 <DataGrid Grid.Row="1"
                                           ItemsSource="{Binding Profiles}"
                                           AutoGenerateColumns="False"
@@ -80,7 +81,6 @@
                                           MinHeight="220"
                                           Margin="0,8,0,0">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="ProfileId" Binding="{Binding Id}" Width="1.2*"/>
                                         <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.4*"/>
                                         <DataGridTextColumn Header="Описание" Binding="{Binding Extra}" Width="2*"/>
                                     </DataGrid.Columns>
@@ -97,11 +97,23 @@
                                     <TextBox Text="{Binding SimulationBaseRoll, UpdateSourceTrigger=PropertyChanged}"/>
                                     <TextBlock Text="Зерно"/>
                                     <TextBox Text="{Binding SimulationSeed, UpdateSourceTrigger=PropertyChanged}"/>
-                                    <TextBlock Text="ID персонажа"/>
-                                    <TextBox Text="{Binding SimulationCharacterId, UpdateSourceTrigger=PropertyChanged}"/>
-                                    <TextBlock Text="ID навыка"/>
-                                    <TextBox Text="{Binding SimulationSkillId, UpdateSourceTrigger=PropertyChanged}"/>
                                 </UniformGrid>
+                                <Expander Header="Технические параметры симуляции" Margin="0,8,0,0">
+                                    <StackPanel Margin="0,8,0,0">
+                                        <TextBlock Text="Персонаж" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBox AutomationProperties.AutomationId="AdminFate_Advanced_SimulationCharacterId" Text="{Binding SimulationCharacterId, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="Технический ключ тестового персонажа"/>
+                                        <TextBlock Text="Навык" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/>
+                                        <TextBox AutomationProperties.AutomationId="AdminFate_Advanced_SimulationSkillId" Text="{Binding SimulationSkillId, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="Технический ключ навыка"/>
+                                        <Button Content="Подготовить тестовые данные"
+                                                AutomationProperties.AutomationId="FateControl_SeedAcceptance_Button"
+                                                Style="{StaticResource GhostButtonStyle}"
+                                                Command="{Binding SeedAcceptanceCommand}"
+                                                HorizontalAlignment="Left"
+                                                Margin="0,8,0,0"/>
+                                    </StackPanel>
+                                </Expander>
                                 <Button Content="Запустить симуляцию"
                                         AutomationProperties.AutomationId="FateControl_RunSimulation_Button"
                                         Command="{Binding RunSimulationCommand}"
@@ -160,9 +172,8 @@
                                       IsReadOnly="True"
                                       Margin="0,8,0,0">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="RuleId" Binding="{Binding Id}" Width="1.4*"/>
-                                    <DataGridTextColumn Header="Источник" Binding="{Binding Name}" Width="1*"/>
-                                    <DataGridTextColumn Header="Token GM" Binding="{Binding Extra}" Width="1.6*"/>
+                                    <DataGridTextColumn Header="Правило" Binding="{Binding Name}" Width="1.2*"/>
+                                    <DataGridTextColumn Header="Условие и результат" Binding="{Binding Extra}" Width="2*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Grid>
@@ -183,7 +194,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Text="Recent Roll Logs" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="История бросков" Style="{StaticResource TitleTextStyle}"/>
                             <DataGrid Grid.Row="1"
                                       AutomationProperties.AutomationId="FateControl_RecentRolls_List"
                                       ItemsSource="{Binding RecentRolls}"
@@ -192,11 +203,10 @@
                                       IsReadOnly="True"
                                       Margin="0,8,0,0">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="RollId" Binding="{Binding RollId}" Width="1.5*"/>
                                     <DataGridTextColumn Header="Тип" Binding="{Binding RollType}" Width="0.8*"/>
                                     <DataGridTextColumn Header="Кто бросил" Binding="{Binding Actor}" Width="1*"/>
-                                    <DataGridTextColumn Header="Base" Binding="{Binding BaseResult}" Width="0.6*"/>
-                                    <DataGridTextColumn Header="Final" Binding="{Binding FinalResult}" Width="0.6*"/>
+                                    <DataGridTextColumn Header="База" Binding="{Binding BaseResult}" Width="0.6*"/>
+                                    <DataGridTextColumn Header="Итог" Binding="{Binding FinalResult}" Width="0.6*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Grid>
@@ -204,14 +214,14 @@
                     <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12"
                             AutomationProperties.AutomationId="FateControl_Panel_RollDetail">
                         <StackPanel>
-                            <TextBlock Text="Roll Detail" Style="{StaticResource TitleTextStyle}"/>
-                            <TextBlock Text="Base result"/>
+                            <TextBlock Text="Детали броска" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="Базовый результат"/>
                             <TextBox AutomationProperties.AutomationId="FateControl_SelectedRoll_BaseResult" IsReadOnly="True" Text="{Binding SelectedRollBaseResult, Mode=OneWay}"/>
-                            <TextBlock Text="Final result" Margin="0,8,0,0"/>
+                            <TextBlock Text="Итоговый результат" Margin="0,8,0,0"/>
                             <TextBox AutomationProperties.AutomationId="FateControl_SelectedRoll_FinalResult" IsReadOnly="True" Text="{Binding SelectedRollFinalResult, Mode=OneWay}"/>
-                            <TextBlock Text="Modifiers" Margin="0,8,0,0"/>
+                            <TextBlock Text="Модификаторы" Margin="0,8,0,0"/>
                             <TextBox AutomationProperties.AutomationId="FateControl_SelectedRoll_Modifiers" IsReadOnly="True" TextWrapping="Wrap" MinHeight="90" Text="{Binding SelectedRollModifiers, Mode=OneWay}"/>
-                            <TextBlock Text="Layers" Margin="0,8,0,0"/>
+                            <TextBlock Text="Слои" Margin="0,8,0,0"/>
                             <TextBox AutomationProperties.AutomationId="FateControl_SelectedRoll_Layers" IsReadOnly="True" TextWrapping="Wrap" MinHeight="90" Text="{Binding SelectedRollLayers, Mode=OneWay}"/>
                         </StackPanel>
                     </Border>
@@ -237,11 +247,10 @@
                                       AutoGenerateColumns="False"
                                       MinHeight="320">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="PanelId" Binding="{Binding PanelId}" Width="1.2*"/>
                                     <DataGridTextColumn Header="Панель" Binding="{Binding DisplayName}" Width="1.4*"/>
                                     <DataGridCheckBoxColumn Header="Видна" Binding="{Binding IsVisible, Mode=TwoWay}" Width="0.6*"/>
-                                    <DataGridTextColumn Header="Dock" Binding="{Binding DockArea, Mode=TwoWay}" Width="0.8*"/>
-                                    <DataGridTextColumn Header="Order" Binding="{Binding Order}" Width="0.5*"/>
+                                    <DataGridTextColumn Header="Область" Binding="{Binding DockArea, Mode=TwoWay}" Width="0.8*"/>
+                                    <DataGridTextColumn Header="Порядок" Binding="{Binding Order}" Width="0.5*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                             <ItemsControl Grid.Row="1"
@@ -271,11 +280,8 @@
                     </Border>
                     <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12">
                         <StackPanel>
-                            <TextBlock Text="Layout Editor" Style="{StaticResource TitleTextStyle}"/>
-                            <TextBlock Text="Выбранная панель" Margin="0,8,0,2"/>
-                            <TextBox AutomationProperties.AutomationId="FateControl_SelectedPanelId_Input"
-                                     Text="{Binding SelectedPanelId, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBlock Text="Dock area" Margin="0,8,0,2"/>
+                            <TextBlock Text="Раскладка пульта" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="Область размещения" Margin="0,8,0,2"/>
                             <ComboBox AutomationProperties.AutomationId="FateControl_DockArea_Selector"
                                       ItemsSource="{Binding DockAreaOptions}"
                                       SelectedItem="{Binding SelectedPanel.DockArea, Mode=TwoWay}"/>
@@ -293,6 +299,14 @@
                                         Style="{StaticResource GhostButtonStyle}"
                                         Command="{Binding TogglePanelVisibilityCommand}"/>
                             </WrapPanel>
+                            <Expander Header="Технические сведения" Margin="0,10,0,0">
+                                <StackPanel Margin="0,8,0,0">
+                                    <TextBlock Text="Ключ выбранной панели" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBox AutomationProperties.AutomationId="FateControl_SelectedPanelId_Input"
+                                             IsReadOnly="True"
+                                             Text="{Binding SelectedPanelId, Mode=OneWay}"/>
+                                </StackPanel>
+                            </Expander>
                             <WrapPanel Margin="0,10,0,0">
                                 <Button Content="Сохранить раскладку"
                                         AutomationProperties.AutomationId="FateControl_SaveLayout_Button"
@@ -319,4 +333,5 @@
                        TextWrapping="Wrap"/>
         </Border>
     </Grid>
+    </patterns:NriOperationalWorkspaceHost>
 </UserControl>

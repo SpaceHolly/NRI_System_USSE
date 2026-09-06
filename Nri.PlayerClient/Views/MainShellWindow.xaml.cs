@@ -9,7 +9,6 @@ namespace Nri.PlayerClient.Views;
 public partial class MainShellWindow : Window
 {
     private ChatWindow? _chatWindow;
-    private CharacterCreateWindow? _characterCreateWindow;
 
     public MainShellWindow()
     {
@@ -49,7 +48,6 @@ public partial class MainShellWindow : Window
     {
         ClientLogService.Instance.Info("Main window closing (Player)");
         _chatWindow?.Close();
-        _characterCreateWindow?.Close();
         if (DataContext is PlayerMainViewModel vm)
         {
             vm.Shutdown();
@@ -72,18 +70,4 @@ public partial class MainShellWindow : Window
         }
     }
 
-    private void OpenCharacterCreateWindow(object sender, RoutedEventArgs e)
-    {
-        if (_characterCreateWindow == null || !_characterCreateWindow.IsLoaded)
-        {
-            _characterCreateWindow = new CharacterCreateWindow { Owner = this, DataContext = DataContext };
-            _characterCreateWindow.Closed += (_, _) => _characterCreateWindow = null;
-            ClientLogService.Instance.Info("ui.window.open player.characterCreate.detached");
-            _characterCreateWindow.Show();
-        }
-        else
-        {
-            _characterCreateWindow.Activate();
-        }
-    }
 }

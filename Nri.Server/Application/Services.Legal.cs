@@ -1194,7 +1194,7 @@ public partial class ServiceHub
     {
         if (LegalFlag(nameof(LegalFeatureFlags.UseLegalSyncEvents)))
         {
-            _syncEvents.Publish(eventType, SyncScopes.Global, "legal", entityId, "changed", string.Empty, new Dictionary<string, object>
+            _syncEvents.PublishCampaign(campaignId, eventType, "legal", entityId, "changed", string.Empty, new Dictionary<string, object>
             {
                 ["campaignId"] = campaignId,
                 ["summary"] = summary,

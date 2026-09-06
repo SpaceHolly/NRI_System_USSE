@@ -59,6 +59,17 @@ public partial class ServiceHub
         map.UpdatedByUserId = actor.Id;
         map.Tags = new List<string> { "0.14.55", "world-map-viewer-mvp" };
         _repositories.WorldMaps.UpsertAsync(map).GetAwaiter().GetResult();
+        var identityProjection = new BsonDocument
+        {
+            ["_id"] = map.Id, ["Id"] = map.Id, ["DisplayName"] = map.Name, ["Description"] = map.Description,
+            ["CampaignId"] = map.CampaignId, ["RuleSetId"] = map.RuleSetId, ["SpaceNodeId"] = map.SpaceNodeId,
+            ["WidthUnits"] = (int)Math.Round(map.WidthCells * (map.CellSizeKm ?? 1d)),
+            ["HeightUnits"] = (int)Math.Round(map.HeightCells * (map.CellSizeKm ?? 1d)),
+            ["GridSizeUnits"] = (int)Math.Max(1d, map.CellSizeKm ?? 1d), ["IsArchived"] = false
+        };
+        var canonical = CanonicalWorldFromProjection0202(identityProjection, map.Id);
+        var savedCanonical = _repositories.MapCanvases.UpsertAsync(canonical).GetAwaiter().GetResult();
+        _mapIdentityResolver.SynchronizeWorldProjection(savedCanonical, map.Id, actor.Id, identityProjection);
 
         SeedWorldMapMvpLayers(map, actor.Id);
         SeedWorldMapMvpMarkers(map, actor.Id);
@@ -102,8 +113,12 @@ public partial class ServiceHub
         var mapId = FirstNonEmptyWorld(PayloadReader.GetString(payload, "mapId"), WorldMapMvp01455MapId);
         var includeHidden = !payload.ContainsKey("includeHidden") || PayloadReader.GetBool(payload, "includeHidden");
         var map = _repositories.WorldMaps.GetByIdAsync(mapId).GetAwaiter().GetResult();
-        if (map == null || map.Deleted || map.Archived || map.IsArchived)
+        if (map == null)
+        {
+            if (TryWorldMapAdminGet0161(context, out var response0161)) return response0161;
             return Error("world map not found", ResponseStatus.NotFound, ErrorCode.NotFound);
+        }
+        if (map.Deleted || map.Archived || map.IsArchived) return Error("world map not found", ResponseStatus.NotFound, ErrorCode.NotFound);
 
         return Ok("World Map viewer loaded.", BuildWorldMapViewerPayload(map, admin: true, includeHidden: includeHidden));
     }

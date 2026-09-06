@@ -25,6 +25,7 @@ public interface IFeatureFlagProvider
 public sealed class FeatureFlagSnapshot
 {
     public string Environment { get; set; } = string.Empty;
+    public string ProfileName { get; set; } = FeatureProfiles.MinimalSafe;
     public bool OverridesAllowed { get; set; }
     public List<FeatureFlagSnapshotItem> Flags { get; set; } = new List<FeatureFlagSnapshotItem>();
 }
@@ -32,6 +33,7 @@ public sealed class FeatureFlagSnapshot
 public sealed class FeatureFlagSnapshotItem
 {
     public string Name { get; set; } = string.Empty;
+    public string CanonicalKey { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public bool DefaultValue { get; set; }
     public bool EffectiveValue { get; set; }
@@ -39,6 +41,9 @@ public sealed class FeatureFlagSnapshotItem
     public string Description { get; set; } = string.Empty;
     public DateTime? UpdatedAtUtc { get; set; }
     public string UpdatedByUserId { get; set; } = string.Empty;
+    public List<string> Aliases { get; set; } = new List<string>();
+    public bool AliasesDeprecated { get; set; } = true;
+    public string IntendedPreReleaseState { get; set; } = "intentionally_disabled";
 }
 
 public sealed class RuntimeFeatureFlagProvider : IFeatureFlagProvider
@@ -68,8 +73,8 @@ public sealed class RuntimeFeatureFlagProvider : IFeatureFlagProvider
         _databaseOverrides = databaseOverrides;
         _databaseOverrideDocuments = databaseOverrideDocuments;
         _definitions = BuildDefinitions(_environment);
-        _configOverrides = NormalizeOverrides(config.FeatureFlagOverrides);
-        _envOverrides = ReadEnvironmentOverrides(_definitions.Keys);
+        _configOverrides = NormalizeOverrides(config.FeatureFlagOverrides, "config");
+        _envOverrides = ReadEnvironmentOverrides();
 
         if (!_configOverridesAllowed && (_configOverrides.Count > 0 || _envOverrides.Count > 0))
             _logger.Admin($"feature_flags.overrides_ignored environment={_environment} configCount={_configOverrides.Count} envCount={_envOverrides.Count}");
@@ -124,6 +129,7 @@ public sealed class RuntimeFeatureFlagProvider : IFeatureFlagProvider
         return new FeatureFlagSnapshot
         {
             Environment = _environment,
+            ProfileName = IsDevelopmentOrTest(_environment) ? FeatureProfiles.DevelopmentIntegrated : FeatureProfiles.MinimalSafe,
             OverridesAllowed = _databaseOverridesAllowed,
             Flags = items
         };
@@ -222,13 +228,21 @@ public sealed class RuntimeFeatureFlagProvider : IFeatureFlagProvider
         return new FeatureFlagSnapshotItem
         {
             Name = definition.CanonicalName,
+            CanonicalKey = definition.CanonicalName,
             Category = definition.Category,
             DefaultValue = definition.DefaultValue,
             EffectiveValue = effective,
             Source = source,
             Description = definition.Description,
             UpdatedAtUtc = updatedAt,
-            UpdatedByUserId = updatedBy
+            UpdatedByUserId = updatedBy,
+            Aliases = _definitions.Values
+                .Where(x => !x.IsCanonical && string.Equals(x.CanonicalName, definition.CanonicalName, StringComparison.OrdinalIgnoreCase))
+                .Select(x => x.Name)
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            AliasesDeprecated = true,
+            IntendedPreReleaseState = definition.DefaultValue ? "enabled_by_default" : "intentionally_disabled"
         };
     }
 
@@ -381,6 +395,7 @@ public sealed class RuntimeFeatureFlagProvider : IFeatureFlagProvider
         AddDefinitions(definitions, "Audio", typeof(AudioFeatureFlags));
         AddDefinitions(definitions, "Fate", typeof(FateFeatureFlags));
         AddDefinitions(definitions, "Projects", typeof(ProjectFoundationFeatureFlags));
+        AddDefinitions(definitions, "Projects", typeof(UnifiedProjectRuntimeFeatureFlags));
         AddDefinitions(definitions, "KnowledgeResearch", typeof(KnowledgeResearchFeatureFlags));
         AddDefinitions(definitions, "Development", typeof(DevelopmentFeatureFlags));
         AddDefinitions(definitions, "Crafting", typeof(CraftingFeatureFlags));
@@ -388,6 +403,7 @@ public sealed class RuntimeFeatureFlagProvider : IFeatureFlagProvider
         AddDefinitions(definitions, "Production", typeof(ProductionFeatureFlags));
         AddDefinitions(definitions, "Manufacturing", typeof(ManufacturingFeatureFlags));
         AddDefinitions(definitions, "ClientFunctionalization", typeof(ClientFunctionalizationFeatureFlags));
+        AddDefinitions(definitions, "LiveActor", typeof(LiveActorFeatureFlags));
         AddDefinitions(definitions, "Legal", typeof(LegalFeatureFlags));
         AddDefinitions(definitions, "Proposals", typeof(ProposalFeatureFlags));
         AddEnvironmentSpecificDefinitions(definitions, environment);
@@ -435,27 +451,36 @@ public sealed class RuntimeFeatureFlagProvider : IFeatureFlagProvider
         };
     }
 
-    private static Dictionary<string, bool> NormalizeOverrides(Dictionary<string, bool> overrides)
+    private Dictionary<string, bool> NormalizeOverrides(Dictionary<string, bool> overrides, string source)
     {
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         foreach (var pair in overrides ?? new Dictionary<string, bool>())
         {
-            var key = NormalizeKey(pair.Key);
-            if (!string.IsNullOrWhiteSpace(key)) result[key] = pair.Value;
+            var definition = ResolveDefinition(pair.Key);
+            if (definition == null) continue;
+            var key = NormalizeKey(definition.CanonicalName);
+            if (result.TryGetValue(key, out var existing) && existing != pair.Value)
+                throw new InvalidOperationException($"Feature flag alias conflict in {source}: {definition.CanonicalName} has conflicting values.");
+            result[key] = pair.Value;
         }
 
         return result;
     }
 
-    private static Dictionary<string, bool> ReadEnvironmentOverrides(IEnumerable<string> knownKeys)
+    private Dictionary<string, bool> ReadEnvironmentOverrides()
     {
         var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-        foreach (var key in knownKeys.Distinct(StringComparer.OrdinalIgnoreCase))
+        foreach (var definition in _definitions.Values)
         {
-            var envName = EnvPrefix + key.Replace(".", "__");
+            var envName = EnvPrefix + definition.Name.Replace(".", "__");
             var raw = Environment.GetEnvironmentVariable(envName);
             if (bool.TryParse(raw, out var value))
-                result[key] = value;
+            {
+                var canonical = NormalizeKey(definition.CanonicalName);
+                if (result.TryGetValue(canonical, out var existing) && existing != value)
+                    throw new InvalidOperationException($"Feature flag alias conflict in environment: {definition.CanonicalName} has conflicting values.");
+                result[canonical] = value;
+            }
         }
 
         return result;

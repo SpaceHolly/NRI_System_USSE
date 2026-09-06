@@ -129,6 +129,21 @@ public partial class ServiceHub
         var definition = RequireKnowledgeDefinition(context);
         var entityType = NormalizeKnowledgeEntityType(PayloadReader.GetString(context.Request.Payload, "entityType"));
         var entityId = RequireLength(PayloadReader.GetString(context.Request.Payload, "entityId"), 1, 128, "entityId");
+        var profileTopic = ResolveCharacterKnowledgeTopicForGrant0194(
+            entityType,
+            PayloadReader.GetString(context.Request.Payload, "profileTopic"));
+        if (!string.IsNullOrWhiteSpace(profileTopic))
+        {
+            var profileWrite = _profileNativeWriteService.UnlockKnowledgeTopicProfileNativeAsync(
+                    entityId,
+                    profileTopic,
+                    actor.Id,
+                    context.Request.RequestId ?? string.Empty)
+                .GetAwaiter()
+                .GetResult();
+            if (!profileWrite.ProfileWritten || !profileWrite.UsedProfileNative)
+                throw new InvalidOperationException("Character v2 knowledge profile write failed: " + profileWrite.ErrorMessage);
+        }
         var item = new EntityKnowledgeState
         {
             CampaignId = definition.CampaignId,
@@ -151,11 +166,33 @@ public partial class ServiceHub
             GrantedByUserId = actor.Id,
             UpdatedByUserId = actor.Id
         };
+        if (!string.IsNullOrWhiteSpace(profileTopic))
+            item.ExtraData["characterProfileTopic"] = profileTopic;
         if (string.IsNullOrWhiteSpace(item.VisibilityMode)) item.VisibilityMode = item.IsPlayerVisible ? ProjectVisibilityModeIds.PlayerVisible : ProjectVisibilityModeIds.GmOnly;
         _repositories.EntityKnowledgeStates.Insert(item);
         TryPublishKnowledgeSync(item.CampaignId, "knowledge.entity.granted", "entity_knowledge", item.Id, actor.Id, context.Request.RequestId ?? string.Empty);
         TryWriteKnowledgeJournal(item.CampaignId, "knowledge.entity.granted:" + item.Id, "Knowledge granted", definition.Name, item.PlayerSummary, actor.Id, item.IsPlayerVisible);
         return Ok("Knowledge granted.", new Dictionary<string, object> { { "item", EntityKnowledgePayload(item, includeAdmin: true) } });
+    }
+
+    private string ResolveCharacterKnowledgeTopicForGrant0194(string entityType, string? requestedTopic)
+    {
+        requestedTopic = (requestedTopic ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(requestedTopic))
+            return string.Empty;
+        if (!string.Equals(entityType, KnowledgeEntityTypeIds.Character, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("profileTopic is supported only for Character v2 knowledge grants.");
+
+        var technology = _mongo.ContentDefinitionRecords.Find(
+                Builders<ContentDefinitionRecord>.Filter.Eq(x => x.IsArchived, false)
+                & Builders<ContentDefinitionRecord>.Filter.Eq(x => x.Category, TechnologyRecipeBlueprintProjectDefinitionCategories.Technology)
+                & (Builders<ContentDefinitionRecord>.Filter.Eq(x => x.Id, requestedTopic)
+                   | Builders<ContentDefinitionRecord>.Filter.Eq(x => x.StableKey, requestedTopic)))
+            .FirstOrDefault();
+        if (technology == null)
+            throw new KeyNotFoundException("Canonical technology for Character v2 knowledge grant was not found.");
+
+        return FirstNonEmpty(technology.StableKey, technology.Id);
     }
 
     public ResponseEnvelope EntityKnowledgeUpdate(CommandContext context)

@@ -32,6 +32,7 @@ public interface ICombatActionEconomyService
     Task<CombatActionEconomyResponse> CompleteActionAsync(CombatActionCompleteRequest request, UserAccount actor);
     Task<CombatActionEconomyResponse> CancelActionAsync(CombatActionCancelRequest request, UserAccount actor);
     Task<CombatActionEconomyResponse> SpendActionPointsAsync(CombatActionSpendRequest request, UserAccount actor);
+    Task<CombatActionEconomyResponse> TriggerPreparedActionAsync(CombatPreparedActionTriggerRequest request, UserAccount actor);
     Task<CombatRuntimeValidationResult> ValidateActionCostAsync(CombatParticipantState participant, int actionPointCost, int minorActionPointCost, int reactionCost, bool strictMode);
 }
 
@@ -544,12 +545,27 @@ public sealed class CombatActionEconomyService : ICombatActionEconomyService
     public async Task<CombatActionEconomyResponse> DeclareActionAsync(CombatActionDeclareRequest request, UserAccount actor)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
+        if (string.IsNullOrWhiteSpace(request.RequestId)) throw new ArgumentException("operation_id_required", nameof(request));
         var encounter = await RequireEncounterAsync(request.EncounterId);
         EnsureEncounterCanAcceptActions(encounter);
         var participant = await RequireParticipantAsync(request.ActorParticipantId, encounter.Id);
+        EnsureActorCanControl(participant, actor);
+        var replay = await _actions.GetByRequestIdAsync(encounter.Id, request.RequestId, participant.Id);
+        if (replay != null)
+        {
+            var replayResponse = await ResponseAsync(encounter.Id, replay.Id, participant.Id, replay.Status, participant,
+                new List<string> { "action_idempotent_replay_no_respend" }, actor);
+            replayResponse.AlreadyApplied = true;
+            replayResponse.Message = "Действие уже было объявлено; очки действия повторно не списаны.";
+            return replayResponse;
+        }
         if (!participant.IsActive || participant.IsDefeated) throw new InvalidOperationException("actor participant is not able to act");
         ValidateSafeActionType(request.ActionType);
-        ValidateCosts(request.ActionPointCost, request.MinorActionPointCost, request.ReactionCost);
+        var canonicalCost = CombatActionEconomyPolicy0219.CostFor(request.ActionType);
+        if (string.Equals(request.ActionType, CombatActionTypes.Prepare, StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(PayloadText(request.PayloadSummary, "triggerDefinitionId")))
+            throw new ArgumentException("prepared_trigger_definition_required", nameof(request));
+        ValidateCosts(canonicalCost.HalfActions, 0, canonicalCost.Reactions);
         await ValidateTargetsAsync(request.TargetParticipantIds, encounter.Id);
 
         var action = new CombatActionState
@@ -563,9 +579,9 @@ public sealed class CombatActionEconomyService : ICombatActionEconomyService
             ActionName = request.ActionName ?? string.Empty,
             TargetParticipantIds = SafeList(request.TargetParticipantIds),
             TargetLocationSummary = request.TargetLocationSummary ?? string.Empty,
-            ActionPointCost = Math.Max(0, request.ActionPointCost),
-            MinorActionPointCost = Math.Max(0, request.MinorActionPointCost),
-            ReactionCost = Math.Max(0, request.ReactionCost),
+            ActionPointCost = canonicalCost.HalfActions,
+            MinorActionPointCost = 0,
+            ReactionCost = canonicalCost.Reactions,
             Status = CombatActionStatuses.Declared,
             RequestId = request.RequestId ?? string.Empty,
             ActorUserId = actor?.Id ?? string.Empty,
@@ -587,7 +603,10 @@ public sealed class CombatActionEconomyService : ICombatActionEconomyService
             warnings.Add("action point spending disabled");
         }
 
-        await WriteLogAsync(encounter, action.ActorParticipantId, CombatEventTypes.ActionDeclared, "Combat action declared.", request.RequestId, new Dictionary<string, object>
+        await WriteLogAsync(encounter, action.ActorParticipantId, CombatEventTypes.ActionDeclared,
+            string.Equals(action.ActionType, CombatActionTypes.Prepare, StringComparison.OrdinalIgnoreCase)
+                ? $"Подготовлено действие «{action.ActionName}»."
+                : $"Объявлено действие «{action.ActionName}».", request.RequestId, new Dictionary<string, object>
         {
             { "actionId", action.Id },
             { "actionType", action.ActionType },
@@ -604,13 +623,14 @@ public sealed class CombatActionEconomyService : ICombatActionEconomyService
         if (request == null) throw new ArgumentNullException(nameof(request));
         var encounter = await RequireEncounterAsync(request.EncounterId);
         var action = await RequireActionAsync(request.ActionId, encounter.Id);
+        var participant = await _participants.GetByIdAsync(action.ActorParticipantId) ?? throw new KeyNotFoundException("actor participant missing");
+        EnsureActorCanControl(participant, actor);
         if (IsTerminal(action.Status)) throw new InvalidOperationException("combat action is already terminal");
         var status = NormalizeResultStatus(request.ResultStatus);
         action.Status = status;
         await _actions.UpsertAsync(action);
-        var participant = await _participants.GetByIdAsync(action.ActorParticipantId) ?? new CombatParticipantState { Id = action.ActorParticipantId };
-
-        await WriteLogAsync(encounter, action.ActorParticipantId, CombatEventTypes.ActionResolved, request.Message ?? "Combat action resolved.", request.RequestId, new Dictionary<string, object>
+        await WriteLogAsync(encounter, action.ActorParticipantId, CombatEventTypes.ActionResolved,
+            string.IsNullOrWhiteSpace(request.Message) ? "Действие разрешено." : request.Message, request.RequestId, new Dictionary<string, object>
         {
             { "actionId", action.Id },
             { "status", action.Status }
@@ -625,14 +645,14 @@ public sealed class CombatActionEconomyService : ICombatActionEconomyService
         if (request == null) throw new ArgumentNullException(nameof(request));
         var encounter = await RequireEncounterAsync(request.EncounterId);
         var action = await RequireActionAsync(request.ActionId, encounter.Id);
+        var participant = await _participants.GetByIdAsync(action.ActorParticipantId) ?? throw new KeyNotFoundException("actor participant missing");
+        EnsureActorCanControl(participant, actor);
         if (string.Equals(action.Status, CombatActionStatuses.Completed, StringComparison.OrdinalIgnoreCase)
             || string.Equals(action.Status, CombatActionStatuses.Resolved, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("completed combat action cannot be cancelled");
         action.Status = CombatActionStatuses.Cancelled;
         await _actions.UpsertAsync(action);
-        var participant = await _participants.GetByIdAsync(action.ActorParticipantId) ?? new CombatParticipantState { Id = action.ActorParticipantId };
-
-        await WriteLogAsync(encounter, action.ActorParticipantId, CombatEventTypes.ActionCancelled, string.IsNullOrWhiteSpace(request.Reason) ? "Combat action cancelled." : request.Reason, request.RequestId, new Dictionary<string, object>
+        await WriteLogAsync(encounter, action.ActorParticipantId, CombatEventTypes.ActionCancelled, string.IsNullOrWhiteSpace(request.Reason) ? "Действие отменено." : request.Reason, request.RequestId, new Dictionary<string, object>
         {
             { "actionId", action.Id },
             { "status", action.Status }
@@ -647,6 +667,7 @@ public sealed class CombatActionEconomyService : ICombatActionEconomyService
         if (request == null) throw new ArgumentNullException(nameof(request));
         var encounter = await RequireEncounterAsync(request.EncounterId);
         var participant = await RequireParticipantAsync(request.ParticipantId, encounter.Id);
+        EnsureActorCanControl(participant, actor);
         ValidateCosts(request.ActionPointCost, request.MinorActionPointCost, request.ReactionCost);
         var warnings = new List<string>();
         if (!CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatActionPointSpending)))
@@ -656,7 +677,7 @@ public sealed class CombatActionEconomyService : ICombatActionEconomyService
         }
 
         await SpendPointsInternalAsync(participant, request.ActionPointCost, request.MinorActionPointCost, request.ReactionCost);
-        await WriteLogAsync(encounter, participant.Id, CombatEventTypes.ActionPointsSpent, string.IsNullOrWhiteSpace(request.Reason) ? "Combat action points spent." : request.Reason, request.RequestId, new Dictionary<string, object>
+        await WriteLogAsync(encounter, participant.Id, CombatEventTypes.ActionPointsSpent, string.IsNullOrWhiteSpace(request.Reason) ? "Потрачены очки действия." : request.Reason, request.RequestId, new Dictionary<string, object>
         {
             { "participantId", participant.Id },
             { "actionPointCost", request.ActionPointCost },
@@ -666,6 +687,72 @@ public sealed class CombatActionEconomyService : ICombatActionEconomyService
 
         _logger.Debug($"combat.action.spend.done encounterId={encounter.Id} participantId={participant.Id}");
         return await ResponseAsync(encounter.Id, string.Empty, participant.Id, "points_spent", participant, warnings, actor);
+    }
+
+    public async Task<CombatActionEconomyResponse> TriggerPreparedActionAsync(CombatPreparedActionTriggerRequest request, UserAccount actor)
+    {
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        if (string.IsNullOrWhiteSpace(request.RequestId)) throw new ArgumentException("operation_id_required", nameof(request));
+        var encounter = await RequireEncounterAsync(request.EncounterId);
+        EnsureEncounterCanAcceptActions(encounter);
+        var prepared = await RequireActionAsync(request.PreparedActionId, encounter.Id);
+        if (!string.Equals(prepared.ActionType, CombatActionTypes.Prepare, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("prepared_action_required");
+        var participant = await RequireParticipantAsync(prepared.ActorParticipantId, encounter.Id);
+        EnsureActorCanControl(participant, actor);
+
+        var replay = await _actions.GetByRequestIdAsync(encounter.Id, request.RequestId, participant.Id);
+        if (replay != null)
+        {
+            var replayResponse = await ResponseAsync(encounter.Id, replay.Id, participant.Id, replay.Status, participant,
+                new List<string> { "prepared_action_idempotent_replay_no_reaction_respend" }, actor);
+            replayResponse.AlreadyApplied = true;
+            replayResponse.Message = "Подготовленное действие уже сработало; реакция повторно не потрачена.";
+            return replayResponse;
+        }
+
+        if (!string.Equals(prepared.Status, CombatActionStatuses.Declared, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("prepared_action_not_available");
+        if (prepared.RoundNumber != encounter.RoundNumber)
+            throw new InvalidOperationException("prepared_action_expired");
+        var expectedTrigger = PayloadText(prepared.PayloadSummary, "triggerDefinitionId");
+        if (string.IsNullOrWhiteSpace(expectedTrigger)
+            || !string.Equals(expectedTrigger, request.TriggerDefinitionId, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("prepared_trigger_context_mismatch");
+
+        await ValidateTargetsAsync(request.TargetParticipantIds, encounter.Id);
+        await SpendPointsInternalAsync(participant, 0, 0, 1);
+        prepared.Status = CombatActionStatuses.Resolved;
+        prepared.PayloadSummary["triggeredAtUtc"] = DateTime.UtcNow;
+        prepared.PayloadSummary["triggerContext"] = request.TriggerContext ?? string.Empty;
+        await _actions.UpsertAsync(prepared);
+
+        var triggered = new CombatActionState
+        {
+            EncounterId = encounter.Id,
+            RoundNumber = encounter.RoundNumber,
+            TurnIndex = encounter.ActiveTurnIndex,
+            ActorParticipantId = participant.Id,
+            ActionType = CombatActionTypes.Reaction,
+            ActionName = string.IsNullOrWhiteSpace(prepared.ActionName) ? "Подготовленное действие" : prepared.ActionName,
+            TargetParticipantIds = SafeList(request.TargetParticipantIds),
+            ReactionCost = 1,
+            Status = CombatActionStatuses.Resolved,
+            RequestId = request.RequestId,
+            ActorUserId = actor?.Id ?? string.Empty,
+            PayloadSummary = _payloadSummaryBuilder.BuildLogPayloadSummary(CombatEventTypes.PreparedActionTriggered,
+                new Dictionary<string, object>
+                {
+                    { "preparedActionId", prepared.Id },
+                    { "triggerDefinitionId", expectedTrigger },
+                    { "triggerContext", request.TriggerContext ?? string.Empty }
+                })
+        };
+        await _actions.AppendAsync(triggered);
+        await WriteLogAsync(encounter, participant.Id, CombatEventTypes.PreparedActionTriggered,
+            "Подготовленное действие сработало; реакция потрачена.", request.RequestId, triggered.PayloadSummary);
+        return await ResponseAsync(encounter.Id, triggered.Id, participant.Id, triggered.Status, participant,
+            new List<string>(), actor);
     }
 
     public Task<CombatRuntimeValidationResult> ValidateActionCostAsync(CombatParticipantState participant, int actionPointCost, int minorActionPointCost, int reactionCost, bool strictMode)
@@ -689,6 +776,15 @@ public sealed class CombatActionEconomyService : ICombatActionEconomyService
 
         result.IsValid = result.Errors.Count == 0;
         return Task.FromResult(result);
+    }
+
+    private static void EnsureActorCanControl(CombatParticipantState participant, UserAccount actor)
+    {
+        var isAdmin = actor?.Roles?.Any(role => role == UserRole.Admin || role == UserRole.SuperAdmin) == true;
+        if (isAdmin) return;
+        if (actor == null || string.IsNullOrWhiteSpace(participant.ControllerUserId)
+            || !string.Equals(participant.ControllerUserId, actor.Id, StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("combat participant is not controlled by current user");
     }
 
     private async Task SpendPointsInternalAsync(CombatParticipantState participant, int actionPointCost, int minorActionPointCost, int reactionCost)
@@ -846,6 +942,13 @@ public sealed class CombatActionEconomyService : ICombatActionEconomyService
             .Select(x => x.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static string PayloadText(IDictionary<string, object> payload, string key)
+    {
+        return payload != null && payload.TryGetValue(key, out var value)
+            ? Convert.ToString(value) ?? string.Empty
+            : string.Empty;
     }
 
     private static CombatValidationIssue Issue(string code, string severity, string message, string entityId, string entityType)

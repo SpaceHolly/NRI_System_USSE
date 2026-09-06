@@ -1,0 +1,389 @@
+<UserControl x:Class="Nri.AdminClient.Views.Administration.AdminMagicDefinitionsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminMagicDefinitions_Route">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminMagicDefinitions_Workspace">
+        <patterns:NriOperationalWorkspaceHost.Header>
+            <DockPanel LastChildFill="True">
+                <StackPanel>
+                    <TextBlock Text="Магия, эффекты и состояния" Style="{StaticResource NriPageTitleTextStyle}"/>
+                    <TextBlock Text="Справочники методов, направлений, заклинаний, эффектов и состояний."
+                               Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Обновить" Command="{Binding RefreshCommand}" Style="{StaticResource GhostButtonStyle}"
+                            AutomationProperties.AutomationId="AdminMagicDefinitions_Refresh"/>
+                    <Button Content="Создать" Command="{Binding NewCommand}" Margin="8,0,0,0"
+                            AutomationProperties.AutomationId="AdminMagicDefinitions_New"/>
+                </StackPanel>
+            </DockPanel>
+        </patterns:NriOperationalWorkspaceHost.Header>
+
+        <Grid Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="290"/>
+                <ColumnDefinition Width="*" MinWidth="520"/>
+                <ColumnDefinition Width="330"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="0,0,1,0" Padding="0,0,12,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Семейство" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <ComboBox ItemsSource="{Binding Families}" SelectedItem="{Binding SelectedFamily}"
+                                  AutomationProperties.AutomationId="AdminMagicDefinitions_Family"/>
+                        <TextBlock Text="{Binding SelectedFamilyDescription}" Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Margin="0,12,0,0">
+                        <TextBlock Text="Поиск"/>
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="AdminMagicDefinitions_Search"/>
+                        <Button Content="Применить" Command="{Binding RefreshCommand}" Margin="0,6,0,0"/>
+                    </StackPanel>
+                    <Grid Grid.Row="2" Margin="0,10,0,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <ComboBox ItemsSource="{Binding ArchiveFilters}" SelectedItem="{Binding SelectedArchiveFilter}"/>
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding VisibilityFilters}" SelectedItem="{Binding SelectedVisibilityFilter}" Margin="6,0,0,0"/>
+                    </Grid>
+                    <ListBox Grid.Row="3" ItemsSource="{Binding Definitions}" SelectedItem="{Binding SelectedDefinition}"
+                             AutomationProperties.AutomationId="AdminMagicDefinitions_List">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="3,5">
+                                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <ScrollViewer Grid.Column="1" Padding="14,0" VerticalScrollBarVisibility="Auto"
+                          AutomationProperties.AutomationId="AdminMagicDefinitions_EditorScroll">
+                <StackPanel>
+                    <TextBlock Text="Основные сведения" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,6,0">
+                            <TextBlock Text="Название *"/>
+                            <TextBox Text="{Binding Editor.Name, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.AutomationId="AdminMagicDefinitions_Name"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                            <TextBlock Text="Категория *"/>
+                            <TextBox Text="{Binding Editor.ProfileCategory, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.AutomationId="AdminMagicDefinitions_Category"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,6,0">
+                            <TextBlock Text="Набор правил *"/>
+                            <ComboBox SelectedValuePath="Tag"
+                                      SelectedValue="{Binding Editor.RuleSetId, Mode=TwoWay}"
+                                      AutomationProperties.AutomationId="AdminMagicDefinitions_RuleSet">
+                                <ComboBoxItem Content="Fantasy NRI" Tag="fantasy_nri_default"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                            <TextBlock Text="Видимость"/>
+                            <ComboBox ItemsSource="{Binding VisibilityOptions}"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectedValuePath="Value"
+                                      SelectedValue="{Binding Editor.VisibilityRule, Mode=TwoWay}"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="Публичное описание *" Margin="0,8,0,0"/>
+                    <TextBox Text="{Binding Editor.PublicDescription, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="70" TextWrapping="Wrap"
+                             AutomationProperties.AutomationId="AdminMagicDefinitions_PublicDescription"/>
+                    <TextBlock Text="Теги" Margin="0,8,0,0"/>
+                    <TextBox Text="{Binding Editor.TagsText, UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,16,0,0" Padding="14"
+                            Visibility="{Binding Editor.SupportsTargetScopes, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            AutomationProperties.AutomationId="AdminMagicDefinitions_TargetScopes">
+                        <StackPanel>
+                            <TextBlock Text="Допустимые цели" Style="{StaticResource SectionTitleTextStyle}"/>
+                             <TextBlock Text="Ограничение метода применяется ко всем его техникам. Техника может дополнительно сузить этот список."
+                                        Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                            <TextBlock Text="{Binding Editor.TargetScopeSummary}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,8"
+                                       AutomationProperties.AutomationId="AdminMagicDefinitions_TargetScopeSummary"/>
+                            <WrapPanel>
+                                <CheckBox Content="На себя" IsChecked="{Binding Editor.TargetSelf}" Margin="0,0,14,6"
+                                          AutomationProperties.AutomationId="AdminMagicDefinitions_TargetSelf"/>
+                                <CheckBox Content="Другой персонаж" IsChecked="{Binding Editor.TargetOtherActor}" Margin="0,0,14,6"
+                                          AutomationProperties.AutomationId="AdminMagicDefinitions_TargetOtherActor"/>
+                                <CheckBox Content="Объект" IsChecked="{Binding Editor.TargetObject}" Margin="0,0,14,6"
+                                          AutomationProperties.AutomationId="AdminMagicDefinitions_TargetObject"/>
+                                <CheckBox Content="Точка" IsChecked="{Binding Editor.TargetPosition}" Margin="0,0,14,6"
+                                          AutomationProperties.AutomationId="AdminMagicDefinitions_TargetPosition"/>
+                                <CheckBox Content="Область" IsChecked="{Binding Editor.TargetArea}" Margin="0,0,0,6"
+                                          AutomationProperties.AutomationId="AdminMagicDefinitions_TargetArea"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Margin="0,16,0,0" Visibility="{Binding Editor.IsMagicMethod, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="Магический метод" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBlock Text="Модель ресурса *"/><TextBox Text="{Binding Editor.ResourceModel, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Модель подготовки" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.PreparationModel, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Модель применения *" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.CastingModel, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Профиль риска" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.DefaultRiskProfile, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Основные навыки" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.SkillOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}" ToolTip="{Binding Summary}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Разрешённые характеристики" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.AttributeOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Разрешённые подхарактеристики" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.SubAttributeOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <Label Content="Совместимые направления" Margin="0,8,0,3" Padding="0"
+                               AutomationProperties.AutomationId="AdminMagicDefinitions_MethodDirectionPicker"/>
+                        <ItemsControl ItemsSource="{Binding Editor.DirectionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Используемые ресурсы" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.ResourceOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Требования развития" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.DevelopmentNodeOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,16,0,0" Visibility="{Binding Editor.IsMagicDirection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="Магическое направление" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBlock Text="Редкость"/><TextBox Text="{Binding Editor.Rarity, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Совместимые методы" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.MethodOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Родительские направления" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.ParentDirectionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Связанные направления" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.RelatedDirectionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Противоположные направления" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.OpposedDirectionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Типы урона" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.DamageTypeOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,16,0,0" Visibility="{Binding Editor.IsSpell, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="Заклинание" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Ранг"/><TextBox Text="{Binding Editor.Tier}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Стоимость действия"/><TextBox Text="{Binding Editor.ActionCost}"/></StackPanel>
+                        </Grid>
+                        <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Время применения"/><TextBox Text="{Binding Editor.CastingTime}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Дальность"/><TextBox Text="{Binding Editor.Range}"/></StackPanel>
+                        </Grid>
+                        <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Цель *"/><TextBox Text="{Binding Editor.TargetModel}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Область"/><TextBox Text="{Binding Editor.Area}"/></StackPanel>
+                        </Grid>
+                        <TextBlock Text="Длительность" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.Duration}"/>
+                        <WrapPanel Margin="0,6,0,0"><CheckBox Content="Концентрация" IsChecked="{Binding Editor.RequiresConcentration}"/><CheckBox Content="Канал" IsChecked="{Binding Editor.RequiresChanneling}" Margin="12,0,0,0"/><CheckBox Content="Можно прервать" IsChecked="{Binding Editor.IsInterruptible}" Margin="12,0,0,0"/></WrapPanel>
+                        <TextBlock Text="Методы" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.MethodOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Направления" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.DirectionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Требуемые навыки" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.SkillOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Разрешённые характеристики" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.AttributeOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Разрешённые подхарактеристики" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.SubAttributeOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Навык проверки" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.SkillOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Тип проверки"/><TextBox Text="{Binding Editor.CheckType}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Разрешённый RollProfile"/><TextBox Text="{Binding Editor.RollProfile}"/></StackPanel>
+                        </Grid>
+                        <Label Content="Эффекты" Margin="0,8,0,3" Padding="0"
+                               AutomationProperties.AutomationId="AdminMagicDefinitions_SpellEffectChain"/>
+                        <ItemsControl ItemsSource="{Binding Editor.EffectOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Состояния" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.ConditionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Типы урона" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.DamageTypeOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Материалы" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.ItemOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Требования развития" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.DevelopmentNodeOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <Button Content="Добавить стоимость ресурса" Command="{Binding AddResourceCostCommand}" HorizontalAlignment="Left" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.ResourceCosts}">
+                            <ItemsControl.ItemTemplate><DataTemplate>
+                                <Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
+                                    <ComboBox ItemsSource="{Binding ResourceOptions}" SelectedItem="{Binding SelectedResource}"/>
+                                    <TextBox Grid.Column="1" Text="{Binding Amount}" Margin="6,0"/>
+                                    <TextBox Grid.Column="2" Text="{Binding Requirement}" ToolTip="Условие расхода"/>
+                                </Grid>
+                            </DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,16,0,0" Visibility="{Binding Editor.IsSeal, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="Печать" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBlock Text="Время подготовки"/><TextBox Text="{Binding Editor.PreparationModel}"/>
+                        <TextBlock Text="Триггер *" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.TriggerType}"/>
+                        <TextBlock Text="Требования активации" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.ActivationRequirements}"/>
+                        <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Цель"/><TextBox Text="{Binding Editor.TargetModel}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Область"/><TextBox Text="{Binding Editor.Area}"/></StackPanel>
+                        </Grid>
+                        <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Сохранение"/><TextBox Text="{Binding Editor.Persistence}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Заряды"/><TextBox Text="{Binding Editor.Charges}"/></StackPanel>
+                        </Grid>
+                        <TextBlock Text="Методы" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.MethodOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Направления" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.DirectionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Эффекты" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.EffectOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Состояния" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.ConditionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Материалы" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.ItemOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <Button Content="Добавить стоимость ресурса" Command="{Binding AddResourceCostCommand}" HorizontalAlignment="Left" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.ResourceCosts}"><ItemsControl.ItemTemplate><DataTemplate>
+                            <Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
+                                <ComboBox ItemsSource="{Binding ResourceOptions}" SelectedItem="{Binding SelectedResource}"/>
+                                <TextBox Grid.Column="1" Text="{Binding Amount}" Margin="6,0"/>
+                                <TextBox Grid.Column="2" Text="{Binding Requirement}" ToolTip="Условие расхода"/>
+                            </Grid>
+                        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,16,0,0" Visibility="{Binding Editor.IsArcanaForm, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="Форма Арканы" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Стоимость Арканы"/><TextBox Text="{Binding Editor.ArcanaCost}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Время канала"/><TextBox Text="{Binding Editor.ChannelTime}"/></StackPanel>
+                        </Grid>
+                        <TextBlock Text="Перегруз" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.Overload}"/>
+                        <TextBlock Text="Стабильность" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.Stability}"/>
+                        <TextBlock Text="Риск" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.RiskMetadata}"/>
+                        <TextBlock Text="Цель" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.TargetModel}"/>
+                        <TextBlock Text="Область" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.Area}"/>
+                        <TextBlock Text="Требования" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.Requirements}"/>
+                        <TextBlock Text="Совместимые направления" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.DirectionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Эффекты" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.EffectOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Состояния" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.ConditionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,16,0,0" Visibility="{Binding Editor.IsRitual, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="Ритуал" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Участники"/><TextBox Text="{Binding Editor.RequiredParticipants}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Роли"/><TextBox Text="{Binding Editor.ParticipantRoles}"/></StackPanel>
+                        </Grid>
+                        <TextBlock Text="Время подготовки" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.PreparationModel}"/>
+                        <TextBlock Text="Длительность проведения" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.ExecutionDuration}"/>
+                        <TextBlock Text="Требования к месту" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.LocationRequirements}"/>
+                        <TextBlock Text="Методы" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.MethodOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Направления" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.DirectionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Эффекты" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.EffectOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Состояния" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.ConditionOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Материалы" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.ItemOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <Button Content="Добавить стоимость ресурса" Command="{Binding AddResourceCostCommand}" HorizontalAlignment="Left" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.ResourceCosts}"><ItemsControl.ItemTemplate><DataTemplate>
+                            <Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
+                                <ComboBox ItemsSource="{Binding ResourceOptions}" SelectedItem="{Binding SelectedResource}"/>
+                                <TextBox Grid.Column="1" Text="{Binding Amount}" Margin="6,0"/>
+                                <TextBox Grid.Column="2" Text="{Binding Requirement}" ToolTip="Условие расхода"/>
+                            </Grid>
+                        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Правила прерывания" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.InterruptionRules}"/>
+                        <TextBlock Text="Последствия неудачи" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.FailureConsequences}"/>
+                        <TextBlock Text="Длительность результата" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.ResultDuration}"/>
+                        <Button Content="Добавить этап" Command="{Binding AddRitualStageCommand}" HorizontalAlignment="Left" Margin="0,8,0,3"/>
+                        <ItemsControl ItemsSource="{Binding Editor.RitualStages}"><ItemsControl.ItemTemplate><DataTemplate>
+                            <Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding Name}" ToolTip="Название этапа"
+                                         AutomationProperties.AutomationId="AdminMagicDefinitions_RitualStages"/>
+                                <TextBox Grid.Column="1" Text="{Binding Duration}" Margin="6,0" ToolTip="Длительность"/>
+                                <TextBox Grid.Column="2" Text="{Binding Requirements}" ToolTip="Требования"/>
+                            </Grid>
+                        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,16,0,0" Visibility="{Binding Editor.IsEffect, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="Механический эффект" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Тип эффекта *"/><ComboBox ItemsSource="{Binding Editor.EffectKinds}" DisplayMemberPath="DisplayName" SelectedValuePath="Value" SelectedValue="{Binding Editor.EffectKind, Mode=TwoWay}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Момент *"/><ComboBox ItemsSource="{Binding Editor.EffectTimings}" DisplayMemberPath="DisplayName" SelectedValuePath="Value" SelectedValue="{Binding Editor.Timing, Mode=TwoWay}"/></StackPanel>
+                        </Grid>
+                        <TextBlock Text="Выбор цели *" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.TargetSelector}"/>
+                        <TextBlock Text="Операция *" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.Operation}"/>
+                        <TextBlock Text="Значение или выражение" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.ValueExpression}"/>
+                        <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Тип урона"/><ComboBox ItemsSource="{Binding Editor.SingleDamageTypeOptions}" SelectedItem="{Binding Editor.EffectDamageType}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Ресурс"/><ComboBox ItemsSource="{Binding Editor.SingleResourceOptions}" SelectedItem="{Binding Editor.EffectResource}"/></StackPanel>
+                        </Grid>
+                        <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Производная характеристика"/><ComboBox ItemsSource="{Binding Editor.SingleDerivedStatOptions}" SelectedItem="{Binding Editor.EffectDerivedStat}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Состояние"/><ComboBox ItemsSource="{Binding Editor.SingleConditionOptions}" SelectedItem="{Binding Editor.EffectCondition}"/></StackPanel>
+                        </Grid>
+                        <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Характеристика"/><ComboBox ItemsSource="{Binding Editor.SingleAttributeOptions}" SelectedItem="{Binding Editor.EffectAttribute}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Подхарактеристика"/><ComboBox ItemsSource="{Binding Editor.SingleSubAttributeOptions}" SelectedItem="{Binding Editor.EffectSubAttribute}"/></StackPanel>
+                        </Grid>
+                        <TextBlock Text="Навык" Margin="0,8,0,0"/><ComboBox ItemsSource="{Binding Editor.SingleSkillOptions}" SelectedItem="{Binding Editor.EffectSkill}"/>
+                        <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Длительность"/><TextBox Text="{Binding Editor.Duration}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Интервал"/><TextBox Text="{Binding Editor.Interval}"/></StackPanel>
+                        </Grid>
+                        <TextBlock Text="Ручное разрешение GM" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.ManualResolution}" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,16,0,0" Visibility="{Binding Editor.IsCondition, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="Состояние" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Тяжесть"/><TextBox Text="{Binding Editor.Severity}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Модель длительности *"/><TextBox Text="{Binding Editor.DurationModel}"/></StackPanel>
+                        </Grid>
+                        <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="Длительность по умолчанию"/><TextBox Text="{Binding Editor.DefaultDuration}"/></StackPanel>
+                            <StackPanel Grid.Column="1" Margin="6,0,0,0"><TextBlock Text="Модель сложения *"/><ComboBox ItemsSource="{Binding Editor.ConditionStackingOptions}" DisplayMemberPath="DisplayName" SelectedValuePath="Value" SelectedValue="{Binding Editor.StackingModel, Mode=TwoWay}"/></StackPanel>
+                        </Grid>
+                        <TextBlock Text="Максимум стаков" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.MaximumStacks}"/>
+                        <TextBlock Text="Правила обновления и замены" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.RefreshReplaceRules}"/>
+                        <CheckBox Content="Скрытое состояние" IsChecked="{Binding Editor.IsHiddenState}" Margin="0,6,0,0"/>
+                        <Label Content="Эффекты при применении" Margin="0,8,0,3" Padding="0"
+                               AutomationProperties.AutomationId="AdminMagicDefinitions_ConditionEffectChain"/>
+                        <ItemsControl ItemsSource="{Binding Editor.EffectsOnApplyOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Периодические эффекты" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.PeriodicEffectOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Эффекты при снятии" Margin="0,8,0,3"/><ItemsControl ItemsSource="{Binding Editor.EffectsOnRemoveOptions}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="Правила снятия" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.DispelRemovalRules}"/>
+                        <TextBlock Text="Теги иммунитета" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.ImmunityTags}" ToolTip="Понятные теги через запятую"/>
+                        <TextBlock Text="Теги сопротивления" Margin="0,6,0,0"/><TextBox Text="{Binding Editor.ResistanceTags}" ToolTip="Понятные теги через запятую"/>
+                    </StackPanel>
+
+                    <TextBlock Text="Законность / лицензия" Margin="0,14,0,0"/>
+                    <TextBox Text="{Binding Editor.Legality, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Expander Header="GM и служебные сведения" Margin="0,12,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Описание для GM"/>
+                            <TextBox Text="{Binding Editor.GMDescription, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="70" TextWrapping="Wrap"/>
+                            <TextBlock Text="Служебные данные изменяются только сервером и не входят в обычную форму."
+                                       Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Expander>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Column="2" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1,0,0,0" Padding="12,0,0,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Предпросмотр игрока" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <Button Content="Обновить предпросмотр" Command="{Binding PreviewCommand}" Margin="0,8,0,0"
+                                AutomationProperties.AutomationId="AdminMagicDefinitions_PreviewRefresh"/>
+                        <TextBlock Text="{Binding PreviewText}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                   AutomationProperties.AutomationId="AdminMagicDefinitions_PlayerPreview"/>
+                        <TextBlock Text="Проверка" Style="{StaticResource SectionTitleTextStyle}" Margin="0,18,0,0"/>
+                        <TextBlock Text="{Binding Editor.ValidationSummary}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"
+                                   AutomationProperties.AutomationId="AdminMagicDefinitions_Validation"/>
+                        <TextBlock Text="{Binding ReferenceWarning}" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding SuccessMessage}" Foreground="{StaticResource SuccessBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding RouteState}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        <WrapPanel Margin="0,16,0,0">
+                            <Button Content="Клонировать" Command="{Binding CloneCommand}" IsEnabled="{Binding CanClone}"/>
+                            <Button Content="Архивировать" Command="{Binding ArchiveCommand}" IsEnabled="{Binding CanArchive}" Margin="6,0,0,0"/>
+                            <Button Content="Восстановить" Command="{Binding RestoreCommand}" IsEnabled="{Binding CanRestore}" Margin="6,0,0,0"/>
+                        </WrapPanel>
+                        <Button Content="Сохранить" Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}" Margin="0,8,0,0"
+                                AutomationProperties.AutomationId="AdminMagicDefinitions_Save"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

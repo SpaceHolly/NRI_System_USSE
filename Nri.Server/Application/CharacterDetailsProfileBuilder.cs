@@ -85,10 +85,9 @@ public sealed class CharacterDetailsProfileBuilder : ICharacterDetailsProfileBui
         {
             if (legacyCharacter == null)
             {
-                result.UsedFallback = true;
-                result.ErrorMessage = "legacy_character_missing";
-                _logger.Debug($"profile.details.fallback characterId={characterId} requestId={requestId} reason=legacy_character_missing");
-                _logger.Debug($"profile.details.build.done characterId={characterId} requestId={requestId} profileFirst=false fallback=true");
+                result.ErrorMessage = ApplicationContextStates.ProfileRepairRequired;
+                result.Payload = new Dictionary<string, object>();
+                _logger.Debug($"profile.details.profile_required characterId={characterId} requestId={requestId} reason=identity_missing");
                 return Task.FromResult(result);
             }
 
@@ -96,8 +95,10 @@ public sealed class CharacterDetailsProfileBuilder : ICharacterDetailsProfileBui
             if (missing.Count > 0)
             {
                 result.MissingSections = missing;
-                result.ErrorMessage = "missing_sections";
+                result.ErrorMessage = ApplicationContextStates.ProfileMigrationRequired;
                 _logger.Debug($"profile.details.missing_sections characterId={characterId} requestId={requestId} sections={string.Join(",", missing)}");
+                result.Payload = new Dictionary<string, object>();
+                return Task.FromResult(result);
             }
 
             if (ProfileFeatureFlags.UseCharacterProfileConsistencyVerification)
@@ -108,11 +109,9 @@ public sealed class CharacterDetailsProfileBuilder : ICharacterDetailsProfileBui
                     string.Equals(x.Severity, "error", StringComparison.OrdinalIgnoreCase));
                 if (hasErrorDifferences)
                 {
-                    result.UsedFallback = true;
-                    result.ErrorMessage = "consistency_failed";
+                    result.ErrorMessage = ApplicationContextStates.ProfileRepairRequired;
+                    result.Payload = new Dictionary<string, object>();
                     _logger.Debug($"profile.details.consistency_failed characterId={characterId} requestId={requestId} differences={consistency.TotalDifferenceCount}");
-                    _logger.Debug($"profile.details.fallback characterId={characterId} requestId={requestId} reason=consistency_failed");
-                    _logger.Debug($"profile.details.build.done characterId={characterId} requestId={requestId} profileFirst=false fallback=true");
                     return Task.FromResult(result);
                 }
             }
@@ -174,12 +173,12 @@ public sealed class CharacterDetailsProfileBuilder : ICharacterDetailsProfileBui
         }
         catch (Exception ex)
         {
-            result.UsedFallback = true;
-            result.ErrorMessage = ex.Message;
-            result.Payload = CopyPayload(legacyPayload);
+            result.UsedFallback = false;
+            result.ErrorMessage = ApplicationContextStates.ProfileRepairRequired;
+            result.Payload = new Dictionary<string, object>();
             _logger.Debug($"profile.details.error characterId={characterId} requestId={requestId} message={ex.Message}");
             _logger.Debug($"profile.details.profile_unavailable characterId={characterId} requestId={requestId} reason=exception");
-            _logger.Debug($"profile.details.build.done characterId={characterId} requestId={requestId} profileFirst=false fallback=true");
+            _logger.Debug($"profile.details.build.done characterId={characterId} requestId={requestId} profileFirst=false fallback=false");
             return Task.FromResult(result);
         }
     }
@@ -229,9 +228,6 @@ public sealed class CharacterDetailsProfileBuilder : ICharacterDetailsProfileBui
         if (skills == null || skills.Skills == null || skills.SchemaVersion < 1 || !ProfileCharacterIdMatches(skills.CharacterId, characterId)) missing.Add("skills");
         if (development == null || development.ActiveHexagonIds == null || development.Nodes == null || development.SchemaVersion < 1 || !ProfileCharacterIdMatches(development.CharacterId, characterId)) missing.Add("development");
         if (inventory == null || inventory.Items == null || inventory.SchemaVersion < 1 || !ProfileCharacterIdMatches(inventory.CharacterId, characterId)) missing.Add("inventory");
-        if (reputation == null || reputation.Entries == null || reputation.SchemaVersion < 1 || !ProfileCharacterIdMatches(reputation.CharacterId, characterId)) missing.Add("reputation");
-        if (holdings == null || holdings.Holdings == null || holdings.SchemaVersion < 1 || !ProfileCharacterIdMatches(holdings.CharacterId, characterId)) missing.Add("holdings");
-        if (companions == null || companions.Companions == null || companions.SchemaVersion < 1 || !ProfileCharacterIdMatches(companions.CharacterId, characterId)) missing.Add("companions");
         var race = _mongo.CharacterRaceOrSpeciesProfiles.Find(Builders<CharacterRaceOrSpeciesProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).FirstOrDefault()?.Profile;
         var body = _mongo.CharacterBodyProfiles.Find(Builders<CharacterBodyProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).FirstOrDefault()?.Profile;
         if (race == null || race.Tags == null || race.SchemaVersion < 1 || !ProfileCharacterIdMatches(race.CharacterId, characterId)) missing.Add("raceOrSpecies");
@@ -961,13 +957,23 @@ public sealed class CharacterDetailsProfileBuilder : ICharacterDetailsProfileBui
         payload["characterStatusDisplayName"] = CharacterStatusDisplayName(status);
         payload["isActive"] = ownership?.IsActive ?? !(character?.Archived ?? false);
         payload["isArchived"] = ownership?.IsArchived ?? (character?.Archived ?? false);
-        payload["name"] = character?.Name ?? string.Empty;
+        payload["name"] = FirstProfileNonEmpty(ownership?.CharacterDisplayName ?? string.Empty, character?.Name ?? string.Empty);
         payload["race"] = FirstProfileNonEmpty(race.DisplayName, race.RaceName, race.RaceCode, race.RaceId, "—");
         payload["raceCode"] = FirstProfileNonEmpty(race.RaceCode, race.RaceId);
-        payload["age"] = body.AgeYears > 0 ? (object)body.AgeYears : FirstProfileNonEmpty(body.AgeText);
+        payload["age"] = ProjectWorldAge(character?.Id ?? string.Empty, body);
         payload["height"] = FirstProfileNonEmpty(body.HeightText, body.HeightCm > 0 ? body.HeightCm + " cm" : string.Empty);
         payload["description"] = body.Description ?? string.Empty;
         payload["backstory"] = body.Backstory ?? string.Empty;
+        payload["originBaseHealth"] = body.BaseHealth;
+        payload["originNaturalArmorRating"] = body.NaturalArmorRating;
+        payload["originNaturalPenetrationResistance"] = body.NaturalPenetrationResistance;
+        payload["originLifespanDisplay"] = body.AdultAgeYears > 0
+            ? $"Взросление: {body.AdultAgeYears}; ожидаемая жизнь: {body.AverageLifespanYears}; предельная: {body.MaximumLifespanYears}"
+            : string.Empty;
+        payload["originTraitNames"] = ResolvePlayerVisibleOriginTraitNames(race).Cast<object>().ToArray();
+        payload["originSenseNames"] = (body.RacialSenses ?? new List<RacialSenseDefinition>()).Select(x => x.DisplayName).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal).Cast<object>().ToArray();
+        payload["originMovementNames"] = (body.MovementAbilities ?? new List<RacialMovementAbilityDefinition>()).Select(x => x.DisplayName).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal).Cast<object>().ToArray();
+        payload["originEquipmentFitWarning"] = body.EquipmentFit?.PublicWarning ?? string.Empty;
         payload["archived"] = ownership?.IsArchived ?? (character?.Archived ?? false);
         payload["deleted"] = character?.Deleted ?? false;
         payload["schemaVersion"] = character?.SchemaVersion ?? 1;
@@ -982,6 +988,30 @@ public sealed class CharacterDetailsProfileBuilder : ICharacterDetailsProfileBui
             { "hideInventoryForOthers", character?.Visibility?.HideInventoryForOthers ?? false }
         };
         return payload;
+    }
+
+    private List<string> ResolvePlayerVisibleOriginTraitNames(RaceOrSpeciesProfile race)
+    {
+        var ids = race?.ResolvedTraitIds?.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal).ToList() ?? new List<string>();
+        if (ids.Count == 0) return new List<string>();
+        return _mongo.ContentDefinitionRecords.Find(x => x.Category == "race_trait_definition" && !x.IsArchived
+                && (ids.Contains(x.StableKey) || ids.Contains(x.ShortCode) || ids.Contains(x.Id))
+                && (x.VisibilityRule == ContentDefinitionVisibilityRules.Public || x.VisibilityRule == ContentDefinitionVisibilityRules.PlayerVisible))
+            .ToList().Select(x => FirstProfileNonEmpty(x.DisplayName, x.Name)).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal).ToList();
+    }
+
+    private object ProjectWorldAge(string characterId, BodyProfile body)
+    {
+        var baseAge = body.AgeAnchorYears > 0 ? body.AgeAnchorYears : body.AgeYears;
+        if (baseAge <= 0) return FirstProfileNonEmpty(body.AgeText);
+        if (body.AgeAnchorWorldYearLengthDays <= 0 || string.IsNullOrWhiteSpace(characterId)) return baseAge;
+        var ownership = _mongo.CharacterOwnerships.Find(x => x.CharacterId == characterId).FirstOrDefault();
+        if (ownership == null) return baseAge;
+        var worldTime = _mongo.CampaignWorldTimes.Find(x => x.CampaignId == ownership.CampaignId && !x.Deleted && !x.Archived)
+            .SortByDescending(x => x.UpdatedAtUtc).FirstOrDefault();
+        if (worldTime == null) return baseAge;
+        var elapsedDays = Math.Max(0, worldTime.CurrentDateTime.AbsoluteDayIndex - body.AgeAnchorWorldAbsoluteDay);
+        return baseAge + (elapsedDays / body.AgeAnchorWorldYearLengthDays);
     }
 
     private static AttributeProfile EmptyAttributeProfile(string characterId) => new AttributeProfile { CharacterId = characterId ?? string.Empty, RuleSetId = RuleSetIds.FantasyNriDefault, Values = new List<CharacterAttributeValue>(), SchemaVersion = 1 };

@@ -21,7 +21,8 @@ public interface ICombatDamageRoller
 
 public sealed class CombatDamageRoller : ICombatDamageRoller
 {
-    private static readonly Regex DiceRegex = new Regex(@"^\s*(\d*)d(4|6|8|10|12)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex DiceRegex = new Regex(@"^\s*(\d*)d(\d+)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex StructuredDiceRegex = new Regex(@"^\s*(\d+)\s*\(\s*d(\d+)\s*([+-]\s*\d+)?\s*\)\s*([+-]\s*\d+)?\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public int RollDamage(string damageDraft)
     {
@@ -39,13 +40,25 @@ public sealed class CombatDamageRoller : ICombatDamageRoller
             return true;
         }
 
+        var structured = StructuredDiceRegex.Match(value);
+        if (structured.Success)
+        {
+            var structuredCount = int.Parse(structured.Groups[1].Value, CultureInfo.InvariantCulture);
+            var structuredSides = int.Parse(structured.Groups[2].Value, CultureInfo.InvariantCulture);
+            var perDie = string.IsNullOrWhiteSpace(structured.Groups[3].Value) ? 0 : int.Parse(structured.Groups[3].Value.Replace(" ", string.Empty), CultureInfo.InvariantCulture);
+            var totalModifier = string.IsNullOrWhiteSpace(structured.Groups[4].Value) ? 0 : int.Parse(structured.Groups[4].Value.Replace(" ", string.Empty), CultureInfo.InvariantCulture);
+            if (structuredCount < 1 || structuredCount > 1000 || structuredSides < 2 || structuredSides > 1000000) return false;
+            rolledDamage = DamageExpressionRules022Gate2.Roll(new DamageExpressionDefinition { DiceCount = structuredCount, DieSides = structuredSides, PerDieModifier = perDie, TotalModifier = totalModifier }, RollDie).TotalDamage;
+            return true;
+        }
+
         var match = DiceRegex.Match(value);
         if (!match.Success) return false;
 
         var countText = match.Groups[1].Value;
         var count = string.IsNullOrWhiteSpace(countText) ? 1 : int.Parse(countText, CultureInfo.InvariantCulture);
         var sides = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
-        if (count < 1 || count > 20) return false;
+        if (count < 1 || count > 1000 || sides < 2 || sides > 1000000) return false;
 
         var total = 0;
         for (var i = 0; i < count; i++)
@@ -89,6 +102,7 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
 {
     private readonly ICombatEncounterRepository _encounters;
     private readonly ICombatParticipantRepository _participants;
+    private readonly ICombatLogRepository _logs;
     private readonly CharacterProfileService _profiles;
     private readonly IItemEquipmentDefinitionResolver _definitionResolver;
     private readonly ICombatAttackRollService _attackRollService;
@@ -97,11 +111,15 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
     private readonly ICombatLogWriter _logWriter;
     private readonly ICombatDamageRoller _damageRoller;
     private readonly ICombatFateHookService? _fateHookService;
+    private readonly ICombatDefenseCalculationService _defenseCalculationService;
+    private readonly ICombatNaturalAttackAreaResolver022Gate2? _areaResolver;
+    private readonly ICombatConditionPresentationResolver? _conditionPresentationResolver;
     private readonly IServerLogger _logger;
 
     public CombatWeaponIntegrationService(
         ICombatEncounterRepository encounters,
         ICombatParticipantRepository participants,
+        ICombatLogRepository logs,
         CharacterProfileService profiles,
         IItemEquipmentDefinitionResolver definitionResolver,
         ICombatAttackRollService attackRollService,
@@ -110,10 +128,14 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
         ICombatLogWriter logWriter,
         ICombatDamageRoller damageRoller,
         IServerLogger logger,
-        ICombatFateHookService? fateHookService = null)
+        ICombatFateHookService? fateHookService = null,
+        ICombatDefenseCalculationService? defenseCalculationService = null,
+        ICombatNaturalAttackAreaResolver022Gate2? areaResolver = null,
+        ICombatConditionPresentationResolver? conditionPresentationResolver = null)
     {
         _encounters = encounters;
         _participants = participants;
+        _logs = logs;
         _profiles = profiles;
         _definitionResolver = definitionResolver;
         _attackRollService = attackRollService;
@@ -122,6 +144,9 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
         _logWriter = logWriter;
         _damageRoller = damageRoller;
         _fateHookService = fateHookService;
+        _defenseCalculationService = defenseCalculationService ?? throw new ArgumentNullException(nameof(defenseCalculationService));
+        _areaResolver = areaResolver;
+        _conditionPresentationResolver = conditionPresentationResolver;
         _logger = logger;
     }
 
@@ -133,27 +158,39 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
         var encounter = await RequireEncounterAsync(request.EncounterId);
         var attacker = await RequireParticipantAsync(request.ActorParticipantId, encounter.Id, "attacker_missing");
         var target = await RequireParticipantAsync(request.TargetParticipantId, encounter.Id, "target_missing");
+        EnsureActorCanControl(attacker, actor);
         EnsureParticipantCanAct(attacker, "attacker");
         EnsureParticipantCanAct(target, "target");
 
         var warnings = new List<string>();
         var weaponItem = await ResolveEquippedWeaponAsync(attacker, request);
-        var weaponDefinitionId = FirstNonEmpty(request.WeaponDefinitionId, weaponItem?.DefinitionId);
+        var weaponDefinitionId = FirstNonEmpty(weaponItem?.DefinitionId, request.WeaponDefinitionId);
         var weapon = await ResolveWeaponDefinitionAsync(weaponDefinitionId, encounter.RuleSetId, warnings);
+        NaturalAttackDefinition? naturalAttack = null;
+        if (!string.IsNullOrWhiteSpace(request.NaturalAttackId))
+        {
+            naturalAttack = ResolveNaturalAttack(attacker, request.NaturalAttackId);
+            await EnsureNaturalAttackCooldownAsync(encounter, attacker, naturalAttack, request.RequestId);
+            weapon = BuildNaturalWeaponView(naturalAttack);
+            weaponDefinitionId = "natural_attack";
+            warnings.Add("natural_attack_resolved_from_character_v2_body_profile");
+        }
         if (weapon == null && !request.DamageOverride.HasValue)
             throw new InvalidOperationException("weapon_definition_required_for_damage_preview");
 
         if (weapon != null)
             _logger.Debug($"combat.weapon_attack.weapon_resolved definitionId={weapon.DefinitionId}");
+        var attackProfile = ResolveAttackProfile(weapon, request.AttackProfileId, warnings);
+        var effectiveWeapon = ApplyAttackProfile(weapon, attackProfile);
 
-        var ammoItem = await ResolveAmmoAsync(attacker, weapon, request);
-        var ammoDefinitionId = FirstNonEmpty(request.AmmoDefinitionId, ammoItem?.DefinitionId);
+        var ammoItem = await ResolveAmmoAsync(attacker, effectiveWeapon, request);
+        var ammoDefinitionId = FirstNonEmpty(ammoItem?.DefinitionId, request.AmmoDefinitionId);
         var ammo = await ResolveAmmoDefinitionAsync(ammoDefinitionId, encounter.RuleSetId, warnings);
         if (ammo != null)
             _logger.Debug($"combat.weapon_attack.ammo_resolved definitionId={ammo.DefinitionId}");
 
-        await ValidateWeaponAmmoCompatibilityAsync(weapon, ammo, request, warnings);
-        AddDisabledSafetyWarnings(weapon, ammo, warnings);
+        await ValidateWeaponAmmoCompatibilityAsync(effectiveWeapon, ammo, request, warnings);
+        AddDisabledSafetyWarnings(effectiveWeapon, ammo, warnings);
 
         var attackResult = await _attackRollService.DeclareAttackAsync(new CombatAttackDeclareRequest
         {
@@ -161,14 +198,15 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
             ActorParticipantId = attacker.Id,
             TargetParticipantId = target.Id,
             WeaponDefinitionId = weaponDefinitionId,
-            AttackSkillId = request.AttackSkillId ?? string.Empty,
-            AttackAttributeId = request.AttackAttributeId ?? string.Empty,
+            AttackProfileId = attackProfile?.ProfileId ?? string.Empty,
+            AttackSkillId = FirstNonEmpty(request.AttackSkillId, attackProfile?.SkillDefinitionId, effectiveWeapon?.LinkedSkillIds?.FirstOrDefault()),
+            AttackAttributeId = FirstNonEmpty(request.AttackAttributeId, attackProfile?.SubAttributeDefinitionId, effectiveWeapon?.AttributeHints?.FirstOrDefault()),
             AttackBonus = request.AttackBonus,
             WeaponAccuracyBonus = 0,
             DistanceMeters = request.DistanceMeters,
             CoverModifier = request.CoverModifier,
             SituationalModifier = request.SituationalModifier,
-            UseFateEngine = request.UseFateEngine,
+            UseFateEngine = request.UseFateEngine && (naturalAttack?.FateEligibleForHitCheck ?? true),
             SpendActionPoint = request.SpendActionPoint,
             RequestId = request.RequestId ?? string.Empty
         }, actor);
@@ -189,9 +227,21 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
         };
 
         var damageApplied = false;
-        if (attackResult.IsHit)
+        var isAreaNaturalAttack = naturalAttack != null && !string.Equals(naturalAttack.AreaShape, "single", StringComparison.OrdinalIgnoreCase);
+        if (isAreaNaturalAttack)
+            request.TargetProtectionZone = ResolveAreaTargetBodyZone(target, attackResult.ActionId);
+        var sharedAreaBaseDamage = 0;
+        CombatDamagePreview? sharedAreaPrimaryPreview = null;
+        if (isAreaNaturalAttack && !attackResult.AlreadyApplied)
         {
-            damagePreview = await CalculateDamagePreviewAsync(weapon, ammo, attackResult, request, warnings);
+            sharedAreaPrimaryPreview = await CalculateDamagePreviewAsync(effectiveWeapon, ammo, attackResult, request, warnings);
+            sharedAreaBaseDamage = sharedAreaPrimaryPreview.BaseDamage;
+            if (!attackResult.IsHit) damagePreview = sharedAreaPrimaryPreview;
+        }
+        if (attackResult.IsHit && !attackResult.AlreadyApplied)
+        {
+            damagePreview = sharedAreaPrimaryPreview
+                ?? await CalculateDamagePreviewAsync(effectiveWeapon, ammo, attackResult, request, warnings);
             if (request.AutoApplyDamage)
             {
                 if (CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatAttackDamageAutoApply)))
@@ -204,13 +254,13 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
                         TargetParticipantId = target.Id,
                         DamageAmount = damagePreview.FinalDamage,
                         DamageType = damagePreview.DamageType,
-                        DamageSource = "weapon_attack",
+                        DamageSource = naturalAttack == null ? "weapon_attack" : "natural_attack",
                         IsCriticalDamage = attackResult.IsCritical,
                         AllowAutoDefeat = true,
                         Reason = "weapon_attack",
                         RequestId = request.RequestId ?? string.Empty
                     }, actor);
-                    damageApplied = true;
+                    damageApplied = damageResult.DamageApplied > 0;
                     warnings.AddRange(damageResult.Warnings);
                 }
                 else
@@ -218,16 +268,117 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
                     warnings.Add("attack_damage_auto_apply_disabled");
                 }
             }
+            if (naturalAttack != null && damagePreview.IsPenetrated && damagePreview.FinalDamage > 0
+                && !string.IsNullOrWhiteSpace(naturalAttack.AppliedConditionId) && naturalAttack.AppliedConditionRounds > 0)
+            {
+                await ApplyNaturalAttackConditionAsync(encounter, attacker, target, naturalAttack, attackResult.ActionId);
+            }
         }
         else
         {
             damagePreview.FinalDamage = 0;
+            if (attackResult.AlreadyApplied) warnings.Add("weapon_attack_idempotent_replay_no_damage_reapply");
         }
 
-        var weaponSummary = BuildWeaponSummary(weaponItem, weapon, weaponDefinitionId);
-        var ammoSummary = BuildAmmoSummary(ammoItem, ammo, ammoDefinitionId, ammo != null && weapon != null && IsAmmoCompatible(weapon, ammo));
+        var areaTargetResults = new List<CombatAreaTargetResult022Gate2>
+        {
+            new CombatAreaTargetResult022Gate2
+            {
+                TargetParticipantId = target.Id,
+                TargetDisplayName = target.DisplayName,
+                IsHit = attackResult.IsHit,
+                AttackTotal = attackResult.AttackTotal,
+                TargetDefense = attackResult.TargetDefense,
+                DamagePreview = damagePreview,
+                DamageResult = damageResult
+            }
+        };
+        if (isAreaNaturalAttack && !attackResult.AlreadyApplied)
+        {
+            if (_areaResolver == null) throw new InvalidOperationException("natural_attack_area_resolver_unavailable");
+            var resolvedTargets = await _areaResolver.ResolveTargetsAsync(encounter, attacker, target, naturalAttack!);
+            if (!resolvedTargets.Any(v => string.Equals(v.Id, target.Id, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("natural_attack_area_primary_target_outside_area");
+            foreach (var areaTarget in resolvedTargets.Where(v => !string.Equals(v.Id, target.Id, StringComparison.OrdinalIgnoreCase)))
+            {
+                var areaDefense = await _defenseCalculationService.CalculateDefenseAsync(new CombatDefenseCalculationRequest
+                {
+                    EncounterId = encounter.Id,
+                    TargetParticipantId = areaTarget.Id,
+                    AttackerParticipantId = attacker.Id,
+                    WeaponDefinitionId = weaponDefinitionId,
+                    IncludeArmor = true,
+                    IncludeShield = true,
+                    IncludeCover = false,
+                    IncludeDistance = false,
+                    RequestId = request.RequestId ?? string.Empty
+                }, null);
+                warnings.AddRange(areaDefense.Warnings);
+                warnings.AddRange(areaDefense.Errors);
+                var areaHit = !attackResult.IsNaturalFumble && (attackResult.IsNaturalCritical || attackResult.AttackTotal >= areaDefense.TargetDefense);
+                var areaAttack = CopyAreaAttackResult(attackResult, areaTarget.Id, areaDefense.TargetDefense, areaHit);
+                var areaRequest = CopyAreaDamageRequest(
+                    request,
+                    areaTarget.Id,
+                    sharedAreaBaseDamage,
+                    ResolveAreaTargetBodyZone(areaTarget, attackResult.ActionId));
+                var areaPreview = areaHit
+                    ? await CalculateDamagePreviewAsync(effectiveWeapon, ammo, areaAttack, areaRequest, warnings)
+                    : new CombatDamagePreview { BaseDamage = sharedAreaBaseDamage, FinalDamage = 0, DamageType = NormalizeDamageType(request.DamageType) };
+                var areaDamage = new CombatDamageResultResponse
+                {
+                    EncounterId = encounter.Id,
+                    SourceActionId = attackResult.ActionId,
+                    AttackerParticipantId = attacker.Id,
+                    TargetParticipantId = areaTarget.Id,
+                    DamageType = areaPreview.DamageType
+                };
+                if (areaHit && request.AutoApplyDamage && CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatAttackDamageAutoApply)))
+                {
+                    areaDamage = await _damageApplicationService.ApplyDamageAsync(new CombatDamageApplyRequest
+                    {
+                        EncounterId = encounter.Id,
+                        SourceActionId = attackResult.ActionId + ":" + areaTarget.Id,
+                        AttackerParticipantId = attacker.Id,
+                        TargetParticipantId = areaTarget.Id,
+                        DamageAmount = areaPreview.FinalDamage,
+                        DamageType = areaPreview.DamageType,
+                        DamageSource = "natural_attack_area",
+                        IsCriticalDamage = areaAttack.IsCritical,
+                        AllowAutoDefeat = true,
+                        Reason = "natural_attack_area",
+                        RequestId = (request.RequestId ?? string.Empty) + ":" + areaTarget.Id
+                    }, actor);
+                }
+                if (areaHit && areaPreview.IsPenetrated && areaPreview.FinalDamage > 0
+                    && !string.IsNullOrWhiteSpace(naturalAttack!.AppliedConditionId) && naturalAttack.AppliedConditionRounds > 0)
+                    await ApplyNaturalAttackConditionAsync(encounter, attacker, areaTarget, naturalAttack, attackResult.ActionId);
+                areaTargetResults.Add(new CombatAreaTargetResult022Gate2
+                {
+                    TargetParticipantId = areaTarget.Id,
+                    TargetDisplayName = areaTarget.DisplayName,
+                    IsHit = areaHit,
+                    AttackTotal = attackResult.AttackTotal,
+                    TargetDefense = areaDefense.TargetDefense,
+                    DamagePreview = areaPreview,
+                    DamageResult = areaDamage
+                });
+            }
+            warnings.Add($"natural_attack_area_targets_resolved:{areaTargetResults.Count}");
+        }
+
+        var weaponSummary = BuildWeaponSummary(weaponItem, effectiveWeapon, weaponDefinitionId, attackProfile);
+        var ammoSummary = BuildAmmoSummary(ammoItem, ammo, ammoDefinitionId, ammo != null && effectiveWeapon != null && IsAmmoCompatible(effectiveWeapon, ammo));
+        var penetrationResult = new CombatPenetrationResult0219
+        {
+            PenetrationType = damagePreview.PenetrationType,
+            TotalPenetration = damagePreview.PenetrationValue,
+            TargetProtection = damagePreview.ProtectionValue,
+            EffectiveProtection = Math.Max(0, damagePreview.ProtectionValue - damagePreview.PenetrationValue),
+            IsPenetrated = damagePreview.IsPenetrated
+        };
         var message = BuildWeaponAttackLogMessage(attacker, target, weaponSummary, attackResult, damagePreview, damageApplied);
-        await WriteWeaponAttackLogAsync(encounter, attacker.Id, target.Id, weaponSummary, ammoSummary, attackResult, damagePreview, damageApplied, message, request.RequestId ?? string.Empty);
+        await WriteWeaponAttackLogAsync(encounter, attacker.Id, target.Id, weaponSummary, ammoSummary, attackResult, damagePreview, damageApplied, message, request.RequestId ?? string.Empty, naturalAttack);
 
         var snapshot = await _snapshotService.BuildFullSnapshotAsync(new CombatFullSnapshotRequest
         {
@@ -252,15 +403,128 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
             ActorParticipantId = attacker.Id,
             TargetParticipantId = target.Id,
             WeaponDefinitionId = weaponDefinitionId,
+            AttackProfileId = attackProfile?.ProfileId ?? string.Empty,
             AmmoDefinitionId = ammoDefinitionId,
             AttackResult = attackResult,
             DamageResult = damageResult,
             WeaponSummary = weaponSummary,
             AmmoSummary = ammoSummary,
+            PenetrationResult = penetrationResult,
             DamagePreview = damagePreview,
+            AreaTargetResults = areaTargetResults,
             Warnings = warnings.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
             Message = message,
             Snapshot = snapshot
+        };
+    }
+
+    private static CombatAttackResultResponse CopyAreaAttackResult(CombatAttackResultResponse source, string targetParticipantId, int targetDefense, bool isHit)
+        => new CombatAttackResultResponse
+        {
+            EncounterId = source.EncounterId, ActionId = source.ActionId, ActorParticipantId = source.ActorParticipantId,
+            TargetParticipantId = targetParticipantId, WeaponDefinitionId = source.WeaponDefinitionId, AttackProfileId = source.AttackProfileId,
+            Roll = source.Roll, NaturalRoll = source.NaturalRoll, AttackTotal = source.AttackTotal, TargetDefense = targetDefense,
+            HitResult = isHit ? (source.IsCritical ? CombatHitResultIds.CriticalHit : CombatHitResultIds.Hit) : CombatHitResultIds.Miss,
+            IsHit = isHit, IsCritical = isHit && source.IsCritical, IsFumble = source.IsFumble,
+            IsNaturalCritical = source.IsNaturalCritical, IsNaturalFumble = source.IsNaturalFumble,
+            DegreeOfSuccess = isHit ? CoreResolutionPolicy0219.ClassifyDegree(source.AttackTotal - targetDefense) : CoreResolutionDegreeIds.Failure,
+            Modifiers = source.Modifiers, Fate = source.Fate
+        };
+
+    private static CombatWeaponAttackRequest CopyAreaDamageRequest(CombatWeaponAttackRequest source, string targetParticipantId, int sharedBaseDamage, string targetProtectionZone)
+        => new CombatWeaponAttackRequest
+        {
+            EncounterId = source.EncounterId, ActorParticipantId = source.ActorParticipantId, TargetParticipantId = targetParticipantId,
+            WeaponDefinitionId = source.WeaponDefinitionId, AttackProfileId = source.AttackProfileId, NaturalAttackId = source.NaturalAttackId,
+            DamageOverride = sharedBaseDamage, DamageType = source.DamageType, TargetProtectionZone = targetProtectionZone,
+            RequestId = source.RequestId
+        };
+
+    private string ResolveAreaTargetBodyZone(CombatParticipantState target, string actionId)
+    {
+        if (target == null || string.IsNullOrWhiteSpace(target.CharacterId)) return BodyZoneIds.Torso;
+        var body = _profiles.GetBodyProfile(target.CharacterId);
+        var zones = body?.BodyZones;
+        if (zones == null || zones.Count == 0) zones = RacePhysiologyRules022Gate2.HumanoidZones();
+        var unitRoll = StableUnitRoll022Gate2((actionId ?? string.Empty) + ":" + target.Id);
+        return BodyZoneRules022Gate2.ResolveWeighted(zones, unitRoll).ZoneId;
+    }
+
+    private static decimal StableUnitRoll022Gate2(string value)
+    {
+        unchecked
+        {
+            uint hash = 2166136261;
+            foreach (var character in value ?? string.Empty)
+            {
+                hash ^= character;
+                hash *= 16777619;
+            }
+            return (hash & 0x00FFFFFF) / 16777216m;
+        }
+    }
+
+    private NaturalAttackDefinition ResolveNaturalAttack(CombatParticipantState participant, string naturalAttackId)
+    {
+        if (participant == null || string.IsNullOrWhiteSpace(participant.CharacterId)) throw new InvalidOperationException("natural_attack_requires_character");
+        var body = _profiles.GetBodyProfile(participant.CharacterId);
+        return body?.NaturalAttacks?.FirstOrDefault(v => string.Equals(v.DefinitionId, naturalAttackId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("natural_attack_not_available");
+    }
+
+    private async Task EnsureNaturalAttackCooldownAsync(CombatEncounterState encounter, CombatParticipantState attacker, NaturalAttackDefinition attack, string requestId)
+    {
+        if (attack.CooldownRounds <= 0) return;
+        var logs = await _logs.ListByEncounterAsync(encounter.Id, 500);
+        var lastUse = logs.Where(v => string.Equals(v.EventType, CombatEventTypes.WeaponAttackResolved, StringComparison.Ordinal)
+                && string.Equals(v.ActorParticipantId, attacker.Id, StringComparison.Ordinal)
+                && !string.Equals(v.RequestId, requestId ?? string.Empty, StringComparison.Ordinal)
+                && PayloadText(v.PayloadSummary, "naturalAttackId") == attack.DefinitionId)
+            .OrderByDescending(v => v.RoundNumber).FirstOrDefault();
+        if (lastUse != null && encounter.RoundNumber - lastUse.RoundNumber < attack.CooldownRounds)
+            throw new InvalidOperationException("natural_attack_cooldown_active");
+    }
+
+    private async Task ApplyNaturalAttackConditionAsync(CombatEncounterState encounter, CombatParticipantState attacker, CombatParticipantState target, NaturalAttackDefinition attack, string actionId)
+    {
+        if (target.Conditions.Any(v => string.Equals(v.SourceActionId, actionId, StringComparison.Ordinal)
+            && string.Equals(v.ConditionDefinitionId, attack.AppliedConditionId, StringComparison.Ordinal))) return;
+        target.Conditions.Add(new CombatConditionState
+        {
+            ConditionDefinitionId = attack.AppliedConditionId,
+            DisplayName = _conditionPresentationResolver?.ResolveDisplayName(attack.AppliedConditionId)
+                ?? CombatConditionPresentationRules.ReadableOrGeneric(attack.AppliedConditionId),
+            SourceActionId = actionId,
+            SourceParticipantId = attacker.Id,
+            TargetParticipantId = target.Id,
+            ConditionGroup = "movement",
+            Severity = "minor",
+            StackMode = "unique",
+            DurationMode = "rounds",
+            RemainingRounds = attack.AppliedConditionRounds,
+            AppliedRoundNumber = encounter.RoundNumber,
+            AppliedTurnIndex = encounter.ActiveTurnIndex,
+            IsNegative = true,
+            Status = CombatConditionStatuses.Active
+        });
+        await _participants.UpsertAsync(target);
+    }
+
+    private static string PayloadText(IDictionary<string, object> payload, string key)
+        => payload != null && payload.TryGetValue(key, out var value) ? Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty : string.Empty;
+
+    private static WeaponDefinitionView BuildNaturalWeaponView(NaturalAttackDefinition attack)
+    {
+        var profile = attack.ToAttackProfile();
+        return new WeaponDefinitionView
+        {
+            DefinitionId = "natural_attack", Name = attack.DisplayName, DisplayNameRu = attack.DisplayName,
+            WeaponType = "natural", RangeType = attack.AreaShape == "single" ? "melee" : "area",
+            DamageDraft = attack.Damage.Display, AccuracyDraft = attack.AccuracyModifier.ToString(CultureInfo.InvariantCulture),
+            PenetrationDraft = attack.PhysicalPenetration.ToString(CultureInfo.InvariantCulture),
+            FailedPenetrationDamageTransfer = attack.FailedPenetrationDamageTransfer,
+            AttackProfiles = new List<AttackProfileDefinition> { profile },
+            Tags = new List<string> { "natural_attack", attack.AttackType }
         };
     }
 
@@ -309,6 +573,9 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
 
     public Task<bool> ValidateWeaponAmmoCompatibilityAsync(WeaponDefinitionView? weapon, AmmoDefinitionView? ammo, CombatWeaponAttackRequest request, List<string> warnings)
     {
+        var weaponRequiresAmmo = weapon?.AmmoDefinitionIds != null && weapon.AmmoDefinitionIds.Count > 0;
+        if (!weaponRequiresAmmo && ammo == null) return Task.FromResult(true);
+
         if (!CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatAmmoCompatibilityMvp)))
         {
             warnings.Add("ammo_compatibility_disabled");
@@ -316,7 +583,6 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
         }
 
         if (weapon == null) return Task.FromResult(true);
-        var weaponRequiresAmmo = weapon.AmmoDefinitionIds != null && weapon.AmmoDefinitionIds.Count > 0;
         if (weaponRequiresAmmo && ammo == null)
             throw new InvalidOperationException("ammo_required");
         if (ammo == null) return Task.FromResult(true);
@@ -376,42 +642,93 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
             FateModifiedRoll = baseDamage
         };
         var fateModifier = 0;
-        if (request.UseFateEngine)
-        {
-            if (CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatFateHookMvp)) && CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatFateDamageModifier)) && _fateHookService != null)
-            {
-                fate = await _fateHookService.ApplyFateToDamageRollAsync(new CombatFateHookRequest
-                {
-                    EncounterId = request.EncounterId ?? string.Empty,
-                    RollContext = "damage_roll",
-                    ActorParticipantId = request.ActorParticipantId ?? string.Empty,
-                    TargetParticipantId = request.TargetParticipantId ?? string.Empty,
-                    BaseRoll = baseDamage,
-                    DiceExpression = weapon?.DamageDraft ?? string.Empty,
-                    UseFateEngine = request.UseFateEngine,
-                    RequestId = request.RequestId ?? string.Empty
-                }, null);
-                fateModifier = fate.FateModifier;
-                warnings.AddRange(fate.Warnings);
-            }
-            else
-            {
-                warnings.Add("fate_damage_hook_disabled");
-            }
-        }
+        if (request.UseFateEngine) warnings.Add("fate_damage_excluded_by_ruleset");
 
         var criticalMultiplier = attackResult.IsCritical ? 2 : 1;
+        var targetParticipant = await _participants.GetByIdAsync(request.TargetParticipantId ?? string.Empty);
+        var vehicleTarget = targetParticipant != null
+            && string.Equals(targetParticipant.ParticipantType, CombatParticipantTypes.Vehicle, StringComparison.OrdinalIgnoreCase);
+        var targetProtection = 0;
+        if (vehicleTarget)
+        {
+            targetProtection = VehicleProtection(targetParticipant!, request.TargetProtectionZone);
+        }
+        else
+        {
+            var defense = await _defenseCalculationService.CalculateDefenseAsync(new CombatDefenseCalculationRequest
+            {
+                EncounterId = request.EncounterId ?? string.Empty,
+                TargetParticipantId = request.TargetParticipantId ?? string.Empty,
+                AttackerParticipantId = request.ActorParticipantId ?? string.Empty,
+                WeaponDefinitionId = request.WeaponDefinitionId ?? string.Empty,
+                IncludeArmor = true,
+                IncludeShield = false,
+                IncludeCover = false,
+                IncludeDistance = false,
+                RequestId = request.RequestId ?? string.Empty
+            }, null);
+            warnings.AddRange(defense.Warnings);
+            var zone = NormalizePersonalZone(request.TargetProtectionZone);
+            var natural = string.IsNullOrWhiteSpace(targetParticipant?.CharacterId) ? 0 : Math.Max(0, _profiles.GetBodyProfile(targetParticipant.CharacterId)?.NaturalPenetrationResistance ?? 0);
+            var equipment = defense.ArmorItems.Sum(v => v.PenetrationResistanceByBodyZone.TryGetValue(zone, out var value) ? Math.Max(0, value) : 0);
+            targetProtection = natural + equipment;
+        }
+        var weaponPenetration = ParseSignedDraft(weapon?.PenetrationDraft);
+        var ammoPenetration = ParseSignedDraft(ammo?.PenetrationModifierDraft);
+        var penetration = CombatPenetrationPolicy0219.Resolve(new CombatPenetrationContext0219
+        {
+            PenetrationType = CombatPenetrationTypes0219.Armor,
+            AttackProfilePenetration = weaponPenetration,
+            AmmoPenetration = ammoPenetration,
+            TargetProtection = targetProtection
+        });
+        var rawDamage = Math.Max(0, (baseDamage + ammoModifier + fateModifier) * criticalMultiplier);
+        var failedPenetrationTransfer = Math.Max(0m, Math.Min(1m, weapon?.FailedPenetrationDamageTransfer ?? 0m));
+        var finalDamage = penetration.IsPenetrated
+            ? rawDamage
+            : (int)Math.Floor(rawDamage * failedPenetrationTransfer);
+        var mitigated = Math.Max(0, rawDamage - finalDamage);
         return new CombatDamagePreview
         {
             BaseDamage = baseDamage,
             AmmoDamageModifier = ammoModifier,
             FateModifier = fateModifier,
             CriticalMultiplier = criticalMultiplier,
-            FinalDamage = Math.Max(0, (baseDamage + ammoModifier + fateModifier) * criticalMultiplier),
+            DamageBeforeMitigation = rawDamage,
+            FinalDamage = finalDamage,
+            ProtectionValue = penetration.TargetProtection,
+            PenetrationValue = penetration.TotalPenetration,
+            MitigatedDamage = mitigated,
+            FailedPenetrationDamageTransfer = failedPenetrationTransfer,
+            IsPenetrated = penetration.IsPenetrated,
+            PenetrationType = penetration.PenetrationType,
+            ProtectionZone = vehicleTarget ? NormalizeVehicleZone(request.TargetProtectionZone) : NormalizePersonalZone(request.TargetProtectionZone),
             DamageType = NormalizeDamageType(request.DamageType),
             IsDraftBased = isDraftBased,
             Fate = CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatFateBreakdownInResponse)) ? fate : new CombatFateHookResult()
         };
+    }
+
+    private static int VehicleProtection(CombatParticipantState participant, string zone)
+    {
+        return NormalizeVehicleZone(zone) switch
+        {
+            "rear" => Math.Max(0, participant.RearProtection),
+            "side" => Math.Max(0, participant.SideProtection),
+            _ => Math.Max(0, participant.FrontProtection)
+        };
+    }
+
+    private static string NormalizeVehicleZone(string zone)
+    {
+        var value = (zone ?? string.Empty).Trim().ToLowerInvariant();
+        return value == "rear" || value == "side" ? value : "front";
+    }
+
+    private static string NormalizePersonalZone(string zone)
+    {
+        var value = (zone ?? string.Empty).Trim().ToLowerInvariant();
+        return value == BodyZoneIds.Head || value == BodyZoneIds.LeftArm || value == BodyZoneIds.RightArm || value == BodyZoneIds.LeftLeg || value == BodyZoneIds.RightLeg || value == BodyZoneIds.Tail || value == BodyZoneIds.LeftWing || value == BodyZoneIds.RightWing ? value : BodyZoneIds.Torso;
     }
 
     public string BuildWeaponAttackLogMessage(CombatParticipantState attacker, CombatParticipantState target, CombatWeaponCombatSummary weapon, CombatAttackResultResponse attackResult, CombatDamagePreview preview, bool damageApplied)
@@ -419,14 +736,17 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
         var attackerName = string.IsNullOrWhiteSpace(attacker.DisplayName) ? attacker.Id : attacker.DisplayName;
         var targetName = string.IsNullOrWhiteSpace(target.DisplayName) ? target.Id : target.DisplayName;
         var weaponName = string.IsNullOrWhiteSpace(weapon.DisplayName) ? FirstNonEmpty(weapon.WeaponDefinitionId, "weapon") : weapon.DisplayName;
-        var suffix = attackResult.IsHit ? $" Damage preview: {preview.FinalDamage}." : string.Empty;
+        var suffix = attackResult.IsHit
+            ? $" Пробитие {preview.PenetrationValue} против защиты {preview.ProtectionValue}: {(preview.IsPenetrated ? "успешно" : "остановлено")}. Урон {preview.DamageBeforeMitigation}, предотвращено {preview.MitigatedDamage}, применено {preview.FinalDamage}."
+            : string.Empty;
         if (CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatFateLogging)) && (attackResult.Fate.Applied || preview.Fate.Applied))
         {
             var modifier = attackResult.Fate.FateModifier + preview.Fate.FateModifier;
-            suffix += $" Fate modifier: {FormatSigned(modifier)}.";
+            suffix += $" Модификатор Судьбы: {FormatSigned(modifier)}.";
         }
-        if (damageApplied) suffix += " Damage applied.";
-        return $"{attackerName} attacks {targetName} with {weaponName}: {attackResult.HitResult}.{suffix}";
+        if (damageApplied) suffix += " Урон применён.";
+        var hit = attackResult.IsHit ? "попадание" : "промах";
+        return $"{attackerName} атакует {targetName}, оружие: {weaponName}. Результат: {hit}.{suffix}";
     }
 
     private async Task<WeaponDefinitionView?> ResolveWeaponDefinitionAsync(string definitionId, string ruleSetId, List<string> warnings)
@@ -446,6 +766,48 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
         }
 
         return result.Value;
+    }
+
+    private static AttackProfileDefinition? ResolveAttackProfile(WeaponDefinitionView? weapon, string requestedProfileId, List<string> warnings)
+    {
+        if (weapon == null) return null;
+        var profiles = weapon.AttackProfiles ?? new List<AttackProfileDefinition>();
+        var selected = string.IsNullOrWhiteSpace(requestedProfileId)
+            ? profiles.FirstOrDefault()
+            : profiles.FirstOrDefault(x => string.Equals(x.ProfileId, requestedProfileId, StringComparison.OrdinalIgnoreCase));
+        if (selected == null) warnings.Add("attack_profile_missing");
+        return selected;
+    }
+
+    private static WeaponDefinitionView? ApplyAttackProfile(WeaponDefinitionView? source, AttackProfileDefinition? profile)
+    {
+        if (source == null || profile == null) return source;
+        return new WeaponDefinitionView
+        {
+            DefinitionId = source.DefinitionId,
+            Name = source.Name,
+            DisplayNameRu = source.DisplayNameRu,
+            WeaponType = source.WeaponType,
+            Handedness = source.Handedness,
+            RangeType = FirstNonEmpty(profile.Range, source.RangeType),
+            DamageDraft = FirstNonEmpty(profile.DamageExpression, source.DamageDraft),
+            AccuracyDraft = profile.AccuracyModifier.ToString(CultureInfo.InvariantCulture),
+            PenetrationDraft = Math.Max(profile.ArmorPenetration, profile.PhysicalPenetration).ToString(CultureInfo.InvariantCulture),
+            FailedPenetrationDamageTransfer = Math.Max(0m, Math.Min(1m, profile.FailedPenetrationDamageTransfer)),
+            LinkedSkillIds = string.IsNullOrWhiteSpace(profile.SkillDefinitionId) ? new List<string>(source.LinkedSkillIds ?? new List<string>()) : new List<string> { profile.SkillDefinitionId },
+            AttributeHints = string.IsNullOrWhiteSpace(profile.SubAttributeDefinitionId) ? new List<string>(source.AttributeHints ?? new List<string>()) : new List<string> { profile.SubAttributeDefinitionId },
+            AmmoDefinitionIds = new List<string>(source.AmmoDefinitionIds ?? new List<string>()),
+            EquipmentSlotIds = new List<string>(source.EquipmentSlotIds ?? new List<string>()),
+            AttackProfiles = new List<AttackProfileDefinition>(source.AttackProfiles ?? new List<AttackProfileDefinition>()),
+            WeightKg = source.WeightKg,
+            ValueCurrencyId = source.ValueCurrencyId,
+            ValueAmountDraft = source.ValueAmountDraft,
+            TechTags = new List<string>(source.TechTags ?? new List<string>()),
+            MagicTags = new List<string>(source.MagicTags ?? new List<string>()),
+            LegalTags = new List<string>(source.LegalTags ?? new List<string>()),
+            Tags = new List<string>(source.Tags ?? new List<string>()),
+            SchemaVersion = source.SchemaVersion
+        };
     }
 
     private async Task<AmmoDefinitionView?> ResolveAmmoDefinitionAsync(string definitionId, string ruleSetId, List<string> warnings)
@@ -486,13 +848,19 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
             warnings.Add("ammo_consumption_not_implemented");
         if (CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatWeaponDurabilityMvp)))
             warnings.Add("weapon_durability_not_implemented");
-        if (CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatArmorDamageReduction)))
-            warnings.Add("armor_damage_reduction_not_enabled");
-        if (CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatArmorPenetration)) || (weapon != null && !string.IsNullOrWhiteSpace(weapon.PenetrationDraft)))
-            warnings.Add("armor_penetration_not_enabled");
+        if (weapon != null && string.IsNullOrWhiteSpace(weapon.PenetrationDraft)) warnings.Add("weapon_penetration_defaulted_to_zero");
     }
 
-    private async Task WriteWeaponAttackLogAsync(CombatEncounterState encounter, string actorParticipantId, string targetParticipantId, CombatWeaponCombatSummary weapon, CombatAmmoCombatSummary ammo, CombatAttackResultResponse attack, CombatDamagePreview preview, bool damageApplied, string message, string requestId)
+    private static int ParseSignedDraft(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return 0;
+        var text = value.Trim();
+        if (int.TryParse(text, out var direct)) return direct;
+        var digits = new string(text.Where((ch, index) => char.IsDigit(ch) || (ch == '-' && index == 0) || (ch == '+' && index == 0)).ToArray());
+        return int.TryParse(digits, out var parsed) ? parsed : 0;
+    }
+
+    private async Task WriteWeaponAttackLogAsync(CombatEncounterState encounter, string actorParticipantId, string targetParticipantId, CombatWeaponCombatSummary weapon, CombatAmmoCombatSummary ammo, CombatAttackResultResponse attack, CombatDamagePreview preview, bool damageApplied, string message, string requestId, NaturalAttackDefinition? naturalAttack)
     {
         var payload = new Dictionary<string, object>
         {
@@ -501,6 +869,8 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
             { "targetParticipantId", targetParticipantId ?? string.Empty },
             { "weaponDefinitionId", weapon.WeaponDefinitionId ?? string.Empty },
             { "ammoDefinitionId", ammo.AmmoDefinitionId ?? string.Empty },
+            { "naturalAttackId", naturalAttack?.DefinitionId ?? string.Empty },
+            { "naturalAttackCooldownRounds", naturalAttack?.CooldownRounds ?? 0 },
             { "hitResult", attack.HitResult ?? string.Empty },
             { "finalDamage", preview.FinalDamage },
             { "damageApplied", damageApplied },
@@ -559,12 +929,23 @@ public sealed class CombatWeaponIntegrationService : ICombatWeaponIntegrationSer
         if (participant.IsDefeated) throw new InvalidOperationException(role == "target" ? "target_defeated" : "attacker_defeated");
     }
 
-    private static CombatWeaponCombatSummary BuildWeaponSummary(InventoryItemInstanceState? item, WeaponDefinitionView? definition, string definitionId)
+    private static void EnsureActorCanControl(CombatParticipantState participant, UserAccount actor)
+    {
+        var isAdmin = actor?.Roles?.Any(role => role == UserRole.Admin || role == UserRole.SuperAdmin) == true;
+        if (isAdmin) return;
+        if (actor == null || string.IsNullOrWhiteSpace(participant.ControllerUserId)
+            || !string.Equals(participant.ControllerUserId, actor.Id, StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("combat_participant_control_forbidden");
+    }
+
+    private static CombatWeaponCombatSummary BuildWeaponSummary(InventoryItemInstanceState? item, WeaponDefinitionView? definition, string definitionId, AttackProfileDefinition? attackProfile)
     {
         return new CombatWeaponCombatSummary
         {
             WeaponItemInstanceId = item?.ItemInstanceId ?? string.Empty,
             WeaponDefinitionId = FirstNonEmpty(definition?.DefinitionId, definitionId, item?.DefinitionId),
+            AttackProfileId = attackProfile?.ProfileId ?? string.Empty,
+            AttackProfileName = attackProfile?.Name ?? string.Empty,
             DisplayName = FirstNonEmpty(definition?.DisplayNameRu, definition?.Name, item?.DisplayName),
             WeaponType = definition?.WeaponType ?? string.Empty,
             Handedness = definition?.Handedness ?? string.Empty,

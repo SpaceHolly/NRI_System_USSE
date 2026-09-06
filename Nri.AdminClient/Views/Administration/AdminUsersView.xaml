@@ -1,0 +1,79 @@
+<UserControl x:Class="Nri.AdminClient.Views.Administration.AdminUsersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminUsers_Route">
+    <Grid Margin="8">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <controls:NriPageHeader Grid.Row="0"
+                                Title="Пользователи"
+                                Subtitle="Просмотр аккаунтов, одобрение доступа и управление состоянием учётных записей."
+                                StatusText="{Binding LoginState}"
+                                AutomationProperties.AutomationId="AdminUsers_Header"
+                                Margin="0,0,0,8">
+            <controls:NriPageHeader.PrimaryAction>
+                <Button Content="Обновить" Command="{Binding RefreshPeopleSectionCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" AutomationProperties.AutomationId="AdminUsers_Refresh"/>
+            </controls:NriPageHeader.PrimaryAction>
+            <controls:NriPageHeader.SecondaryActions>
+                <controls:NriToastHost Message="{Binding OperationStatusMessage}"
+                                       IsOpen="{Binding HasOperationStatusMessage}"
+                                       AutomationProperties.AutomationId="AdminUsers_Success"/>
+            </controls:NriPageHeader.SecondaryActions>
+        </controls:NriPageHeader>
+        <Grid Grid.Row="1" MinHeight="620">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
+                        <controls:NriRouteStateHost Grid.ColumnSpan="2" State="{Binding UsersRouteState, Mode=OneWay}" ActiveStates="loading,empty,no-results,error,permission" Panel.ZIndex="10" AutomationProperties.AutomationId="AdminUsers_StateHost">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
+                    <controls:NriRouteStatePresenter State="{Binding UsersRouteState}" VisibleFor="loading"><controls:NriLoadingOverlay IsLoading="True" ProgressText="Загрузка пользователей…" AutomationProperties.AutomationId="AdminUsers_Loading"/></controls:NriRouteStatePresenter>
+                    <controls:NriRouteStatePresenter State="{Binding UsersRouteState}" VisibleFor="empty"><controls:NriEmptyState AutomationProperties.AutomationId="AdminUsers_EmptyState" Title="Пользователей пока нет" Message="Ожидающих и активных записей пока нет."/></controls:NriRouteStatePresenter>
+                    <controls:NriRouteStatePresenter State="{Binding UsersRouteState}" VisibleFor="no-results"><controls:NriEmptyState AutomationProperties.AutomationId="AdminUsers_NoResults" Title="Ничего не найдено" Message="Измените фильтры пользователей."/></controls:NriRouteStatePresenter>
+                    <controls:NriRouteStatePresenter State="{Binding UsersRouteState}" VisibleFor="permission"><controls:NriPermissionState AutomationProperties.AutomationId="AdminUsers_Permission" Explanation="{Binding SectionAccessHint}"/></controls:NriRouteStatePresenter>
+                    <controls:NriRouteStatePresenter State="{Binding UsersRouteState}" VisibleFor="error"><TextBlock AutomationProperties.AutomationId="AdminUsers_Error" Text="{Binding LastErrorMessage}" TextWrapping="Wrap"/></controls:NriRouteStatePresenter>
+                </StackPanel>
+            </controls:NriRouteStateHost>
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="150"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
+                        <TextBox AutomationProperties.AutomationId="AdminUsers_Search" Text="{Binding PeopleSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по логину, статусу и дате регистрации" Margin="0,0,8,0"/>
+                        <ComboBox Grid.Column="1" AutomationProperties.AutomationId="AdminUsers_StatusFilter" ItemsSource="{Binding PeopleStatusFilterOptions}" SelectedItem="{Binding PeopleStatusFilter, UpdateSourceTrigger=PropertyChanged}"/>
+                        <ComboBox Grid.Column="2" AutomationProperties.AutomationId="AdminUsers_RoleFilter" ItemsSource="{Binding PeopleRoleFilterOptions}" SelectedItem="{Binding PeopleRoleFilter, UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
+                    <DataGrid Grid.Row="1" Margin="0,8,0,8" ItemsSource="{Binding FilteredPendingAccounts}" SelectedValuePath="Id" SelectedValue="{Binding SelectedPendingAccountId, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" IsReadOnly="True" AutomationProperties.AutomationId="AdminUsers_PendingList" AutomationProperties.Name="Ожидающие одобрения">
+                        <DataGrid.Columns><DataGridTextColumn Header="Логин" Binding="{Binding Name}" Width="1.2*"/><DataGridTextColumn Header="Роль" Binding="{Binding RoleDisplay}" Width="1*"/><DataGridTextColumn Header="Статус" Binding="{Binding State}" Width="1*"/><DataGridTextColumn Header="Регистрация" Binding="{Binding Extra}" Width="1.5*"/></DataGrid.Columns>
+                    </DataGrid>
+                    <StackPanel Grid.Row="2">
+                        <TextBlock Text="Ожидают одобрения" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <WrapPanel Margin="0,8,0,0">
+                            <Button Content="Одобрить" Command="{Binding ApproveCommand}" IsEnabled="{Binding CanManagePendingAccount}" AutomationProperties.AutomationId="AdminUsers_Approve"/>
+                            <Button Content="Отклонить" Command="{Binding RejectAccountCommand}" IsEnabled="{Binding CanManagePendingAccount}" Style="{StaticResource GhostButtonStyle}" Margin="6,0,0,0" AutomationProperties.AutomationId="AdminUsers_Reject"/>
+                            <Button Content="Заблокировать" Command="{Binding BlockAccountCommand}" IsEnabled="{Binding CanManagePendingAccount}" Style="{StaticResource GhostButtonStyle}" Margin="6,0,0,0" AutomationProperties.AutomationId="AdminUsers_Block"/>
+                        </WrapPanel>
+                        <TextBox Text="{Binding ResetPasswordText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Новый пароль для выбранного аккаунта" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminUsers_ResetPassword"/>
+                        <Button Content="Сбросить пароль"
+                                Command="{Binding ResetPasswordCommand}"
+                                IsEnabled="{Binding CanResetSelectedAccountPassword}"
+                                Style="{StaticResource GhostButtonStyle}"
+                                HorizontalAlignment="Left"
+                                Margin="0,6,0,0"
+                                AutomationProperties.AutomationId="AdminUsers_ResetPassword_Button"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <StackPanel><TextBlock Text="Игроки" Style="{StaticResource SectionTitleTextStyle}"/><TextBlock Text="Выберите игрока, чтобы перейти к его персонажам." Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/></StackPanel>
+                    <DataGrid Grid.Row="1" Margin="0,8,0,8" ItemsSource="{Binding FilteredPlayers}" SelectedValuePath="Id" SelectedValue="{Binding SelectedOwnerUserId, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="False" IsReadOnly="True" AutomationProperties.AutomationId="AdminUsers_PlayerList" AutomationProperties.Name="Игроки">
+                        <DataGrid.Columns><DataGridTextColumn Header="Логин" Binding="{Binding Name}" Width="1.3*"/><DataGridTextColumn Header="Роль" Binding="{Binding RoleDisplay}" Width="1*"/><DataGridTextColumn Header="Состояние" Binding="{Binding State}" Width="1*"/><DataGridTextColumn Header="Последняя активность" Binding="{Binding Extra}" Width="1.7*"/></DataGrid.Columns>
+                    </DataGrid>
+                    <StackPanel Grid.Row="2">
+                        <TextBlock Text="{Binding SelectedPlayerSummary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                        <WrapPanel Margin="0,8,0,0"><Button Content="Открыть персонажей" Command="{Binding OpenPlayerCharactersCommand}" IsEnabled="{Binding CanLoadPlayerCharacters}" AutomationProperties.AutomationId="AdminUsers_OpenCharacters"/><Button Content="Обновить список" Command="{Binding RefreshPeopleSectionCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" Style="{StaticResource GhostButtonStyle}" Margin="6,0,0,0"/></WrapPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -257,42 +257,88 @@ public partial class ServiceHub
 
     private PlayerCharacterHubRow[] ResolvePlayerCharacterHubRows(UserAccount actor, string characterId)
     {
-        if (CharacterOwnershipPlayerViewEnabled())
+        if (!CharacterOwnershipPlayerViewEnabled())
         {
-            var ownerships = _repositories.CharacterOwnerships.Find(FilterDefinition<CharacterOwnershipState>.Empty)
-                .Where(x => x.IsPlayerVisible)
-                .Where(x => !IsArchivedForPlayer(x))
-                .Where(x => string.Equals(x.OwnerUserId, actor.Id, StringComparison.OrdinalIgnoreCase) || string.Equals(x.ControlledByUserId, actor.Id, StringComparison.OrdinalIgnoreCase))
-                .Where(x => string.IsNullOrWhiteSpace(characterId) || string.Equals(x.CharacterId, characterId, StringComparison.OrdinalIgnoreCase))
-                .Take(12)
-                .ToArray();
-
-            return ownerships
-                .Select(x => new PlayerCharacterHubRow(TryGetCharacter(x.CharacterId), x))
-                .Where(x => x.Character != null && !string.IsNullOrWhiteSpace(x.Character.Id))
-                .ToArray()!;
+            _logger.Debug("character.player.hub.ownership_required result=disabled");
+            return Array.Empty<PlayerCharacterHubRow>();
         }
 
-        var filter = Builders<Character>.Filter.Eq(x => x.OwnerUserId, actor.Id);
-        if (!string.IsNullOrWhiteSpace(characterId)) filter &= Builders<Character>.Filter.Eq(x => x.Id, characterId);
-        return _repositories.Characters.Find(filter)
+        var ownerships = _repositories.CharacterOwnerships.Find(FilterDefinition<CharacterOwnershipState>.Empty)
+            .Where(x => x.IsPlayerVisible)
+            .Where(x => !IsArchivedForPlayer(x))
+            .Where(x => string.Equals(x.OwnerUserId, actor.Id, StringComparison.OrdinalIgnoreCase) || string.Equals(x.ControlledByUserId, actor.Id, StringComparison.OrdinalIgnoreCase))
+            .Where(x => string.IsNullOrWhiteSpace(characterId) || string.Equals(x.CharacterId, characterId, StringComparison.OrdinalIgnoreCase))
             .Take(12)
-            .Where(x => !string.IsNullOrWhiteSpace(x.Id))
-            .Select(x => new PlayerCharacterHubRow(x, null))
             .ToArray();
+
+        return ownerships
+            .Select(x => new PlayerCharacterHubRow(TryGetCharacter(x.CharacterId), x))
+            .Where(x => x.Character != null && !string.IsNullOrWhiteSpace(x.Character.Id))
+            .ToArray()!;
     }
 
     private object[] BuildPlayerCharacterCards(IEnumerable<PlayerCharacterHubRow> rows, UserAccount viewer)
-        => rows.Take(12).Select(row => PlayerCharacterHubCard(row.Character, viewer, row.Ownership)).Cast<object>().ToArray();
+    {
+        var cards = new List<object>();
+        foreach (var row in rows.Take(12))
+        {
+            try
+            {
+                cards.Add(PlayerCharacterHubCard(row.Character, viewer, row.Ownership));
+            }
+            catch (InvalidOperationException ex) when (string.Equals(ex.Message, "Профиль Character v2 недоступен.", StringComparison.Ordinal))
+            {
+                _logger.Debug($"character.player.hub.profile_required.controlled characterId={row.Character.Id}");
+                cards.Add(PlayerCharacterProfileRequiredCard(row.Character, row.Ownership));
+            }
+        }
+
+        return cards.ToArray();
+    }
 
     private object[] BuildPlayerCharacterCards(IEnumerable<Character> characters, UserAccount viewer)
         => characters.Take(12).Select(c => PlayerCharacterHubCard(c, viewer, null)).Cast<object>().ToArray();
 
-    private Dictionary<string, object> PlayerCharacterHubCard(Character character, UserAccount viewer, CharacterOwnershipState? ownership)
+    private static Dictionary<string, object> PlayerCharacterProfileRequiredCard(Character character, CharacterOwnershipState? ownership)
     {
-        var ownerId = ownership?.OwnerUserId ?? character.OwnerUserId;
-        var owner = string.IsNullOrWhiteSpace(ownerId) ? viewer : GetAccount(ownerId);
-        var card = CharacterDetailsPayloadWithProfileFirst(character, owner, viewer, string.Empty);
+        var archived = ownership?.IsArchived == true || character.Archived || character.Deleted;
+        return new Dictionary<string, object>
+        {
+            ["characterId"] = character.Id,
+            ["name"] = ClientFirstNonEmpty(character.Name, ownership?.CharacterDisplayName, "Без имени"),
+            ["campaignId"] = ownership?.CampaignId ?? string.Empty,
+            ["race"] = "Не указана",
+            ["age"] = "—",
+            ["height"] = "—",
+            ["health"] = "—",
+            ["armor"] = "—",
+            ["xpCoins"] = "—",
+            ["summary"] = archived
+                ? "Персонаж находится в архиве."
+                : "Данные персонажа временно недоступны. Обратитесь к мастеру.",
+            ["ownerDisplayName"] = ClientFirstNonEmpty(ownership?.OwnerDisplayName, "Не указан"),
+            ["controlledByDisplayName"] = ClientFirstNonEmpty(ownership?.ControlledByDisplayName, "Не указан"),
+            ["characterKind"] = ClientFirstNonEmpty(ownership?.CharacterKind, MapOwnershipRoleToCharacterKind(ownership?.CharacterRole)),
+            ["characterKindDisplayName"] = CharacterKindDisplayName(ClientFirstNonEmpty(ownership?.CharacterKind, MapOwnershipRoleToCharacterKind(ownership?.CharacterRole))),
+            ["characterStatus"] = archived ? CharacterStatusIds.Archived : CharacterStatusIds.Inactive,
+            ["characterStatusDisplayName"] = CharacterStatusDisplayName(archived ? CharacterStatusIds.Archived : CharacterStatusIds.Inactive),
+            ["isActive"] = false,
+            ["isArchived"] = archived,
+            ["archived"] = archived,
+            ["isPlayerVisible"] = ownership?.IsPlayerVisible ?? true,
+            ["isSelectable"] = false,
+            ["profileState"] = archived ? CharacterStatusIds.Archived : ApplicationContextStates.ProfileMigrationRequired,
+            ["availabilityMessage"] = archived
+                ? "Персонаж находится в архиве."
+                : "Данные персонажа временно недоступны. Обратитесь к мастеру.",
+            ["stats"] = new Dictionary<string, object>(),
+            ["groupMembership"] = Array.Empty<object>()
+        };
+    }
+
+    private Dictionary<string, object> PlayerCharacterHubCard(Character character, UserAccount viewer, CharacterOwnershipState? ownership, bool playerProjection = true)
+    {
+        var card = BuildStrictCharacterProfileCard(character, viewer);
         EnsurePlayerHubProfileSections(card, character.Id);
         var stats = ClientMap(card.TryGetValue("stats", out var statsRaw) ? statsRaw : null);
         _logger.Debug($"character.profile.hub.card.stats characterId={character.Id} profileSource={ClientString(card, "profileSource")} strength={ClientString(stats, "strength")}");
@@ -320,12 +366,19 @@ public partial class ServiceHub
         card["craftRecipes"] = card.ContainsKey("craftRecipes") ? card["craftRecipes"] : Array.Empty<object>();
         card["craftMaterials"] = card.ContainsKey("craftMaterials") ? card["craftMaterials"] : Array.Empty<object>();
         card["craftJobs"] = card.ContainsKey("craftJobs") ? card["craftJobs"] : Array.Empty<object>();
+        card["publicProfileRevision"] = _mongo.CharacterBodyProfiles
+            .Find(x => x.CharacterId == character.Id)
+            .FirstOrDefault()?.EntityRevision ?? 0;
         if (ownership != null)
         {
-            card["ownerUserId"] = ownership.OwnerUserId ?? string.Empty;
-            card["ownerDisplayName"] = ClientFirstNonEmpty(ownership.OwnerDisplayName, ownership.OwnerUserId, "—");
-            card["controlledByUserId"] = ownership.ControlledByUserId ?? string.Empty;
-            card["controlledByDisplayName"] = ClientFirstNonEmpty(ownership.ControlledByDisplayName, ownership.ControlledByUserId, "—");
+            card["campaignId"] = ownership.CampaignId ?? string.Empty;
+            if (!playerProjection)
+            {
+                card["ownerUserId"] = ownership.OwnerUserId ?? string.Empty;
+                card["controlledByUserId"] = ownership.ControlledByUserId ?? string.Empty;
+            }
+            card["ownerDisplayName"] = ClientFirstNonEmpty(ownership.OwnerDisplayName, "Не указан");
+            card["controlledByDisplayName"] = ClientFirstNonEmpty(ownership.ControlledByDisplayName, "Не указан");
             card["characterRole"] = ownership.CharacterRole ?? string.Empty;
             card["characterKind"] = ClientFirstNonEmpty(ownership.CharacterKind, MapOwnershipRoleToCharacterKind(ownership.CharacterRole));
             card["characterKindDisplayName"] = CharacterKindDisplayName(ClientFirstNonEmpty(ownership.CharacterKind, MapOwnershipRoleToCharacterKind(ownership.CharacterRole)));
@@ -334,20 +387,117 @@ public partial class ServiceHub
             card["isActive"] = ownership.IsActive;
             card["isArchived"] = ownership.IsArchived;
             card["isPlayerVisible"] = ownership.IsPlayerVisible;
-            card["ownershipSummary"] = ClientFirstNonEmpty(ownership.OwnerDisplayName, ownership.OwnerUserId, "—");
+            card["ownershipSummary"] = ClientFirstNonEmpty(ownership.OwnerDisplayName, "Не указан");
         }
         else
         {
-            card["ownershipSummary"] = ClientFirstNonEmpty(character.OwnerUserId, "—");
+            card["ownershipSummary"] = "Не указан";
         }
         card["processSummary"] = "Активные процессы персонажа будут показаны здесь после подключения проектных read models.";
         card["requestSummary"] = "Заявки игрока доступны в разделе заявок.";
+        if (playerProjection)
+            SanitizePlayerCharacterHubCard(card);
         return card;
+    }
+
+    private Dictionary<string, object> BuildStrictCharacterProfileCard(Character character, UserAccount viewer)
+    {
+        var identityShell = _characterDetailsProfileBuilder.BuildProfileIdentityShell(character);
+        var result = _characterDetailsProfileBuilder
+            .BuildFromProfilesAsync(character, viewer.Id, string.Empty, identityShell)
+            .GetAwaiter()
+            .GetResult();
+
+        if (result == null || result.Payload == null || !result.UsedProfileFirst || result.UsedFallback)
+        {
+            var reason = result?.ErrorMessage ?? "profile_result_missing";
+            _logger.Debug($"character.player.hub.profile_required characterId={character.Id} reason={reason}");
+            throw new InvalidOperationException("Профиль Character v2 недоступен.");
+        }
+
+        ApplyPlayerSafeCharacterPayload(result.Payload, viewer);
+        return result.Payload;
+    }
+
+    private static void SanitizePlayerCharacterHubCard(Dictionary<string, object> card)
+    {
+        var forbiddenKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "gmNotes",
+            "gmDescription",
+            "serverOnlyData",
+            "adminOnlyDetails",
+            "adminNotes",
+            "audit",
+            "rawPayload",
+            "ownerUserId",
+            "controlledByUserId",
+            "groupId",
+            "profileRuleSetId",
+            "profileMissingSections",
+            "profileSource",
+            "schemaVersion",
+            "raceCode",
+            "sourceOfTruth",
+            "createdByUserId",
+            "updatedByUserId"
+        };
+
+        foreach (var key in card.Keys.Where(forbiddenKeys.Contains).ToArray())
+            card.Remove(key);
+
+        foreach (var key in card.Keys.ToArray())
+            card[key] = SanitizePlayerCharacterHubValue(card[key], forbiddenKeys);
+    }
+
+    private static object SanitizePlayerCharacterHubValue(object? value, HashSet<string> forbiddenKeys)
+    {
+        if (value is IDictionary<string, object> typed)
+        {
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in typed)
+            {
+                if (forbiddenKeys.Contains(pair.Key)) continue;
+                result[pair.Key] = SanitizePlayerCharacterHubValue(pair.Value, forbiddenKeys);
+            }
+            return result;
+        }
+
+        if (value is System.Collections.IDictionary dictionary)
+        {
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (System.Collections.DictionaryEntry pair in dictionary)
+            {
+                var key = Convert.ToString(pair.Key) ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(key) || forbiddenKeys.Contains(key)) continue;
+                result[key] = SanitizePlayerCharacterHubValue(pair.Value, forbiddenKeys);
+            }
+            return result;
+        }
+
+        if (value is System.Collections.IEnumerable enumerable && value is not string)
+        {
+            var result = new List<object>();
+            foreach (var item in enumerable)
+            {
+                var map = item as IDictionary<string, object>;
+                if (map != null)
+                {
+                    if (map.TryGetValue("isPlayerVisible", out var visible) && !Convert.ToBoolean(visible)) continue;
+                    if (map.TryGetValue("isHidden", out var hidden) && Convert.ToBoolean(hidden)) continue;
+                    if (map.TryGetValue("gmOnly", out var gmOnly) && Convert.ToBoolean(gmOnly)) continue;
+                }
+                result.Add(SanitizePlayerCharacterHubValue(item, forbiddenKeys));
+            }
+            return result.ToArray();
+        }
+
+        return value ?? string.Empty;
     }
 
     private Dictionary<string, object> AdminCharacterHubCard(Character character, UserAccount viewer)
     {
-        var card = PlayerCharacterHubCard(character, viewer, null);
+        var card = PlayerCharacterHubCard(character, viewer, null, playerProjection: false);
         card["ownerUserId"] = character.OwnerUserId;
         card["sessionId"] = character.SessionId;
         card["inventoryCount"] = ClientList(card.TryGetValue("inventory", out var inventoryRaw) ? inventoryRaw : null).Count;
@@ -399,6 +549,56 @@ public partial class ServiceHub
         card["holdings"] = ClientProfileHoldings(characterId);
         card["companions"] = ClientProfileCompanions(characterId);
         card["xpCoins"] = ClientWalletAmount(characterId, CharacterCurrencyIds.XpCoin);
+        var body = _mongo.CharacterBodyProfiles
+            .Find(Builders<CharacterBodyProfileDocument>.Filter.Eq(x => x.CharacterId, characterId ?? string.Empty))
+            .FirstOrDefault()
+            ?.Profile;
+        card["bodyTypeDisplay"] = ClientReadableBodyValue(body?.BodyType, "Не указан");
+        card["sizeCategoryDisplay"] = ClientReadableBodyValue(body?.SizeCategory, "Не указана");
+        var knowledge = _mongo.CharacterKnowledgeProfiles
+            .Find(Builders<CharacterKnowledgeProfileDocument>.Filter.Eq(x => x.CharacterId, characterId ?? string.Empty))
+            .FirstOrDefault()
+            ?.Profile;
+        card["knownLanguages"] = (knowledge?.Languages ?? new List<string>())
+            .Select(ClientReadableLanguage)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Cast<object>()
+            .ToArray();
+    }
+
+    private static string ClientReadableBodyValue(string? value, string fallback)
+    {
+        var original = (value ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(original)) return fallback;
+        if (original.Any(ch => ch >= '\u0400' && ch <= '\u04FF')) return original;
+        return original.ToLowerInvariant() switch
+        {
+            "humanoid" => "Гуманоид",
+            "biped" => "Двуногий",
+            "quadruped" => "Четвероногий",
+            "small" => "Малый",
+            "medium" => "Средний",
+            "large" => "Крупный",
+            "huge" => "Огромный",
+            _ => fallback
+        };
+    }
+
+    private static string ClientReadableLanguage(string? value)
+    {
+        var original = (value ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(original)) return string.Empty;
+        if (original.Any(ch => ch >= '\u0400' && ch <= '\u04FF')) return original;
+        return original.ToLowerInvariant() switch
+        {
+            "common" or "common_language" => "Общий",
+            "elvish" => "Эльфийский",
+            "dwarvish" => "Дварфийский",
+            "orcish" => "Орочий",
+            "sign_language" => "Язык жестов",
+            _ => string.Empty
+        };
     }
 
     private Dictionary<string, object> ClientProfileStats(string characterId)
@@ -483,9 +683,8 @@ public partial class ServiceHub
                 ["id"] = x.EntryId,
                 ["scopeType"] = x.ScopeType,
                 ["targetType"] = x.TargetType,
-                ["targetName"] = ClientFirstNonEmpty(x.Name, x.TargetId, "Репутация"),
+                ["targetName"] = ClientFirstNonEmpty(x.Name, "Репутация"),
                 ["value"] = x.Value,
-                ["notes"] = x.Notes,
                 ["isArchived"] = x.IsArchived
             })
             .Cast<object>()
@@ -500,8 +699,7 @@ public partial class ServiceHub
                 ["name"] = ClientFirstNonEmpty(x.Name, "Владение"),
                 ["type"] = ClientFirstNonEmpty(x.HoldingType, "—"),
                 ["description"] = ClientFirstNonEmpty(x.Description, string.Empty),
-                ["notes"] = x.Notes,
-                ["owners"] = (x.OwnerCharacterIds ?? new List<string>()).Cast<object>().ToArray(),
+                ["ownerDisplayName"] = ClientFirstNonEmpty(x.OwnerDisplayName, string.Empty),
                 ["isArchived"] = x.IsArchived
             })
             .Cast<object>()
@@ -515,9 +713,8 @@ public partial class ServiceHub
                 ["id"] = x.CompanionId,
                 ["name"] = ClientFirstNonEmpty(x.Name, "Компаньон"),
                 ["type"] = ClientFirstNonEmpty(x.CompanionType, "—"),
-                ["species"] = ClientFirstNonEmpty(x.RaceOrSpeciesId, "—"),
+                ["species"] = "Не указана",
                 ["description"] = ClientFirstNonEmpty(x.Description, string.Empty),
-                ["notes"] = x.Notes,
                 ["inventory"] = Array.Empty<object>(),
                 ["holdings"] = Array.Empty<object>(),
                 ["reputation"] = Array.Empty<object>(),

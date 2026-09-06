@@ -20,6 +20,9 @@ using Nri.AdminClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
 using Nri.Shared.Domain;
+using Nri.Shared.Diagnostics;
+using Nri.Ui.Wpf;
+using Nri.Ui.Wpf.Controls;
 
 namespace Nri.AdminClient.ViewModels;
 
@@ -133,6 +136,15 @@ public class RowVm : ViewModelBase
     public string DisplayId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string RoleDisplay => string.IsNullOrWhiteSpace(Role) ? "Не указана" : Role switch
+    {
+        "Admin" => "Администратор",
+        "SuperAdmin" => "Суперадминистратор",
+        "Player" => "Игрок",
+        "GM" => "Мастер",
+        _ => Role
+    };
     public string Extra { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string Attribute { get; set; } = string.Empty;
@@ -140,9 +152,30 @@ public class RowVm : ViewModelBase
     public string Breakdown { get; set; } = string.Empty;
     public int Rank { get => _rank; set { _rank = value; Notify(); } }
     public int ManualBonus { get => _manualBonus; set { _manualBonus = value; Notify(); } }
+    public override string ToString() => FirstNonEmpty(Name, Extra, State, "Запись");
+
+    private static string FirstNonEmpty(params string[] values)
+    {
+        foreach (var value in values)
+            if (!string.IsNullOrWhiteSpace(value)) return value;
+        return string.Empty;
+    }
     public string TrainingState { get => _trainingState; set { _trainingState = value; Notify(); } }
     public bool IsPlayerVisible { get => _isPlayerVisible; set { _isPlayerVisible = value; Notify(); } }
     public string Notes { get => _notes; set { _notes = value; Notify(); } }
+}
+
+public sealed class AdminOptionVm
+{
+    public AdminOptionVm(string value, string title)
+    {
+        Value = value;
+        Title = title;
+    }
+
+    public string Value { get; }
+    public string Title { get; }
+    public override string ToString() => Title;
 }
 
 public sealed class DevelopmentHexagonEditorTreeVm
@@ -722,12 +755,14 @@ public sealed class AttributeEditorRowVm : ViewModelBase
             _value = value;
             Notify();
             Notify(nameof(IsChanged));
+            Notify(nameof(RangeText));
             OnValueChanged?.Invoke(this, old, value);
         }
     }
 
     public bool IsChanged => Value != OriginalValue;
-    public string RangeText => $"{MinValue}..{MaxValue}";
+    public int CoreResolutionModifier => Math.Max(-4, Math.Min(4, (int)Math.Floor((Value - 10) / 2d)));
+    public string RangeText => $"{MinValue}..{MaxValue} · модификатор {CoreResolutionModifier:+0;-0;0}";
     public string AutomationId => $"AdminCharacterEditor_{AutomationScope}_{NormalizeAutomationCode(Code)}_Value";
 
     public static string NormalizeAutomationCode(string code)
@@ -767,6 +802,7 @@ public sealed class SubAttributeEditorRowVm : ViewModelBase
             _value = value;
             Notify();
             Notify(nameof(IsChanged));
+            Notify(nameof(RangeText));
         }
     }
 
@@ -778,12 +814,14 @@ public sealed class SubAttributeEditorRowVm : ViewModelBase
             if (_manualBonus == value) return;
             _manualBonus = value;
             Notify();
+            Notify(nameof(RangeText));
         }
     }
 
     public bool IsChanged => Value != OriginalValue;
-    public string RangeText => $"{MinValue}..{MaxValue}";
-    public string VisibilityText => IsPlayerVisible ? "Скрыто" : "Скрыто";
+    public int CoreResolutionModifier => Math.Max(-4, Math.Min(4, (int)Math.Floor((Value + ManualBonus - 10) / 2d)));
+    public string RangeText => $"{MinValue}..{MaxValue} · смещение {ManualBonus:+0;-0;0} · модификатор {CoreResolutionModifier:+0;-0;0}";
+    public string VisibilityText => IsPlayerVisible ? "Видно игроку" : "Скрыто от игрока";
     public string AutomationId => $"AdminCharacterEditor_SubAttribute_{AttributeEditorRowVm.NormalizeAutomationCode(Code)}_Value";
 }
 
@@ -864,9 +902,44 @@ public class InventoryItemEditorVm : ViewModelBase
     public string Slot { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
     public string ListLabel => $"Без названия";
-    public string SlotDisplay => string.IsNullOrWhiteSpace(Slot) ? "-" : Slot;
-    public string CategoryDisplay => string.IsNullOrWhiteSpace(Category) ? "-" : Category;
+    public string SlotDisplay => ReadableSlot(Slot);
+    public string CategoryDisplay => ReadableCategory(Category);
     public string DefinitionDisplay => string.IsNullOrWhiteSpace(ItemDefinitionId) ? "Без справочника" : $"Без справочника";
+
+    private static string ReadableSlot(string value)
+    {
+        switch ((value ?? string.Empty).Trim().ToLowerInvariant())
+        {
+            case "head": return "Голова";
+            case "torso": return "Торс";
+            case "hands": return "Руки";
+            case "main_hand": return "Основная рука";
+            case "off_hand": return "Вторая рука";
+            case "two_handed": return "Двуручное оружие";
+            case "legs": return "Ноги";
+            case "feet": return "Ступни";
+            case "back": return "Спина";
+            case "belt": return "Пояс";
+            case "accessory": return "Аксессуар";
+            case "backpack": return "Рюкзак";
+            default: return string.IsNullOrWhiteSpace(value) ? "Не назначен" : "Другой слот";
+        }
+    }
+
+    private static string ReadableCategory(string value)
+    {
+        switch ((value ?? string.Empty).Trim().ToLowerInvariant())
+        {
+            case "weapon": return "Оружие";
+            case "armor": return "Доспех";
+            case "shield": return "Щит";
+            case "consumable": return "Расходуемый предмет";
+            case "ammunition": return "Боеприпасы";
+            case "tool": return "Инструмент";
+            case "container": return "Контейнер";
+            default: return string.IsNullOrWhiteSpace(value) ? "Не указана" : "Другая категория";
+        }
+    }
 }
 public class HoldingEditorVm : ViewModelBase
 {
@@ -1025,8 +1098,8 @@ public sealed class WorkspacePanelDescriptor : ViewModelBase
         set { if (Math.Abs(_windowHeight - value) > 0.1) { _windowHeight = value; Notify(); } }
     }
 
-    public string PanelState => !IsVisible ? "Скрыта" : IsDetached ? "Скрыта" : "Скрыта";
-    public string StateBadge => !IsVisible ? "Скрыта" : IsDetached ? "Скрыта" : "Скрыта";
+    public string PanelState => !IsVisible ? "Скрыта" : IsDetached ? "Во внешнем окне" : "Закреплена";
+    public string StateBadge => PanelState;
 }
 
 public sealed class AdminNavigationItem : ViewModelBase
@@ -1056,17 +1129,39 @@ public sealed class AdminNavigationItem : ViewModelBase
         Description = description;
         BadgeText = badgeText;
         IsEnabled = isEnabled;
+        Descriptor = new RouteDescriptor
+        {
+            RouteKey = id,
+            DisplayName = title,
+            ClientKind = ApplicationClientKinds.Admin,
+            Area = groupId,
+            RequiredRole = "Admin,SuperAdmin",
+            Target = targetViewKey,
+            AutomationId = "AdminNav_" + id.Replace('.', '_').Replace('-', '_'),
+            SupportsDeepLink = true
+        };
     }
 
     public string Id { get; }
     public string Title { get; }
+    public string ShortTitle => Title;
     public string Icon { get; }
+    public string IconKey => Icon;
     public string GroupId { get; }
     public string TargetViewKey { get; }
+    public string ViewKey => TargetViewKey;
+    public string ApplicationArea => "AdminClient";
+    public string AdminMode => GroupId;
+    public string NavigationGroup => GroupId;
+    public string RequiredRoles => "Admin,SuperAdmin";
+    public string RequiredFeatureFlags => string.Empty;
     public string AutomationId => "AdminNav_" + Id.Replace('.', '_').Replace('-', '_');
+    public RouteDescriptor Descriptor { get; }
     public bool IsPlaceholder { get; }
     public string BadgeText { get; }
     public bool IsEnabled { get; }
+    public bool IsVisible => IsSearchVisible;
+    public string DisabledReason => IsEnabled ? string.Empty : "Раздел недоступен для текущей роли или конфигурации.";
     public int SortOrder { get; }
     public string Description { get; }
 
@@ -1111,6 +1206,24 @@ public sealed class AdminNavigationGroup
     public ObservableCollection<AdminNavigationItem> Items { get; }
 }
 
+public sealed class AdminShellMode
+{
+    public AdminShellMode(string id, string title, string shortTitle, int displayOrder)
+    {
+        Id = id;
+        Title = title;
+        ShortTitle = shortTitle;
+        DisplayOrder = displayOrder;
+    }
+
+    public string Id { get; }
+    public string Title { get; }
+    public string ShortTitle { get; }
+    public int DisplayOrder { get; }
+    public string AutomationId => "AdminMode_" + Id;
+    public override string ToString() => Title;
+}
+
 [DataContract]
 public sealed class ConnectionSettingsModel
 {
@@ -1138,12 +1251,16 @@ public sealed class WorkspacePanelLayoutItem
     [DataMember(Order = 7)] public double Height { get; set; } = 720;
 }
 
-public class AdminMainViewModel : ViewModelBase
+public partial class AdminMainViewModel : ViewModelBase
 {
     private readonly ClientSessionState _session = new ClientSessionState();
     private readonly JsonTcpClient _client;
     private readonly CommandApi _api;
+    private readonly IApplicationContextProvider _applicationContext = new ApplicationContextProvider0212();
+    private readonly ApplicationRouteRegistry0212 _routeRegistry = new ApplicationRouteRegistry0212();
     private readonly DispatcherTimer _poller;
+    private bool _reconnectInProgress;
+    private readonly NonOverlappingOperationGate0214 _pollRefreshGate = new();
     private readonly EntityRevisionStore _entityRevisions = new EntityRevisionStore();
     private readonly string _appDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Nri.AdminClient");
     private string _connectionState = "Оффлайн";
@@ -1153,13 +1270,24 @@ public class AdminMainViewModel : ViewModelBase
     private string _serverPortInput = "4600";
     private string _lastServerHost = "127.0.0.1";
     private int _lastServerPort = 4600;
-    private bool _isConnectionPopupOpen;
+    private bool _isConnectionPopupOpen = true;
     private bool _isAuthPopupOpen;
+    private string _selectedAdminModeId = "conduct";
+    private string _selectedGameCampaignId = string.Empty;
+    private string _selectedGameSessionId = string.Empty;
+    private string _selectedSuperAdminCampaignId = string.Empty;
+    private bool _isNavigationCollapsed;
+    private bool _isWorkspacePanelManagerOpen;
+    private readonly Dictionary<string, string> _lastRouteByMode = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private bool _isOnline;
     private bool _isConnectedToServer;
     private bool _isAuthenticated;
+    private bool _isGlobalSuperAdmin;
+    private string _superAdminOverrideReason = "Диагностика кампании по запросу владельца";
     private string _lastErrorMessage = string.Empty;
     private string _lastStatusMessage = "Ожидание подключения";
+    private string _authenticationStatusMessage = string.Empty;
+    private string _operationErrorMessage = string.Empty;
     private string _statusMessage = string.Empty;
     private int _locksCount;
     private bool _isBusy;
@@ -1169,6 +1297,8 @@ public class AdminMainViewModel : ViewModelBase
         "admin.dashboard",
         "admin.users",
         "admin.characters",
+        "admin.character_creation",
+        "admin.asset_configurators",
         "system.settings",
         "session.overview",
         "session.chat",
@@ -1178,10 +1308,13 @@ public class AdminMainViewModel : ViewModelBase
         "quick.notes",
         "locks.active",
         "combat.readonly",
+        "definitions.editor",
         "definitions.browser",
         "global.search",
         "system.tools",
         "admin.items",
+        "admin.craft_projects",
+        "admin.magic",
         "admin.classes",
         "admin.races",
         "admin.world",
@@ -1189,8 +1322,15 @@ public class AdminMainViewModel : ViewModelBase
         "admin.economy",
         "admin.chronicle",
         "session.group",
+        "conduct.live_state",
+        "conduct.weather_travel",
         "fate.engine",
+        "quest.journal",
+        "shop.market",
+        "rest.downtime",
+        "gameplay.loop",
         "scene.map",
+        "scene.generator",
         "placeholder.combat_replay",
         "placeholder.audio"
     };
@@ -1201,6 +1341,9 @@ public class AdminMainViewModel : ViewModelBase
     private string _selectedLockId = string.Empty;
     private string _selectedPendingAccountId = string.Empty;
     private string _selectedOwnerUserId = string.Empty;
+    private string _peopleSearchText = string.Empty;
+    private string _peopleStatusFilter = "Все статусы";
+    private string _peopleRoleFilter = "Все роли";
     private string _selectedCharacterId = string.Empty;
     private string _selectedPendingRequestId = string.Empty;
     private string _selectedRequestDetailsId = string.Empty;
@@ -1264,6 +1407,8 @@ public class AdminMainViewModel : ViewModelBase
     private bool _developmentLayoutShowLegend = true;
     private bool _developmentLayoutFocusSelectedNodeLinks = true;
     private bool _developmentLayoutShowDiagnostics;
+    private bool _developmentLayoutProductPreview;
+    private bool _adminDevelopmentWorkspaceSelected = true;
     private bool _developmentLayoutShowDirectionLabels = true;
     private string _developmentLayoutFocusedDirectionKey = string.Empty;
     private string _developmentLayoutQualityText = "Оценка читаемости не выполнена.";
@@ -1331,6 +1476,12 @@ public class AdminMainViewModel : ViewModelBase
     private string _characterStatsSaveStatus = "Характеристики не сохранены.";
     private string _editBackstory = string.Empty;
     private string _biographySaveStatus = "Биография не сохранена.";
+    private string _editName = string.Empty;
+    private string _editRace = string.Empty;
+    private string _editHeight = string.Empty;
+    private string _editDescription = string.Empty;
+    private int _editAge;
+    private bool _characterHasUnsavedChanges;
     private string _ownershipOwnerUserId = string.Empty;
     private string _ownershipControlledByUserId = string.Empty;
     private string _ownershipReason = "owner/group/status acceptance 0.14.42";
@@ -1348,18 +1499,28 @@ public class AdminMainViewModel : ViewModelBase
         Directory.CreateDirectory(_appDataDirectory);
 
         _client = new JsonTcpClient(App.ClientConfig, _session);
+        _client.Lifecycle.StateChanged += OnConnectionLifecycleChanged;
+        _session.AuthenticationInvalidated += HandleAuthenticationInvalidated;
         ClientLogService.Instance.Info("AdminMainViewModel initialized");
         ClientLogService.Instance.Info("chat.window.layout fixedHeaderFooter=true");
         _api = new CommandApi(_client);
+        _applicationContext.ContextChanged += OnApplicationContextChanged;
         FunctionalDashboard = new AdminFunctionalDashboardViewModel(_api);
+        AssetConfigurators = new AdminAssetConfiguratorsViewModel(_api);
         CombatReadOnly = new AdminCombatReadOnlyViewModel(_api);
         CurrentSession = new AdminCurrentSessionViewModel(_api);
         CharacterGroups = new AdminCharacterGroupsViewModel(_api);
         FateControl = new AdminFateControlViewModel(_api);
+        Quests = new AdminQuestViewModel(_api);
+        Shops = new AdminShopViewModel(_api);
+        Rest = new AdminRestViewModel(_api);
+        Gameplay = new AdminGameplayViewModel(_api);
         SceneMap = new AdminSceneMapViewModel(_api);
-        WorldMap = new AdminWorldMapViewModel(_api);
+        LocationGenerator = new AdminLocationGeneratorViewModel(_api);
+        WorldMap = new AdminMultiscaleMapViewModel0218(_api);
         ProposalReview = new AdminProposalReviewViewModel(_api);
         ItemsEquipmentCatalog = new AdminItemsEquipmentCatalogViewModel(_api);
+        MagicDefinitions = new AdminMagicDefinitionsViewModel(_api);
         Crafting = new AdminCraftingViewModel(_api);
         Engineering = new AdminEngineeringViewModel(_api);
         Production = new AdminProductionViewModel(_api);
@@ -1369,12 +1530,26 @@ public class AdminMainViewModel : ViewModelBase
         EventJournal = new AdminEventJournalViewModel(_api);
         RoomInterior = new AdminRoomInteriorViewModel(_api);
         DefinitionsBrowser = new AdminDefinitionsBrowserViewModel(_api);
+        DefinitionEditor = new AdminDefinitionEditorViewModel(_api);
+        CharacterCreation = new AdminCharacterCreationViewModel(_api, () => ApplicationContext.Campaign.Id);
+        LanguageWorkspace = new AdminLanguageWorkspaceViewModel(_api);
         SystemTools = new SystemToolsViewModel(_api);
         CharacterCard.SetLoadAction(OpenCharacter);
         CharacterCard.SetInventoryDiagnosticsAction(RunInventoryDiagnosticsForCard);
+        DevelopmentLayoutValidationErrors.CollectionChanged += (_, _) =>
+        {
+            Notify(nameof(DevelopmentLayoutValidationSummary));
+            Notify(nameof(HasClassValidationIssues));
+            Notify(nameof(CanSaveClassDraft));
+            ((RelayCommand)SaveClassDefinitionCommand).RaiseCanExecuteChanged();
+        };
 
         LoginCommand = new RelayCommand(() => RunUiAction("Вход", Login));
         RefreshCommand = new RelayCommand(() => RunUiAction("  ", RefreshAll));
+        SelectGameCampaignCommand = new RelayCommand(() => RunUiAction("Выбор кампании", SelectGameCampaign));
+        SelectGameSessionCommand = new RelayCommand(() => RunUiAction("Выбор сессии", SelectGameSession));
+        StartSuperAdminOverrideCommand = new RelayCommand(() => RunUiAction("Явный доступ SuperAdmin", StartSuperAdminOverride));
+        EndSuperAdminOverrideCommand = new RelayCommand(() => RunUiAction("Завершение доступа SuperAdmin", EndSuperAdminOverride));
         OpenConnectionPopupCommand = new RelayCommand(() =>
         {
             IsAuthPopupOpen = false;
@@ -1415,7 +1590,7 @@ public class AdminMainViewModel : ViewModelBase
         AcquireLockCommand = new RelayCommand(AcquireLock);
         ReleaseLockCommand = new RelayCommand(ReleaseLock);
         ForceUnlockCommand = new RelayCommand(ForceUnlock);
-        SaveBasicInfoCommand = new RelayCommand(SaveBasicInfo);
+        SaveBasicInfoCommand = new RelayCommand(SaveBasicInfo, () => CanSaveCharacterDraft);
         SaveBiographyCommand = new RelayCommand(SaveBiography);
         SaveStatsCommand = new RelayCommand(SaveStats);
         SaveMoneyCommand = new RelayCommand(SaveMoney);
@@ -1464,7 +1639,7 @@ public class AdminMainViewModel : ViewModelBase
         RefreshDefinitionClassesCommand = new RelayCommand(() => RunUiAction("Обновить классы", RefreshDefinitionClasses));
         NewClassDefinitionCommand = new RelayCommand(NewClassDefinition);
         OpenSelectedClassDefinitionCommand = new RelayCommand(() => RunUiAction("Открыть класс", OpenSelectedClassDefinition));
-        SaveClassDefinitionCommand = new RelayCommand(() => RunUiAction("Сохранить класс", SaveClassDefinition));
+        SaveClassDefinitionCommand = new RelayCommand(() => RunUiAction("Сохранить класс", SaveClassDefinition), () => CanSaveClassDraft);
         ArchiveClassDefinitionCommand = new RelayCommand(() => RunUiAction("Архивировать класс", ArchiveClassDefinition));
         RefreshDefinitionSkillsCommand = new RelayCommand(() => RunUiAction("Обновить навыки", RefreshDefinitionSkills));
         RefreshDefinitionRacesCommand = new RelayCommand(() => RunUiAction("Обновить расы", RefreshDefinitionRaces));
@@ -1495,6 +1670,7 @@ public class AdminMainViewModel : ViewModelBase
         LockSelectedDevelopmentLayoutNodeCommand = new RelayCommand(() => RunUiAction("Зафиксировать позицию узла", () => SetSelectedDevelopmentLayoutNodeLock(true)));
         UnlockSelectedDevelopmentLayoutNodeCommand = new RelayCommand(() => RunUiAction("Снять фиксацию позиции узла", () => SetSelectedDevelopmentLayoutNodeLock(false)));
         CreateDevelopmentNodeCommand = new RelayCommand(() => RunUiAction("Создать узел развития", CreateDevelopmentNode));
+        CloneDevelopmentNodeCommand = new RelayCommand(() => RunUiAction("Создать похожий узел развития", CloneDevelopmentNode));
         ArchiveDevelopmentNodeCommand = new RelayCommand(() => RunUiAction("Архивировать узел развития", ArchiveDevelopmentNode));
         RestoreDevelopmentNodeCommand = new RelayCommand(() => RunUiAction("Вернуть узел развития", RestoreDevelopmentNode));
         SaveDevelopmentNodeCommand = new RelayCommand(() => RunUiAction("Сохранить узел развития", SaveClassNodeLayout));
@@ -1558,7 +1734,11 @@ public class AdminMainViewModel : ViewModelBase
         FocusSystemBackupsCommand = new RelayCommand(FocusSystemBackups);
         FocusSystemDiagnosticsCommand = new RelayCommand(FocusSystemDiagnostics);
         SelectSectionCommand = new RelayCommand<string>(SelectSection);
+        OpenDefinitionPresetCommand = new RelayCommand<string>(OpenDefinitionPreset);
         SelectNavigationItemCommand = new RelayCommand<AdminNavigationItem>(SelectNavigationItem);
+        SelectAdminModeCommand = new RelayCommand<string>(SelectAdminMode);
+        ToggleNavigationCommand = new RelayCommand(() => IsNavigationCollapsed = !IsNavigationCollapsed);
+        ToggleWorkspacePanelManagerCommand = new RelayCommand(() => IsWorkspacePanelManagerOpen = !IsWorkspacePanelManagerOpen);
         OpenFirstShellSearchResultCommand = new RelayCommand(OpenFirstShellSearchResult);
         GlobalSearchCommand = new RelayCommand(() => RunUiAction("Глобальный поиск", RunGlobalSearch));
         GlobalSearchOpenCommand = new RelayCommand(() => RunUiAction("Открыть результат поиска", OpenGlobalSearchResult));
@@ -1568,11 +1748,15 @@ public class AdminMainViewModel : ViewModelBase
         ShowWorkspacePanelCommand = new RelayCommand<string>(ShowWorkspacePanel);
         HideWorkspacePanelCommand = new RelayCommand<string>(HideWorkspacePanel);
 
+        InitializeAdminDevelopmentProductPreview();
+
         InitializeNavigationGroups();
+        foreach (var route in NavigationGroups.SelectMany(group => group.Items)) _routeRegistry.Register(route.Descriptor);
         InitializeWorkspacePanels();
         LoadConnectionSettings();
         LoadWorkspaceLayout();
         RefreshConnectionSummary();
+        SetDisconnectedState("Ожидание подключения");
         ClientLogService.Instance.Info("ui.admin.dice.panel.loaded");
         ClientLogService.Instance.Info("people.grid.template fixed=true");
         ClientLogService.Instance.Info("dice.actor.mode=account");
@@ -1585,14 +1769,21 @@ public class AdminMainViewModel : ViewModelBase
 
     public string LoginText { get; set; } = string.Empty;
     public AdminFunctionalDashboardViewModel FunctionalDashboard { get; }
+    public AdminAssetConfiguratorsViewModel AssetConfigurators { get; }
     public AdminCombatReadOnlyViewModel CombatReadOnly { get; }
     public AdminCurrentSessionViewModel CurrentSession { get; }
     public AdminCharacterGroupsViewModel CharacterGroups { get; }
     public AdminFateControlViewModel FateControl { get; }
+    public AdminQuestViewModel Quests { get; }
+    public AdminShopViewModel Shops { get; }
+    public AdminRestViewModel Rest { get; }
+    public AdminGameplayViewModel Gameplay { get; }
     public AdminSceneMapViewModel SceneMap { get; }
-    public AdminWorldMapViewModel WorldMap { get; }
+    public AdminLocationGeneratorViewModel LocationGenerator { get; }
+    public AdminMultiscaleMapViewModel0218 WorldMap { get; }
     public AdminProposalReviewViewModel ProposalReview { get; }
     public AdminItemsEquipmentCatalogViewModel ItemsEquipmentCatalog { get; }
+    public AdminMagicDefinitionsViewModel MagicDefinitions { get; }
     public AdminCraftingViewModel Crafting { get; }
     public AdminEngineeringViewModel Engineering { get; }
     public AdminProductionViewModel Production { get; }
@@ -1602,6 +1793,8 @@ public class AdminMainViewModel : ViewModelBase
     public AdminEventJournalViewModel EventJournal { get; }
     public AdminRoomInteriorViewModel RoomInterior { get; }
     public AdminDefinitionsBrowserViewModel DefinitionsBrowser { get; }
+    public AdminDefinitionEditorViewModel DefinitionEditor { get; }
+    public AdminCharacterCreationViewModel CharacterCreation { get; }
     public SystemToolsViewModel SystemTools { get; }
     public CharacterCardViewModel CharacterCard { get; } = new CharacterCardViewModel();
     public string PasswordText { get; set; } = string.Empty;
@@ -1630,10 +1823,60 @@ public class AdminMainViewModel : ViewModelBase
     public string ConnectionStatusDetail { get => _connectionStatusDetail; set { _connectionStatusDetail = value; Notify(); } }
     public string SessionSummary { get => _sessionSummary; set { _sessionSummary = value; Notify(); } }
     public bool IsOnline { get => _isOnline; set { _isOnline = value; Notify(); } }
-    public bool IsConnectedToServer { get => _isConnectedToServer; set { _isConnectedToServer = value; Notify(); Notify(nameof(ConnectionStage)); Notify(nameof(LoginState)); Notify(nameof(ArePrivilegedSectionsEnabled)); Notify(nameof(SectionAccessHint)); Notify(nameof(CanRollCharacterDice)); Notify(nameof(DiceRollAvailabilityHint)); TraceDiceAvailability(); } }
-    public bool IsAuthenticated { get => _isAuthenticated; set { _isAuthenticated = value; Notify(); Notify(nameof(ConnectionStage)); Notify(nameof(LoginState)); Notify(nameof(ArePrivilegedSectionsEnabled)); Notify(nameof(SectionAccessHint)); Notify(nameof(CanRollCharacterDice)); Notify(nameof(DiceRollAvailabilityHint)); TraceDiceAvailability(); } }
-    public string LastErrorMessage { get => _lastErrorMessage; set { _lastErrorMessage = value; Notify(); Notify(nameof(HasConnectionError)); Notify(nameof(ConnectionStage)); } }
-    public string LastStatusMessage { get => _lastStatusMessage; set { _lastStatusMessage = value; Notify(); } }
+    public bool IsConnectedToServer
+    {
+        get => _isConnectedToServer;
+        set
+        {
+            _isConnectedToServer = value;
+            Notify();
+            Notify(nameof(ConnectionStage));
+            Notify(nameof(LoginState));
+            Notify(nameof(ArePrivilegedSectionsEnabled));
+            Notify(nameof(SectionAccessHint));
+            Notify(nameof(UsersRouteState));
+            Notify(nameof(CharactersRouteState));
+            Notify(nameof(ClassesRouteState));
+            Notify(nameof(CanSaveCharacterDraft));
+            Notify(nameof(CanSaveClassDraft));
+            Notify(nameof(CanRollCharacterDice));
+            Notify(nameof(DiceRollAvailabilityHint));
+            SyncChildRoutePermissions();
+            TraceDiceAvailability();
+        }
+    }
+    public bool IsAuthenticated
+    {
+        get => _isAuthenticated;
+        set
+        {
+            _isAuthenticated = value;
+            Notify();
+            Notify(nameof(ConnectionStage));
+            Notify(nameof(LoginState));
+            Notify(nameof(ArePrivilegedSectionsEnabled));
+            Notify(nameof(SectionAccessHint));
+            Notify(nameof(UsersRouteState));
+            Notify(nameof(CharactersRouteState));
+            Notify(nameof(ClassesRouteState));
+            Notify(nameof(CanSaveCharacterDraft));
+            Notify(nameof(CanSaveClassDraft));
+            Notify(nameof(CanRollCharacterDice));
+            Notify(nameof(DiceRollAvailabilityHint));
+            SyncChildRoutePermissions();
+            TraceDiceAvailability();
+        }
+    }
+    public bool IsGlobalSuperAdmin { get => _isGlobalSuperAdmin; private set { if (_isGlobalSuperAdmin == value) return; _isGlobalSuperAdmin = value; Notify(); } }
+    public bool IsSuperAdminOverrideActive => ApplicationContext.SuperAdminOverrideActive;
+    public string SuperAdminOverrideWarning => FirstNonEmpty(ApplicationContext.SuperAdminOverrideWarning, "Явный доступ SuperAdmin выключен.");
+    public string SuperAdminOverrideReason { get => _superAdminOverrideReason; set { if (_superAdminOverrideReason == value) return; _superAdminOverrideReason = value ?? string.Empty; Notify(); } }
+    public string LastErrorMessage { get => _lastErrorMessage; set { _lastErrorMessage = value; Notify(); Notify(nameof(HasConnectionError)); Notify(nameof(ConnectionStage)); Notify(nameof(UsersRouteState)); Notify(nameof(CharactersRouteState)); Notify(nameof(ClassesRouteState)); } }
+    public string LastStatusMessage { get => _lastStatusMessage; set { _lastStatusMessage = value; Notify(); Notify(nameof(OperationStatusMessage)); Notify(nameof(HasOperationStatusMessage)); } }
+    public string OperationStatusMessage => LastStatusMessage;
+    public bool HasOperationStatusMessage => !string.IsNullOrWhiteSpace(OperationStatusMessage);
+    public string AuthenticationStatusMessage { get => _authenticationStatusMessage; set { _authenticationStatusMessage = value ?? string.Empty; Notify(); } }
+    public string OperationErrorMessage { get => _operationErrorMessage; set { _operationErrorMessage = value ?? string.Empty; Notify(); } }
     public string StatusMessage
     {
         get => _statusMessage;
@@ -1650,10 +1893,78 @@ public class AdminMainViewModel : ViewModelBase
     public bool HasConnectionError => !string.IsNullOrWhiteSpace(LastErrorMessage);
     public bool ArePrivilegedSectionsEnabled => IsConnectedToServer && IsAuthenticated;
     public string ConnectionStage => HasConnectionError ? "Ошибка подключения" : IsAuthenticated ? "Авторизован" : IsConnectedToServer ? "Подключён, требуется вход" : "Нет подключения";
+    public bool IsConnectionRecovering => _client.Lifecycle.Current.IsRecovering;
+    public bool IsConnectionStaleReadOnly => _client.Lifecycle.Current.IsStaleReadOnly;
+    public bool AreServerMutationsEnabled => _client.Lifecycle.Current.CanMutate;
+    public string ReconnectStatusText => _client.Lifecycle.Current.ReadableStatus;
     public string LoginState => IsAuthenticated ? $"Вошли как: {LoginSummary}" : IsConnectedToServer ? "Сервер подключён, выполните вход" : "Нет подключения";
     public string SectionAccessHint => ArePrivilegedSectionsEnabled ? "Разделы доступны" : IsConnectedToServer ? "Войдите администратором, чтобы открыть разделы" : "Подключитесь к серверу";
-    public bool IsConnectionPopupOpen { get => _isConnectionPopupOpen; set { _isConnectionPopupOpen = value; Notify(); } }
+    public string UsersRouteState => AdminRouteStateResolver.ResolveCollection(
+        ArePrivilegedSectionsEnabled,
+        IsBusy,
+        HasConnectionError,
+        !string.IsNullOrWhiteSpace(PeopleSearchText)
+            || !string.Equals(PeopleStatusFilter, "Все статусы", StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(PeopleRoleFilter, "Все роли", StringComparison.OrdinalIgnoreCase),
+        FilteredPendingAccounts.Any() || FilteredPlayers.Any(),
+        false,
+        false);
+    public string CharactersRouteState => AdminRouteStateResolver.ResolveCollection(
+        ArePrivilegedSectionsEnabled,
+        IsBusy,
+        HasConnectionError,
+        !string.IsNullOrWhiteSpace(CharactersSearchText),
+        FilteredCharacters.Any(),
+        true,
+        !string.IsNullOrWhiteSpace(SelectedCharacterId));
+    public string ClassesRouteState => AdminRouteStateResolver.ResolveCollection(
+        ArePrivilegedSectionsEnabled,
+        IsBusy,
+        HasConnectionError,
+        !string.IsNullOrWhiteSpace(ClassSearchText),
+        FilteredClassDefinitionRows.Any(),
+        true,
+        !string.IsNullOrWhiteSpace(SelectedClassDefinitionCode));
+    public bool IsConnectionPopupOpen
+    {
+        get => _isConnectionPopupOpen;
+        set
+        {
+            _isConnectionPopupOpen = value;
+            if (value && !HasConnectionError)
+            {
+                AuthenticationStatusMessage = string.Empty;
+                OperationErrorMessage = string.Empty;
+            }
+            Notify();
+        }
+    }
+    public string FactionsUnavailableStateMessage => "Справочник фракций и организаций пока не подключён к текущему серверному профилю.";
+    public string FactionsRouteState => AdminRouteStateResolver.ResolveUnavailable();
+    public string EconomyRouteState => AdminRouteStateResolver.ResolveUnavailable();
+    public string EconomyUnavailableStateMessage => "Справочник экономики и рынков пока не подключён к текущему серверному профилю.";
     public bool IsAuthPopupOpen { get => _isAuthPopupOpen; set { _isAuthPopupOpen = value; Notify(); } }
+    public string SelectedAdminModeId
+    {
+        get => _selectedAdminModeId;
+        set
+        {
+            var normalized = ShellModes.Any(mode => mode.Id == value) ? value : "conduct";
+            if (_selectedAdminModeId == normalized) return;
+            _selectedAdminModeId = normalized;
+            Notify();
+            Notify(nameof(SelectedAdminMode));
+            Notify(nameof(VisibleNavigationGroups));
+            Notify(nameof(IsConductMode));
+            RestoreLastRouteForMode(normalized);
+        }
+    }
+    public AdminShellMode? SelectedAdminMode => ShellModes.FirstOrDefault(mode => mode.Id == SelectedAdminModeId);
+    public IEnumerable<AdminNavigationGroup> VisibleNavigationGroups => NavigationGroups.Where(group => group.Id == SelectedAdminModeId);
+    public bool IsConductMode => string.Equals(SelectedAdminModeId, "conduct", StringComparison.OrdinalIgnoreCase);
+    public bool IsNavigationCollapsed { get => _isNavigationCollapsed; set { if (_isNavigationCollapsed == value) return; _isNavigationCollapsed = value; Notify(); Notify(nameof(NavigationWidth)); } }
+    public double NavigationWidth => IsNavigationCollapsed ? 76d : 280d;
+    public bool IsWorkspacePanelManagerOpen { get => _isWorkspacePanelManagerOpen; set { if (_isWorkspacePanelManagerOpen == value) return; _isWorkspacePanelManagerOpen = value; Notify(); } }
     public bool IsBusy
     {
         get => _isBusy;
@@ -1662,6 +1973,9 @@ public class AdminMainViewModel : ViewModelBase
             _isBusy = value;
             Notify();
             Notify(nameof(IsIdle));
+            Notify(nameof(UsersRouteState));
+            Notify(nameof(CharactersRouteState));
+            Notify(nameof(ClassesRouteState));
             Notify(nameof(CanManagePendingAccount));
             Notify(nameof(CanResetSelectedAccountPassword));
             Notify(nameof(CanLoadPlayerCharacters));
@@ -1669,6 +1983,8 @@ public class AdminMainViewModel : ViewModelBase
             Notify(nameof(CanModerateSelectedRequest));
             Notify(nameof(CanManageSelectedLock));
             Notify(nameof(CanManageSelectedCharacter));
+            Notify(nameof(CanSaveCharacterDraft));
+            Notify(nameof(CanSaveClassDraft));
             Notify(nameof(CanCreateCharacterForOwner));
             Notify(nameof(CanManageCharacterVisibility));
             Notify(nameof(CanRefreshNotes));
@@ -1744,8 +2060,12 @@ public class AdminMainViewModel : ViewModelBase
     public string SelectedNavigationSubtitle => SelectedNavigationItem?.Description ?? "Выберите раздел GM-панели.";
     public string SelectedNavigationGroupTitle => NavigationGroups.FirstOrDefault(group => group.Id == SelectedNavigationItem?.GroupId)?.Title ?? "Разделы";
     public string SelectedNavigationBreadcrumb => $"{SelectedNavigationGroupTitle} / {SelectedNavigationTitle}";
-    public string ActiveCampaignSummary => "Кампания по умолчанию";
-    public string ActiveSessionTopBarSummary => IsSessionActive ? SessionStateSummary : "Активная сессия не выбрана";
+    public ApplicationContextSnapshot ApplicationContext => _applicationContext.Current;
+    public string ActiveCampaignSummary => FirstNonEmpty(ApplicationContext.Campaign.DisplayName, "Кампания не выбрана");
+    public string ActiveCampaignRoleSummary => string.IsNullOrWhiteSpace(ApplicationContext.Campaign.Id)
+        ? "Роль кампании не определена"
+        : $"Роль: {FirstNonEmpty(ApplicationContext.Role, "не определена")}";
+    public string ActiveSessionTopBarSummary => FirstNonEmpty(ApplicationContext.Session.DisplayName, IsSessionActive ? SessionStateSummary : "Активная сессия не выбрана");
     public string NotificationSummary => PendingRequestsCount > 0 ? $"Заявки: {PendingRequestsCount}" : "Нет новых заявок";
     public string ShellSearchText
     {
@@ -1802,10 +2122,10 @@ public class AdminMainViewModel : ViewModelBase
     public string SelectedGlobalSearchSnippet => SelectedGlobalSearchResult?.Snippet ?? "Выберите результат поиска.";
     public string SelectedGlobalSearchType => SelectedGlobalSearchResult?.DisplayType ?? "—";
     public string SelectedGlobalSearchRoute => SelectedGlobalSearchResult?.RouteSummary ?? "—";
-    public string CharactersSearchText { get => _charactersSearchText; set { _charactersSearchText = value; Notify(); Notify(nameof(FilteredCharacters)); var filtered = FilteredCharacters.Count(); ClientLogService.Instance.Info($"ui-filter section=... block=... query={_charactersSearchText} loaded={Characters.Count} filtered={filtered} visible={filtered}"); } }
+    public string CharactersSearchText { get => _charactersSearchText; set { _charactersSearchText = value; Notify(); Notify(nameof(FilteredCharacters)); Notify(nameof(CharactersRouteState)); var filtered = FilteredCharacters.Count(); ClientLogService.Instance.Info($"ui-filter section=... block=... query={_charactersSearchText} loaded={Characters.Count} filtered={filtered} visible={filtered}"); } }
     public string LocksSearchText { get => _locksSearchText; set { _locksSearchText = value; Notify(); Notify(nameof(FilteredLockRows)); var filtered = FilteredLockRows.Count(); ClientLogService.Instance.Info($"ui-filter section=... block=... query={_locksSearchText} loaded={LockRows.Count} filtered={filtered} visible={filtered}"); } }
     public string SelectedCharacterWorkspaceTab { get => _selectedCharacterWorkspaceTab; set { _selectedCharacterWorkspaceTab = value; Notify(); } }
-    public string ClassSearchText { get => _classSearchText; set { _classSearchText = value; Notify(); Notify(nameof(FilteredClassDefinitionRows)); ClientLogService.Instance.Info($"ui-filter section=... block=... query={_classSearchText} loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}"); } }
+    public string ClassSearchText { get => _classSearchText; set { _classSearchText = value; Notify(); Notify(nameof(FilteredClassDefinitionRows)); Notify(nameof(ClassesRouteState)); ClientLogService.Instance.Info($"ui-filter section=... block=... query={_classSearchText} loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}"); } }
     public string SkillSearchText { get => _skillSearchText; set { _skillSearchText = value; Notify(); Notify(nameof(FilteredSkillDefinitionRows)); ClientLogService.Instance.Info($"ui-filter section= block= query={_skillSearchText} loaded={SkillDefinitionRows.Count} visible={FilteredSkillDefinitionRows.Count()}"); } }
     public string RaceSearchText { get => _raceSearchText; set { _raceSearchText = value; Notify(); } }
     public string ItemSearchText { get => _itemSearchText; set { _itemSearchText = value; Notify(); } }
@@ -1822,14 +2142,33 @@ public class AdminMainViewModel : ViewModelBase
     public string NodeName { get => _nodeName; set => SetClassNodeLayoutText(ref _nodeName, value, nameof(NodeName)); }
     public string NodeDescription { get => _nodeDescription; set => SetClassNodeLayoutText(ref _nodeDescription, value, nameof(NodeDescription)); }
     public string NodeType { get => _nodeType; set => SetClassNodeLayoutText(ref _nodeType, string.IsNullOrWhiteSpace(value) ? DevelopmentNodeTypes.Class : value, nameof(NodeType)); }
-    public string NodeRole { get => _nodeRole; set => SetClassNodeLayoutText(ref _nodeRole, string.IsNullOrWhiteSpace(value) ? DevelopmentNodeRoleIds.MainBranchLevel : value, nameof(NodeRole)); }
-    public string NodeVisibilityRule { get => _nodeVisibilityRule; set => SetClassNodeLayoutText(ref _nodeVisibilityRule, string.IsNullOrWhiteSpace(value) ? DevelopmentUnlockPolicyIds.VisibleByDefault : value, nameof(NodeVisibilityRule)); }
+    public string NodeRole
+    {
+        get => _nodeRole;
+        set
+        {
+            SetClassNodeLayoutText(ref _nodeRole, string.IsNullOrWhiteSpace(value) ? DevelopmentNodeRoleIds.MainBranchLevel : value, nameof(NodeRole));
+            Notify(nameof(DevelopmentPresentationIconText));
+        }
+    }
+    public string NodeVisibilityRule
+    {
+        get => _nodeVisibilityRule;
+        set
+        {
+            SetClassNodeLayoutText(ref _nodeVisibilityRule, string.IsNullOrWhiteSpace(value) ? DevelopmentUnlockPolicyIds.VisibleByDefault : value, nameof(NodeVisibilityRule));
+            Notify(nameof(DevelopmentPresentationPlayerStatusText));
+            Notify(nameof(DevelopmentPresentationReferenceWarning));
+            Notify(nameof(DevelopmentPresentationReferenceWarningVisibility));
+        }
+    }
     public string NodeRing { get => _nodeRing; set => SetClassNodeLayoutText(ref _nodeRing, value, nameof(NodeRing)); }
     public string NodeSector { get => _nodeSector; set => SetClassNodeLayoutText(ref _nodeSector, value, nameof(NodeSector)); }
     public string NodeDirectionCode { get => _nodeDirectionCode; set => SetClassNodeLayoutText(ref _nodeDirectionCode, value, nameof(NodeDirectionCode)); }
     public string NodeBranchCode { get => _nodeBranchCode; set => SetClassNodeLayoutText(ref _nodeBranchCode, value, nameof(NodeBranchCode)); }
     public string NodeSortOrder { get => _nodeSortOrder; set => SetClassNodeLayoutText(ref _nodeSortOrder, value, nameof(NodeSortOrder)); }
     public string NodeRequiredNodes { get => _nodeRequiredNodes; set => SetClassNodeLayoutText(ref _nodeRequiredNodes, value, nameof(NodeRequiredNodes)); }
+    public ObservableCollection<object> NodeRequiredNodeReferences { get; } = new ObservableCollection<object>();
     public string NodeLinkedClassId { get => _nodeLinkedClassId; set => SetClassNodeLayoutText(ref _nodeLinkedClassId, value, nameof(NodeLinkedClassId)); }
     public string NodeLinkedDefinitionKind { get => _nodeLinkedDefinitionKind; set => SetClassNodeLayoutText(ref _nodeLinkedDefinitionKind, value, nameof(NodeLinkedDefinitionKind)); }
     public string NodeLinkedDefinitionId { get => _nodeLinkedDefinitionId; set => SetClassNodeLayoutText(ref _nodeLinkedDefinitionId, value, nameof(NodeLinkedDefinitionId)); }
@@ -1854,7 +2193,60 @@ public class AdminMainViewModel : ViewModelBase
     public string NodeLayoutVersion { get => _nodeLayoutVersion; set { _nodeLayoutVersion = value ?? string.Empty; Notify(); } }
     public string NodeLayoutUpdatedAt { get => _nodeLayoutUpdatedAt; set { _nodeLayoutUpdatedAt = value ?? string.Empty; Notify(); } }
     public string NodeLayoutSaveStatus { get => _nodeLayoutSaveStatus; set { _nodeLayoutSaveStatus = value ?? string.Empty; Notify(); } }
-    public string RequirementSourceNodeId { get => _requirementSourceNodeId; set { _requirementSourceNodeId = value ?? string.Empty; Notify(); } }
+    public bool ClassNodeLayoutHasUnsavedChanges => _isClassNodeLayoutDirty;
+    public string ClassNodeLayoutUnsavedSummary => ClassNodeLayoutHasUnsavedChanges ? "Есть несохранённые изменения узла." : "Изменений узла нет.";
+    public bool HasClassUnsavedChanges => ClassNodeLayoutHasUnsavedChanges || DevelopmentLayoutHasUnsavedChanges;
+    public string ClassUnsavedSummary => HasClassUnsavedChanges ? "Есть несохранённые изменения класса или раскладки." : "Изменений класса нет.";
+    public bool HasClassValidationIssues => DevelopmentLayoutValidationErrors.Count > 0;
+    public string ClassValidationSummary => HasClassValidationIssues
+        ? DevelopmentLayoutValidationSummary
+        : string.Empty;
+    public bool CanSaveClassDraft => ArePrivilegedSectionsEnabled
+                                     && !IsBusy
+                                     && !string.IsNullOrWhiteSpace(SelectedClassDefinitionCode)
+                                     && !HasClassValidationIssues;
+    public string RequirementSourceNodeId
+    {
+        get => _requirementSourceNodeId;
+        set
+        {
+            _requirementSourceNodeId = value ?? string.Empty;
+            Notify();
+            Notify(nameof(RequirementSourceDisplayName));
+            Notify(nameof(DevelopmentPresentationReferenceWarning));
+            Notify(nameof(DevelopmentPresentationReferenceWarningVisibility));
+        }
+    }
+    public string RequirementSourceDisplayName => ClassTreeItems
+        .FirstOrDefault(item => string.Equals(item.Id, RequirementSourceNodeId, StringComparison.OrdinalIgnoreCase))?.Name
+        ?? "Путь не выбран";
+    public string DevelopmentPresentationIconText => NodeRole switch
+    {
+        DevelopmentNodeRoleIds.NoviceRoot or DevelopmentNodeRoleIds.MagicRoot => "Основа",
+        DevelopmentNodeRoleIds.SubbranchLevel => "Специализация",
+        DevelopmentNodeRoleIds.UnlockNode => "Ключевая ступень",
+        _ => "Путь"
+    };
+    public string DevelopmentPresentationPlayerStatusText => NodeIsArchived
+        ? "В архиве"
+        : NodeVisibilityRule == DevelopmentUnlockPolicyIds.GMOnly || NodeIsHidden || !NodeIsPlayerVisible
+            ? "Скрыто от игроков"
+            : "Доступно в player-safe представлении";
+    public string DevelopmentPresentationReferenceWarning
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(RequirementSourceNodeId)) return string.Empty;
+            var source = DevelopmentLayoutNodes.FirstOrDefault(node => string.Equals(node.NodeId, RequirementSourceNodeId, StringComparison.OrdinalIgnoreCase));
+            var currentVisible = NodeVisibilityRule != DevelopmentUnlockPolicyIds.GMOnly && !NodeIsHidden && NodeIsPlayerVisible;
+            return currentVisible && source != null && (source.IsHidden || !source.IsPlayerVisible)
+                ? "Предупреждение: видимый игрокам узел ссылается на скрытый путь."
+                : string.Empty;
+        }
+    }
+    public System.Windows.Visibility DevelopmentPresentationReferenceWarningVisibility => string.IsNullOrWhiteSpace(DevelopmentPresentationReferenceWarning)
+        ? System.Windows.Visibility.Collapsed
+        : System.Windows.Visibility.Visible;
     public string RequirementTargetNodeId { get => _requirementTargetNodeId; set { _requirementTargetNodeId = value ?? string.Empty; Notify(); } }
     public string SelectedDevelopmentLayoutHexagonId
     {
@@ -1956,6 +2348,8 @@ public class AdminMainViewModel : ViewModelBase
             _developmentLayoutHasUnsavedChanges = value;
             Notify();
             Notify(nameof(DevelopmentLayoutDirtyText));
+            Notify(nameof(HasClassUnsavedChanges));
+            Notify(nameof(ClassUnsavedSummary));
         }
     }
     public string DevelopmentLayoutDirtyText => DevelopmentLayoutHasUnsavedChanges ? "Есть несохранённые изменения" : "Изменений нет";
@@ -2033,8 +2427,13 @@ public class AdminMainViewModel : ViewModelBase
             Notify();
             Notify(nameof(DevelopmentLayoutCanonicalModeSelected));
             Notify(nameof(DevelopmentLayoutDiagnosticGraphModeSelected));
+            Notify(nameof(DevelopmentLayoutProductPreviewSelected));
             Notify(nameof(DevelopmentLayoutViewModeText));
             Notify(nameof(DevelopmentLayoutCanonicalLayerVisibility));
+            Notify(nameof(DevelopmentLayoutProductWorkspaceVisibility));
+            Notify(nameof(DevelopmentLayoutPresentationEditorVisibility));
+            Notify(nameof(DevelopmentLayoutDiagnosticEditorVisibility));
+            Notify(nameof(DevelopmentLayoutTechnicalEditorVisibility));
             ApplyDevelopmentLayoutSearchAndFilters();
             ApplyDevelopmentLayoutFocusState();
             RebuildDevelopmentCanonicalOverlay();
@@ -2046,15 +2445,101 @@ public class AdminMainViewModel : ViewModelBase
     }
     public bool DevelopmentLayoutCanonicalModeSelected
     {
-        get => !DevelopmentLayoutShowDiagnostics;
-        set { if (value) DevelopmentLayoutShowDiagnostics = false; }
+        get => !DevelopmentLayoutShowDiagnostics && !_developmentLayoutProductPreview;
+        set
+        {
+            if (!value) return;
+            _developmentLayoutProductPreview = false;
+            DevelopmentLayoutShowDiagnostics = false;
+            Notify(nameof(DevelopmentLayoutProductPreviewSelected));
+            Notify(nameof(DevelopmentLayoutEditingEnabled));
+            Notify(nameof(DevelopmentLayoutProductPreviewVisibility));
+            Notify(nameof(DevelopmentLayoutTechnicalEditorVisibility));
+            Notify(nameof(DevelopmentLayoutProductWorkspaceVisibility));
+            Notify(nameof(DevelopmentLayoutPresentationEditorVisibility));
+            Notify(nameof(DevelopmentLayoutDiagnosticEditorVisibility));
+            LoadClassTree();
+        }
     }
+    public bool AdminDevelopmentWorkspaceSelected
+    {
+        get => _adminDevelopmentWorkspaceSelected;
+        set
+        {
+            if (!value || _adminDevelopmentWorkspaceSelected) return;
+            _adminDevelopmentWorkspaceSelected = true;
+            Notify();
+            Notify(nameof(AdminDefinitionsWorkspaceSelected));
+            Notify(nameof(AdminDevelopmentWorkspaceVisibility));
+            Notify(nameof(AdminDefinitionsWorkspaceVisibility));
+            LoadClassTree();
+        }
+    }
+    public bool AdminDefinitionsWorkspaceSelected
+    {
+        get => !_adminDevelopmentWorkspaceSelected;
+        set
+        {
+            if (!value || !_adminDevelopmentWorkspaceSelected) return;
+            _adminDevelopmentWorkspaceSelected = false;
+            Notify();
+            Notify(nameof(AdminDevelopmentWorkspaceSelected));
+            Notify(nameof(AdminDevelopmentWorkspaceVisibility));
+            Notify(nameof(AdminDefinitionsWorkspaceVisibility));
+        }
+    }
+    public System.Windows.Visibility AdminDevelopmentWorkspaceVisibility => _adminDevelopmentWorkspaceSelected
+        ? System.Windows.Visibility.Visible
+        : System.Windows.Visibility.Collapsed;
+    public System.Windows.Visibility AdminDefinitionsWorkspaceVisibility => _adminDevelopmentWorkspaceSelected
+        ? System.Windows.Visibility.Collapsed
+        : System.Windows.Visibility.Visible;
     public bool DevelopmentLayoutDiagnosticGraphModeSelected
     {
-        get => DevelopmentLayoutShowDiagnostics;
-        set { if (value) DevelopmentLayoutShowDiagnostics = true; }
+        get => DevelopmentLayoutShowDiagnostics && !_developmentLayoutProductPreview;
+        set
+        {
+            if (!value) return;
+            _developmentLayoutProductPreview = false;
+            DevelopmentLayoutShowDiagnostics = true;
+            Notify(nameof(DevelopmentLayoutProductPreviewSelected));
+            Notify(nameof(DevelopmentLayoutEditingEnabled));
+            Notify(nameof(DevelopmentLayoutProductPreviewVisibility));
+            Notify(nameof(DevelopmentLayoutTechnicalEditorVisibility));
+            Notify(nameof(DevelopmentLayoutProductWorkspaceVisibility));
+            Notify(nameof(DevelopmentLayoutPresentationEditorVisibility));
+            Notify(nameof(DevelopmentLayoutDiagnosticEditorVisibility));
+            LoadClassTree();
+        }
     }
-    public string DevelopmentLayoutViewModeText => DevelopmentLayoutShowDiagnostics ? "Диагностический граф" : "Канонический шестиугольник";
+    public bool DevelopmentLayoutProductPreviewSelected
+    {
+        get => _developmentLayoutProductPreview;
+        set
+        {
+            if (!value || _developmentLayoutProductPreview) return;
+            _developmentLayoutProductPreview = true;
+            _developmentLayoutShowDiagnostics = false;
+            Notify();
+            Notify(nameof(DevelopmentLayoutCanonicalModeSelected));
+            Notify(nameof(DevelopmentLayoutDiagnosticGraphModeSelected));
+            Notify(nameof(DevelopmentLayoutViewModeText));
+            Notify(nameof(DevelopmentLayoutEditingEnabled));
+            Notify(nameof(DevelopmentLayoutProductPreviewVisibility));
+            Notify(nameof(DevelopmentLayoutTechnicalEditorVisibility));
+            Notify(nameof(DevelopmentLayoutProductWorkspaceVisibility));
+            Notify(nameof(DevelopmentLayoutPresentationEditorVisibility));
+            Notify(nameof(DevelopmentLayoutDiagnosticEditorVisibility));
+            LoadDevelopmentProductPreview0215();
+        }
+    }
+    public bool DevelopmentLayoutEditingEnabled => !_developmentLayoutProductPreview;
+    public System.Windows.Visibility DevelopmentLayoutProductPreviewVisibility => _developmentLayoutProductPreview ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+    public System.Windows.Visibility DevelopmentLayoutProductWorkspaceVisibility => DevelopmentLayoutShowDiagnostics ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
+    public System.Windows.Visibility DevelopmentLayoutPresentationEditorVisibility => !_developmentLayoutProductPreview && !DevelopmentLayoutShowDiagnostics ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+    public System.Windows.Visibility DevelopmentLayoutDiagnosticEditorVisibility => !_developmentLayoutProductPreview && DevelopmentLayoutShowDiagnostics ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+    public System.Windows.Visibility DevelopmentLayoutTechnicalEditorVisibility => DevelopmentLayoutDiagnosticEditorVisibility;
+    public string DevelopmentLayoutViewModeText => _developmentLayoutProductPreview ? "Предпросмотр для игрока" : DevelopmentLayoutShowDiagnostics ? "Полный граф / диагностика" : "Редактор представления";
     public System.Windows.Visibility DevelopmentLayoutCanonicalLayerVisibility => DevelopmentLayoutShowDiagnostics ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible;
     public bool DevelopmentLayoutShowDirectionLabels
     {
@@ -2148,10 +2633,54 @@ public class AdminMainViewModel : ViewModelBase
     public int CharactersCount => Characters.Count;
     public int PendingRequestsCount => PendingRequests.Count;
     public int ActivePlayersCount => Players.Count(player => string.Equals(player.State, "В сети", StringComparison.OrdinalIgnoreCase));
+    public ObservableCollection<string> PeopleStatusFilterOptions { get; } = new ObservableCollection<string> { "Все статусы", "Ожидает", "Одобрен", "Заблокирован", "Отклонён", "В сети", "Не в сети" };
+    public ObservableCollection<string> PeopleRoleFilterOptions { get; } = new ObservableCollection<string> { "Все роли", "Администратор", "Суперадминистратор", "Игрок", "Мастер", "Не указана" };
+    public string PeopleSearchText
+    {
+        get => _peopleSearchText;
+        set
+        {
+            if (_peopleSearchText == value) return;
+            _peopleSearchText = value ?? string.Empty;
+            Notify();
+            Notify(nameof(FilteredPendingAccounts));
+            Notify(nameof(FilteredPlayers));
+            Notify(nameof(UsersRouteState));
+        }
+    }
+    public string PeopleStatusFilter
+    {
+        get => _peopleStatusFilter;
+        set
+        {
+            if (_peopleStatusFilter == value) return;
+            _peopleStatusFilter = string.IsNullOrWhiteSpace(value) ? "Все статусы" : value;
+            Notify();
+            Notify(nameof(FilteredPendingAccounts));
+            Notify(nameof(FilteredPlayers));
+            Notify(nameof(UsersRouteState));
+        }
+    }
+    public string PeopleRoleFilter
+    {
+        get => _peopleRoleFilter;
+        set
+        {
+            if (_peopleRoleFilter == value) return;
+            _peopleRoleFilter = string.IsNullOrWhiteSpace(value) ? "Все роли" : value;
+            Notify();
+            Notify(nameof(FilteredPendingAccounts));
+            Notify(nameof(FilteredPlayers));
+            Notify(nameof(UsersRouteState));
+        }
+    }
     public bool HasActiveCombat => CombatRows.Any(row => row.IndexOf("Status:", StringComparison.OrdinalIgnoreCase) >= 0 && row.IndexOf("Ended", StringComparison.OrdinalIgnoreCase) < 0);
     public string ChatSummary => ChatRows.Count == 0 ? "Чат: сообщений нет" : $"Чат: {ChatRows.Count} сообщений";
     public string AudioSummary => string.IsNullOrWhiteSpace(AudioStateText) ? "Музыка: нет данных" : $"Музыка: {AudioStateText}";
-    public string DiagnosticsSummary => DiagnosticsItems.Count == 0 ? "Диагностика: данных нет" : $"{DiagnosticsItems[0].Name} / {DiagnosticsItems[0].State} / {DiagnosticsItems[0].Extra}";
+    public string DiagnosticsSummary => DiagnosticsItems.Count == 0
+        ? "Диагностика: данных нет"
+        : string.Join(" • ", new[] { DiagnosticsItems[0].State, DiagnosticsItems[0].Extra }
+            .Where(value => !string.IsNullOrWhiteSpace(value)));
     public string SessionStateSummary => CombatRows.FirstOrDefault(row => row.StartsWith("Status:", StringComparison.OrdinalIgnoreCase))?.Split(':').Skip(1).FirstOrDefault()?.Trim() ?? (ArePrivilegedSectionsEnabled ? "Сессия готова" : "Сессия готова");
     public int ActiveCombatParticipantsCount => CombatRows.Count(row => row.StartsWith("P:", StringComparison.OrdinalIgnoreCase));
     public string CombatTrackerSummary => HasActiveCombat ? $"Активный бой: участников {ActiveCombatParticipantsCount}" : ActiveCombatParticipantsCount > 0 ? $"Активный бой: участников {ActiveCombatParticipantsCount}" : "Бой не активен.";
@@ -2173,7 +2702,9 @@ public class AdminMainViewModel : ViewModelBase
     public string SelectedReferenceSummary => SelectedReference == null ? "Справочник не выбран." : $"{SelectedReference.Name} / {SelectedReference.State} / {SelectedReference.Extra}";
     public string SelectedContentSummary => SelectedClassDefinition != null ? SelectedClassSummary : SelectedSkillDefinition != null ? SelectedSkillSummary : SelectedReferenceSummary;
     public string ReferenceSummary => ReferenceItems.Count == 0 ? "Справочники: данных нет" : $"Справочники: данных нет";
-    public string BackupSummary => BackupItems.Count == 0 ? "Резервные копии: данных нет" : $"Резервные копии: данных нет";
+    public string BackupSummary => BackupItems.Count == 0
+        ? "Резервные копии: данных нет"
+        : $"Резервных копий: {BackupItems.Count}; последняя: {BackupItems[0].Name}";
     public string DiagnosticsStatusSummary => DiagnosticsItems.Count == 0 ? "Диагностика не загружена" : DiagnosticsItems[0].Name;
     public string SelectedBackupSummary => SelectedBackup == null ? "Резервные копии: данных нет" : $"{SelectedBackup.Name} / {SelectedBackup.State} / {SelectedBackup.Extra}";
     public string SelectedDiagnosticsSummary => SelectedDiagnostics == null ? "Диагностика" : $"{SelectedDiagnostics.Name} / {SelectedDiagnostics.State} / {SelectedDiagnostics.Extra}";
@@ -2200,6 +2731,7 @@ public class AdminMainViewModel : ViewModelBase
     public RowVm? SelectedPendingAccount => PendingAccounts.FirstOrDefault(row => row.Id == SelectedPendingAccountId);
     public RowVm? SelectedPlayer => Players.FirstOrDefault(row => row.Id == SelectedOwnerUserId);
     public RowVm? SelectedCharacter => Characters.FirstOrDefault(row => row.Id == SelectedCharacterId);
+    public AdminLanguageWorkspaceViewModel LanguageWorkspace { get; }
     public RowVm? SelectedRequest => PendingRequests.FirstOrDefault(row => row.Id == SelectedPendingRequestId);
     public RowVm? SelectedClassDefinition => ClassDefinitionRows.FirstOrDefault(row => row.Id == SelectedClassDefinitionCode);
     public RowVm? SelectedSkillDefinition => SkillDefinitionRows.FirstOrDefault(row => row.Id == SelectedSkillDefinitionCode);
@@ -2214,11 +2746,13 @@ public class AdminMainViewModel : ViewModelBase
     public string SelectedPlayerSummary => SelectedPlayer == null ? "Нет данных" : $"{SelectedPlayer.Name} / {SelectedPlayer.State} / {SelectedPlayer.Extra}";
     public string SelectedCharacterSummary => SelectedCharacter == null ? "Нет данных" : $"Нет данных";
     public string SelectedRequestSummary => SelectedRequest == null ? "Нет данных" : $"{SelectedRequest.Name} / {SelectedRequest.State} / {SelectedRequest.Extra}";
-    public string SelectedLockSummary => SelectedLock == null ? "Нет данных" : $"{SelectedLock.Name} / {SelectedLock.State} / {SelectedLock.Extra}";
+    public string SelectedLockSummary => SelectedLock == null
+        ? "Блокировка не выбрана."
+        : $"{SelectedLock.Name} • {SelectedLock.State} • {SelectedLock.Extra}";
     public string CharacterActionSummary => !ArePrivilegedSectionsEnabled ? "Нет данных" : SelectedCharacter == null ? "Нет данных" : IsBusy ? $"Нет данных" : "Нет данных";
     public string ChatModerationSummary => !ArePrivilegedSectionsEnabled ? "Нет данных" : IsBusy ? $"Нет данных" : string.IsNullOrWhiteSpace(ChatModerationUserId) ? "Нет данных" : $"Нет данных";
     public string SystemActionSummary => !ArePrivilegedSectionsEnabled ? "Нет данных" : IsBusy ? $"Нет данных" : "Нет данных";
-    public string HeaderStatusSummary => HasConnectionError ? LastErrorMessage : $"{ConnectionStage} / {LoginState}";
+    public string HeaderStatusSummary => $"{ConnectionStage} / {LoginState}";
     public bool CanManagePendingAccount => ArePrivilegedSectionsEnabled && SelectedPendingAccount != null && !IsBusy;
     public bool CanResetSelectedAccountPassword => ArePrivilegedSectionsEnabled && !IsBusy && !string.IsNullOrWhiteSpace(ResetPasswordText) && (!string.IsNullOrWhiteSpace(SelectedPendingAccountId) || !string.IsNullOrWhiteSpace(SelectedOwnerUserId));
     public bool CanLoadPlayerCharacters => ArePrivilegedSectionsEnabled && SelectedPlayer != null && !IsBusy;
@@ -2243,19 +2777,37 @@ public class AdminMainViewModel : ViewModelBase
     public string WorkspaceLayoutPath => Path.Combine(_appDataDirectory, "workspace.layout.json");
     public string ConnectionSettingsPath => Path.Combine(_appDataDirectory, "connection.settings.json");
 
-    public string OwnershipOwnerUserId { get => _ownershipOwnerUserId; set { _ownershipOwnerUserId = value; Notify(); } }
-    public string OwnershipControlledByUserId { get => _ownershipControlledByUserId; set { _ownershipControlledByUserId = value; Notify(); } }
+    public string OwnershipOwnerUserId { get => _ownershipOwnerUserId; set { _ownershipOwnerUserId = value; Notify(); Notify(nameof(OwnershipOwnerDisplayName)); Notify(nameof(OwnershipSummary)); } }
+    public string OwnershipControlledByUserId { get => _ownershipControlledByUserId; set { _ownershipControlledByUserId = value; Notify(); Notify(nameof(OwnershipControlledByDisplayName)); } }
     public string OwnershipReason { get => _ownershipReason; set { _ownershipReason = value; Notify(); } }
-    public string OwnershipGroupId { get => _ownershipGroupId; set { _ownershipGroupId = value; Notify(); } }
-    public string OwnershipGroupName { get => _ownershipGroupName; set { _ownershipGroupName = value; Notify(); } }
-    public string OwnershipKind { get => _ownershipKind; set { _ownershipKind = value; Notify(); } }
-    public string OwnershipStatus { get => _ownershipStatus; set { _ownershipStatus = value; Notify(); } }
+    public string OwnershipGroupId { get => _ownershipGroupId; set { _ownershipGroupId = value; Notify(); Notify(nameof(OwnershipGroupDisplayName)); Notify(nameof(OwnershipSummary)); } }
+    public string OwnershipGroupName { get => _ownershipGroupName; set { _ownershipGroupName = value; Notify(); Notify(nameof(OwnershipGroupDisplayName)); Notify(nameof(OwnershipSummary)); } }
+    public string OwnershipKind { get => _ownershipKind; set { _ownershipKind = value; Notify(); Notify(nameof(OwnershipKindDisplayName)); Notify(nameof(OwnershipSummary)); } }
+    public string OwnershipStatus { get => _ownershipStatus; set { _ownershipStatus = value; Notify(); Notify(nameof(OwnershipStatusDisplayName)); Notify(nameof(OwnershipSummary)); } }
     public bool OwnershipIsActive { get => _ownershipIsActive; set { _ownershipIsActive = value; Notify(); } }
     public bool OwnershipIsArchived { get => _ownershipIsArchived; set { _ownershipIsArchived = value; Notify(); } }
     public bool OwnershipIsPlayerVisible { get => _ownershipIsPlayerVisible; set { _ownershipIsPlayerVisible = value; Notify(); } }
     public string OwnershipMessage { get => _ownershipMessage; set { _ownershipMessage = value; Notify(); } }
+    public string OwnershipOwnerDisplayName => OwnershipUserDisplayName(OwnershipOwnerUserId, "Владелец");
+    public string OwnershipControlledByDisplayName => OwnershipUserDisplayName(OwnershipControlledByUserId, "Управляющий");
+    public string OwnershipGroupDisplayName => FirstNonEmpty(
+        OwnershipGroupName,
+        string.IsNullOrWhiteSpace(OwnershipGroupId) ? "Не назначена" : "Группа недоступна");
+    public string OwnershipKindDisplayName => CharacterKindOptions
+        .FirstOrDefault(option => string.Equals(option.Value, OwnershipKind, StringComparison.OrdinalIgnoreCase))
+        ?.DisplayName ?? "Другое";
+    public string OwnershipStatusDisplayName => CharacterStatusOptions
+        .FirstOrDefault(option => string.Equals(option.Value, OwnershipStatus, StringComparison.OrdinalIgnoreCase))
+        ?.DisplayName ?? "Статус не указан";
     public string OwnershipSummary =>
-        $"Владелец: {FirstNonEmpty(OwnershipOwnerUserId, "—")} / группа: {FirstNonEmpty(OwnershipGroupName, OwnershipGroupId, "—")} / тип: {OwnershipKind} / статус: {OwnershipStatus}";
+        $"Владелец: {OwnershipOwnerDisplayName} / группа: {OwnershipGroupDisplayName} / тип: {OwnershipKindDisplayName} / статус: {OwnershipStatusDisplayName}";
+
+    private string OwnershipUserDisplayName(string userId, string role)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return "Не назначен";
+        return Players.FirstOrDefault(player => string.Equals(player.Id, userId, StringComparison.OrdinalIgnoreCase))?.Name
+               ?? $"{role} недоступен";
+    }
 
     public string SelectedPendingAccountId
     {
@@ -2304,6 +2856,45 @@ public class AdminMainViewModel : ViewModelBase
         {
             if (_selectedCharacterId != value)
             {
+                if (CharacterHasUnsavedChanges && !string.IsNullOrWhiteSpace(_selectedCharacterId) && !string.Equals(_selectedCharacterId, value, StringComparison.OrdinalIgnoreCase))
+                {
+                    var decision = System.Windows.MessageBox.Show(
+                        "У текущего персонажа есть несохранённые изменения.\n\n«Да» — сохранить и открыть другую запись.\n«Нет» — отбросить изменения.\n«Отмена» — продолжить редактирование.",
+                        "Несохранённые изменения",
+                        System.Windows.MessageBoxButton.YesNoCancel,
+                        System.Windows.MessageBoxImage.Warning);
+                    if (decision == System.Windows.MessageBoxResult.Cancel)
+                    {
+                        CharacterCard.MarkError("Переход отменён. Черновик персонажа сохранён в форме.");
+                        ClientLogService.Instance.Info($"ui.character.switch.cancelled.unsaved from={_selectedCharacterId} to={value}");
+                        return;
+                    }
+
+                    if (decision == System.Windows.MessageBoxResult.Yes)
+                    {
+                        if (!CanSaveCharacterDraft)
+                        {
+                            CharacterCard.MarkError("Исправьте ошибки формы перед сохранением или выберите «Нет», чтобы отбросить изменения.");
+                            ClientLogService.Instance.Warn($"ui.character.switch.save.blocked.validation from={_selectedCharacterId} to={value}");
+                            return;
+                        }
+
+                        SaveBasicInfo();
+                        if (CharacterHasUnsavedChanges)
+                        {
+                            CharacterCard.MarkError("Не удалось сохранить изменения. Переход отменён.");
+                            ClientLogService.Instance.Warn($"ui.character.switch.save.failed from={_selectedCharacterId} to={value}");
+                            return;
+                        }
+
+                        ClientLogService.Instance.Info($"ui.character.switch.saved.unsaved from={_selectedCharacterId} to={value}");
+                    }
+                    else
+                    {
+                        CharacterHasUnsavedChanges = false;
+                        ClientLogService.Instance.Info($"ui.character.switch.discarded.unsaved from={_selectedCharacterId} to={value}");
+                    }
+                }
                 _selectedCharacterId = value;
                 if (string.Equals(NoteTargetType, "character", StringComparison.OrdinalIgnoreCase))
                 {
@@ -2314,11 +2905,13 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(SelectedCharacter));
                 Notify(nameof(SelectedCharacterSummary));
                 Notify(nameof(CanOpenSelectedCharacter));
+                Notify(nameof(CanSaveCharacterDraft));
                 Notify(nameof(CanRollCharacterDice));
                 Notify(nameof(DiceRollAvailabilityHint));
                 Notify(nameof(CanAcquireSkill));
                 Notify(nameof(CanUpdateCharacterSkillLevel));
                 Notify(nameof(CanRemoveCharacterSkill));
+                Notify(nameof(CharactersRouteState));
                 TraceDiceAvailability();
                 ClientLogService.Instance.Info($"ui.people.character.selected characterId={_selectedCharacterId}");
                 if (ArePrivilegedSectionsEnabled && !string.IsNullOrWhiteSpace(_selectedCharacterId) && !IsBusy)
@@ -2364,16 +2957,39 @@ public class AdminMainViewModel : ViewModelBase
     }
     public string RequestComment { get; set; } = string.Empty;
     public string RequestGMOnlyComment { get; set; } = string.Empty;
+    public string ForceUnlockReason { get; set; } = string.Empty;
     public string RequestStatusFilter { get; set; } = string.Empty;
     public string RequestTypeFilter { get; set; } = string.Empty;
-    public string[] RequestStatusFilters { get; } = { "", "submitted", "in_review", "changes_requested", "approved", "rejected", "cancelled", "archived" };
-    public string[] RequestTypeFilters { get; } = { "", "generic_action", "development_unlock", "character_change", "item_request", "rules_question", "scene_action", "research", "crafting", "purchase" };
-    public string AdminSelectedRequestTitle { get; set; } = "Заявка без названия";
+    public AdminOptionVm[] RequestStatusFilters { get; } =
+    {
+        new("", "Все рабочие статусы"),
+        new("submitted", "Отправлена"),
+        new("in_review", "На рассмотрении"),
+        new("changes_requested", "Нужны уточнения"),
+        new("approved", "Одобрена"),
+        new("rejected", "Отклонена"),
+        new("cancelled", "Отменена"),
+        new("archived", "В архиве")
+    };
+    public AdminOptionVm[] RequestTypeFilters { get; } =
+    {
+        new("", "Все типы"),
+        new("generic_action", "Общее действие"),
+        new("development_unlock", "Развитие персонажа"),
+        new("character_change", "Изменение персонажа"),
+        new("item_request", "Запрос предмета"),
+        new("rules_question", "Вопрос по правилам"),
+        new("scene_action", "Действие в сцене"),
+        new("research", "Исследование"),
+        new("crafting", "Создание предмета"),
+        new("purchase", "Покупка")
+    };
+    public string AdminSelectedRequestTitle { get; set; } = "Заявка не выбрана";
     public string AdminSelectedRequestPlayer { get; set; } = "Игрок: —";
     public string AdminSelectedRequestCharacter { get; set; } = "Персонаж: —";
     public string AdminSelectedRequestType { get; set; } = "Тип: —";
     public string AdminSelectedRequestActors { get; set; } = "Последнее действие: —";
-    public string AdminSelectedRequestDetails { get; set; } = "Данные заявки не загружены.";
+    public string AdminSelectedRequestDetails { get; set; } = "Выберите заявку в очереди, чтобы открыть её контекст.";
     public string CombatSessionId { get; set; } = "default";
     public string NewParticipantName { get; set; } = "New NPC";
     public string NewParticipantKind { get; set; } = "Npc";
@@ -2404,6 +3020,10 @@ public class AdminMainViewModel : ViewModelBase
                 if (!string.IsNullOrWhiteSpace(value))
                 {
                     _isClassNodeLayoutDirty = false;
+                    Notify(nameof(ClassNodeLayoutHasUnsavedChanges));
+                    Notify(nameof(ClassNodeLayoutUnsavedSummary));
+                    Notify(nameof(HasClassUnsavedChanges));
+                    Notify(nameof(ClassUnsavedSummary));
                     AssignClassNodeId = value;
                     if (string.IsNullOrWhiteSpace(EditClassRequiredNodeId)) EditClassRequiredNodeId = value;
                 }
@@ -2430,6 +3050,9 @@ public class AdminMainViewModel : ViewModelBase
                 Notify(nameof(SelectedClassSummary));
                 Notify(nameof(SelectedContentSummary));
                 Notify(nameof(CanArchiveClassDefinition));
+                Notify(nameof(ClassesRouteState));
+                Notify(nameof(CanSaveClassDraft));
+                ((RelayCommand)SaveClassDefinitionCommand).RaiseCanExecuteChanged();
             }
         }
     }
@@ -2668,6 +3291,17 @@ public class AdminMainViewModel : ViewModelBase
     public string EditSkillRequiredSkillCodes { get; set; } = string.Empty;
     public bool EditSkillIsActive { get; set; } = true;
     public string EditSkillStatus { get; set; } = DefinitionStatus.Draft.ToString();
+    private RequirementExpressionEditorNodeVm0219 _editSkillRequirementRoot = new RequirementExpressionEditorNodeVm0219 { Kind = "all_of" };
+    private object[] _editSkillRankMilestones = Array.Empty<object>();
+    private object[] _editSkillTechniques = Array.Empty<object>();
+    public RequirementExpressionEditorNodeVm0219 EditSkillRequirementRoot
+    {
+        get => _editSkillRequirementRoot;
+        set { _editSkillRequirementRoot = value ?? new RequirementExpressionEditorNodeVm0219 { Kind = "all_of" }; Notify(); Notify(nameof(EditSkillRequirementPreview)); }
+    }
+    public string EditSkillRequirementPreview => EditSkillRequirementRoot.ToPayload() == null
+        ? "Дополнительных требований нет."
+        : EditSkillRequirementRoot.OperatorLabel + ": " + string.Join("; ", EditSkillRequirementRoot.Children.Select(x => x.PreviewLine));
     public string DefinitionHintText => string.IsNullOrWhiteSpace(EditClassParentClassCode) ? "Нет данных" : "Нет данных";
     public string SkillEditorHintText => SkillLevelEditorRows.Count == 0 ? "Нет данных" : $"Нет данных";
     public string ChatSessionId { get; set; } = "default";
@@ -2779,10 +3413,25 @@ public class AdminMainViewModel : ViewModelBase
             }
         }
     }
-    public string EditName { get; set; } = string.Empty;
-    public string EditRace { get; set; } = string.Empty;
-    public string EditHeight { get; set; } = string.Empty;
-    public string EditDescription { get; set; } = string.Empty;
+    public string EditName
+    {
+        get => _editName;
+        set
+        {
+            if (_editName == value) return;
+            _editName = value ?? string.Empty;
+            Notify();
+            MarkCharacterDirty();
+            Notify(nameof(CharacterHasValidationIssues));
+            Notify(nameof(CharacterValidationSummary));
+            Notify(nameof(CharacterNameValidationMessage));
+            Notify(nameof(CanSaveCharacterDraft));
+            ((RelayCommand)SaveBasicInfoCommand).RaiseCanExecuteChanged();
+        }
+    }
+    public string EditRace { get => _editRace; set { if (_editRace == value) return; _editRace = value ?? string.Empty; Notify(); MarkCharacterDirty(); } }
+    public string EditHeight { get => _editHeight; set { if (_editHeight == value) return; _editHeight = value ?? string.Empty; Notify(); MarkCharacterDirty(); } }
+    public string EditDescription { get => _editDescription; set { if (_editDescription == value) return; _editDescription = value ?? string.Empty; Notify(); MarkCharacterDirty(); } }
     public string EditBackstory
     {
         get => _editBackstory;
@@ -2793,11 +3442,33 @@ public class AdminMainViewModel : ViewModelBase
             var oldLength = _editBackstory.Length;
             _editBackstory = value;
             BiographySaveStatus = "Биография сохранена.";
+            MarkCharacterDirty();
             ClientLogService.Instance.Info($"character.admin.biography.input.changed characterId={SelectedCharacterId} oldLength={oldLength} newLength={value.Length}");
             Notify();
         }
     }
-    public int EditAge { get; set; }
+    public int EditAge { get => _editAge; set { if (_editAge == value) return; _editAge = value; Notify(); MarkCharacterDirty(); } }
+    public bool CharacterHasUnsavedChanges
+    {
+        get => _characterHasUnsavedChanges;
+        private set
+        {
+            if (_characterHasUnsavedChanges == value) return;
+            _characterHasUnsavedChanges = value;
+            Notify();
+            Notify(nameof(CharacterUnsavedChangesSummary));
+            Notify(nameof(CharacterHasValidationIssues));
+            Notify(nameof(CharacterValidationSummary));
+            Notify(nameof(CharacterNameValidationMessage));
+            Notify(nameof(CanSaveCharacterDraft));
+            ((RelayCommand)SaveBasicInfoCommand).RaiseCanExecuteChanged();
+        }
+    }
+    public string CharacterUnsavedChangesSummary => CharacterHasUnsavedChanges ? "Есть несохранённые изменения персонажа." : "Изменений персонажа нет.";
+    public bool CharacterHasValidationIssues => CharacterHasUnsavedChanges && string.IsNullOrWhiteSpace(EditName);
+    public string CharacterValidationSummary => CharacterHasValidationIssues ? "Исправьте обязательные поля персонажа." : string.Empty;
+    public string CharacterNameValidationMessage => CharacterHasValidationIssues ? "Укажите имя персонажа." : string.Empty;
+    public bool CanSaveCharacterDraft => CanManageSelectedCharacter && !CharacterHasValidationIssues;
     public int Health { get; set; }
     public int PhysicalArmor { get; set; }
     public int MagicalArmor { get; set; }
@@ -2873,6 +3544,16 @@ public class AdminMainViewModel : ViewModelBase
     public string InventoryCategory { get; set; } = string.Empty;
     public string InventorySlot { get; set; } = string.Empty;
     public string InventoryNotes { get; set; } = string.Empty;
+    public ObservableCollection<NriOptionItem> InventoryCategoryOptions { get; } = new()
+    {
+        new() { Value = "weapon", DisplayName = "Оружие" },
+        new() { Value = "armor", DisplayName = "Броня" },
+        new() { Value = "ammo", DisplayName = "Боеприпасы" },
+        new() { Value = "consumable", DisplayName = "Расходуемое" },
+        new() { Value = "clothing", DisplayName = "Одежда" },
+        new() { Value = "tool", DisplayName = "Инструмент" },
+        new() { Value = "custom", DisplayName = "Другое" }
+    };
     public ObservableCollection<CatalogDefinitionUiItem> InventoryCatalogDefinitions { get; } = new ObservableCollection<CatalogDefinitionUiItem>();
     private CatalogDefinitionUiItem? _selectedInventoryCatalogDefinition;
     public CatalogDefinitionUiItem? SelectedInventoryCatalogDefinition
@@ -2955,6 +3636,20 @@ public class AdminMainViewModel : ViewModelBase
     public bool HoldingIsPlayerVisible { get; set; } = true;
     public bool HoldingIsArchived { get; set; }
     public string HoldingOwners { get; set; } = string.Empty;
+    public ObservableCollection<NriOptionItem> HoldingTypeOptions { get; } = new()
+    {
+        new() { Value = "property", DisplayName = "Имущество" },
+        new() { Value = "resource", DisplayName = "Ресурс" },
+        new() { Value = "location", DisplayName = "Локация" },
+        new() { Value = "organization", DisplayName = "Организация" },
+        new() { Value = "custom", DisplayName = "Другое" }
+    };
+    public ObservableCollection<NriOptionItem> HoldingStatusOptions { get; } = new()
+    {
+        new() { Value = "active", DisplayName = "Активно" },
+        new() { Value = "inactive", DisplayName = "Неактивно" },
+        new() { Value = "archived", DisplayName = "В архиве" }
+    };
     private HoldingEditorVm? _selectedHoldingItem;
     public HoldingEditorVm? SelectedHoldingItem
     {
@@ -2992,6 +3687,14 @@ public class AdminMainViewModel : ViewModelBase
     public string ReputationNotesInput { get; set; } = string.Empty;
     public bool ReputationIsPlayerVisibleInput { get; set; } = true;
     public bool ReputationIsArchivedInput { get; set; }
+    public ObservableCollection<NriOptionItem> ReputationStatusOptions { get; } = new()
+    {
+        new() { Value = "friendly", DisplayName = "Дружественная" },
+        new() { Value = "neutral", DisplayName = "Нейтральная" },
+        new() { Value = "hostile", DisplayName = "Враждебная" },
+        new() { Value = "unknown", DisplayName = "Неизвестная" },
+        new() { Value = "custom", DisplayName = "Другое" }
+    };
     private ReputationEditorVm? _selectedReputationItem;
     public ReputationEditorVm? SelectedReputationItem
     {
@@ -3028,6 +3731,20 @@ public class AdminMainViewModel : ViewModelBase
     public string CompanionOwnerCharacterIdInput { get; set; } = string.Empty;
     public string CompanionOwnerDisplayNameInput { get; set; } = string.Empty;
     public string CompanionOwnCollectionsPreview { get; set; } = "Inventory: 0 | Holdings: 0 | Reputation: 0";
+    public ObservableCollection<NriOptionItem> CompanionTypeOptions { get; } = new()
+    {
+        new() { Value = "animal", DisplayName = "Животное" },
+        new() { Value = "humanoid", DisplayName = "Гуманоид" },
+        new() { Value = "construct", DisplayName = "Конструкт" },
+        new() { Value = "vehicle", DisplayName = "Техника" },
+        new() { Value = "custom", DisplayName = "Другое" }
+    };
+    public ObservableCollection<NriOptionItem> CompanionStatusOptions { get; } = new()
+    {
+        new() { Value = "active", DisplayName = "Активен" },
+        new() { Value = "inactive", DisplayName = "Неактивен" },
+        new() { Value = "archived", DisplayName = "В архиве" }
+    };
     private CompanionEditorVm? _selectedCompanionItem;
     public CompanionEditorVm? SelectedCompanionItem
     {
@@ -3063,10 +3780,44 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<RowVm> ClassDefinitionRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> SkillDefinitionRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> RaceDefinitionRows { get; } = new ObservableCollection<RowVm>();
+    public ObservableCollection<NriReferenceOption> CharacterRaceOptions { get; } = new();
+    public ObservableCollection<NriReferenceOption> CharacterSkillOptions { get; } = new();
+    public ObservableCollection<NriReferenceOption> CharacterOwnerOptions { get; } = new();
+    public ObservableCollection<NriOptionItem> CharacterKindOptions { get; } = new()
+    {
+        new() { Value = CharacterKindIds.PlayerCharacter, DisplayName = "Персонаж игрока" },
+        new() { Value = CharacterKindIds.Npc, DisplayName = "NPC" },
+        new() { Value = CharacterKindIds.Companion, DisplayName = "Компаньон" },
+        new() { Value = CharacterKindIds.TemporaryAlly, DisplayName = "Временный союзник" },
+        new() { Value = CharacterKindIds.Enemy, DisplayName = "Враг" },
+        new() { Value = CharacterKindIds.Neutral, DisplayName = "Нейтральный" },
+        new() { Value = CharacterKindIds.Custom, DisplayName = "Другое" }
+    };
+    public ObservableCollection<NriOptionItem> CharacterStatusOptions { get; } = new()
+    {
+        new() { Value = "active", DisplayName = "Активен" },
+        new() { Value = "inactive", DisplayName = "Неактивен" },
+        new() { Value = "draft", DisplayName = "Черновик" },
+        new() { Value = "archived", DisplayName = "В архиве" }
+    };
+    public ObservableCollection<NriOptionItem> CharacterTrainingStateOptions { get; } = new()
+    {
+        new() { Value = "untrained", DisplayName = "Не обучен" },
+        new() { Value = "training", DisplayName = "В процессе" },
+        new() { Value = "trained", DisplayName = "Обучен" },
+        new() { Value = "mastered", DisplayName = "Освоен" },
+        new() { Value = "custom", DisplayName = "Другое" }
+    };
     public ObservableCollection<RowVm> ItemDefinitionRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> ContentStatusRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> ContentErrorRows { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<SkillLevelEditorRowVm> SkillLevelEditorRows { get; } = new ObservableCollection<SkillLevelEditorRowVm>();
+    public IEnumerable<RowVm> RequirementReferenceOptions => ClassTreeItems
+        .Concat(SkillDefinitionRows)
+        .Where(x => !string.IsNullOrWhiteSpace(x.Id))
+        .GroupBy(x => x.Id, StringComparer.OrdinalIgnoreCase)
+        .Select(x => x.First())
+        .OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase);
     public ObservableCollection<RowVm> ClassTreeItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<DevelopmentHexagonEditorTreeVm> DevelopmentLayoutHexagons { get; } = new ObservableCollection<DevelopmentHexagonEditorTreeVm>();
     public ObservableCollection<DevelopmentHexagonEditorNodeVm> DevelopmentLayoutNodes { get; } = new ObservableCollection<DevelopmentHexagonEditorNodeVm>();
@@ -3088,11 +3839,29 @@ public class AdminMainViewModel : ViewModelBase
     public ObservableCollection<RowVm> BackupItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> DiagnosticsItems { get; } = new ObservableCollection<RowVm>();
     public ObservableCollection<RowVm> LockRows { get; } = new ObservableCollection<RowVm>();
+    public IEnumerable<RowVm> FilteredPendingAccounts => FilterPeople(PendingAccounts);
+    public IEnumerable<RowVm> FilteredPlayers => FilterPeople(Players);
     public IEnumerable<RowVm> FilteredCharacters => string.IsNullOrWhiteSpace(CharactersSearchText)
         ? Characters
         : Characters.Where(row => row.Name.IndexOf(CharactersSearchText, StringComparison.OrdinalIgnoreCase) >= 0
                                   || row.Id.IndexOf(CharactersSearchText, StringComparison.OrdinalIgnoreCase) >= 0
                                   || row.Extra.IndexOf(CharactersSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+
+    private IEnumerable<RowVm> FilterPeople(IEnumerable<RowVm> rows)
+    {
+        var query = (PeopleSearchText ?? string.Empty).Trim();
+        var status = PeopleStatusFilter ?? "Все статусы";
+        return rows.Where(row =>
+            (string.IsNullOrWhiteSpace(query)
+             || row.Name.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0
+             || row.State.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0
+             || row.Extra.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0
+             || row.RoleDisplay.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
+            && (status == "Все статусы"
+                || string.Equals(row.State, status, StringComparison.OrdinalIgnoreCase))
+            && (PeopleRoleFilter == "Все роли"
+                || string.Equals(row.RoleDisplay, PeopleRoleFilter, StringComparison.OrdinalIgnoreCase)));
+    }
     public IEnumerable<RowVm> FilteredLockRows => string.IsNullOrWhiteSpace(LocksSearchText)
         ? LockRows
         : LockRows.Where(row => row.Name.IndexOf(LocksSearchText, StringComparison.OrdinalIgnoreCase) >= 0
@@ -3110,7 +3879,19 @@ public class AdminMainViewModel : ViewModelBase
                                            || row.Extra.IndexOf(SkillSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
     public ObservableCollection<string> OverviewActivityRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<AdminNavigationGroup> NavigationGroups { get; } = new ObservableCollection<AdminNavigationGroup>();
+    public ObservableCollection<AdminShellMode> ShellModes { get; } = new ObservableCollection<AdminShellMode>
+    {
+        new AdminShellMode("conduct", "Проведение", "Игра", 10),
+        new AdminShellMode("administration", "Администрирование", "Контент", 20),
+        new AdminShellMode("system", "Система", "Система", 30)
+    };
     public ObservableCollection<WorkspacePanelDescriptor> WorkspacePanels { get; } = new ObservableCollection<WorkspacePanelDescriptor>();
+    public ObservableCollection<NriOptionItem> GameCampaignOptions { get; } = new ObservableCollection<NriOptionItem>();
+    public ObservableCollection<NriOptionItem> GameSessionOptions { get; } = new ObservableCollection<NriOptionItem>();
+    public ObservableCollection<NriOptionItem> SuperAdminCampaignOptions { get; } = new ObservableCollection<NriOptionItem>();
+    public string SelectedGameCampaignId { get => _selectedGameCampaignId; set { if (_selectedGameCampaignId == value) return; _selectedGameCampaignId = value ?? string.Empty; Notify(); } }
+    public string SelectedGameSessionId { get => _selectedGameSessionId; set { if (_selectedGameSessionId == value) return; _selectedGameSessionId = value ?? string.Empty; Notify(); } }
+    public string SelectedSuperAdminCampaignId { get => _selectedSuperAdminCampaignId; set { if (_selectedSuperAdminCampaignId == value) return; _selectedSuperAdminCampaignId = value ?? string.Empty; Notify(); } }
 
     public WorkspacePanelDescriptor NotesPanel => GetPanelById("NotesManagement");
     public WorkspacePanelDescriptor RequestsPanel => GetPanelById("Requests");
@@ -3121,6 +3902,10 @@ public class AdminMainViewModel : ViewModelBase
 
     public ICommand LoginCommand { get; }
     public ICommand RefreshCommand { get; }
+    public ICommand SelectGameCampaignCommand { get; }
+    public ICommand SelectGameSessionCommand { get; }
+    public ICommand StartSuperAdminOverrideCommand { get; }
+    public ICommand EndSuperAdminOverrideCommand { get; }
     public ICommand OpenConnectionPopupCommand { get; }
     public ICommand ToggleAuthPopupCommand { get; }
     public ICommand ConnectToServerCommand { get; }
@@ -3233,6 +4018,7 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand LockSelectedDevelopmentLayoutNodeCommand { get; }
     public ICommand UnlockSelectedDevelopmentLayoutNodeCommand { get; }
     public ICommand CreateDevelopmentNodeCommand { get; }
+    public ICommand CloneDevelopmentNodeCommand { get; }
     public ICommand ArchiveDevelopmentNodeCommand { get; }
     public ICommand RestoreDevelopmentNodeCommand { get; }
     public ICommand SaveDevelopmentNodeCommand { get; }
@@ -3296,7 +4082,11 @@ public class AdminMainViewModel : ViewModelBase
     public ICommand FocusSystemBackupsCommand { get; }
     public ICommand FocusSystemDiagnosticsCommand { get; }
     public ICommand SelectSectionCommand { get; }
+    public ICommand OpenDefinitionPresetCommand { get; }
     public ICommand SelectNavigationItemCommand { get; }
+    public ICommand SelectAdminModeCommand { get; }
+    public ICommand ToggleNavigationCommand { get; }
+    public ICommand ToggleWorkspacePanelManagerCommand { get; }
     public ICommand OpenFirstShellSearchResultCommand { get; }
     public ICommand GlobalSearchCommand { get; }
     public ICommand GlobalSearchOpenCommand { get; }
@@ -3374,7 +4164,7 @@ public class AdminMainViewModel : ViewModelBase
         LastServerHost = host;
         LastServerPort = port;
         SaveConnectionSettings();
-        SetDisconnectedState($"Подключение: {host}:{port}");
+        SetDisconnectedState("Параметры подключения обновлены.");
         RefreshConnectionSummary();
     }
 
@@ -3388,21 +4178,31 @@ public class AdminMainViewModel : ViewModelBase
 
         try
         {
+            var wasAuthenticated = IsAuthenticated && !string.IsNullOrWhiteSpace(_session.AuthToken);
             _client.UpdateEndpoint(host, port);
             _client.Connect();
             ClientLogService.Instance.Info($"Server connection established: {host}:{port}");
             LastServerHost = host;
             LastServerPort = port;
             SaveConnectionSettings();
-            IsAuthenticated = false;
-            SetConnectedState($"Подключено: {host}:{port}");
+            IsAuthenticated = wasAuthenticated;
+            if (wasAuthenticated)
+            {
+                _client.Lifecycle.MarkRestoringContext();
+                RenderRecoveryPhase();
+                RefreshAll();
+            }
+            else
+            {
+                SetConnectedState("Подключение выполнено.");
+            }
             IsConnectionPopupOpen = false;
-            IsAuthPopupOpen = false;
+            IsAuthPopupOpen = !wasAuthenticated;
         }
         catch (Exception ex)
         {
             ClientLogService.Instance.Error($"Server connection failed: {host}:{port}", ex);
-            SetConnectionError($"Не удалось подключиться к {host}:{port}. {ex.Message}");
+            SetConnectionError(ex);
         }
     }
 
@@ -3417,7 +4217,7 @@ public class AdminMainViewModel : ViewModelBase
     {
         ServerHostInput = LastServerHost;
         ServerPortInput = LastServerPort.ToString();
-        SetDisconnectedState($"Подключение сброшено: {LastServerHost}:{LastServerPort}");
+        SetDisconnectedState("Сохранённые параметры подключения выбраны.");
     }
 
     public void SetConnectedState(string detail)
@@ -3425,10 +4225,15 @@ public class AdminMainViewModel : ViewModelBase
         IsConnectedToServer = true;
         IsOnline = true;
         LastErrorMessage = string.Empty;
+        OperationErrorMessage = string.Empty;
+        AuthenticationStatusMessage = string.Empty;
         LastStatusMessage = detail;
         ConnectionState = IsAuthenticated ? "Онлайн / Admin" : "Подключено";
-        ConnectionStatusDetail = detail;
+        ConnectionStatusDetail = "Подключение выполнено.";
+        if (IsAuthenticated)
+            _client.Lifecycle.MarkReady(_applicationContext.LastAcceptedRevision);
         RefreshConnectionSummary();
+        RefreshOverviewActivity();
     }
 
     public void SetDisconnectedState(string detail)
@@ -3436,19 +4241,67 @@ public class AdminMainViewModel : ViewModelBase
         IsConnectedToServer = false;
         IsAuthenticated = false;
         IsOnline = false;
+        LastErrorMessage = string.Empty;
+        OperationErrorMessage = string.Empty;
+        AuthenticationStatusMessage = string.Empty;
         LastStatusMessage = detail;
         ConnectionState = "Оффлайн";
-        ConnectionStatusDetail = detail;
+        ConnectionStatusDetail = "Сервер не подключён.";
         RefreshConnectionSummary();
+        RefreshOverviewActivity();
     }
 
     public void SetConnectionError(string detail)
     {
+        if (IsAuthenticated && _client.ConnectionGeneration > 0)
+        {
+            var reconnectMessage = ToConnectionUserMessage(detail, "Соединение потеряно. Выполняется повторное подключение.");
+            LastErrorMessage = string.Empty;
+            OperationErrorMessage = string.Empty;
+            ConnectionStatusDetail = reconnectMessage;
+            _client.Lifecycle.MarkTransportLost(reconnectMessage);
+            RefreshConnectionSummary();
+            return;
+        }
         _client.Disconnect();
         _poller.Stop();
-        LastErrorMessage = detail;
-        SetDisconnectedState(detail);
+        PerformanceTelemetry0214.Current.SetCounter("active_pollers", 0);
+        var userMessage = ToConnectionUserMessage(detail, "Произошла ошибка подключения. Повторите попытку.");
+        IsConnectedToServer = false;
+        IsAuthenticated = false;
+        IsOnline = false;
+        LastErrorMessage = userMessage;
+        OperationErrorMessage = string.Empty;
+        LastStatusMessage = "Подключение не выполнено.";
+        ConnectionState = "Оффлайн";
+        ConnectionStatusDetail = userMessage;
+        RefreshConnectionSummary();
+        RefreshOverviewActivity();
+        IsConnectionPopupOpen = true;
+        IsAuthPopupOpen = false;
     }
+
+    public void SetConnectionError(Exception ex)
+    {
+        ClientLogService.Instance.Error("connection.error", ex);
+        SetConnectionError(ConnectionProblemMapper.ToUserMessage(ex));
+    }
+
+    private void HandleAuthenticationInvalidated()
+    {
+        ClientLogService.Instance.Warn("auth.session.invalidated client=admin");
+        _poller.Stop();
+        PerformanceTelemetry0214.Current.SetCounter("active_pollers", 0);
+        _session.AuthToken = null;
+        IsAuthenticated = false;
+        IsConnectedToServer = false;
+        IsOnline = false;
+        _client.Lifecycle.MarkSessionExpired("Сеанс входа завершён. Войдите в учётную запись снова.");
+        IsAuthPopupOpen = true;
+    }
+
+    private static string ToConnectionUserMessage(string detail, string fallback)
+        => ConnectionProblemMapper.ToUserMessage(detail, fallback);
 
     private void HandleUiException(string context, Exception ex)
     {
@@ -3456,17 +4309,17 @@ public class AdminMainViewModel : ViewModelBase
 
         if (LooksLikeUnauthorized(ex.Message))
         {
-            SetConnectionError("Нет данных");
+            SetConnectionError(ConnectionProblemMapper.FromRawMessage(ex.Message).UserMessage);
             return;
         }
 
         if (IsNetworkException(ex))
         {
-            SetConnectionError($"Нет данных");
+            SetConnectionError(ex);
             return;
         }
 
-        LastErrorMessage = ex.Message;
+        OperationErrorMessage = ToConnectionUserMessage(ex.Message, "Произошла ошибка. Повторите попытку.");
         LastStatusMessage = context + " — ошибка";
         RefreshConnectionSummary();
     }
@@ -3640,8 +4493,12 @@ public class AdminMainViewModel : ViewModelBase
             Nav("admin.dashboard", "Панель Гейм-мастера", "D", "administration", "admin.dashboard", false, 5, "GM-пульт кампании."),
             Nav("admin.users", "Пользователи", "U", "administration", "admin.users", false, 20, "Игроки, доступы и учётные записи."),
             Nav("admin.characters", "Персонажи", "C", "administration", "admin.characters", false, 30, "Карточки персонажей и Character v2 редактор GM."),
-            Nav("admin.definitions", "Справочники", "R", "administration", "definitions.browser", false, 40, "Правила, определения и игровые справочники."),
+            Nav("admin.character_creation", "Создание персонажей", "+", "administration", "admin.character_creation", false, 32, "Заявки игроков и прямое создание Character v2."),
+            Nav("admin.asset_configurators", "Конструкторы активов", "V", "administration", "admin.asset_configurators", false, 35, "Корабли, техника и здания по классическим каталогам."),
+            Nav("admin.definitions", "Справочники", "R", "administration", "definitions.editor", false, 40, "Создание и настройка игровых справочников"),
             Nav("admin.items", "Предметы / экипировка", "I", "administration", "admin.items", false, 50, "Каталог предметов и экипировки."),
+            Nav("admin.craft_projects", "Проекты", "P", "administration", "admin.craft_projects", false, 52, "Изготовление и исследования: условия, ресурсы, стадии и результаты."),
+            Nav("admin.magic", "Магия / эффекты / состояния", "M", "administration", "admin.magic", false, 55, "Профильные редакторы магии, эффектов и состояний."),
             Nav("admin.classes", "Классы / навыки", "K", "administration", "admin.classes", false, 60, "Классы, навыки и развитие."),
             Nav("admin.races", "Расы / языки", "A", "administration", "admin.races", false, 70, "Расы, языки и связанные справочники."),
             Nav("admin.world", "Мир / страны / локации", "W", "administration", "admin.world", false, 80, "Мир, страны, регионы и карта мира."),
@@ -3653,10 +4510,17 @@ public class AdminMainViewModel : ViewModelBase
         {
             Nav("conduct.session", "Текущая сессия", "S", "conduct", "session.overview", false, 10, "Состояние текущей сессии."),
             Nav("conduct.party", "Активная группа", "G", "conduct", "session.group", false, 20, "Группа персонажей текущей сессии."),
-            Nav("conduct.combat", "Бой", "B", "conduct", "combat.readonly", false, 30, "Combat v1: snapshot, участники, ходы и GM controls."),
+            Nav("conduct.live_state", "Состояния участников", "H", "conduct", "conduct.live_state", false, 25, "Ресурсы, эффекты и готовность активной группы."),
+            Nav("conduct.weather_travel", "Погода и путешествия", "W", "conduct", "conduct.weather_travel", false, 27, "Истинная погода, окружение и этапы пути."),
+            Nav("conduct.combat", "Бой", "B", "conduct", "combat.readonly", false, 30, "Трекер боя: инициатива, раунды, порядок ходов и GM controls."),
             Nav("conduct.chat", "Чат / кубики", "Q", "conduct", "session.chat", false, 40, "Чат сессии и лента бросков."),
             Nav("conduct.fate", "Fate Engine", "F", "conduct", "fate.engine", false, 50, "Автоматизированные проверки и судьба сцены."),
-            Nav("conduct.scene_map", "Карта сцены", "M", "conduct", "scene.map", false, 60, "Scene Map MVP."),
+            Nav("conduct.quests", "Задачи", "Z", "conduct", "quest.journal", false, 55, "Quest Journal MVP: цели, прогресс и награды."),
+            Nav("conduct.shops", "Магазины", "$", "conduct", "shop.market", false, 58, "Витрины, предложения, заявки на покупку и чеки."),
+            Nav("conduct.rest", "Отдых", "R", "conduct", "rest.downtime", false, 59, "Rest / Recovery / Downtime MVP."),
+            Nav("conduct.gameplay", "Игровой цикл", "G", "conduct", "gameplay.loop", false, 60, "Интеграция задач, магазинов, отдыха, наград и очереди решений GM."),
+            Nav("conduct.scene_map", "Карта сцены", "M", "conduct", "scene.map", false, 61, "Scene Map MVP."),
+            Nav("conduct.location_generator", "Генератор локаций", "L", "conduct", "scene.generator", false, 65, "Шаблоны и генерация редактируемых карт локаций."),
             Nav("conduct.event_log", "Журнал событий", "J", "conduct", "event.log", false, 70, "Журнал событий кампании."),
             Nav("conduct.requests", "Заявки игроков", "!", "conduct", "requests.formal", false, 80, "Заявки и действия игроков."),
             Nav("conduct.quick_notes", "Заметки GM", "N", "conduct", "quick.notes", false, 90, "Быстрые заметки GM по сессии."),
@@ -3673,6 +4537,7 @@ public class AdminMainViewModel : ViewModelBase
             Nav("system.backups", "Резервные копии", "B", "system", "system.tools", false, 50, "Backup / Restore."),
             Nav("system.data", "Импорт / экспорт", "I", "system", "system.tools", false, 60, "Импорт и экспорт данных."),
             Nav("system.server", "Сервер / мониторинг", "C", "system", "system.tools", false, 70, "Мониторинг сервера."),
+            Nav("system.performance", "Производительность", "P", "system", "system.tools", false, 75, "Latency, payload и bounded resource diagnostics."),
             Nav("system.definition_check", "Проверка справочников", "V", "system", "system.tools", false, 80, "Проверка справочников."),
             Nav("system.inventory_diagnostics", "Диагностика инвентаря", "N", "system", "system.tools", false, 90, "Диагностика инвентаря."),
             Nav("system.locks", "Активные блокировки", "K", "system", "locks.active", false, 100, "Активные блокировки."),
@@ -3680,7 +4545,9 @@ public class AdminMainViewModel : ViewModelBase
         }));
 
         ApplyShellNavigationSearch();
-        SetSelectedNavigationItem(NavigationGroups.SelectMany(group => group.Items).First());
+        Notify(nameof(VisibleNavigationGroups));
+        var initial = NavigationGroups.First(group => group.Id == SelectedAdminModeId).Items.First();
+        SetSelectedNavigationItem(initial);
     }
     private static AdminNavigationItem Nav(string id, string title, string icon, string groupId, string targetViewKey, bool isPlaceholder, int sortOrder, string description)
         => new AdminNavigationItem(id, title, icon, groupId, targetViewKey, isPlaceholder, sortOrder, description);
@@ -3691,7 +4558,7 @@ public class AdminMainViewModel : ViewModelBase
         WorkspacePanels.Add(new WorkspacePanelDescriptor("Requests", "Нет данных", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("DiceFeed", "Лента бросков", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("CombatTracker", "Трекер боя", canDetach: true));
-        WorkspacePanels.Add(new WorkspacePanelDescriptor("CombatReadOnly", "Бой Combat v1", canDetach: true));
+        WorkspacePanels.Add(new WorkspacePanelDescriptor("CombatReadOnly", "Трекер боя", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("DefinitionsBrowser", "Нет данных", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("SessionChat", "Чат сессии", canDetach: true));
         WorkspacePanels.Add(new WorkspacePanelDescriptor("SessionAudio", "Музыка сессии", canDetach: true));
@@ -3861,7 +4728,7 @@ public class AdminMainViewModel : ViewModelBase
                 SystemTools.SelectTab("backups");
                 break;
             case "definition.details":
-                SelectedSection = "definitions.browser";
+                SelectedSection = "definitions.editor";
                 break;
             default:
                 SelectedSection = "global.search";
@@ -3884,16 +4751,96 @@ public class AdminMainViewModel : ViewModelBase
             Score = S(map, "score")
         };
 
+    private void MarkCharacterDirty()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
+        CharacterHasUnsavedChanges = true;
+        ClientLogService.Instance.Debug($"character.admin.draft.changed characterId={SelectedCharacterId}");
+    }
+
+    private void SyncChildRoutePermissions()
+    {
+        var hasPermission = ArePrivilegedSectionsEnabled;
+        DefinitionEditor.HasRoutePermission = hasPermission;
+        ItemsEquipmentCatalog.HasRoutePermission = hasPermission;
+        MagicDefinitions.HasRoutePermission = hasPermission;
+        WorldCalendar.HasRoutePermission = hasPermission;
+    }
+
     private void SetSelectedNavigationItem(AdminNavigationItem item)
     {
+        var navigationStopwatch = Stopwatch.StartNew();
+        if (!string.Equals(SelectedNavigationItemId, item.Id, StringComparison.OrdinalIgnoreCase)
+            && DefinitionEditor.HasUnsavedChanges
+            && !DefinitionEditor.CanNavigateAwayAsync().GetAwaiter().GetResult())
+        {
+            ClientLogService.Instance.Info($"ui.navigation.blocked.unsaved route={item.Id}");
+            return;
+        }
+        if (!string.Equals(SelectedNavigationItemId, item.Id, StringComparison.OrdinalIgnoreCase)
+            && CharacterHasUnsavedChanges)
+        {
+            CharacterCard.MarkError("Сохраните или отмените изменения персонажа перед переходом.");
+            ClientLogService.Instance.Info($"ui.navigation.blocked.character-unsaved route={item.Id}");
+            return;
+        }
+        if (!string.Equals(SelectedNavigationItemId, item.Id, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(SelectedNavigationItemId, "admin.items", StringComparison.OrdinalIgnoreCase)
+            && ItemsEquipmentCatalog.HasUnsavedChanges)
+        {
+            LastStatusMessage = "Сохраните изменения каталога перед переходом.";
+            ClientLogService.Instance.Info($"ui.navigation.blocked.catalog-unsaved route={item.Id}");
+            return;
+        }
+        if (!string.Equals(SelectedNavigationItemId, item.Id, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(SelectedNavigationItemId, "admin.magic", StringComparison.OrdinalIgnoreCase)
+            && MagicDefinitions.HasUnsavedChanges)
+        {
+            LastStatusMessage = "Сохраните изменения магического справочника перед переходом.";
+            ClientLogService.Instance.Info($"ui.navigation.blocked.magic-unsaved route={item.Id}");
+            return;
+        }
+        if (!string.Equals(SelectedNavigationItemId, item.Id, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(SelectedNavigationItemId, "admin.classes", StringComparison.OrdinalIgnoreCase)
+            && HasClassUnsavedChanges)
+        {
+            LastStatusMessage = "Сохраните изменения класса или раскладки перед переходом.";
+            ClientLogService.Instance.Info($"ui.navigation.blocked.class-unsaved route={item.Id}");
+            return;
+        }
+        if (!string.Equals(SelectedNavigationItemId, item.Id, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(SelectedNavigationItemId, "admin.chronicle", StringComparison.OrdinalIgnoreCase)
+            && WorldCalendar.HasUnsavedChanges)
+        {
+            LastStatusMessage = "Сохраните изменения события хроники перед переходом.";
+            ClientLogService.Instance.Info($"ui.navigation.blocked.chronicle-unsaved route={item.Id}");
+            return;
+        }
+
         foreach (var navigationItem in NavigationGroups.SelectMany(group => group.Items))
         {
             navigationItem.IsSelected = navigationItem.Id == item.Id;
         }
 
         SelectedNavigationItemId = item.Id;
+        _selectedAdminModeId = item.GroupId;
+        _lastRouteByMode[item.GroupId] = item.Id;
+        Notify(nameof(SelectedAdminModeId));
+        Notify(nameof(SelectedAdminMode));
+        Notify(nameof(VisibleNavigationGroups));
+        Notify(nameof(IsConductMode));
         SelectedSection = item.TargetViewKey;
         ApplyNavigationSideEffects(item.Id);
+        PerformanceTelemetry0214.Current.Record(new PerformanceSample0214
+        {
+            Source = "AdminClient",
+            Category = "ui_route",
+            Command = "route." + item.Id,
+            Status = "Ok",
+            Outcome = "activated",
+            ElapsedMilliseconds = navigationStopwatch.ElapsedMilliseconds,
+            ConnectionGeneration = _client.ConnectionGeneration
+        });
         ClientLogService.Instance.Info($"ui.navigation.selected item={item.Id} target={item.TargetViewKey}");
     }
 
@@ -3913,6 +4860,12 @@ public class AdminMainViewModel : ViewModelBase
         }
 
         SelectedNavigationItemId = matchingItem.Id;
+        _selectedAdminModeId = matchingItem.GroupId;
+        _lastRouteByMode[matchingItem.GroupId] = matchingItem.Id;
+        Notify(nameof(SelectedAdminModeId));
+        Notify(nameof(SelectedAdminMode));
+        Notify(nameof(VisibleNavigationGroups));
+        Notify(nameof(IsConductMode));
         ApplyNavigationSideEffects(matchingItem.Id);
         ClientLogService.Instance.Info($"ui.navigation.synced section={section} item={matchingItem.Id}");
     }
@@ -3934,9 +4887,19 @@ public class AdminMainViewModel : ViewModelBase
     {
         if (itemId == "conduct.chat") RefreshDiceFeedForChat();
         else if (itemId == "admin.characters") LoadAllCharactersForAdminSection();
+        else if (itemId == "admin.character_creation") CharacterCreation.Load();
         else if (itemId == "conduct.fate") FateControl.Refresh();
         else if (itemId == "conduct.scene_map") { if (SceneMap.IsSceneMapDisabled) SceneMap.RefreshFlags(); }
+        else if (itemId == "conduct.quests") { Quests.Refresh(); }
+        else if (itemId == "conduct.shops") { Shops.Refresh(); }
+        else if (itemId == "conduct.rest") { Rest.Refresh(); }
         else if (itemId == "conduct.session") { CurrentSession.RefreshFlags(); }
+        else if (itemId == "conduct.combat")
+        {
+            CombatReadOnly.CampaignId = ApplicationContext.Campaign.Id;
+            CombatReadOnly.SessionId = ApplicationContext.Session.Id;
+            CombatReadOnly.RefreshCommand.Execute(null);
+        }
         else if (itemId == "conduct.party") { CharacterGroups.RefreshFlags(); }
         else if (itemId == "admin.chronicle") { WorldCalendar.RefreshFlags(); RealSchedule.RefreshFlags(); }
         else if (itemId == "conduct.event_log") { EventJournal.RefreshFlags(); }
@@ -3955,6 +4918,7 @@ public class AdminMainViewModel : ViewModelBase
         else if (itemId == "system.backups") SystemTools.SelectTab("backups");
         else if (itemId == "system.data") SystemTools.SelectTab("data");
         else if (itemId == "system.server") { SystemTools.SelectTab("server"); IsConnectionPopupOpen = true; }
+        else if (itemId == "system.performance") { SystemTools.SelectTab("performance"); SystemTools.RefreshPerformanceCommand.Execute(null); }
         else if (itemId == "system.definition_check") SystemTools.SelectTab("definition_check");
         else if (itemId == "system.inventory_diagnostics") SystemTools.SelectTab("inventory");
         else if (itemId == "system.smoke") SystemTools.SelectTab("smoke");
@@ -4022,8 +4986,8 @@ public class AdminMainViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(SelectedOwnerUserId)) return;
         RunUiAction("Выполнить действие", () =>
         {
+            SelectedSection = "admin.characters";
             LoadOwnerCharacters();
-            SelectedSection = "admin.users";
         });
     }
 
@@ -4132,7 +5096,26 @@ public class AdminMainViewModel : ViewModelBase
 
     private void FocusContentReference()
     {
-        SelectedSection = "definitions.browser";
+        SelectedSection = "definitions.editor";
+    }
+
+    private void SelectAdminMode(string? modeId)
+    {
+        if (string.IsNullOrWhiteSpace(modeId)) return;
+        SelectedAdminModeId = modeId;
+    }
+
+    private void RestoreLastRouteForMode(string modeId)
+    {
+        var group = NavigationGroups.FirstOrDefault(candidate => candidate.Id == modeId);
+        if (group == null || group.Items.Count == 0) return;
+
+        AdminNavigationItem? item = null;
+        if (_lastRouteByMode.TryGetValue(modeId, out var lastId))
+            item = group.Items.FirstOrDefault(candidate => candidate.Id == lastId && candidate.IsEnabled && candidate.IsSearchVisible);
+
+        item ??= group.Items.FirstOrDefault(candidate => candidate.IsEnabled && candidate.IsSearchVisible);
+        if (item != null) SetSelectedNavigationItem(item);
     }
 
     private void FocusSystemReference()
@@ -4179,7 +5162,7 @@ public class AdminMainViewModel : ViewModelBase
             BusyMessage = message;
             LastStatusMessage = message;
             action();
-            if (string.IsNullOrWhiteSpace(LastErrorMessage))
+            if (string.IsNullOrWhiteSpace(OperationErrorMessage))
             {
                 LastStatusMessage = message + "  ";
             }
@@ -4208,6 +5191,7 @@ public class AdminMainViewModel : ViewModelBase
                 var roleItems = ToList(r.Payload.ContainsKey("roles") ? r.Payload["roles"] : new ArrayList());
                 var resolvedRoles = new List<string>();
                 var isAdmin = false;
+                IsGlobalSuperAdmin = false;
                 foreach (var roleItem in roleItems)
                 {
                     var roleValue = Convert.ToString(roleItem) ?? string.Empty;
@@ -4217,6 +5201,10 @@ public class AdminMainViewModel : ViewModelBase
                     }
 
                     resolvedRoles.Add(roleValue);
+                    if (string.Equals(roleValue, UserRole.SuperAdmin.ToString(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        IsGlobalSuperAdmin = true;
+                    }
                     if (string.Equals(roleValue, UserRole.Admin.ToString(), StringComparison.OrdinalIgnoreCase)
                         || string.Equals(roleValue, UserRole.SuperAdmin.ToString(), StringComparison.OrdinalIgnoreCase))
                     {
@@ -4228,6 +5216,7 @@ public class AdminMainViewModel : ViewModelBase
                 if (!isAdmin)
                 {
                     _poller.Stop();
+                    PerformanceTelemetry0214.Current.SetCounter("active_pollers", 0);
                     IsAuthenticated = false;
                     IsConnectedToServer = false;
                     IsOnline = false;
@@ -4235,6 +5224,8 @@ public class AdminMainViewModel : ViewModelBase
                     ConnectionStatusDetail = "Нет данных";
                     LastStatusMessage = ConnectionStatusDetail;
                     LastErrorMessage = string.Empty;
+                    OperationErrorMessage = string.Empty;
+                    AuthenticationStatusMessage = string.Empty;
                     _client.Disconnect();
                     RefreshConnectionSummary();
                     ClientLogService.Instance.Warn("auth.login.denied client-gate reason=insufficient-admin-role");
@@ -4242,10 +5233,10 @@ public class AdminMainViewModel : ViewModelBase
                 }
 
                 IsAuthenticated = true;
-                SetConnectedState($"Подключено: {CurrentEndpoint}");
+                SetConnectedState("Подключение выполнено.");
                 _poller.Start();
-                RefreshAll();
-                RefreshCurrentNavigationSideEffectsAfterLogin();
+                PerformanceTelemetry0214.Current.SetCounter("active_pollers", 1);
+                RestoreActiveWorkspaceAfterReauthentication();
                 IsAuthPopupOpen = false;
                 Notify(nameof(LoginSummary));
                 ClientLogService.Instance.Info($"Login success: user={LoginText}");
@@ -4253,12 +5244,15 @@ public class AdminMainViewModel : ViewModelBase
             else
             {
                 IsAuthenticated = false;
-                LastErrorMessage = r.Message;
+                var loginMessage = ToConnectionUserMessage(r.Message, "Не удалось выполнить вход. Проверьте данные и повторите попытку.");
+                LastErrorMessage = string.Empty;
+                OperationErrorMessage = string.Empty;
+                AuthenticationStatusMessage = loginMessage;
                 IsConnectedToServer = true;
                 IsOnline = true;
                 ConnectionState = "Подключено";
-                ConnectionStatusDetail = string.IsNullOrWhiteSpace(r.Message) ? "  ." : r.Message;
-                LastStatusMessage = "  .";
+                ConnectionStatusDetail = loginMessage;
+                LastStatusMessage = "Вход не выполнен.";
                 RefreshConnectionSummary();
                 ClientLogService.Instance.Warn($"Login failed: user={LoginText}; message={r.Message}");
             }
@@ -4305,15 +5299,42 @@ public class AdminMainViewModel : ViewModelBase
 
     private void PollSyncAndRefresh()
     {
+        if (_client.Lifecycle.Current.IsRecovering)
+        {
+            AttemptReconnectRestore();
+            return;
+        }
+        if (!_pollRefreshGate.TryEnter())
+        {
+            PerformanceTelemetry0214.Current.IncrementCounter("poller_overlap_prevented");
+            return;
+        }
+        PerformanceTelemetry0214.Current.IncrementCounter("in_flight_refreshes");
         try
         {
-            RefreshAll();
             PollPassiveSync();
+            RefreshConnectionSummary();
+            if (_client.Lifecycle.Current.IsRecovering) return;
+            if (string.Equals(SelectedNavigationItemId, "system.performance", StringComparison.OrdinalIgnoreCase))
+                SystemTools.RefreshPerformanceCommand.Execute(null);
         }
         catch (Exception ex)
         {
             HandleUiException("  ", ex);
         }
+        finally
+        {
+            PerformanceTelemetry0214.Current.IncrementCounter("in_flight_refreshes", -1);
+            _pollRefreshGate.Exit();
+        }
+    }
+
+    private void RestoreActiveWorkspaceAfterReauthentication()
+    {
+        LoadApplicationContext();
+        RefreshCurrentNavigationSideEffectsAfterLogin();
+        SetConnectedState("Активный раздел восстановлен.");
+        ClientLogService.Instance.Info($"connection.restore.scoped client=admin route={SelectedNavigationItemId}");
     }
 
     private void PollPassiveSync()
@@ -4345,6 +5366,12 @@ public class AdminMainViewModel : ViewModelBase
 
         try
         {
+            if (IsAuthenticated)
+            {
+                LoadApplicationContext();
+                if (_client.Lifecycle.Current.State == ConnectionLifecycleState.RestoringContext)
+                    _client.Lifecycle.MarkRestoringModules();
+            }
             ClientLogService.Instance.Debug("ui-refresh section=Люди step=LoadPending");
             LoadPending();
             ClientLogService.Instance.Debug("ui-refresh section=Люди step=LoadPlayers");
@@ -4365,7 +5392,6 @@ public class AdminMainViewModel : ViewModelBase
                 ClientLogService.Instance.Debug("ui-refresh section=... step=LoadClassTree+LoadSkills");
                 LoadClassTree();
                 LoadSkills();
-        RefreshCharacterClasses();
                 RefreshCharacterClasses();
             }
             ClientLogService.Instance.Debug("ui-refresh section=... step=ChatRefresh");
@@ -4377,12 +5403,229 @@ public class AdminMainViewModel : ViewModelBase
             DiagnosticsRefresh();
             LoadLocksSummary();
             FunctionalDashboard.Refresh();
-            SetConnectedState($" : {CurrentEndpoint}");
+            SetConnectedState("Данные обновлены.");
         }
         catch (Exception ex)
         {
             HandleUiException(" ", ex);
         }
+    }
+
+    private void LoadApplicationContext()
+    {
+        _applicationContext.BeginReplacement();
+        var response = _api.GetApplicationContext();
+        if (response.Status != ResponseStatus.Ok)
+            throw new InvalidOperationException(string.IsNullOrWhiteSpace(response.Message) ? "Контекст приложения недоступен." : response.Message);
+        if (!_applicationContext.TryAccept(ApplicationContextPayloadReader.Read(response.Payload)))
+            throw new InvalidOperationException("Получен устаревший контекст приложения.");
+        LoadGameContextSelectors();
+    }
+
+    private void LoadGameContextSelectors()
+    {
+        GameCampaignOptions.Clear();
+        var campaigns = _api.GameContextCampaignsList();
+        if (campaigns.Status == ResponseStatus.Ok && campaigns.Payload.TryGetValue("campaigns", out var rawCampaigns))
+        {
+            foreach (var raw in ToList(rawCampaigns))
+            {
+                var map = AsMap(raw);
+                var id = map.TryGetValue("campaignId", out var rawId) ? Convert.ToString(rawId) ?? string.Empty : string.Empty;
+                var name = map.TryGetValue("name", out var rawName) ? Convert.ToString(rawName) ?? string.Empty : string.Empty;
+                var role = map.TryGetValue("role", out var rawRole) ? Convert.ToString(rawRole) ?? string.Empty : string.Empty;
+                if (!string.IsNullOrWhiteSpace(id)) GameCampaignOptions.Add(new NriOptionItem { Value = id, DisplayName = name, Description = role });
+            }
+        }
+        SelectedGameCampaignId = ApplicationContext.Campaign.Id;
+        GameSessionOptions.Clear();
+        if (!string.IsNullOrWhiteSpace(SelectedGameCampaignId))
+        {
+            var sessions = _api.GameContextSessionsList(SelectedGameCampaignId);
+            if (sessions.Status == ResponseStatus.Ok && sessions.Payload.TryGetValue("sessions", out var rawSessions))
+            {
+                foreach (var raw in ToList(rawSessions))
+                {
+                    var map = AsMap(raw);
+                    var id = map.TryGetValue("sessionId", out var rawId) ? Convert.ToString(rawId) ?? string.Empty : string.Empty;
+                    var name = map.TryGetValue("name", out var rawName) ? Convert.ToString(rawName) ?? string.Empty : string.Empty;
+                    var state = map.TryGetValue("status", out var rawState) ? Convert.ToString(rawState) ?? string.Empty : string.Empty;
+                    if (!string.IsNullOrWhiteSpace(id)) GameSessionOptions.Add(new NriOptionItem { Value = id, DisplayName = name, Description = state });
+                }
+            }
+        }
+        SelectedGameSessionId = ApplicationContext.Session.Id;
+        SuperAdminCampaignOptions.Clear();
+        if (IsGlobalSuperAdmin)
+        {
+            var overrideCampaigns = _api.GameContextSuperAdminCampaignsList();
+            if (overrideCampaigns.Status == ResponseStatus.Ok && overrideCampaigns.Payload.TryGetValue("campaigns", out var rawOverrideCampaigns))
+            {
+                foreach (var raw in ToList(rawOverrideCampaigns))
+                {
+                    var item = AsMap(raw);
+                    if (item == null) continue;
+                    var id = S(item, "campaignId");
+                    var name = S(item, "name");
+                    if (!string.IsNullOrWhiteSpace(id)) SuperAdminCampaignOptions.Add(new NriOptionItem { Value = id, DisplayName = name });
+                }
+            }
+            SelectedSuperAdminCampaignId = ApplicationContext.Campaign.Id;
+        }
+    }
+
+    private void SelectGameCampaign()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedGameCampaignId)) return;
+        var response = _api.GameContextSelectCampaign(SelectedGameCampaignId, ApplicationContext.ContextRevision);
+        if (response.Status != ResponseStatus.Ok) throw new InvalidOperationException(response.Message);
+        _applicationContext.BeginReplacement();
+        _applicationContext.TryAccept(ApplicationContextPayloadReader.Read(response.Payload));
+        LoadGameContextSelectors();
+    }
+
+    private void SelectGameSession()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedGameSessionId)) return;
+        var response = _api.GameContextSelectSession(SelectedGameSessionId, ApplicationContext.ContextRevision);
+        if (response.Status != ResponseStatus.Ok) throw new InvalidOperationException(response.Message);
+        _applicationContext.BeginReplacement();
+        _applicationContext.TryAccept(ApplicationContextPayloadReader.Read(response.Payload));
+        LoadGameContextSelectors();
+    }
+
+    private void StartSuperAdminOverride()
+    {
+        if (!IsGlobalSuperAdmin) throw new UnauthorizedAccessException("Явный доступ доступен только суперадминистратору.");
+        if (string.IsNullOrWhiteSpace(SelectedSuperAdminCampaignId)) throw new InvalidOperationException("Сначала выберите кампанию для явного доступа.");
+        if (string.IsNullOrWhiteSpace(SuperAdminOverrideReason) || SuperAdminOverrideReason.Trim().Length < 5) throw new InvalidOperationException("Укажите причину доступа.");
+        var response = _api.GameContextSuperAdminOverrideStart(SelectedSuperAdminCampaignId, SuperAdminOverrideReason.Trim(), ApplicationContext.ContextRevision);
+        if (response.Status != ResponseStatus.Ok) throw new InvalidOperationException(response.Message);
+        _applicationContext.BeginReplacement();
+        _applicationContext.TryAccept(ApplicationContextPayloadReader.Read(response.Payload));
+        LoadGameContextSelectors();
+    }
+
+    private void EndSuperAdminOverride()
+    {
+        if (!IsGlobalSuperAdmin) return;
+        var response = _api.GameContextSuperAdminOverrideEnd();
+        if (response.Status != ResponseStatus.Ok) throw new InvalidOperationException(response.Message);
+        _applicationContext.BeginReplacement();
+        _applicationContext.TryAccept(ApplicationContextPayloadReader.Read(response.Payload));
+        LoadGameContextSelectors();
+    }
+
+    private void AttemptReconnectRestore()
+    {
+        if (_reconnectInProgress || !IsAuthenticated || !_client.Lifecycle.CanAttemptReconnect(DateTime.UtcNow)) return;
+        _reconnectInProgress = true;
+        PerformanceTelemetry0214.Current.SetCounter("active_reconnect_loops", 1);
+        try
+        {
+            _client.Connect();
+            _client.Lifecycle.MarkAuthenticating();
+            ClientLogService.Instance.Info($"connection.reauthentication.start client=admin user={LoginText}");
+            var authentication = _api.Login(LoginText, PasswordText);
+            if (authentication.Status != ResponseStatus.Ok)
+            {
+                _client.Lifecycle.MarkSessionExpired(authentication.Message);
+                IsAuthPopupOpen = true;
+                Notify(nameof(IsAuthPopupOpen));
+                ClientLogService.Instance.Warn($"connection.reauthentication.failed client=admin user={LoginText} status={authentication.Status}");
+                return;
+            }
+            ClientLogService.Instance.Info($"connection.reauthentication.done client=admin user={LoginText}");
+            _client.Lifecycle.MarkRestoringContext();
+            ApplyRecoveryVisualState();
+            RenderRecoveryPhase();
+            ClientLogService.Instance.Info($"connection.restore.phase.rendered client=admin state={_client.Lifecycle.Current.State}");
+            RestoreActiveWorkspaceAfterReauthentication();
+            if (_client.Lifecycle.Current.State != ConnectionLifecycleState.Ready)
+                throw new InvalidOperationException("Не удалось восстановить рабочую область администратора.");
+            ClientLogService.Instance.Info($"connection.restore.done client=admin generation={_client.ConnectionGeneration} contextRevision={_applicationContext.LastAcceptedRevision}");
+        }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Warn($"connection.restore.pending client=admin generation={_client.ConnectionGeneration} message={ex.Message}");
+            _client.Lifecycle.MarkTransportLost(ConnectionProblemMapper.ToUserMessage(ex));
+        }
+        finally
+        {
+            _reconnectInProgress = false;
+            PerformanceTelemetry0214.Current.SetCounter("active_reconnect_loops", 0);
+        }
+    }
+
+    private void OnConnectionLifecycleChanged(object? sender, ConnectionLifecycleChangedEventArgs args)
+    {
+        void Apply()
+        {
+            var current = args.Current;
+            ConnectionState = current.State switch
+            {
+                ConnectionLifecycleState.Reconnecting => "Повторное подключение",
+                ConnectionLifecycleState.RestoringContext => "Восстановление контекста",
+                ConnectionLifecycleState.RestoringModules => "Обновление данных",
+                ConnectionLifecycleState.SessionExpired => "Сессия завершена",
+                ConnectionLifecycleState.Ready => "Онлайн / Admin",
+                ConnectionLifecycleState.Disconnected => "Оффлайн",
+                _ => current.ReadableStatus
+            };
+            ConnectionStatusDetail = current.IsStaleReadOnly
+                ? "Соединение потеряно. Рабочая область доступна только для чтения."
+                : current.ReadableStatus;
+            Notify(nameof(ReconnectStatusText));
+            Notify(nameof(IsConnectionRecovering));
+            Notify(nameof(IsConnectionStaleReadOnly));
+            Notify(nameof(AreServerMutationsEnabled));
+            Notify(nameof(ConnectionStage));
+        }
+
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess()) dispatcher.BeginInvoke((Action)Apply);
+        else Apply();
+    }
+
+    private static void RenderRecoveryPhase()
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher == null) return;
+        if (!dispatcher.CheckAccess())
+        {
+            dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, new Action(() => { }));
+            return;
+        }
+
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
+            new Action(() => frame.Continue = false));
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
+    }
+
+    private void ApplyRecoveryVisualState()
+    {
+        ConnectionState = "Восстановление контекста";
+        ConnectionStatusDetail = "Соединение восстановлено. Обновляем актуальные данные рабочей области.";
+        Notify(nameof(ConnectionStatusDetail));
+        Notify(nameof(ReconnectStatusText));
+        Notify(nameof(IsConnectionRecovering));
+        Notify(nameof(IsConnectionStaleReadOnly));
+        Notify(nameof(AreServerMutationsEnabled));
+        Notify(nameof(ConnectionStage));
+    }
+
+    private void OnApplicationContextChanged(object? sender, ApplicationContextChangedEventArgs e)
+    {
+        Notify(nameof(ApplicationContext));
+        Notify(nameof(ActiveCampaignSummary));
+        Notify(nameof(ActiveCampaignRoleSummary));
+        Notify(nameof(ActiveSessionTopBarSummary));
+        Notify(nameof(IsSuperAdminOverrideActive));
+        Notify(nameof(SuperAdminOverrideWarning));
+        CurrentSession.SetContext(e.Current.Campaign.Id, e.Current.Session.Id, e.Current.ContextRevision);
+        CombatReadOnly.CampaignId = e.Current.Campaign.Id;
+        CombatReadOnly.SessionId = e.Current.Session.Id;
     }
 
     private void LoadPending()
@@ -4394,8 +5637,10 @@ public class AdminMainViewModel : ViewModelBase
         {
             var m = AsMap(obj);
             if (m == null) continue;
-            PendingAccounts.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Extra = S(m, "createdUtc") });
+            PendingAccounts.Add(new RowVm { Id = S(m, "accountId"), Name = S(m, "login"), State = S(m, "status"), Role = S(m, "role"), Extra = S(m, "createdUtc") });
         }
+        Notify(nameof(FilteredPendingAccounts));
+        Notify(nameof(UsersRouteState));
         ClientLogService.Instance.Debug($"ui-refresh section=Люди block=Ожидающие raw={ToList(r.Payload["items"]).Count} shown={PendingAccounts.Count}");
         ClientLogService.Instance.Info($"people.grid.rows count={PendingAccounts.Count}");
         RestoreSelection(PendingAccounts, SelectedPendingAccountId, value => SelectedPendingAccountId = value);
@@ -4417,9 +5662,15 @@ public class AdminMainViewModel : ViewModelBase
                 Id = S(m, "accountId"),
                 Name = S(m, "login"),
                 State = isOnline ? "В сети" : "Не в сети",
+                Role = S(m, "role"),
                 Extra = isOnline ? "Нет данных" : FormatLastSeen(S(m, "lastSeenUtc"))
             });
         }
+        Notify(nameof(FilteredPlayers));
+        Notify(nameof(OwnershipOwnerDisplayName));
+        Notify(nameof(OwnershipControlledByDisplayName));
+        Notify(nameof(OwnershipSummary));
+        Notify(nameof(UsersRouteState));
         ClientLogService.Instance.Debug($"ui-refresh section=... block=... raw={ToList(r.Payload["items"]).Count} shown={Players.Count}");
         ClientLogService.Instance.Info($"people.grid.rows count={Players.Count}");
         RestoreSelection(Players, SelectedOwnerUserId, value => SelectedOwnerUserId = value);
@@ -4439,10 +5690,12 @@ public class AdminMainViewModel : ViewModelBase
             Characters.Add(new RowVm { Id = S(m, "characterId"), Name = S(m, "name"), State = S(m, "archived"), Extra = S(m, "race") });
         }
         Notify(nameof(FilteredCharacters));
+        Notify(nameof(CharactersRouteState));
         var visibleCharacters = FilteredCharacters.Count();
         ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Characters.Count} filtered={visibleCharacters} visible={visibleCharacters}");
         ClientLogService.Instance.Info($"people.grid.rows count={visibleCharacters}");
         RestoreSelection(Characters, SelectedCharacterId, value => SelectedCharacterId = value);
+        RefreshCharacterReferenceOptions();
         RefreshConnectionSummary();
     }
 
@@ -4477,8 +5730,11 @@ public class AdminMainViewModel : ViewModelBase
                     Extra = FirstNonEmpty(S(map, "race"), S(map, "raceName"), "Character v2")
                 });
             }
+            Notify(nameof(FilteredCharacters));
+            Notify(nameof(CharactersRouteState));
 
             Notify(nameof(FilteredCharacters));
+            RefreshCharacterReferenceOptions();
             var selectedStillAvailable = Characters.Any(row => string.Equals(row.Id, SelectedCharacterId, StringComparison.OrdinalIgnoreCase));
             if (!selectedStillAvailable)
             {
@@ -4522,7 +5778,6 @@ public class AdminMainViewModel : ViewModelBase
         _editBackstory = S(hub, "backstory");
         BiographySaveStatus = "Биография загружена.";
         EditAge = ReadInt(hub, "age");
-
         var stats = MapValue(hub.ContainsKey("stats") ? hub["stats"] : null);
         Health = ReadInt(stats, "health", ParseFirstInt(S(hub, "health")));
         PhysicalArmor = ReadInt(stats, "physicalArmor", ParseFirstInt(S(hub, "armor")));
@@ -4575,7 +5830,9 @@ public class AdminMainViewModel : ViewModelBase
         }
         ClientLogService.Instance.Info($"skillDefinitions.assignment.load count={SkillDefinitionRows.Count}");
         LoadSkills();
+        LanguageWorkspace.Refresh(SelectedCharacterId);
 
+        CharacterHasUnsavedChanges = false;
         NotifyAllEditor();
     }
 
@@ -4604,7 +5861,7 @@ public class AdminMainViewModel : ViewModelBase
             .Select(item => MapValue(item))
             .FirstOrDefault(map => map.Count > 0);
         OwnershipGroupId = groups == null ? string.Empty : S(groups, "groupId");
-        OwnershipGroupName = groups == null ? string.Empty : FirstNonEmpty(S(groups, "displayName"), S(groups, "groupId"));
+        OwnershipGroupName = groups == null ? string.Empty : S(groups, "displayName");
         OwnershipMessage = "Владелец, группа и статус загружены.";
         Notify(nameof(OwnershipSummary));
         ClientLogService.Instance.Info($"character.ownership.panel.load.done characterId={SelectedCharacterId} owner={OwnershipOwnerUserId} group={OwnershipGroupId} kind={OwnershipKind} status={OwnershipStatus}");
@@ -5780,6 +7037,28 @@ public class AdminMainViewModel : ViewModelBase
         Notify(nameof(InventoryStatus));
     }
 
+    private static void ReplaceReferenceOptions(ObservableCollection<NriReferenceOption> target, IEnumerable<RowVm> rows, string typeLabel)
+    {
+        target.Clear();
+        foreach (var row in rows.Where(row => !string.IsNullOrWhiteSpace(row.Id)))
+        {
+            target.Add(new NriReferenceOption
+            {
+                Id = row.Id,
+                DisplayName = string.IsNullOrWhiteSpace(row.Name) ? row.Id : row.Name,
+                TypeLabel = typeLabel,
+                StatusLabel = row.State
+            });
+        }
+    }
+
+    private void RefreshCharacterReferenceOptions()
+    {
+        ReplaceReferenceOptions(CharacterRaceOptions, RaceDefinitionRows, "Раса");
+        ReplaceReferenceOptions(CharacterSkillOptions, SkillDefinitionRows, "Навык");
+        ReplaceReferenceOptions(CharacterOwnerOptions, Characters, "Персонаж");
+    }
+
     private string InventoryItemIdFromResponse(ResponseEnvelope response)
     {
         if (response?.Payload == null) return string.Empty;
@@ -5851,22 +7130,54 @@ public class AdminMainViewModel : ViewModelBase
             if (!string.IsNullOrWhiteSpace(RequestTypeFilter) && !string.Equals(RequestTypeFilter, type, StringComparison.OrdinalIgnoreCase)) continue;
             var player = FirstNonEmptyAdmin(S(m, "submittedByDisplayName"), S(m, "createdByDisplayName"), S(m, "creatorLogin"), "—");
             var lastAction = FirstNonEmptyAdmin(S(m, "lastActionDisplayText"), "Нет данных");
-            var character = FirstNonEmptyAdmin(S(m, "characterDisplayName"), S(m, "characterId"));
+            var character = SafeRequestCharacterDisplayName(
+                S(m, "characterDisplayName"),
+                "Имя персонажа недоступно");
             var details = FirstNonEmptyAdmin(S(m, "details"), S(m, "description"), S(m, "gmResponse"));
             PendingRequests.Add(new RowVm
             {
                 Id = S(m, "requestId"),
                 DisplayId = FormatRequestNumberForDisplay(S(m, "requestNumber"), S(m, "displayRequestId"), S(m, "requestNumberLabel")),
                 Name = FirstNonEmptyAdmin(S(m, "title"), S(m, "name"), type),
-                State = S(m, "status"),
-                Extra = $"Нет данных"
+                State = FormatRequestStatusForDisplay(S(m, "status")),
+                Extra = string.Join(" • ", new[]
+                {
+                    "Отправитель: " + player,
+                    "Персонаж: " + character,
+                    FormatRequestTypeForDisplay(type),
+                    lastAction,
+                    details
+                }.Where(value => !string.IsNullOrWhiteSpace(value)))
             });
         }
         ClientLogService.Instance.Debug($"ui-refresh section=... block=... raw={ToList(r.Payload["items"]).Count} shown={PendingRequests.Count}");
+        Notify(nameof(PendingRequestsCount));
+        Notify(nameof(NotificationSummary));
         RestoreSelection(PendingRequests, SelectedPendingRequestId, value => SelectedPendingRequestId = value);
         if (!string.IsNullOrWhiteSpace(SelectedPendingRequestId) && PendingRequests.Any(row => row.Id == SelectedPendingRequestId))
             LoadSelectedRequestDetails();
+        else if (PendingRequests.Count == 0)
+            ResetSelectedRequestWorkspace();
         RefreshConnectionSummary();
+    }
+
+    private void ResetSelectedRequestWorkspace()
+    {
+        _selectedRequestDetailsId = string.Empty;
+        AdminSelectedRequestTitle = "Заявка не выбрана";
+        AdminSelectedRequestPlayer = "Отправитель: —";
+        AdminSelectedRequestCharacter = "Персонаж: —";
+        AdminSelectedRequestType = "Тип / статус: —";
+        AdminSelectedRequestActors = "Последнее действие: —";
+        AdminSelectedRequestDetails = "В рабочей очереди нет заявок, подходящих под выбранные фильтры.";
+        RequestHistoryRows.Clear();
+        RequestHistoryRows.Add("История появится после выбора заявки.");
+        Notify(nameof(AdminSelectedRequestTitle));
+        Notify(nameof(AdminSelectedRequestPlayer));
+        Notify(nameof(AdminSelectedRequestCharacter));
+        Notify(nameof(AdminSelectedRequestType));
+        Notify(nameof(AdminSelectedRequestActors));
+        Notify(nameof(AdminSelectedRequestDetails));
     }
 
     private void LoadSelectedRequestDetails()
@@ -5884,9 +7195,14 @@ public class AdminMainViewModel : ViewModelBase
         var requestNumber = FormatRequestNumberForDisplay(S(m, "requestNumber"), S(m, "displayRequestId"), S(m, "requestNumberLabel"));
         _selectedRequestDetailsId = FirstNonEmptyAdmin(S(m, "requestId"), S(m, "id"), SelectedPendingRequestId);
         AdminSelectedRequestTitle = $"{requestNumber} — {FirstNonEmptyAdmin(S(m, "title"), S(m, "name"), "Заявка без названия")}";
-        AdminSelectedRequestPlayer = "Без названия" + FirstNonEmptyAdmin(S(m, "submittedByDisplayName"), S(m, "createdByDisplayName"), S(m, "creatorLogin"), "—");
-        AdminSelectedRequestCharacter = "Персонаж: " + FirstNonEmptyAdmin(S(m, "characterDisplayName"), S(m, "characterId"), "—");
-        AdminSelectedRequestType = "Тип / статус: " + FirstNonEmptyAdmin(S(m, "requestType"), S(m, "type"), "—") + " / " + FirstNonEmptyAdmin(S(m, "status"), "—");
+        AdminSelectedRequestPlayer = "Отправитель: " + FirstNonEmptyAdmin(S(m, "submittedByDisplayName"), S(m, "createdByDisplayName"), S(m, "creatorLogin"), "—");
+        AdminSelectedRequestCharacter = "Персонаж: " + SafeRequestCharacterDisplayName(
+            S(m, "characterDisplayName"),
+            "Имя недоступно");
+        AdminSelectedRequestType = "Тип / статус: "
+            + FormatRequestTypeForDisplay(FirstNonEmptyAdmin(S(m, "requestType"), S(m, "type")))
+            + " / "
+            + FormatRequestStatusForDisplay(S(m, "status"));
         AdminSelectedRequestActors = FirstNonEmptyAdmin(S(m, "lastActionDisplayText"), "Последнее действие: —");
         AdminSelectedRequestDetails = FirstNonEmptyAdmin(S(m, "details"), S(m, "description"), "Данные заявки не загружены.");
         Notify(nameof(AdminSelectedRequestTitle));
@@ -5924,7 +7240,7 @@ public class AdminMainViewModel : ViewModelBase
         {
             foreach (var obj in ToList(r.Payload["items"]))
                 if (obj is Dictionary<string, object> m)
-                    RequestHistoryRows.Add($"{FormatRequestNumberForDisplay(S(m, "requestNumber"), S(m, "displayRequestId"), S(m, "requestNumberLabel"))} | {S(m, "status")} | {S(m, "requestType")} | {FirstNonEmptyAdmin(S(m, "title"), S(m, "formula"), S(m, "description"))}");
+                    RequestHistoryRows.Add($"{FormatRequestNumberForDisplay(S(m, "requestNumber"), S(m, "displayRequestId"), S(m, "requestNumberLabel"))} | {FormatRequestStatusForDisplay(S(m, "status"))} | {FormatRequestTypeForDisplay(S(m, "requestType"))} | {FirstNonEmptyAdmin(S(m, "title"), S(m, "formula"), S(m, "description"))}");
         }
 
         DiceFeedRows.Clear();
@@ -6083,6 +7399,9 @@ public class AdminMainViewModel : ViewModelBase
 
 ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={ClassDefinitionRows.Count} visible={FilteredClassDefinitionRows.Count()}");
         RestoreSelection(ClassDefinitionRows, SelectedClassDefinitionCode, value => SelectedClassDefinitionCode = value);
+        Notify(nameof(FilteredClassDefinitionRows));
+        Notify(nameof(RequirementReferenceOptions));
+        Notify(nameof(ClassesRouteState));
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedClassDefinition));
         Notify(nameof(SelectedClassSummary));
@@ -6183,7 +7502,9 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         ClientLogService.Instance.Info($"skillDefinitions.content.load count={SkillDefinitionRows.Count}");
         ClientLogService.Instance.Info($"skillDefinitions.render count={SkillDefinitionRows.Count}");
         RestoreSelection(SkillDefinitionRows, SelectedSkillDefinitionCode, value => SelectedSkillDefinitionCode = value);
+        RefreshCharacterReferenceOptions();
         TraceSkillDefinitionContentButtons();
+        Notify(nameof(RequirementReferenceOptions));
         Notify(nameof(ContentSummary));
         Notify(nameof(SelectedSkillDefinition));
         Notify(nameof(SelectedSkillSummary));
@@ -6200,6 +7521,9 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
 
     private void NewSkillDefinition()
     {
+        EditSkillRequirementRoot = new RequirementExpressionEditorNodeVm0219 { Kind = "all_of" };
+        _editSkillRankMilestones = Array.Empty<object>();
+        _editSkillTechniques = Array.Empty<object>();
         var code = FirstNonEmpty(EditSkillCode);
         if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Заполните обязательные поля.");
         if (string.IsNullOrWhiteSpace(EditSkillName)) throw new ArgumentException("Заполните обязательные поля.");
@@ -6302,6 +7626,10 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         if (!_isLoadingClassNodeLayoutEditor)
         {
             _isClassNodeLayoutDirty = true;
+            Notify(nameof(ClassNodeLayoutHasUnsavedChanges));
+            Notify(nameof(ClassNodeLayoutUnsavedSummary));
+            Notify(nameof(HasClassUnsavedChanges));
+            Notify(nameof(ClassUnsavedSummary));
             UpdateDevelopmentLayoutChangedObjects();
         }
 
@@ -6319,6 +7647,10 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         if (!_isLoadingClassNodeLayoutEditor)
         {
             _isClassNodeLayoutDirty = true;
+            Notify(nameof(ClassNodeLayoutHasUnsavedChanges));
+            Notify(nameof(ClassNodeLayoutUnsavedSummary));
+            Notify(nameof(HasClassUnsavedChanges));
+            Notify(nameof(ClassUnsavedSummary));
             UpdateDevelopmentLayoutChangedObjects();
         }
 
@@ -6452,6 +7784,76 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         }
     }
 
+    private void LoadDevelopmentProductPreview0215()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedCharacterId))
+        {
+            DevelopmentLayoutStatusText = "Сначала выберите персонажа для предпросмотра.";
+            return;
+        }
+
+        var response = _api.DevelopmentHexagonAdminGetProductPreview(new Dictionary<string, object>
+        {
+            { "characterId", SelectedCharacterId },
+            { "hexagonId", SelectedDevelopmentLayoutHexagonId },
+            { "viewMode", "overview" }
+        });
+        if (response.Status != ResponseStatus.Ok)
+        {
+            DevelopmentLayoutStatusText = FirstNonEmpty(response.Message, "Не удалось открыть предпросмотр для игрока.");
+            return;
+        }
+
+        _classNodeLayoutPayloads.Clear();
+        _developmentLayoutHexagonPayloads.Clear();
+        StoreDevelopmentHexagonPayload(response.Payload, SelectedDevelopmentLayoutHexagonId);
+        var perSector = new Dictionary<int, int>();
+        foreach (var raw in ToList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
+        {
+            var map = AsMap(raw, CommandNames.DevelopmentHexagonAdminGetProductPreview);
+            if (map == null) continue;
+            var kind = S(map, "presentationKind");
+            if (string.Equals(kind, "Root", StringComparison.OrdinalIgnoreCase) || string.Equals(kind, "Direction", StringComparison.OrdinalIgnoreCase))
+                continue;
+            var sector = ParseDevelopmentLayoutInt(S(map, "sector"), 1);
+            perSector.TryGetValue(sector, out var localIndex);
+            perSector[sector] = localIndex + 1;
+            var angle = ((sector - 1) * 60 - 90) * Math.PI / 180.0;
+            var radius = 1050 + localIndex * 420;
+            map["positionX"] = (int)Math.Round(DevelopmentLayoutWorkspaceWidth / 2.0 + Math.Cos(angle) * radius);
+            map["positionY"] = (int)Math.Round(DevelopmentLayoutWorkspaceHeight / 2.0 + Math.Sin(angle) * radius);
+            map["layoutVersion"] = 1;
+            StoreClassNodeLayoutPayload(map, SelectedDevelopmentLayoutHexagonId);
+        }
+        RefreshDevelopmentLayoutEditorFromPayloads();
+        RebuildAdminDevelopmentProductPreview();
+        DevelopmentLayoutStatusText = "Показана та же безопасная продуктовая проекция, которую получает игрок. Редактирование отключено.";
+        FitToViewDevelopmentHexagonLayout();
+    }
+
+    private void OpenDefinitionPreset(string? preset)
+    {
+        var family = preset switch
+        {
+            "races" => "Расы",
+            "languages" => "Языки",
+            "languageScripts" => "Письменности",
+            "languageFamilies" => "Языковые семьи",
+            "languageOrigins" => "Предания о происхождении языков",
+            _ => string.Empty
+        };
+        if (!string.IsNullOrWhiteSpace(family))
+        {
+            DefinitionEditor.SelectedFamily = family;
+            SelectedSection = "definitions.editor";
+            ClientLogService.Instance.Info($"ui.definitions.preset.open preset={preset}");
+            return;
+        }
+
+        StatusMessage = "Для этого раздела серверный справочник ещё не доступен в текущей модели.";
+        ClientLogService.Instance.Info($"ui.definitions.preset.unavailable preset={preset}");
+    }
+
     private void StoreDevelopmentHexagonPayload(Dictionary<string, object> payload, string fallbackHexagonId)
     {
         if (payload.TryGetValue("hexagon", out var rawHexagon) &&
@@ -6547,6 +7949,10 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         RequirementTargetNodeId = SelectedClassNodeId;
         NodeLayoutSaveStatus = $"Загружен узел: {DevelopmentGraphDisplay.ToReadableNodeTitle(NodeName, SelectedClassNodeId)}";
         _isClassNodeLayoutDirty = false;
+        Notify(nameof(ClassNodeLayoutHasUnsavedChanges));
+        Notify(nameof(ClassNodeLayoutUnsavedSummary));
+        Notify(nameof(HasClassUnsavedChanges));
+        Notify(nameof(ClassUnsavedSummary));
         _isLoadingClassNodeLayoutEditor = false;
     }
 
@@ -7360,6 +8766,10 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
     {
         CancelDevelopmentHexagonLayout();
         _isClassNodeLayoutDirty = false;
+        Notify(nameof(ClassNodeLayoutHasUnsavedChanges));
+        Notify(nameof(ClassNodeLayoutUnsavedSummary));
+        Notify(nameof(HasClassUnsavedChanges));
+        Notify(nameof(ClassUnsavedSummary));
         LoadSelectedClassNodeLayoutEditor();
         _developmentLayoutUndoStack.Clear();
         _developmentLayoutRedoStack.Clear();
@@ -7843,6 +9253,10 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         if (response.Status == ResponseStatus.Ok)
         {
             _isClassNodeLayoutDirty = false;
+            Notify(nameof(ClassNodeLayoutHasUnsavedChanges));
+            Notify(nameof(ClassNodeLayoutUnsavedSummary));
+            Notify(nameof(HasClassUnsavedChanges));
+            Notify(nameof(ClassUnsavedSummary));
             NodeLayoutSaveStatus = "Раскладка узла сохранена.";
             LoadClassTree();
             return;
@@ -8065,6 +9479,11 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         EditSkillRequiredSkillCodes = string.Join(", ", ReadStringList(map, "requiredSkillCodes"));
         EditSkillIsActive = ParseBool(S(map, "isActive"), true);
         EditSkillStatus = FirstNonEmpty(S(map, "status"), DefinitionStatus.Draft.ToString());
+        EditSkillRequirementRoot = map.TryGetValue("requirementExpression", out var requirement)
+            ? RequirementExpressionEditorNodeVm0219.FromPayload(requirement)
+            : new RequirementExpressionEditorNodeVm0219 { Kind = "all_of" };
+        _editSkillRankMilestones = ReadMapList(map, "rankMilestones").Cast<object>().ToArray();
+        _editSkillTechniques = ReadMapList(map, "techniques").Cast<object>().ToArray();
         SkillLevelEditorRows.Clear();
         foreach (var level in ReadMapList(map, "levels"))
         {
@@ -8128,7 +9547,7 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         var firstLevel = configuredLevels.FirstOrDefault();
         ClientLogService.Instance.Debug($"skillDefinition.payload.levels shape count={configuredLevels.Count} itemKeys={string.Join(",", firstLevel?.Keys?.ToArray() ?? Array.Empty<string>())}");
 
-        return new Dictionary<string, object>
+        var payload = new Dictionary<string, object>
         {
             { "code", EditSkillCode },
             { "name", EditSkillName },
@@ -8140,9 +9559,14 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
             { "requiredClassCodes", SplitCsv(EditSkillRequiredClassCodes).Cast<object>().ToArray() },
             { "requiredSkillCodes", SplitCsv(EditSkillRequiredSkillCodes).Cast<object>().ToArray() },
             { "levels", configuredLevels.Cast<object>().ToArray() },
+            { "rankMilestones", _editSkillRankMilestones },
+            { "techniques", _editSkillTechniques },
             { "isActive", EditSkillIsActive },
             { "status", EditSkillStatus }
         };
+        var requirementExpression = EditSkillRequirementRoot.ToPayload();
+        if (requirementExpression != null) payload["requirementExpression"] = requirementExpression;
+        return payload;
     }
 
     private void NotifyClassDefinitionEditor()
@@ -8152,7 +9576,7 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
 
     private void NotifySkillDefinitionEditor()
     {
-        Notify(nameof(EditSkillCode)); Notify(nameof(EditSkillName)); Notify(nameof(EditSkillDescription)); Notify(nameof(EditSkillTier)); Notify(nameof(EditSkillMaxLevel)); Notify(nameof(EditSkillCategory)); Notify(nameof(EditSkillIsClassSkill)); Notify(nameof(EditSkillRequiredClassCodes)); Notify(nameof(EditSkillRequiredSkillCodes)); Notify(nameof(EditSkillIsActive)); Notify(nameof(EditSkillStatus)); Notify(nameof(SkillEditorHintText));
+        Notify(nameof(EditSkillCode)); Notify(nameof(EditSkillName)); Notify(nameof(EditSkillDescription)); Notify(nameof(EditSkillTier)); Notify(nameof(EditSkillMaxLevel)); Notify(nameof(EditSkillCategory)); Notify(nameof(EditSkillIsClassSkill)); Notify(nameof(EditSkillRequiredClassCodes)); Notify(nameof(EditSkillRequiredSkillCodes)); Notify(nameof(EditSkillIsActive)); Notify(nameof(EditSkillStatus)); Notify(nameof(EditSkillRequirementRoot)); Notify(nameof(EditSkillRequirementPreview)); Notify(nameof(SkillEditorHintText));
     }
 
     private static int ParseInt(string value, int fallback) => int.TryParse(value, out var parsed) ? parsed : fallback;
@@ -8506,7 +9930,13 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
     {
         DiagnosticsItems.Clear();
         var s1 = _api.AdminServerStatus();
-            DiagnosticsItems.Add(new RowVm { Id = "server-status", Name = "Диагностика", State = $"online={S(s1.Payload, "onlineUsers")}", Extra = $"utc={S(s1.Payload, "utcNow")}" });
+        DiagnosticsItems.Add(new RowVm
+        {
+            Id = "server-status",
+            Name = "Сервер",
+            State = $"Пользователей в сети: {FirstNonEmptyAdmin(S(s1.Payload, "onlineUsers"), "0")}",
+            Extra = "Проверено: " + FirstNonEmptyAdmin(FormatChatTimestamp(S(s1.Payload, "utcNow")), "время не указано")
+        });
         var s2 = _api.AdminSessionsList();
         DiagnosticsItems.Add(new RowVm { Id = "sessions", Name = "Диагностика", State = "Диагностика", Extra = ToList(s2.Payload.ContainsKey("items") ? s2.Payload["items"] : new ArrayList()).Count.ToString() });
         LoadLocksSummary();
@@ -8525,14 +9955,22 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         {
             if (item is not Dictionary<string, object> map) continue;
             var resourceId = FirstNonEmpty(S(map, "characterId"), S(map, "entityId"), S(map, "resourceId"), S(map, "lockId"));
-            var owner = FirstNonEmpty(S(map, "lockedByUserId"), S(map, "ownerUserId"), S(map, "ownerId"), S(map, "login"), "unknown owner");
-            var state = FirstNonEmpty(S(map, "entityType"), S(map, "lockType"), S(map, "scope"), S(map, "resourceType"), "character");
+            var ownerId = FirstNonEmpty(S(map, "lockedByUserId"), S(map, "ownerUserId"), S(map, "ownerId"));
+            var owner = FirstNonEmpty(
+                S(map, "lockedByDisplayName"),
+                S(map, "ownerDisplayName"),
+                S(map, "login"),
+                Players.FirstOrDefault(player => string.Equals(player.Id, ownerId, StringComparison.OrdinalIgnoreCase))?.Name,
+                "Пользователь");
+            var state = FormatLockTypeForDisplay(FirstNonEmpty(S(map, "entityType"), S(map, "lockType"), S(map, "scope"), S(map, "resourceType")));
+            var resourceName = FirstNonEmpty(S(map, "resourceName"), S(map, "displayName"), S(map, "entityDisplayName"), "Сущность без названия");
+            var acquired = FirstNonEmpty(S(map, "issuedUtc"), S(map, "acquiredUtc"), S(map, "createdUtc"));
+            var expires = S(map, "expiresUtc");
             var extra = string.Join(" • ", new[]
             {
-                FirstNonEmpty(S(map, "resourceName"), S(map, "displayName"), resourceId),
-                FirstNonEmpty(S(map, "ownerLevel"), S(map, "role")),
-                FirstNonEmpty(S(map, "issuedUtc"), S(map, "acquiredUtc"), S(map, "createdUtc")),
-                FirstNonEmpty(S(map, "expiresUtc"), " ")
+                resourceName,
+                string.IsNullOrWhiteSpace(acquired) ? string.Empty : "создана " + FormatChatTimestamp(acquired),
+                string.IsNullOrWhiteSpace(expires) ? string.Empty : "до " + FormatChatTimestamp(expires)
             }.Where(value => !string.IsNullOrWhiteSpace(value)));
             LockRows.Add(new RowVm { Id = resourceId, Name = owner, State = state, Extra = extra });
         }
@@ -8545,10 +9983,129 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
 
     private string CurrentSelectedRequestId() => FirstNonEmptyAdmin(SelectedPendingRequestId, _selectedRequestDetailsId);
     private void MarkInReviewRequest() { var requestId = CurrentSelectedRequestId(); if (!string.IsNullOrWhiteSpace(requestId)) { RunUiAction("Взять заявку в рассмотрение", () => { var response = _api.AdminRequestSetInReview(requestId, RequestComment); ApplySelectedRequestDetails(response); RefreshModerationSection(); }); } else { ClientLogService.Instance.Warn("admin.request.markInReview.skipped reason=no-selected-request"); } }
-    private void ApproveRequest() { var requestId = CurrentSelectedRequestId(); if (!string.IsNullOrWhiteSpace(requestId)) { RunUiAction("Одобрить заявку", () => { var response = _api.AdminRequestApprove(requestId, RequestComment, RequestGMOnlyComment); ApplySelectedRequestDetails(response); RefreshModerationSection(); }); } else { ClientLogService.Instance.Warn("admin.request.approve.skipped reason=no-selected-request"); } }
-    private void RejectRequest() { var requestId = CurrentSelectedRequestId(); if (!string.IsNullOrWhiteSpace(requestId)) { RunUiAction("Отклонить заявку", () => { var response = _api.AdminRequestReject(requestId, RequestComment, RequestGMOnlyComment); ApplySelectedRequestDetails(response); RefreshModerationSection(); }); } else { ClientLogService.Instance.Warn("admin.request.reject.skipped reason=no-selected-request"); } }
-    private void RequestChangesForSelectedRequest() { var requestId = CurrentSelectedRequestId(); if (!string.IsNullOrWhiteSpace(requestId)) { RunUiAction("Запросить уточнения по заявке", () => { var response = _api.AdminRequestRequestChanges(requestId, RequestComment, RequestGMOnlyComment); ApplySelectedRequestDetails(response); RefreshModerationSection(); }); } else { ClientLogService.Instance.Warn("admin.request.requestChanges.skipped reason=no-selected-request"); } }
-    private void ArchiveSelectedRequest() { var requestId = CurrentSelectedRequestId(); if (!string.IsNullOrWhiteSpace(requestId)) { RunUiAction("Архивировать заявку", () => { var response = _api.AdminRequestArchive(requestId, RequestComment); ApplySelectedRequestDetails(response); RefreshModerationSection(); }); } else { ClientLogService.Instance.Warn("admin.request.archive.skipped reason=no-selected-request"); } }    private void AcquireLock() { if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return; RunUiAction("Архивировать заявку", () => { var r = _api.AcquireCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); LoadLocksSummary(); }); }
+    private void ApproveRequest()
+    {
+        var requestId = CurrentSelectedRequestId();
+        if (string.IsNullOrWhiteSpace(requestId))
+        {
+            ClientLogService.Instance.Warn("admin.request.approve.skipped reason=no-selected-request");
+            return;
+        }
+        if (!ConfirmOperationalAction("Одобрить заявку", "Заявка будет одобрена, а игрок увидит ваше решение. Продолжить?")) return;
+        RunUiAction("Одобрить заявку", () =>
+        {
+            var response = _api.AdminRequestApprove(requestId, RequestComment, RequestGMOnlyComment);
+            ApplySelectedRequestDetails(response);
+            RefreshModerationSection();
+        });
+    }
+
+    private void CloneDevelopmentNode()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedClassNodeId))
+        {
+            NodeLayoutSaveStatus = "Сначала выберите узел, который нужно использовать как образец.";
+            return;
+        }
+
+        var cloneId = SelectedClassNodeId + "_copy_" + DateTime.Now.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+        var cloneName = FirstNonEmpty(NodeName, "Узел развития") + " (копия)";
+        var response = _api.DevelopmentHexagonAdminCreateNode(new Dictionary<string, object>
+        {
+            { "nodeId", cloneId },
+            { "hexagonId", SelectedDevelopmentLayoutHexagonId },
+            { "hexagonType", NodeHexagonType },
+            { "name", cloneName },
+            { "description", NodeDescription },
+            { "nodeType", NodeType },
+            { "nodeRole", NodeRole },
+            { "directionCode", NodeDirectionCode },
+            { "branchCode", NodeBranchCode },
+            { "ring", NodeRing },
+            { "sector", NodeSector },
+            { "sortOrder", NodeSortOrder },
+            { "visibilityRule", NodeVisibilityRule },
+            { "isPlayerVisible", NodeIsPlayerVisible },
+            { "isHidden", NodeIsHidden },
+            { "positionX", string.IsNullOrWhiteSpace(NodePositionX) ? "500" : NodePositionX },
+            { "positionY", string.IsNullOrWhiteSpace(NodePositionY) ? "500" : NodePositionY },
+            { "cost", string.IsNullOrWhiteSpace(NodeCost) ? "1" : NodeCost },
+            { "currencyId", NodeCurrencyId }
+        });
+
+        NodeLayoutSaveStatus = response.Status == ResponseStatus.Ok ? "Создан похожий узел." : FirstNonEmpty(response.Message, "Не удалось создать похожий узел.");
+        if (response.Status == ResponseStatus.Ok)
+        {
+            SelectedClassNodeId = cloneId;
+            LoadClassTree();
+        }
+    }
+    private void RejectRequest()
+    {
+        var requestId = CurrentSelectedRequestId();
+        if (string.IsNullOrWhiteSpace(requestId))
+        {
+            ClientLogService.Instance.Warn("admin.request.reject.skipped reason=no-selected-request");
+            return;
+        }
+        if (!RequireRequestDecisionReason("Укажите игроку причину отклонения.")) return;
+        if (!ConfirmOperationalAction("Отклонить заявку", "Заявка будет отклонена без применения запрошенного изменения. Продолжить?")) return;
+        RunUiAction("Отклонить заявку", () =>
+        {
+            var response = _api.AdminRequestReject(requestId, RequestComment, RequestGMOnlyComment);
+            ApplySelectedRequestDetails(response);
+            RefreshModerationSection();
+        });
+    }
+    private void RequestChangesForSelectedRequest()
+    {
+        var requestId = CurrentSelectedRequestId();
+        if (string.IsNullOrWhiteSpace(requestId))
+        {
+            ClientLogService.Instance.Warn("admin.request.requestChanges.skipped reason=no-selected-request");
+            return;
+        }
+        if (!RequireRequestDecisionReason("Укажите, что именно игроку нужно уточнить.")) return;
+        if (!ConfirmOperationalAction("Запросить уточнение", "Заявка вернётся игроку на доработку. Продолжить?")) return;
+        RunUiAction("Запросить уточнения по заявке", () =>
+        {
+            var response = _api.AdminRequestRequestChanges(requestId, RequestComment, RequestGMOnlyComment);
+            ApplySelectedRequestDetails(response);
+            RefreshModerationSection();
+        });
+    }
+    private void ArchiveSelectedRequest()
+    {
+        var requestId = CurrentSelectedRequestId();
+        if (string.IsNullOrWhiteSpace(requestId))
+        {
+            ClientLogService.Instance.Warn("admin.request.archive.skipped reason=no-selected-request");
+            return;
+        }
+        if (!ConfirmOperationalAction("Архивировать заявку", "Заявка исчезнет из рабочей очереди, но сохранится в истории. Продолжить?")) return;
+        RunUiAction("Архивировать заявку", () =>
+        {
+            var response = _api.AdminRequestArchive(requestId, RequestComment);
+            ApplySelectedRequestDetails(response);
+            RefreshModerationSection();
+        });
+    }
+    private bool RequireRequestDecisionReason(string message)
+    {
+        if (!string.IsNullOrWhiteSpace(RequestComment)) return true;
+        BusyMessage = message;
+        System.Windows.MessageBox.Show(message, "Нужен комментарий", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+        return false;
+    }
+    private static bool ConfirmOperationalAction(string title, string message)
+    {
+        return System.Windows.MessageBox.Show(
+            message,
+            title,
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Warning) == System.Windows.MessageBoxResult.Yes;
+    }
+    private void AcquireLock() { if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return; RunUiAction("Заблокировать персонажа для редактирования", () => { var r = _api.AcquireCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); LoadLocksSummary(); }); }
     private void ReleaseLock() { if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return; RunUiAction("Снять блокировку", () => { var r = _api.ReleaseCharacterLock(SelectedCharacterId); LockStateText = r.Message; Notify(nameof(LockStateText)); LoadLocksSummary(); }); }
     private void ForceUnlock()
     {
@@ -8556,25 +10113,31 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         var entityType = FirstNonEmpty(SelectedLock?.State ?? string.Empty, "character");
         if (string.IsNullOrWhiteSpace(entityId)) return;
 
-        var confirmation = System.Windows.MessageBox.Show(
-            $"Нет данных",
-            "Нет данных",
-            System.Windows.MessageBoxButton.YesNo,
-            System.Windows.MessageBoxImage.Warning);
-        if (confirmation != System.Windows.MessageBoxResult.Yes) return;
+        if (string.IsNullOrWhiteSpace(ForceUnlockReason))
+        {
+            LockStateText = "Укажите причину принудительного снятия блокировки.";
+            Notify(nameof(LockStateText));
+            return;
+        }
+        var lockName = FirstNonEmpty(SelectedLock?.Extra ?? string.Empty, SelectedLock?.Name ?? string.Empty, "выбранной сущности");
+        if (!ConfirmOperationalAction(
+                "Снять блокировку",
+                $"Блокировка «{lockName}» будет принудительно снята. Несохранённые изменения другого администратора могут быть потеряны. Продолжить?")) return;
 
-        RunUiAction("Принудительно снять lock", () =>
+        RunUiAction("Принудительно снять блокировку", () =>
         {
             var r = _api.AdminLocksForceRelease(entityType, entityId);
             LockStateText = r.Message;
+            ForceUnlockReason = string.Empty;
             Notify(nameof(LockStateText));
+            Notify(nameof(ForceUnlockReason));
             LoadLocksSummary();
         });
     }
     private void SaveBasicInfo()
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
-        RunUiAction("Выполнить действие", () =>
+            RunUiAction("Сохранить основные данные", () =>
         {
             ClientLogService.Instance.Info("ui-action section=... action=SaveBasic");
             var response = _api.CharacterAdminSaveBasic(new Dictionary<string, object>
@@ -8589,6 +10152,7 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
             });
             ClientLogService.Instance.Info($"character.admin.save.basic response={response.Status}:{response.Message}");
             EnsureSuccess(response);
+            CharacterHasUnsavedChanges = false;
             OpenCharacter();
         });
     }
@@ -8596,7 +10160,7 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
     private void SaveBiography()
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
-        RunUiAction("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ", () =>
+        RunUiAction("Сохранить биографию", () =>
         {
             ClientLogService.Instance.Info($"character.admin.biography.save.start characterId={SelectedCharacterId} length={EditBackstory?.Length ?? 0}");
             BiographySaveStatus = $"Биография сохранена.";
@@ -8618,6 +10182,7 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
             BiographySaveStatus = $"Биография сохранена.";
             ClientLogService.Instance.Info($"character.admin.biography.save.done characterId={SelectedCharacterId} length={EditBackstory?.Length ?? 0}");
             OpenCharacter();
+            CharacterHasUnsavedChanges = false;
             BiographySaveStatus = $"Биография сохранена.";
         });
     }
@@ -8762,6 +10327,17 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
             Notify(nameof(HasConnectionError));
             return;
         }
+        var confirmation = System.Windows.MessageBox.Show(
+            "Сброс пароля немедленно изменит данные учётной записи. Продолжить?",
+            "Подтверждение сброса пароля",
+            System.Windows.MessageBoxButton.OKCancel,
+            System.Windows.MessageBoxImage.Warning);
+        if (confirmation != System.Windows.MessageBoxResult.OK)
+        {
+            LastStatusMessage = "Сброс пароля отменён. Данные не изменены.";
+            ClientLogService.Instance.Info($"admin.account.resetPassword.cancelled accountId={accountId}");
+            return;
+        }
         RunUiAction("Выполнить действие", () =>
         {
             ClientLogService.Instance.Info($"admin.account.resetPassword.requested accountId={accountId}");
@@ -8855,7 +10431,7 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
     private void RefreshOverviewActivity()
     {
         OverviewActivityRows.Clear();
-        OverviewActivityRows.Add(HasConnectionError ? $"Ошибка: {LastErrorMessage}" : LastStatusMessage);
+        OverviewActivityRows.Add(string.IsNullOrWhiteSpace(OperationErrorMessage) ? LastStatusMessage : $"Ошибка: {OperationErrorMessage}");
         if (PendingRequests.Count > 0) OverviewActivityRows.Add($"Активность пока отсутствует.");
         if (PendingAccounts.Count > 0) OverviewActivityRows.Add($" : {PendingAccounts[0].Name}");
         if (DiceFeedRows.Count > 0) OverviewActivityRows.Add($"Бросок: {DiceFeedRows[0]}");
@@ -9648,6 +11224,7 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         ClientLogService.Instance.Info($"definitions.races.get rawCollectionKey={rawCollectionKey}");
         ClientLogService.Instance.Info($"definitions.races.get rawCount={rawItems.Count}");
         ClientLogService.Instance.Info($"definitions.races.get count={RaceDefinitionRows.Count}");
+        RefreshCharacterReferenceOptions();
     }
 
     private void RefreshDefinitionItems()
@@ -9883,6 +11460,55 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
         return "№ —";
     }
 
+    private static string SafeRequestCharacterDisplayName(string value, string fallback)
+    {
+        var candidate = (value ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(candidate)) return fallback;
+        if (Guid.TryParse(candidate, out _)) return fallback;
+        if (Regex.IsMatch(candidate, @"\A[0-9a-f]{24}\z", RegexOptions.IgnoreCase)) return fallback;
+        if (Regex.IsMatch(candidate, @"\A[0-9a-f]{32}\z", RegexOptions.IgnoreCase)) return fallback;
+        return candidate;
+    }
+
+    private static string FormatRequestStatusForDisplay(string value) => (value ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "submitted" => "Отправлена",
+        "in_review" => "На рассмотрении",
+        "changes_requested" => "Нужны уточнения",
+        "approved" => "Одобрена",
+        "rejected" => "Отклонена",
+        "cancelled" => "Отменена",
+        "archived" => "В архиве",
+        "" => "Статус не указан",
+        _ => "Другой статус"
+    };
+
+    private static string FormatRequestTypeForDisplay(string value) => (value ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "generic_action" => "Общее действие",
+        "development_unlock" => "Развитие персонажа",
+        "character_change" => "Изменение персонажа",
+        "item_request" => "Запрос предмета",
+        "rules_question" => "Вопрос по правилам",
+        "scene_action" => "Действие в сцене",
+        "research" => "Исследование",
+        "crafting" => "Создание предмета",
+        "purchase" => "Покупка",
+        "" => "Тип не указан",
+        _ => "Другой тип"
+    };
+
+    private static string FormatLockTypeForDisplay(string value) => (value ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "character" => "Персонаж",
+        "character_profile" => "Профиль персонажа",
+        "definition" => "Справочник",
+        "map" => "Карта",
+        "session" => "Сессия",
+        "" => "Сущность",
+        _ => "Другая сущность"
+    };
+
     internal void ChatRefreshFromSync() => ChatRefresh();
     internal void RefreshDiceFromSync() => RefreshDiceFeedForChat();
     internal void SetDefinitionsDirty(long revision) { _definitionsDirty = true; ClientLogService.Instance.Warn($"sync.definitions.dirty revision={revision}"); }
@@ -9890,8 +11516,8 @@ ClientLogService.Instance.Debug($"ui-refresh section=... block=... loaded={Class
 
 public static class SyncFeatureFlags
 {
-    public const bool UsePassiveSyncPoller = false;
-    public const bool UseEventDispatcher = false;
+    public const bool UsePassiveSyncPoller = true;
+    public const bool UseEventDispatcher = true;
 }
 public interface IClientSyncEventDispatcher { System.Threading.Tasks.Task DispatchAsync(ClientSyncEvent evt); }
 public sealed class ClientSyncEventDispatcher : IClientSyncEventDispatcher

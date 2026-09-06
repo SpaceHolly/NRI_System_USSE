@@ -368,7 +368,7 @@ public partial class ServiceHub
     public ResponseEnvelope DevelopmentCharacterGet(CommandContext context) => ClassTreeGet(context);
     public ResponseEnvelope DevelopmentCharacterInitialize(CommandContext context) => ClassTreeRecalculate(context);
     public ResponseEnvelope DevelopmentNodePurchase(CommandContext context) => ClassTreeAcquireNode(context);
-    public ResponseEnvelope DevelopmentPlayerHexagonGet(CommandContext context) => ClassTreeAvailableGet(context);
+    public ResponseEnvelope DevelopmentPlayerHexagonGet(CommandContext context) => DevelopmentHexagonPlayerGetProductProjection(context);
     public ResponseEnvelope DevelopmentPlayerPurchase(CommandContext context) => ClassTreeAcquireNode(context);
 
     public ResponseEnvelope DevelopmentXpLedgerList(CommandContext context)
@@ -607,6 +607,8 @@ public partial class ServiceHub
             PublicDescription = FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "publicDescription"), PayloadReader.GetString(context.Request.Payload, "description"), "Описание узла развития."),
             NodeType = FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "nodeType"), DevelopmentNodeTypes.Class),
             NodeRole = FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "nodeRole"), DevelopmentNodeRoleIds.MainBranchLevel),
+            Tier = ReadOptionalInt(context.Request.Payload, "tier", 1),
+            MaxTier = ReadOptionalInt(context.Request.Payload, "maxTier", 20),
             GridX = ReadRequiredInt(context.Request.Payload, "positionX", "gridX", 500),
             GridY = ReadRequiredInt(context.Request.Payload, "positionY", "gridY", 500),
             Ring = ReadOptionalInt(context.Request.Payload, "ring", 1),
@@ -618,12 +620,20 @@ public partial class ServiceHub
             VisibilityRule = DevelopmentUnlockPolicyIds.VisibleByDefault,
             UnlockPolicy = DevelopmentUnlockPolicyIds.VisibleByDefault,
             PurchasePolicy = DevelopmentPurchasePolicyIds.AutomaticIfRequirementsMet,
+            RequiresGMApproval = PayloadReader.GetBool(context.Request.Payload, "requiresGMApproval"),
+            RequiresPlayerRequest = PayloadReader.GetBool(context.Request.Payload, "requiresPlayerRequest"),
+            LayoutGroup = PayloadReader.GetString(context.Request.Payload, "layoutGroup") ?? string.Empty,
+            LayoutBranch = PayloadReader.GetString(context.Request.Payload, "layoutBranch") ?? string.Empty,
             LayoutVersion = 1,
             Revision = 1,
             UpdatedAtUtc = DateTime.UtcNow,
             UpdatedByUserId = actor.Id,
             SchemaVersion = 1
         };
+        ValidateRange(node.Tier, 1, 20, "Tier");
+        ValidateRange(node.MaxTier, node.Tier, 20, "MaxTier");
+        if (node.RequiresGMApproval || node.RequiresPlayerRequest)
+            node.PurchasePolicy = DevelopmentPurchasePolicyIds.RequiresGMApproval;
         if (!IsAllowedDevelopmentCurrency(node.CurrencyId))
             return Error("Invalid development currency.", ResponseStatus.ValidationFailed, ErrorCode.ValidationFailed);
 
@@ -751,19 +761,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope DevelopmentHexagonPlayerGetLayout(CommandContext context)
     {
-        if (!DevelopmentPlayerEnabled()) return DevelopmentDisabled();
-        var actor = GetCurrentAccount(context);
-        if (!IsAdmin(actor))
-        {
-            ResolveCharacterForClassSkill(context, actor);
-        }
-
-        EnsureDefinitionsLoaded(false);
-        var hexagonId = FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "hexagonId"), DevelopmentHexagonIds.Main);
-        if (!IsAdmin(actor) && IsDevelopmentAdminOnlyHexagon(hexagonId))
-            throw new KeyNotFoundException("Development hexagon not found.");
-        if (!IsHexagonEnabled(hexagonId)) return DevelopmentDisabled("Запрошенный шестиугольник развития выключен feature flags.");
-        return Ok("Visible development hexagon layout loaded.", DevelopmentHexagonLayoutPayload(hexagonId, includeAdmin: false));
+        return DevelopmentHexagonPlayerGetProductProjection(context);
     }
 
     public ResponseEnvelope DevelopmentHexagonPlayerGetNodeDetails(CommandContext context)
@@ -835,6 +833,10 @@ public partial class ServiceHub
             return Error("Invalid development currency.", ResponseStatus.ValidationFailed, ErrorCode.ValidationFailed);
         var nodeType = RequireLength(FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "nodeType"), node.NodeType, DevelopmentNodeTypes.Class), 1, 128, "nodeType");
         var nodeRole = RequireLength(FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "nodeRole"), node.NodeRole, DevelopmentNodeRoleIds.MainBranchLevel), 1, 128, "nodeRole");
+        var tier = ReadOptionalInt(context.Request.Payload, "tier", Math.Max(1, node.Tier));
+        var maxTier = ReadOptionalInt(context.Request.Payload, "maxTier", Math.Max(tier, node.MaxTier));
+        ValidateRange(tier, 1, 20, "Tier");
+        ValidateRange(maxTier, tier, 20, "MaxTier");
         var hexagonType = RequireLength(FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "hexagonType"), node.HexagonType, HexagonTypeFromId(hexagonId)), 1, 64, "hexagonType");
         var primaryMagicGroupId = RequireLength(FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "primaryMagicGroupId"), node.PrimaryMagicGroupId), 0, 128, "primaryMagicGroupId");
         var name = RequireLength(FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "name"), PayloadReader.GetString(context.Request.Payload, "title"), node.Name, node.NodeId), 1, 256, "name");
@@ -844,6 +846,8 @@ public partial class ServiceHub
         var linkedDefinitionKind = RequireLength(FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "linkedDefinitionKind"), PayloadReader.GetString(context.Request.Payload, "linkedEntityType"), node.LinkedDefinitionKind), 0, 128, "linkedDefinitionKind");
         var linkedDefinitionId = RequireLength(FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "linkedDefinitionId"), PayloadReader.GetString(context.Request.Payload, "linkedEntityId"), node.LinkedDefinitionId), 0, 256, "linkedDefinitionId");
         var requiredNodeIds = ReadRequiredNodeIds(context.Request.Payload, node);
+        var requirementExpression = ReadRequirementExpression0219(context.Request.Payload, "requirementExpression", node.RequirementExpression);
+        var unlockSkillIds = ReadStringList0219(context.Request.Payload, "unlockSkillIds", node.UnlockSkillIds);
 
         if (requiredNodeIds.Any(id => string.Equals(id, nodeId, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException("Self requirement is not allowed.");
@@ -887,6 +891,16 @@ public partial class ServiceHub
         node.LinkedDefinitionId = linkedDefinitionId;
         node.NodeType = nodeType;
         node.NodeRole = nodeRole;
+        node.Tier = tier;
+        node.MaxTier = maxTier;
+        node.LayoutGroup = FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "layoutGroup"), node.LayoutGroup);
+        node.LayoutBranch = FirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "layoutBranch"), node.LayoutBranch);
+        node.RequiresGMApproval = context.Request.Payload.ContainsKey("requiresGMApproval")
+            ? PayloadReader.GetBool(context.Request.Payload, "requiresGMApproval")
+            : node.RequiresGMApproval;
+        node.RequiresPlayerRequest = context.Request.Payload.ContainsKey("requiresPlayerRequest")
+            ? PayloadReader.GetBool(context.Request.Payload, "requiresPlayerRequest")
+            : node.RequiresPlayerRequest;
         node.IsPrimaryMagicClass = context.Request.Payload.ContainsKey("isPrimaryMagicClass")
             ? PayloadReader.GetBool(context.Request.Payload, "isPrimaryMagicClass")
             : IsPrimaryMagicClassNode(node);
@@ -912,13 +926,21 @@ public partial class ServiceHub
             ? DevelopmentUnlockPolicyIds.GMOnly
             : node.IsPlayerVisible ? FirstNonEmpty(visibilityRule, DevelopmentUnlockPolicyIds.VisibleByDefault) : DevelopmentUnlockPolicyIds.HiddenUntilGMReveal;
         node.UnlockPolicy = isHidden ? DevelopmentUnlockPolicyIds.GMOnly : DevelopmentUnlockPolicyIds.VisibleByDefault;
-        node.PurchasePolicy = isHidden ? DevelopmentPurchasePolicyIds.GMOnly : DevelopmentPurchasePolicyIds.AutomaticIfRequirementsMet;
+        node.PurchasePolicy = isHidden
+            ? DevelopmentPurchasePolicyIds.GMOnly
+            : node.RequiresGMApproval || node.RequiresPlayerRequest
+                ? DevelopmentPurchasePolicyIds.RequiresGMApproval
+                : DevelopmentPurchasePolicyIds.AutomaticIfRequirementsMet;
         node.Requirements = requiredNodeIds
             .Select(id => new UnlockRequirement { RequirementType = "node", Key = id })
             .ToList();
-        node.RequirementSummary = requiredNodeIds.Count == 0
-            ? "Нет требований."
-            : "Требуется: " + string.Join(", ", requiredNodeIds);
+        node.RequirementExpression = requirementExpression;
+        node.UnlockSkillIds = unlockSkillIds;
+        node.RequirementSummary = requirementExpression != null
+            ? RequirementExpressionSummary0219(requirementExpression)
+            : requiredNodeIds.Count == 0
+                ? "Нет требований."
+                : "Требуется: " + string.Join(", ", requiredNodeIds);
         node.LayoutVersion = Math.Max(1, node.LayoutVersion) + 1;
         node.Revision = Math.Max(1, node.Revision) + 1;
         node.UpdatedAtUtc = DateTime.UtcNow;
@@ -1571,7 +1593,7 @@ public partial class ServiceHub
     private static string[] CanonicalDevelopmentDirectionIds(string hexagonId)
     {
         if (string.Equals(hexagonId, DevelopmentHexagonIds.Magic, StringComparison.OrdinalIgnoreCase))
-            return new[] { "magic_mana", "magic_spell", "magic_seal", "magic_arcana", "magic_element_fire", "magic_direction_light" };
+            return new[] { "magic_methods", "magic_element_water", "magic_element_earth", "magic_element_fire", "magic_element_air", "magic_special" };
         if (IsDevelopmentLargeTestHexagon(hexagonId))
             return new[] { "large0154_branch_01", "large0154_branch_02", "large0154_branch_03", "large0154_branch_04", "large0154_branch_05", "large0154_branch_06" };
         return new[] { DevelopmentDirectionIds.StrengthAssault, DevelopmentDirectionIds.DexterityManeuver, DevelopmentDirectionIds.EnduranceResilience, DevelopmentDirectionIds.IntellectReason, DevelopmentDirectionIds.WisdomPath, DevelopmentDirectionIds.CharismaInfluence };
@@ -2322,6 +2344,79 @@ public partial class ServiceHub
             .ToList();
     }
 
+    private static RequirementExpression? ReadRequirementExpression0219(
+        IDictionary<string, object> payload,
+        string key,
+        RequirementExpression? fallback)
+    {
+        if (!payload.TryGetValue(key, out var raw)) return fallback;
+        if (raw == null) return null;
+        var map = PayloadReader.GetDictionary(payload, key);
+        if (map == null || map.Count == 0) return null;
+        var expression = ReadRequirementExpressionMap0219(map);
+        RequirementExpressionEvaluator0219.Validate(expression);
+        return expression;
+    }
+
+    private static RequirementExpression ReadRequirementExpressionMap0219(IDictionary<string, object> map)
+    {
+        var expression = new RequirementExpression
+        {
+            Kind = FirstNonEmpty(PayloadReader.GetString(map, "kind"), RequirementExpressionKinds.Leaf),
+            LeafType = PayloadReader.GetString(map, "leafType") ?? string.Empty,
+            TargetId = PayloadReader.GetString(map, "targetId") ?? string.Empty,
+            MinimumValue = PayloadReader.GetInt(map, "minimumValue") ?? 0,
+            RequiredCount = PayloadReader.GetInt(map, "requiredCount") ?? 0,
+            PublicLabel = PayloadReader.GetString(map, "publicLabel") ?? string.Empty,
+            GMLabel = PayloadReader.GetString(map, "gmLabel") ?? string.Empty,
+            IsHidden = PayloadReader.GetBool(map, "isHidden")
+        };
+        if (map.TryGetValue("children", out var rawChildren) && rawChildren is IEnumerable children && rawChildren is not string)
+        {
+            foreach (var child in children.Cast<object?>())
+            {
+                if (child == null) continue;
+                var wrapper = new Dictionary<string, object> { { "child", child } };
+                var childMap = PayloadReader.GetDictionary(wrapper, "child");
+                if (childMap != null && childMap.Count > 0)
+                    expression.Children.Add(ReadRequirementExpressionMap0219(childMap));
+            }
+        }
+        return expression;
+    }
+
+    private static List<string> ReadStringList0219(
+        IDictionary<string, object> payload,
+        string key,
+        IEnumerable<string>? fallback)
+    {
+        if (!payload.TryGetValue(key, out var raw)) return (fallback ?? Enumerable.Empty<string>()).ToList();
+        if (raw is IEnumerable enumerable && raw is not string)
+        {
+            return enumerable.Cast<object?>()
+                .Select(value => Convert.ToString(value)?.Trim() ?? string.Empty)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        return (Convert.ToString(raw) ?? string.Empty)
+            .Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(value => value.Trim())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static string RequirementExpressionSummary0219(RequirementExpression expression)
+    {
+        if (expression.Kind == RequirementExpressionKinds.Leaf)
+            return FirstNonEmpty(expression.PublicLabel, "Условие развития");
+        var label = expression.Kind == RequirementExpressionKinds.AllOf ? "Все условия"
+            : expression.Kind == RequirementExpressionKinds.AnyOf ? "Любое условие"
+            : $"Не менее {expression.RequiredCount} условий";
+        return $"{label}: {expression.Children.Count}";
+    }
+
     private ResponseEnvelope SetDevelopmentNodeArchived(CommandContext context, bool archived)
     {
         if (!DevelopmentAdminEnabled()) return DevelopmentDisabled();
@@ -2903,7 +2998,6 @@ public partial class ServiceHub
                 else _repositories.ClassTrees.Insert(tree);
             }
 
-            EnsureMagicClassDefinitions();
         }
         catch (Exception ex)
         {
@@ -3023,13 +3117,12 @@ public partial class ServiceHub
     {
         return new List<DevelopmentDirectionDefinition>
         {
-            new DevelopmentDirectionDefinition { DirectionId = "magic_root", HexagonId = DevelopmentHexagonIds.Magic, Name = "Пробуждение", AtmosphericName = "Источник", AttributeId = "intellect", DisplayOrder = 0, AngleDegrees = 270, Description = "Стартовый центр магического развития." },
-            new DevelopmentDirectionDefinition { DirectionId = "magic_mana", HexagonId = DevelopmentHexagonIds.Magic, Name = "Мана", AtmosphericName = "Поток", AttributeId = "intellect", DisplayOrder = 1, AngleDegrees = 270, Description = "Чистый поток маны и управление энергией." },
-            new DevelopmentDirectionDefinition { DirectionId = "magic_spell", HexagonId = DevelopmentHexagonIds.Magic, Name = "Заклинания", AtmosphericName = "Форма", AttributeId = "wisdom", DisplayOrder = 2, AngleDegrees = 330, Description = "Структурированные заклинания и формулы." },
-            new DevelopmentDirectionDefinition { DirectionId = "magic_seal", HexagonId = DevelopmentHexagonIds.Magic, Name = "Печати", AtmosphericName = "Знак", AttributeId = "wisdom", DisplayOrder = 3, AngleDegrees = 30, Description = "Руны, печати и закреплённые эффекты." },
-            new DevelopmentDirectionDefinition { DirectionId = "magic_arcana", HexagonId = DevelopmentHexagonIds.Magic, Name = "Аркана", AtmosphericName = "Глубина", AttributeId = "intellect", DisplayOrder = 4, AngleDegrees = 90, Description = "Арканные принципы и сложные магические системы." },
-            new DevelopmentDirectionDefinition { DirectionId = "magic_element_fire", HexagonId = DevelopmentHexagonIds.Magic, Name = "Стихия огня", AtmosphericName = "Пламя", AttributeId = "charisma", DisplayOrder = 5, AngleDegrees = 150, Description = "Стихийное направление огня." },
-            new DevelopmentDirectionDefinition { DirectionId = "magic_direction_light", HexagonId = DevelopmentHexagonIds.Magic, Name = "Направление света", AtmosphericName = "Свет", AttributeId = "wisdom", DisplayOrder = 6, AngleDegrees = 210, Description = "Световые методы, ритуалы и ограничения." }
+            new DevelopmentDirectionDefinition { DirectionId = "magic_methods", HexagonId = DevelopmentHexagonIds.Magic, Name = "Методы магии", AtmosphericName = "Метод", AttributeId = "intellect", DisplayOrder = 1, AngleDegrees = 270, Description = "Первичные способы управления магией." },
+            new DevelopmentDirectionDefinition { DirectionId = "magic_element_water", HexagonId = DevelopmentHexagonIds.Magic, Name = "Вода", AtmosphericName = "Течение", AttributeId = "wisdom", DisplayOrder = 2, AngleDegrees = 330, Description = "Базовое стихийное направление воды." },
+            new DevelopmentDirectionDefinition { DirectionId = "magic_element_earth", HexagonId = DevelopmentHexagonIds.Magic, Name = "Земля", AtmosphericName = "Основа", AttributeId = "endurance", DisplayOrder = 3, AngleDegrees = 30, Description = "Базовое стихийное направление земли." },
+            new DevelopmentDirectionDefinition { DirectionId = "magic_element_fire", HexagonId = DevelopmentHexagonIds.Magic, Name = "Огонь", AtmosphericName = "Пламя", AttributeId = "charisma", DisplayOrder = 4, AngleDegrees = 90, Description = "Базовое стихийное направление огня." },
+            new DevelopmentDirectionDefinition { DirectionId = "magic_element_air", HexagonId = DevelopmentHexagonIds.Magic, Name = "Воздух", AtmosphericName = "Поток", AttributeId = "dexterity", DisplayOrder = 5, AngleDegrees = 150, Description = "Базовое стихийное направление воздуха." },
+            new DevelopmentDirectionDefinition { DirectionId = "magic_special", HexagonId = DevelopmentHexagonIds.Magic, Name = "Особые направления", AtmosphericName = "Искусство", AttributeId = "intellect", DisplayOrder = 6, AngleDegrees = 210, Description = "Зачарование, руны, антимагия и духовная магия." }
         };
     }
 
@@ -3087,6 +3180,16 @@ public partial class ServiceHub
             return c;
         }
 
+        var presence = _repositories.Presence
+            .Find(Builders<SessionUserState>.Filter.Eq(x => x.UserId, actor.Id))
+            .FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(presence?.ActiveCharacterId))
+        {
+            var active = _repositories.Characters.GetById(presence.ActiveCharacterId);
+            if (active != null && (IsAdmin(actor) || string.Equals(active.OwnerUserId, actor.Id, StringComparison.Ordinal)))
+                return active;
+        }
+
         var own = _repositories.Characters.Find(Builders<Character>.Filter.Eq(x => x.OwnerUserId, actor.Id)).FirstOrDefault();
         if (own != null) return own;
         throw new InvalidOperationException("No character selected.");
@@ -3130,6 +3233,30 @@ public partial class ServiceHub
 
     private List<SkillDefinitionRecord> LoadSkillDefinitionsSafe()
     {
+        // Character v2 and the definition editors own skill_definition_documents.
+        // Adapt those canonical documents into the development runtime shape first.
+        var canonical = _mongo.DefinitionSkills
+            .Find(Builders<SkillDefinition>.Filter.Empty)
+            .ToList()
+            .Where(skill => !string.IsNullOrWhiteSpace(skill.Code) && !skill.IsArchived)
+            .Select(skill => new SkillDefinitionRecord
+            {
+                Id = FirstNonEmpty(skill.Id, skill.Code),
+                SkillId = skill.Code,
+                Name = FirstNonEmpty(skill.Name, skill.Code),
+                Description = skill.Description ?? string.Empty,
+                Type = skill.IsRollable ? SkillType.Activatable : SkillType.Passive,
+                UsageDescription = skill.IsRollable ? "Проверка навыка" : "Пассивное владение",
+                DefaultAttribute = skill.DefaultAttribute ?? string.Empty,
+                DefaultSubAttribute = skill.DefaultSubAttribute ?? string.Empty,
+                RankMin = Math.Max(0, skill.RankMin),
+                RankMax = Math.Max(1, Math.Min(20, skill.RankMax)),
+                RequirementExpression = skill.RequirementExpression,
+                RankMilestones = skill.RankMilestones ?? new List<SkillRankMilestoneDefinition>(),
+                Techniques = skill.Techniques ?? new List<SkillTechniqueDefinition>()
+            })
+            .ToDictionary(skill => skill.SkillId, skill => skill, StringComparer.OrdinalIgnoreCase);
+
         var documents = _mongo.Database
             .GetCollection<BsonDocument>("skill_definitions")
             .Find(FilterDefinition<BsonDocument>.Empty)
@@ -3143,7 +3270,7 @@ public partial class ServiceHub
                 var skill = BsonSerializer.Deserialize<SkillDefinitionRecord>(document);
                 if (!string.IsNullOrWhiteSpace(skill.SkillId))
                 {
-                    result.Add(skill);
+                    if (!canonical.ContainsKey(skill.SkillId)) result.Add(skill);
                     continue;
                 }
             }
@@ -3154,6 +3281,7 @@ public partial class ServiceHub
 
             var legacyId = FirstNonEmpty(GetBsonString(document, "SkillId"), GetBsonString(document, "Code"), GetBsonString(document, "Id"), GetBsonString(document, "_id"));
             if (string.IsNullOrWhiteSpace(legacyId)) continue;
+            if (canonical.ContainsKey(legacyId)) continue;
             result.Add(new SkillDefinitionRecord
             {
                 Id = FirstNonEmpty(GetBsonString(document, "Id"), GetBsonString(document, "_id"), legacyId),
@@ -3166,6 +3294,7 @@ public partial class ServiceHub
             });
         }
 
+        result.AddRange(canonical.Values);
         return result;
     }
 
@@ -3273,20 +3402,7 @@ public partial class ServiceHub
         ApplyNodeMetadata(nodes, "mage_channel", DevelopmentDirectionIds.IntellectReason, "intellect_reason_core", "Разум I", "Анализ, технологии и сложные методы.", 2, 190, 242, "Интеллект +1; открывает базовый анализ.");
         ApplyNodeMetadata(nodes, "inventor_gear", DevelopmentDirectionIds.CharismaInfluence, "charisma_influence_core", "Влияние I", "Лидерство, дипломатия и социальное давление.", 2, 58, 68, "Харизма +1; открывает базовое влияние.");
 
-        EnsureDevelopmentNode(nodes, "dev_hex_purchase_node_01446", DevelopmentDirectionIds.StrengthAssault, "dev_hex_01446_branch", "Пробный узел 0.14.46", "Проверочный узел покупки через Development Hexagon.", 10, 190, 54, "Открывает следующий узел проверки класса.", new[] { "novice" }, DevelopmentNodeTypes.Training, DevelopmentNodeRoleIds.MainBranchLevel, false, string.Empty);
-        EnsureDevelopmentNode(nodes, "dev_hex_class_node_01446", DevelopmentDirectionIds.StrengthAssault, "dev_hex_01446_branch", "Классовый узел 0.14.46", "Проверочный узел, открывающий связанный класс.", 15, 250, 90, "Открывает класс dev_hex_class_01445.", new[] { "dev_hex_purchase_node_01446" }, DevelopmentNodeTypes.Class, DevelopmentNodeRoleIds.UnlockNode, false, "dev_hex_class_01445");
-        EnsureDevelopmentNode(nodes, "dev_locked_node_01446", DevelopmentDirectionIds.StrengthAssault, "dev_hex_01446_branch", "Закрытый узел 0.14.46", "Видимый, но недоступный узел для проверки locked-state.", 20, 130, 90, "Недоступен без отсутствующего требования.", new[] { "dev_missing_requirement_01446" }, DevelopmentNodeTypes.Training, DevelopmentNodeRoleIds.MainBranchLevel, false, string.Empty);
-        EnsureDevelopmentNode(nodes, "dev_hidden_node_01446", DevelopmentDirectionIds.StrengthAssault, "dev_hidden_01446_branch", "Скрытый узел 0.14.46", "GM-only узел, который не должен попадать в PlayerClient.", 5, 190, 190, "Скрытая награда.", new[] { "novice" }, DevelopmentNodeTypes.HiddenDevelopment, DevelopmentNodeRoleIds.HiddenNode, true, string.Empty);
-
         EnsureDevelopmentNode(nodes, "magic_awakened", "magic_root", "magic_root", "Магическое пробуждение", "Стартовый центр магического развития.", 0, 190, 120, "Открывает первичные магические пути.", new[] { "novice" }, DevelopmentNodeTypes.MagicPath, DevelopmentNodeRoleIds.MagicRoot, false, string.Empty, DevelopmentHexagonIds.Magic, DevelopmentHexagonTypes.Magic, false);
-        EnsureDevelopmentNode(nodes, "dev_mana_mage_01448", "magic_mana", "primary_magic_mana", "Маг маны", "Первичный магический класс, работающий с чистым потоком маны.", 4, 190, 30, "Открывает класс dev_mana_mage_01448.", new[] { "magic_awakened" }, DevelopmentNodeTypes.Class, DevelopmentNodeRoleIds.PrimaryMagicClass, false, "dev_mana_mage_01448", DevelopmentHexagonIds.Magic, DevelopmentHexagonTypes.Magic, true);
-        EnsureDevelopmentNode(nodes, "dev_spell_mage_01448", "magic_spell", "primary_magic_spell", "Маг заклинаний", "Первичный магический класс для структурированных заклинаний.", 4, 300, 95, "Открывает класс dev_spell_mage_01448.", new[] { "magic_awakened" }, DevelopmentNodeTypes.Class, DevelopmentNodeRoleIds.PrimaryMagicClass, false, "dev_spell_mage_01448", DevelopmentHexagonIds.Magic, DevelopmentHexagonTypes.Magic, true);
-        EnsureDevelopmentNode(nodes, "dev_seal_mage_01448", "magic_seal", "primary_magic_seal", "Маг печатей", "Первичный магический класс для рун, печатей и закреплённых формул.", 4, 300, 190, "Открывает класс dev_seal_mage_01448.", new[] { "magic_awakened" }, DevelopmentNodeTypes.Class, DevelopmentNodeRoleIds.PrimaryMagicClass, false, "dev_seal_mage_01448", DevelopmentHexagonIds.Magic, DevelopmentHexagonTypes.Magic, true);
-        EnsureDevelopmentNode(nodes, "dev_arcana_mage_01448", "magic_arcana", "primary_magic_arcana", "Маг Арканы", "Первичный магический класс для глубоких арканных принципов.", 4, 190, 255, "Открывает класс dev_arcana_mage_01448.", new[] { "magic_awakened" }, DevelopmentNodeTypes.Class, DevelopmentNodeRoleIds.PrimaryMagicClass, false, "dev_arcana_mage_01448", DevelopmentHexagonIds.Magic, DevelopmentHexagonTypes.Magic, true);
-        EnsureDevelopmentNode(nodes, "dev_magic_fire_element_01448", "magic_element_fire", "magic_element_fire", "Стихия огня", "Магическое направление стихии огня. Не считается первичным магическим классом.", 2, 80, 190, "Открывает огненные методы и заявки на огненные техники.", new[] { "magic_awakened" }, DevelopmentNodeTypes.MagicPath, DevelopmentNodeRoleIds.MagicElement, false, string.Empty, DevelopmentHexagonIds.Magic, DevelopmentHexagonTypes.Magic, false);
-        EnsureDevelopmentNode(nodes, "dev_magic_light_direction_01448", "magic_direction_light", "magic_direction_light", "Направление света", "Магическое направление света. Не блокируется правилом первичного класса.", 2, 80, 95, "Открывает световые методы и ритуалы.", new[] { "magic_awakened" }, DevelopmentNodeTypes.MagicPath, DevelopmentNodeRoleIds.MagicDirection, false, string.Empty, DevelopmentHexagonIds.Magic, DevelopmentHexagonTypes.Magic, false);
-        EnsureDevelopmentNode(nodes, "dev_locked_magic_node_01448", "magic_mana", "primary_magic_mana", "Закрытый магический узел", "Видимый locked-узел для проверки требований.", 3, 250, 45, "Недоступен без отсутствующего требования.", new[] { "dev_missing_magic_requirement_01448" }, DevelopmentNodeTypes.MagicPath, DevelopmentNodeRoleIds.ThematicNode, false, string.Empty, DevelopmentHexagonIds.Magic, DevelopmentHexagonTypes.Magic, false);
-        EnsureDevelopmentNode(nodes, "dev_hidden_magic_node_01448", "magic_hidden", "magic_hidden", "Скрытый магический узел", "GM-only магический узел, который не должен попадать игроку.", 1, 360, 240, "Скрытая магическая награда.", new[] { "magic_awakened" }, DevelopmentNodeTypes.HiddenDevelopment, DevelopmentNodeRoleIds.HiddenNode, true, string.Empty, DevelopmentHexagonIds.Magic, DevelopmentHexagonTypes.Magic, false);
     }
 
     private static void EnsureDevelopmentNode(Dictionary<string, ClassNodeDefinition> nodes, string nodeId, string directionId, string branchId, string name, string description, int cost, int gridX, int gridY, string rewardSummary, IEnumerable<string> requiredNodeIds, string nodeType, string nodeRole, bool hidden, string classId, string hexagonId = DevelopmentHexagonIds.Main, string hexagonType = DevelopmentHexagonTypes.Main, bool isPrimaryMagicClass = false)
@@ -3453,15 +3569,25 @@ public partial class ServiceHub
             DefinitionVersion = _definitionVersion
         };
 
+        var skillProfile = _mongo.CharacterSkillProfiles
+            .Find(Builders<CharacterSkillProfileDocument>.Filter.Eq(x => x.CharacterId, c.Id))
+            .FirstOrDefault()?.Profile;
+        var acquiredProfileSkills = new HashSet<string>(
+            skillProfile?.Skills?
+                .Where(value => value.IsLearned || value.IsUnlocked)
+                .Select(value => value.SkillId)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                ?? Enumerable.Empty<string>(),
+            StringComparer.OrdinalIgnoreCase);
+
         var skillStates = new List<CharacterSkillState>();
         foreach (var skill in _skillsById.Values)
         {
-            var existing = c.CharacterSkillStates.FirstOrDefault(x => x.SkillId == skill.SkillId);
             var reasons = EvaluateSkillAvailability(c, skill, unlockedSkillIds);
             skillStates.Add(new CharacterSkillState
             {
                 SkillId = skill.SkillId,
-                Acquired = existing != null && existing.Acquired,
+                Acquired = acquiredProfileSkills.Contains(skill.SkillId),
                 Available = reasons.Count == 0,
                 UnavailableReason = reasons.Count == 0 ? string.Empty : string.Join("; ", reasons)
             });
@@ -3488,11 +3614,18 @@ public partial class ServiceHub
         {
             root.AcquiredNodes.Add(new CharacterClassNodeState { NodeId = "novice", AcquiredAtUtc = DateTime.UtcNow });
         }
-        if (_nodesById.TryGetValue("novice", out var noviceNode))
+        var developmentProfile = _mongo.CharacterDevelopmentProfiles
+            .Find(Builders<CharacterDevelopmentProfileDocument>.Filter.Eq(x => x.CharacterId, c.Id))
+            .FirstOrDefault()?.Profile;
+        var profileNodeIds = new HashSet<string>(
+            developmentProfile?.Nodes?.Select(state => state.DevelopmentNodeId).Where(id => !string.IsNullOrWhiteSpace(id))
+                ?? Enumerable.Empty<string>(),
+            StringComparer.OrdinalIgnoreCase);
+        if (!profileNodeIds.Contains("novice") && _nodesById.TryGetValue("novice", out var noviceNode))
         {
             UpsertDevelopmentProfileNode(c, noviceNode, "system", "development_profile_initialize");
         }
-        if (_nodesById.TryGetValue("magic_awakened", out var magicRootNode))
+        if (!profileNodeIds.Contains("magic_awakened") && _nodesById.TryGetValue("magic_awakened", out var magicRootNode))
         {
             UpsertDevelopmentProfileNode(c, magicRootNode, "system", "development_profile_initialize");
         }
@@ -3506,33 +3639,31 @@ public partial class ServiceHub
     {
         var reasons = new List<string>();
         var acquiredNodeIds = GetPurchasedDevelopmentNodeIds(c);
-        var selectedBranchId = acquiredNodeIds
+        var selectedBranchIds = acquiredNodeIds
             .Where(id => _nodesById.ContainsKey(id))
             .Select(id => _nodesById[id])
             .Where(n => string.Equals(n.DirectionId, node.DirectionId, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(n.BranchId))
             .Select(n => n.BranchId)
-            .FirstOrDefault();
-        if (!string.IsNullOrWhiteSpace(selectedBranchId) && selectedBranchId != node.BranchId)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var continuesAcquiredPath = !string.IsNullOrWhiteSpace(node.LayoutBranch) && acquiredNodeIds
+            .Where(id => _nodesById.ContainsKey(id))
+            .Select(id => _nodesById[id])
+            .Any(acquired => string.Equals(acquired.DirectionId, node.DirectionId, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(acquired.LayoutBranch, node.LayoutBranch, StringComparison.OrdinalIgnoreCase));
+        if (selectedBranchIds.Count > 0 && !selectedBranchIds.Contains(node.BranchId, StringComparer.OrdinalIgnoreCase) && !continuesAcquiredPath)
         {
             reasons.Add("В направлении можно выбрать только одну ветку");
         }
 
-        if (node.Requirements != null)
+        var requirementExpression = node.RequirementExpression
+            ?? RequirementExpressionEvaluator0219.MigrateLegacy(node.Requirements, RequirementExpressionKinds.AllOf);
+        if (requirementExpression.Children.Count > 0 || requirementExpression.Kind == RequirementExpressionKinds.Leaf)
         {
-            foreach (var req in node.Requirements)
+            var evaluation = RequirementExpressionEvaluator0219.Evaluate(requirementExpression, BuildRequirementFacts0219(c.Id), playerSafe: false);
+            if (!evaluation.IsSatisfied)
             {
-                if (req.RequirementType.Equals("node", StringComparison.OrdinalIgnoreCase))
-                {
-                    var has = acquiredNodeIds.Contains(req.Key);
-                    if (!has) reasons.Add("Требуется узел: " + req.Key);
-                }
-                else if (req.RequirementType.Equals("stat", StringComparison.OrdinalIgnoreCase))
-                {
-                    var val = GetStatValue(c.Stats, req.Key);
-                    var threshold = 0;
-                    int.TryParse(req.Value, out threshold);
-                    if (val < threshold) reasons.Add("Недостаточный параметр " + req.Key + ": требуется " + threshold);
-                }
+                reasons.Add(evaluation.PublicReason);
             }
         }
 
@@ -3554,8 +3685,6 @@ public partial class ServiceHub
             return reasons;
         }
 
-        var hasParent = _nodesById.Values.Any(n => n.NextNodeIds.Contains(node.NodeId) && acquiredNodeIds.Contains(n.NodeId));
-        if (!hasParent && _nodesById.Values.Any(n => n.NextNodeIds.Contains(node.NodeId))) reasons.Add("Нет доступа по графу прогрессии");
         return reasons;
     }
 
@@ -3564,20 +3693,70 @@ public partial class ServiceHub
         var reasons = new List<string>();
         var acquiredNodeIds = GetPurchasedDevelopmentNodeIds(c);
         if (!unlockedSkillIds.Contains(skill.SkillId)) reasons.Add("Навык не открыт узлом класса");
-        foreach (var req in skill.Requirements)
+        var requirementExpression = skill.RequirementExpression
+            ?? RequirementExpressionEvaluator0219.MigrateLegacy(skill.Requirements, RequirementExpressionKinds.AllOf);
+        if (requirementExpression.Children.Count > 0 || requirementExpression.Kind == RequirementExpressionKinds.Leaf)
         {
-            if (req.RequirementType.Equals("node", StringComparison.OrdinalIgnoreCase))
-            {
-                var has = acquiredNodeIds.Contains(req.Key);
-                if (!has) reasons.Add("Требуется узел: " + req.Key);
-            }
-            if (req.RequirementType.Equals("skill", StringComparison.OrdinalIgnoreCase))
-            {
-                var has = c.CharacterSkillStates.Any(s => s.SkillId == req.Key && s.Acquired);
-                if (!has) reasons.Add("Требуется навык: " + req.Key);
-            }
+            var evaluation = RequirementExpressionEvaluator0219.Evaluate(requirementExpression, BuildRequirementFacts0219(c.Id), playerSafe: false);
+            if (!evaluation.IsSatisfied) reasons.Add(evaluation.PublicReason);
         }
         return reasons;
+    }
+
+    private RequirementFactSnapshot BuildRequirementFacts0219(string characterId)
+    {
+        var facts = new RequirementFactSnapshot();
+        var attributes = _mongo.CharacterAttributeProfiles
+            .Find(Builders<CharacterAttributeProfileDocument>.Filter.Eq(x => x.CharacterId, characterId))
+            .FirstOrDefault()?.Profile;
+        foreach (var value in attributes?.Values ?? new List<CharacterAttributeValue>())
+            facts.Attributes[value.AttributeId] = value.CurrentValue + value.ManualModifier;
+
+        var subAttributes = _mongo.CharacterSubAttributeProfiles
+            .Find(Builders<CharacterSubAttributeProfileDocument>.Filter.Eq(x => x.CharacterId, characterId))
+            .FirstOrDefault()?.Profile;
+        foreach (var value in subAttributes?.SubAttributes ?? new List<CharacterSubAttributeValue>())
+            facts.SubAttributes[value.SubAttributeId] = value.CurrentValue + value.ManualBonus;
+
+        var skills = _mongo.CharacterSkillProfiles
+            .Find(Builders<CharacterSkillProfileDocument>.Filter.Eq(x => x.CharacterId, characterId))
+            .FirstOrDefault()?.Profile;
+        foreach (var value in skills?.Skills ?? new List<CharacterSkillProfileValue>())
+        {
+            if (!value.IsLearned && !value.IsUnlocked) continue;
+            facts.SkillRanks[value.SkillId] = Math.Max(0, Math.Min(20, value.Rank));
+            if (_skillsById.TryGetValue(value.SkillId, out var definition))
+            {
+                foreach (var technique in definition.Techniques.Where(technique =>
+                    !technique.IsArchived &&
+                    value.Rank >= technique.MinimumRank &&
+                    (!technique.MaximumRank.HasValue || value.Rank <= technique.MaximumRank.Value)))
+                {
+                    facts.TechniqueIds.Add(technique.Id);
+                    if (!string.IsNullOrWhiteSpace(technique.ActionDefinitionId))
+                        facts.ActionIds.Add(technique.ActionDefinitionId);
+                }
+            }
+        }
+
+        var development = _mongo.CharacterDevelopmentProfiles
+            .Find(Builders<CharacterDevelopmentProfileDocument>.Filter.Eq(x => x.CharacterId, characterId))
+            .FirstOrDefault()?.Profile;
+        foreach (var state in development?.Nodes ?? new List<CharacterDevelopmentNodeState>())
+            if (state.IsPurchased || state.IsUnlocked || state.CurrentTier > 0)
+            {
+                facts.DevelopmentNodeIds.Add(state.DevelopmentNodeId);
+                facts.DevelopmentNodeRanks[state.DevelopmentNodeId] = Math.Max(
+                    facts.DevelopmentNodeRanks.TryGetValue(state.DevelopmentNodeId, out var currentRank) ? currentRank : 0,
+                    state.CurrentTier);
+                if (_nodesById.TryGetValue(state.DevelopmentNodeId, out var node))
+                {
+                    if (!string.IsNullOrWhiteSpace(node.DirectionId)) facts.DevelopmentPathIds.Add(node.DirectionId);
+                    if (!string.IsNullOrWhiteSpace(node.BranchId)) facts.DevelopmentPathIds.Add(node.BranchId);
+                    if (!string.IsNullOrWhiteSpace(node.LayoutBranch)) facts.DevelopmentPathIds.Add(node.LayoutBranch);
+                }
+            }
+        return facts;
     }
 
     private void ValidateMagicPrimaryPurchase(Character c, ClassNodeDefinition node)
@@ -3686,18 +3865,74 @@ public partial class ServiceHub
 
     private List<Dictionary<string, object>> SkillStatePayload(CharacterProgressSnapshot snapshot)
     {
+        var profile = _mongo.CharacterSkillProfiles
+            .Find(Builders<CharacterSkillProfileDocument>.Filter.Eq(x => x.CharacterId, snapshot.CharacterId))
+            .FirstOrDefault()?.Profile;
+        var ranks = (profile?.Skills ?? new List<CharacterSkillProfileValue>())
+            .ToDictionary(value => value.SkillId, value => Math.Max(0, Math.Min(20, value.Rank)), StringComparer.OrdinalIgnoreCase);
         return snapshot.Skills.Select(s =>
         {
             _skillsById.TryGetValue(s.SkillId, out var def);
+            var acquiredNodeIds = snapshot.Directions
+                .SelectMany(direction => direction.AcquiredNodes)
+                .Select(node => node.NodeId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var sourceNode = _nodesById.Values
+                .Where(node => acquiredNodeIds.Contains(node.NodeId))
+                .Where(node => !ShouldHideNodeFromPlayer(node))
+                .Where(node => node.UnlockSkillIds.Any(skillId => string.Equals(skillId, s.SkillId, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(node => node.Tier)
+                .FirstOrDefault();
+            var sourcePath = sourceNode == null
+                ? null
+                : _nodesById.Values
+                    .Where(node => !ShouldHideNodeFromPlayer(node))
+                    .Where(node => string.Equals(node.BranchId, sourceNode.BranchId, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(node => node.Tier)
+                    .ThenBy(node => node.SortOrder)
+                    .FirstOrDefault();
+            var rank = ranks.TryGetValue(s.SkillId, out var currentRank) ? currentRank : 0;
+            var nextMilestone = def?.RankMilestones
+                .Where(milestone => milestone.Rank > rank)
+                .OrderBy(milestone => milestone.Rank)
+                .FirstOrDefault();
             return new Dictionary<string, object>
             {
                 { "skillId", s.SkillId },
                 { "name", def != null ? def.Name : s.SkillId },
+                { "sourcePathName", sourcePath == null ? string.Empty : FirstNonEmptyWorld(sourcePath.PublicName, sourcePath.Name) },
+                { "sourceNodeName", sourceNode == null ? string.Empty : FirstNonEmptyWorld(sourceNode.PublicName, sourceNode.Name) },
                 { "description", def != null ? def.Description : string.Empty },
                 { "type", def != null ? def.Type.ToString() : string.Empty },
                 { "available", s.Available },
                 { "acquired", s.Acquired },
                 { "reason", s.UnavailableReason },
+                { "rank", rank },
+                { "rankMax", def?.RankMax ?? 20 },
+                { "masteryBand", CoreResolutionPolicy0219.MasteryBand(rank) },
+                { "proficiencyBonus", CoreResolutionPolicy0219.MasteryBonus(rank) },
+                { "defaultAttribute", def?.DefaultAttribute ?? string.Empty },
+                { "defaultSubAttribute", def?.DefaultSubAttribute ?? string.Empty },
+                { "nextMilestone", nextMilestone == null ? new Dictionary<string, object>() : new Dictionary<string, object>
+                    {
+                        { "rank", nextMilestone.Rank },
+                        { "name", nextMilestone.DisplayName },
+                        { "description", nextMilestone.PublicDescription },
+                        { "requirement", RequirementExpressionPayload0219(nextMilestone.RequirementExpression, true) }
+                    } },
+                { "techniques", def == null ? Array.Empty<object>() : def.Techniques
+                    .Where(technique => !technique.IsArchived)
+                    .Select(technique => new Dictionary<string, object>
+                    {
+                        { "name", technique.DisplayName },
+                        { "description", technique.PublicDescription },
+                        { "minimumRank", technique.MinimumRank },
+                        { "availableByRank", rank >= technique.MinimumRank && (!technique.MaximumRank.HasValue || rank <= technique.MaximumRank.Value) },
+                        { "halfActionCost", technique.HalfActionCost },
+                        { "reactionCost", technique.ReactionCost },
+                        { "requirement", RequirementExpressionPayload0219(technique.RequirementExpression, true) }
+                    }).Cast<object>().ToArray() },
+                { "requirement", RequirementExpressionPayload0219(def?.RequirementExpression, true) },
                 { "activationCondition", def != null ? def.Activation.Description : string.Empty },
                 { "usage", def != null ? def.UsageDescription : string.Empty },
                 { "requiresApprovalOnUse", def != null && def.Activation.RequiresApprovalOnUse },
@@ -3717,8 +3952,48 @@ public partial class ServiceHub
             { "activationCondition", def.Activation.Description },
             { "requiresApprovalOnUse", def.Activation.RequiresApprovalOnUse },
             { "usage", def.UsageDescription },
+            { "rankMin", def.RankMin },
+            { "rankMax", def.RankMax },
+            { "rankMilestones", def.RankMilestones.Select(milestone => new Dictionary<string, object>
+                {
+                    { "rank", milestone.Rank },
+                    { "name", milestone.DisplayName },
+                    { "publicDescription", milestone.PublicDescription },
+                    { "gmDescription", milestone.GMDescription },
+                    { "requirement", RequirementExpressionPayload0219(milestone.RequirementExpression, false) }
+                }).Cast<object>().ToArray() },
+            { "techniques", def.Techniques.Where(technique => !technique.IsArchived).Select(technique => new Dictionary<string, object>
+                {
+                    { "name", technique.DisplayName },
+                    { "minimumRank", technique.MinimumRank },
+                    { "maximumRank", technique.MaximumRank ?? 0 },
+                    { "actionDefinitionId", technique.ActionDefinitionId },
+                    { "halfActionCost", technique.HalfActionCost },
+                    { "reactionCost", technique.ReactionCost },
+                    { "publicDescription", technique.PublicDescription },
+                    { "gmDescription", technique.GMDescription },
+                    { "requirement", RequirementExpressionPayload0219(technique.RequirementExpression, false) }
+                }).Cast<object>().ToArray() },
+            { "requirement", RequirementExpressionPayload0219(def.RequirementExpression, false) },
             { "tags", def.Tags.Cast<object>().ToArray() },
             { "requirements", def.Requirements.Select(r => new Dictionary<string, object>{{"type",r.RequirementType},{"key",r.Key},{"value",r.Value}}).Cast<object>().ToArray() }
+        };
+    }
+
+    private static Dictionary<string, object> RequirementExpressionPayload0219(RequirementExpression? expression, bool playerSafe)
+    {
+        if (expression == null) return new Dictionary<string, object>();
+        var hidden = playerSafe && expression.IsHidden;
+        return new Dictionary<string, object>
+        {
+            { "kind", expression.Kind },
+            { "label", hidden ? "Скрытое условие" : FirstNonEmpty(expression.PublicLabel, "Условие развития") },
+            { "leafType", hidden ? string.Empty : expression.LeafType },
+            { "target", hidden ? string.Empty : expression.TargetId },
+            { "minimumValue", hidden ? 0 : expression.MinimumValue },
+            { "requiredCount", expression.RequiredCount },
+            { "isHidden", hidden },
+            { "children", expression.Children.Select(child => RequirementExpressionPayload0219(child, playerSafe)).Cast<object>().ToArray() }
         };
     }
 
@@ -3809,7 +4084,7 @@ public partial class ServiceHub
             .FirstOrDefault(x => string.Equals(x.RequiredNodeId, nodeId, StringComparison.OrdinalIgnoreCase));
     }
 
-    private void UpsertDevelopmentProfileNode(Character character, ClassNodeDefinition node, string actorId, string source = "admin_hexagon_gui")
+    private void UpsertDevelopmentProfileNode(Character character, ClassNodeDefinition node, string actorId, string source = "admin_hexagon_gui", string operationId = "")
     {
         if (character == null || node == null || string.IsNullOrWhiteSpace(node.NodeId)) return;
 
@@ -3839,6 +4114,13 @@ public partial class ServiceHub
         document.Profile.ActiveHexagonId = string.IsNullOrWhiteSpace(document.Profile.ActiveHexagonId) ? DevelopmentHexagonIds.Main : document.Profile.ActiveHexagonId;
         document.Profile.UpdatedAtUtc = DateTime.UtcNow;
         document.Profile.Revision = Math.Max(0, document.Profile.Revision) + 1;
+        document.Profile.RecentOperationIds ??= new List<string>();
+        if (!string.IsNullOrWhiteSpace(operationId) && !document.Profile.RecentOperationIds.Contains(operationId, StringComparer.Ordinal))
+        {
+            document.Profile.RecentOperationIds.Add(operationId);
+            if (document.Profile.RecentOperationIds.Count > 64)
+                document.Profile.RecentOperationIds.RemoveRange(0, document.Profile.RecentOperationIds.Count - 64);
+        }
 
         var hexagonId = string.IsNullOrWhiteSpace(node.HexagonId) ? "main_development_hexagon" : node.HexagonId;
         if (!document.Profile.ActiveHexagonIds.Any(x => string.Equals(x, hexagonId, StringComparison.OrdinalIgnoreCase)))
@@ -3884,6 +4166,42 @@ public partial class ServiceHub
 
         SyncDevelopmentProfileHexagons(document.Profile);
         _mongo.CharacterDevelopmentProfiles.ReplaceOne(filter, document, new ReplaceOptions { IsUpsert = true });
+        ApplyDevelopmentTitleRewards02111(character, node, actorId);
+    }
+
+    private void ApplyDevelopmentTitleRewards02111(Character character, ClassNodeDefinition node, string actorId)
+    {
+        var titleIds = string.Equals(node.LinkedDefinitionKind, "title_definition", StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(node.LinkedDefinitionId)
+            ? new[] { node.LinkedDefinitionId }
+            : Array.Empty<string>();
+        if (titleIds.Length == 0) return;
+        var profile = _mongo.CharacterTitleProfiles.Find(x => x.CharacterId == character.Id).FirstOrDefault()
+            ?? new CharacterTitleProfileDocument { CharacterId = character.Id, RuleSetId = RuleSetIds.FantasyNriDefault };
+        var changed = false;
+        foreach (var titleId in titleIds)
+        {
+            if (CharacterTitleDefinitions02111(profile.RuleSetId).All(x => x.DefinitionId != titleId || x.IsArchived)) continue;
+            var entitlement = profile.Entitlements.FirstOrDefault(x => string.Equals(x.TitleId, titleId, StringComparison.Ordinal));
+            if (entitlement == null)
+            {
+                profile.Entitlements.Add(new CharacterTitleEntitlement { TitleId = titleId, GrantSourceType = "development", GrantSourceId = node.NodeId, GrantedByUserId = actorId });
+                changed = true;
+            }
+            else if (entitlement.IsRevoked)
+            {
+                entitlement.IsRevoked = false;
+                entitlement.GrantSourceType = "development";
+                entitlement.GrantSourceId = node.NodeId;
+                entitlement.GrantedByUserId = actorId;
+                entitlement.GrantedAtUtc = DateTime.UtcNow;
+                changed = true;
+            }
+        }
+        if (!changed) return;
+        profile.EntityRevision++;
+        profile.UpdatedUtc = DateTime.UtcNow;
+        _mongo.CharacterTitleProfiles.ReplaceOne(x => x.CharacterId == character.Id, profile, new ReplaceOptions { IsUpsert = true });
     }
 
     private void MarkDevelopmentProfileNodeCompleted(Character character, ClassNodeDefinition node, string actorId)

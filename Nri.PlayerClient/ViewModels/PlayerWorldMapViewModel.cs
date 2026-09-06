@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -16,11 +16,12 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
 {
     private readonly CommandApi _api;
     private readonly Func<string> _activeCharacterIdAccessor;
-    private string _campaignId = "default";
+    private const string DefaultWorldMap0161SessionId = "dev_session_0161";
+    private string _campaignId = "dev-campaign-core";
     private string _mapId = string.Empty;
     private bool _advancedMapIdMode;
     private bool _isLoading;
-    private string _statusMessage = "Откройте карту мира, доступную игрокам.";
+    private string _statusMessage = "Откройте активную карту мира.";
     private string _warningMessage = string.Empty;
     private string _errorMessage = string.Empty;
     private string _mapName = "Карта мира не выбрана.";
@@ -32,9 +33,11 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
     private double _canvasHeight = 500d;
     private double _cellPixelSize;
     private string _scaleText = "нет данных";
+    private double _zoomFactor = 1d;
     private string _selectedLayerType = WorldMapLayerTypeIds.HeightDepth;
     private DateTime _lastRefreshAtUtc;
     private PlayerWorldMarkerUiItem? _selectedMarker;
+    private PlayerWorldTokenUiItem? _selectedToken;
     private PlayerWorldMapListItemVm? _selectedMapItem;
 
     private readonly Dictionary<string, List<PlayerLegendEntryVm>> _legendByLayer = new(StringComparer.OrdinalIgnoreCase);
@@ -46,6 +49,10 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         RefreshMapsCommand = new RelayCommand(LoadAvailableMaps);
         OpenSelectedMapCommand = new RelayCommand(OpenSelectedMap);
         RefreshMapCommand = new RelayCommand(RefreshCurrentMap);
+        ZoomInCommand = new RelayCommand(ZoomIn);
+        ZoomOutCommand = new RelayCommand(ZoomOut);
+        ResetViewCommand = new RelayCommand(ResetView);
+        FitToMapCommand = new RelayCommand(FitToMap);
         OpenMapByIdCommand = new RelayCommand(() =>
         {
             if (string.IsNullOrWhiteSpace(MapId))
@@ -63,13 +70,18 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
     public ObservableCollection<MapGridLineUiItem> GridLines { get; } = new();
     public ObservableCollection<PlayerWorldCellUiItem> LayerCells { get; } = new();
     public ObservableCollection<PlayerWorldMarkerUiItem> Markers { get; } = new();
+    public ObservableCollection<PlayerWorldTokenUiItem> Tokens { get; } = new();
     public ObservableCollection<PlayerLegendEntryVm> LegendEntries { get; } = new();
-    public ObservableCollection<string> LayerOptions { get; } = new();
+    public ObservableCollection<PlayerWorldLayerOptionVm> LayerOptions { get; } = new();
     public ObservableCollection<string> Hints { get; } = new();
 
     public ICommand RefreshMapsCommand { get; }
     public ICommand OpenSelectedMapCommand { get; }
     public ICommand RefreshMapCommand { get; }
+    public ICommand ZoomInCommand { get; }
+    public ICommand ZoomOutCommand { get; }
+    public ICommand ResetViewCommand { get; }
+    public ICommand FitToMapCommand { get; }
     public ICommand OpenMapByIdCommand { get; }
     public ICommand SelectLayerCommand { get; }
 
@@ -149,7 +161,7 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
     }
 
     public string MapMetaText => WidthCells > 0 && HeightCells > 0
-        ? $"{WidthCells}×{HeightCells} • {MapProjection}"
+        ? $"{WidthCells}×{HeightCells} · {ProjectionDisplayName(MapProjection)}"
         : "Размер карты не загружен";
 
     public double CanvasWidth
@@ -238,6 +250,35 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         ? "Видимых маркеров на карте нет."
         : "Видимые маркеры: " + string.Join(" · ", Markers.Select(marker => marker.Name));
 
+    public PlayerWorldTokenUiItem? SelectedToken
+    {
+        get => _selectedToken;
+        set
+        {
+            if (_selectedToken == value) return;
+            _selectedToken = value;
+            foreach (var token in Tokens) token.IsSelected = token == value;
+            Notify();
+            Notify(nameof(SelectedTokenTitle));
+            Notify(nameof(SelectedTokenType));
+            Notify(nameof(SelectedTokenCoords));
+            Notify(nameof(SelectedTokenBinding));
+            Notify(nameof(SelectedTokenDescription));
+        }
+    }
+
+    public string SelectedTokenTitle => SelectedToken?.DisplayName ?? "Токен не выбран";
+    public string SelectedTokenType => SelectedToken?.TokenTypeDisplay ?? "—";
+    public string SelectedTokenCoords => SelectedToken == null ? "—" : SelectedToken.CoordinatesText;
+    public string SelectedTokenBinding => SelectedToken?.BindingText ?? "Без привязки";
+    public string SelectedTokenDescription => string.IsNullOrWhiteSpace(SelectedToken?.DescriptionPlayer)
+        ? "Описание отсутствует."
+        : SelectedToken!.DescriptionPlayer;
+
+    public string TokenSummaryText => Tokens.Count == 0
+        ? "Видимых токенов на карте нет."
+        : "Видимые токены: " + string.Join(" · ", Tokens.Select(token => token.DisplayName));
+
     public void LoadAvailableMaps()
     {
         if (string.IsNullOrWhiteSpace(CampaignId))
@@ -251,12 +292,14 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         WarningMessage = string.Empty;
         try
         {
-            ClientLogService.Instance.Info("player.map.world.list.load");
-            var response = _api.MapPlayerWorldList(new Dictionary<string, object>
+            ClientLogService.Instance.Info("player.map.world.active.load");
+            var response = _api.WorldMapPlayerGetSessionActive(new Dictionary<string, object>
             {
                 { "campaignId", CampaignId },
+                { "sessionId", DefaultWorldMap0161SessionId },
                 { "characterId", _activeCharacterIdAccessor() ?? string.Empty },
-                { "includeMarkers", true }
+                { "includeMarkers", true },
+                { "includeLayers", true }
             });
 
             if (!EnsureWorldOk(response, out var err))
@@ -267,34 +310,19 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
             }
 
             AvailableMaps.Clear();
-            foreach (var item in Dictionaries(Get(response.Payload, "items")))
+            ApplyWorldMapPayload(response.Payload, string.Empty);
+            AvailableMaps.Add(new PlayerWorldMapListItemVm
             {
-                AvailableMaps.Add(new PlayerWorldMapListItemVm
-                {
-                    MapId = Str(Get(item, "mapId")),
-                    Name = FirstNonEmpty(Str(Get(item, "name")), "Карта мира"),
-                    Description = Str(Get(item, "description")),
-                    UpdatedAtUtc = Date(Get(item, "updatedAtUtc"))
-                });
-            }
-
-            if (AvailableMaps.Count == 0)
-            {
-                StatusMessage = "GM ещё не открыл карту мира игрокам.";
-                ClearMapState();
-                LastRefreshAtUtc = DateTime.UtcNow;
-                return;
-            }
-
-            if (SelectedMapItem == null || !AvailableMaps.Any(x => string.Equals(x.MapId, SelectedMapItem.MapId, StringComparison.OrdinalIgnoreCase)))
-                SelectedMapItem = AvailableMaps[0];
-
-            if (!string.IsNullOrWhiteSpace(SelectedMapItem?.MapId))
-                OpenWorldMap(SelectedMapItem.MapId);
+                MapId = MapId,
+                Name = MapName,
+                Description = MapDescription,
+                UpdatedAtUtc = LastRefreshAtUtc == default ? DateTime.UtcNow : LastRefreshAtUtc
+            });
+            SelectedMapItem = AvailableMaps[0];
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Ошибка загрузки списка карт мира: {ex.Message}";
+            ErrorMessage = $"Ошибка загрузки активной карты мира: {ex.Message}";
             StatusMessage = "Карта мира пока недоступна.";
             ClientLogService.Instance.Warn($"player.map.world.list.error message={ex.Message}");
         }
@@ -356,27 +384,7 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
                 return;
             }
 
-            var map = AsMap(Get(response.Payload, "map"));
-            MapId = FirstNonEmpty(Str(Get(map, "mapId")), mapId);
-            MapName = FirstNonEmpty(Str(Get(map, "name")), "Карта мира");
-            MapDescription = Str(Get(map, "description"));
-            WidthCells = Int(Get(map, "widthCells"), 0);
-            HeightCells = Int(Get(map, "heightCells"), 0);
-            MapProjection = FirstNonEmpty(Str(Get(map, "projectionMode")), WorldMapProjectionModeIds.FlatGrid);
-
-            ParseLayers(map);
-            ParseLegends(map);
-            ParseMarkers(map);
-            RebuildCanvas();
-
-            if (Markers.Count == 0)
-                StatusMessage = "На карте нет видимых маркеров.";
-            else
-                StatusMessage = $"Карта загружена. Видимых маркеров: {Markers.Count}.";
-
-            var warnings = ToStrings(Get(response.Payload, "warnings"));
-            WarningMessage = warnings.Count > 0 ? string.Join(" | ", warnings) : string.Empty;
-            LastRefreshAtUtc = DateTime.UtcNow;
+            ApplyWorldMapPayload(response.Payload, mapId);
         }
         catch (Exception ex)
         {
@@ -390,6 +398,31 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         }
     }
 
+    private void ApplyWorldMapPayload(Dictionary<string, object> payload, string fallbackMapId)
+    {
+        var map = AsMap(Get(payload, "map"));
+        MapId = FirstNonEmpty(Str(Get(map, "mapId")), fallbackMapId);
+        MapName = FirstNonEmpty(Str(Get(map, "name")), "Карта мира");
+        MapDescription = Str(Get(map, "description"));
+        WidthCells = Int(Get(map, "widthCells"), 0);
+        HeightCells = Int(Get(map, "heightCells"), 0);
+        MapProjection = FirstNonEmpty(Str(Get(map, "projectionMode")), WorldMapProjectionModeIds.FlatGrid);
+
+        ParseLayers(map);
+        ParseLegends(map);
+        ParseMarkers(map);
+        ParseTokens(map);
+        RebuildCanvas();
+
+        StatusMessage = Markers.Count == 0 && Tokens.Count == 0
+            ? "На карте нет видимых маркеров и токенов."
+            : $"Карта загружена. Видимых маркеров: {Markers.Count}; токенов: {Tokens.Count}.";
+
+        var warnings = ToStrings(Get(payload, "warnings"));
+        WarningMessage = warnings.Count > 0 ? string.Join(" | ", warnings) : string.Empty;
+        LastRefreshAtUtc = DateTime.UtcNow;
+    }
+
     private void ParseLayers(Dictionary<string, object> map)
     {
         LayerOptions.Clear();
@@ -398,7 +431,7 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         {
             var layerType = Str(Get(layerPayload, "layerType"));
             if (string.IsNullOrWhiteSpace(layerType)) continue;
-            LayerOptions.Add(layerType);
+            LayerOptions.Add(new PlayerWorldLayerOptionVm(layerType, LayerDisplayName(layerType)));
 
             var cells = new List<PlayerWorldCellUiItem>();
             foreach (var cellPayload in Dictionaries(Get(layerPayload, "cells")))
@@ -419,10 +452,10 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         }
 
         if (LayerOptions.Count == 0)
-            LayerOptions.Add(WorldMapLayerTypeIds.Marker);
+            LayerOptions.Add(new PlayerWorldLayerOptionVm(WorldMapLayerTypeIds.Marker, LayerDisplayName(WorldMapLayerTypeIds.Marker)));
 
-        if (!LayerOptions.Contains(SelectedLayerType))
-            SelectedLayerType = LayerOptions[0];
+        if (!LayerOptions.Any(x => string.Equals(x.Value, SelectedLayerType, StringComparison.OrdinalIgnoreCase)))
+            SelectedLayerType = LayerOptions[0].Value;
     }
 
     private readonly Dictionary<string, List<PlayerWorldCellUiItem>> _layerCells = new(StringComparer.OrdinalIgnoreCase);
@@ -463,6 +496,15 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         Notify(nameof(MarkerSummaryText));
     }
 
+    private void ParseTokens(Dictionary<string, object> map)
+    {
+        Tokens.Clear();
+        foreach (var tokenPayload in Dictionaries(Get(map, "tokens")))
+            Tokens.Add(PlayerWorldTokenUiItem.From(tokenPayload));
+        SelectedToken = Tokens.FirstOrDefault();
+        Notify(nameof(TokenSummaryText));
+    }
+
     private void AddMarkerIfNew(PlayerWorldMarkerUiItem marker, HashSet<string> seen)
     {
         var key = $"{marker.Name}|{marker.MarkerType}|{marker.CellX}|{marker.CellY}";
@@ -477,6 +519,30 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         RebuildCells();
         RebuildLegend();
         ClientLogService.Instance.Info("player.map.world.layer.selected");
+    }
+
+    private void ZoomIn()
+    {
+        _zoomFactor = Math.Min(4d, _zoomFactor * 1.25d);
+        RebuildCanvas();
+    }
+
+    private void ZoomOut()
+    {
+        _zoomFactor = Math.Max(0.25d, _zoomFactor / 1.25d);
+        RebuildCanvas();
+    }
+
+    private void ResetView()
+    {
+        _zoomFactor = 1d;
+        RebuildCanvas();
+    }
+
+    private void FitToMap()
+    {
+        _zoomFactor = 1d;
+        RebuildCanvas();
     }
 
     private void RebuildCanvas()
@@ -499,7 +565,7 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         var targetHeight = 540d;
         var pxByWidth = targetWidth / Math.Max(1, WidthCells);
         var pxByHeight = targetHeight / Math.Max(1, HeightCells);
-        _cellPixelSize = Math.Max(2d, Math.Min(16d, Math.Min(pxByWidth, pxByHeight)));
+        _cellPixelSize = Math.Max(2d, Math.Min(16d, Math.Min(pxByWidth, pxByHeight))) * _zoomFactor;
 
         CanvasWidth = Math.Round(Math.Max(240d, WidthCells * _cellPixelSize), 2);
         CanvasHeight = Math.Round(Math.Max(180d, HeightCells * _cellPixelSize), 2);
@@ -519,6 +585,7 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
 
         RebuildCells();
         RebuildMarkers();
+        RebuildTokens();
         Hints.Add($"Координаты: X 0..{Math.Max(0, WidthCells - 1)}, Y 0..{Math.Max(0, HeightCells - 1)}");
     }
 
@@ -562,6 +629,16 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         }
     }
 
+    private void RebuildTokens()
+    {
+        if (_cellPixelSize <= 0) return;
+        foreach (var token in Tokens)
+        {
+            token.PixelX = (token.CellX * _cellPixelSize) + (_cellPixelSize * 0.5d);
+            token.PixelY = (token.CellY * _cellPixelSize) + (_cellPixelSize * 0.5d);
+        }
+    }
+
     private void RebuildLegend()
     {
         LegendEntries.Clear();
@@ -581,7 +658,9 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         LayerOptions.Clear();
         LegendEntries.Clear();
         Markers.Clear();
+        Tokens.Clear();
         Notify(nameof(MarkerSummaryText));
+        Notify(nameof(TokenSummaryText));
         LayerCells.Clear();
         GridLines.Clear();
         Hints.Clear();
@@ -597,10 +676,10 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
 
         var text = (response.Message ?? string.Empty).Trim();
         if (response.Status == ResponseStatus.Forbidden && text.IndexOf("disabled", StringComparison.OrdinalIgnoreCase) >= 0)
-            error = "Карта мира пока недоступна.";
+            error = "Карта мира выключена feature flags.";
         else if (text.IndexOf("feature flag", StringComparison.OrdinalIgnoreCase) >= 0 ||
                  text.IndexOf("flags", StringComparison.OrdinalIgnoreCase) >= 0)
-            error = "Карта мира пока недоступна.";
+            error = "Карта мира выключена feature flags.";
         else if (response.Status == ResponseStatus.NotFound)
             error = "Карта мира не найдена.";
         else if (response.Status == ResponseStatus.Forbidden)
@@ -618,6 +697,17 @@ public sealed class PlayerWorldMapViewModel : ViewModelBase
         if (string.Equals(layerType, WorldMapLayerTypeIds.Political, StringComparison.OrdinalIgnoreCase)) return "Страны / области";
         if (string.Equals(layerType, WorldMapLayerTypeIds.Marker, StringComparison.OrdinalIgnoreCase)) return "Маркеры";
         return string.IsNullOrWhiteSpace(layerType) ? "Слой" : layerType;
+    }
+
+    private static string ProjectionDisplayName(string projectionMode)
+    {
+        if (string.Equals(projectionMode, WorldMapProjectionModeIds.FlatGrid, StringComparison.OrdinalIgnoreCase))
+            return "Плоская сетка";
+        if (string.Equals(projectionMode, WorldMapProjectionModeIds.EquirectangularPlaceholder, StringComparison.OrdinalIgnoreCase))
+            return "Планетарная развёртка";
+        return string.Equals(projectionMode, WorldMapProjectionModeIds.Custom, StringComparison.OrdinalIgnoreCase)
+            ? "Пользовательская"
+            : "Карта";
     }
 
     private static string ResolveCellColor(string layerType, string valueKey)
@@ -773,7 +863,7 @@ public sealed class PlayerWorldMapListItemVm
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public DateTime UpdatedAtUtc { get; set; }
-    public string Display => string.IsNullOrWhiteSpace(Description) ? Name : $"{Name} — {Description}";
+    public string Display => string.IsNullOrWhiteSpace(Description) ? Name : $"{Name} · {Description}";
 }
 
 public sealed class PlayerWorldCellUiItem
@@ -833,8 +923,8 @@ public sealed class PlayerWorldMarkerUiItem : ViewModelBase
     };
 
     public string CoordinatesText => CellX >= 0 && CellY >= 0
-        ? $"cell:{CellX},{CellY}"
-        : $"n:{XNormalized:0.###},{YNormalized:0.###}";
+        ? $"Клетка {CellX}, {CellY}"
+        : $"Позиция {XNormalized:0.###}, {YNormalized:0.###}";
 
     public string BindingText
     {
@@ -931,9 +1021,112 @@ public sealed class PlayerWorldMarkerUiItem : ViewModelBase
     }
 }
 
+public sealed class PlayerWorldTokenUiItem : ViewModelBase
+{
+    private bool _isSelected;
+    public string TokenId { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string TokenType { get; set; } = "Object";
+    public int CellX { get; set; }
+    public int CellY { get; set; }
+    public string DescriptionPlayer { get; set; } = string.Empty;
+    public string LinkedEntityType { get; set; } = string.Empty;
+    public string LinkedEntityDisplayName { get; set; } = string.Empty;
+    public double PixelX { get; set; }
+    public double PixelY { get; set; }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { if (_isSelected != value) { _isSelected = value; Notify(); } }
+    }
+
+    public string TokenTypeDisplay => TokenType switch
+    {
+        "Party" => "Группа",
+        "PlayerCharacter" => "Персонаж",
+        "Companion" => "Спутник",
+        "Npc" => "NPC",
+        "Enemy" => "Противник",
+        "Object" => "Объект",
+        "Hazard" => "Опасность",
+        "Objective" => "Цель",
+        "Vehicle" => "Техника",
+        "GmNote" => "GM-заметка",
+        _ => "Другое"
+    };
+
+    public string CoordinatesText => $"Клетка {CellX}, {CellY}";
+
+    public string BindingText
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(LinkedEntityType) && string.IsNullOrWhiteSpace(LinkedEntityDisplayName))
+                return "Без привязки";
+            if (string.IsNullOrWhiteSpace(LinkedEntityDisplayName))
+                return LinkedEntityType;
+            return $"{LinkedEntityType}: {LinkedEntityDisplayName}";
+        }
+    }
+
+    public static PlayerWorldTokenUiItem From(Dictionary<string, object> payload)
+    {
+        return new PlayerWorldTokenUiItem
+        {
+            TokenId = FirstNonEmpty(GetText(payload, "tokenId"), GetText(payload, "id")),
+            DisplayName = FirstNonEmpty(GetText(payload, "displayName"), GetText(payload, "name"), "Токен"),
+            TokenType = FirstNonEmpty(GetText(payload, "tokenType"), "Object"),
+            CellX = (int)Math.Round(ToDouble(GetAny(payload, "x"), 0d)),
+            CellY = (int)Math.Round(ToDouble(GetAny(payload, "y"), 0d)),
+            DescriptionPlayer = FirstNonEmpty(GetText(payload, "descriptionPlayer"), GetText(payload, "cardDescription")),
+            LinkedEntityType = GetText(payload, "linkedEntityType"),
+            LinkedEntityDisplayName = FirstNonEmpty(GetText(payload, "linkedEntityDisplayName"), GetText(payload, "publicLabel"))
+        };
+    }
+
+    private static object? GetAny(Dictionary<string, object> payload, string key)
+    {
+        if (payload.TryGetValue(key, out var value)) return value;
+        foreach (var pair in payload)
+            if (string.Equals(pair.Key, key, StringComparison.OrdinalIgnoreCase))
+                return pair.Value;
+        return null;
+    }
+
+    private static string GetText(Dictionary<string, object> payload, string key)
+        => Convert.ToString(GetAny(payload, key)) ?? string.Empty;
+
+    private static string FirstNonEmpty(params string[] values)
+        => values.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? string.Empty;
+
+    private static double ToDouble(object? value, double fallback)
+    {
+        if (value is double d) return d;
+        if (value is float f) return f;
+        if (value is decimal m) return (double)m;
+        return double.TryParse(Convert.ToString(value), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) ? parsed : fallback;
+    }
+}
+
 public sealed class PlayerLegendEntryVm
 {
     public string Key { get; set; } = string.Empty;
     public string Label { get; set; } = string.Empty;
-    public string Display => string.IsNullOrWhiteSpace(Key) ? Label : $"{Label} ({Key})";
+    public string Display => string.IsNullOrWhiteSpace(Label)
+        ? PlayerDevelopmentGraphDisplay.ToReadableText(Key)
+        : Label;
 }
+
+public sealed class PlayerWorldLayerOptionVm
+{
+    public PlayerWorldLayerOptionVm(string value, string label)
+    {
+        Value = value;
+        Label = label;
+    }
+
+    public string Value { get; }
+    public string Label { get; }
+}
+

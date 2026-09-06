@@ -1,181 +1,223 @@
-<UserControl x:Class="Nri.AdminClient.Views.Sessions.AdminCurrentSessionView"
+﻿<UserControl x:Class="Nri.AdminClient.Views.Sessions.AdminCurrentSessionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:Nri.AdminClient.ViewModels">
-    <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
-    </UserControl.Resources>
-    <Grid Margin="8">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminCurrentSession_OperationalHost">
+        <Grid Margin="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,8">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel>
-                    <TextBlock Text="Текущая сессия" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Проверить flags" Style="{StaticResource GhostButtonStyle}" Command="{Binding RefreshFlagsCommand}"/>
-                    <Button Content="Обновить" Margin="8,0,0,0" Command="{Binding LoadCommand}" IsEnabled="{Binding CanUseSession}"/>
-                    <Button Content="Создать" Margin="8,0,0,0" Command="{Binding CreateCommand}" IsEnabled="{Binding CanUseSession}"/>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.05*"/>
-                <ColumnDefinition Width="1.15*"/>
-                <ColumnDefinition Width="1.05*"/>
-            </Grid.ColumnDefinitions>
-
-            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,8,0">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <TextBlock Text="Основное" Style="{StaticResource SectionTitleTextStyle}"/>
-                        <TextBlock Text="CampaignId" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBlock Text="SessionId" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBlock Text="Название" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding SessionName, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBlock Text="Описание" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" MinHeight="56" TextWrapping="Wrap" AcceptsReturn="True"/>
-                        <UniformGrid Columns="2" Margin="0,10,0,0">
-                            <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,6,6">
-                                <StackPanel>
-                                    <TextBlock Text="Статус" Style="{StaticResource TitleTextStyle}"/>
-                                    <TextBlock Text="{Binding StatusDisplay}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,6">
-                                <StackPanel>
-                                    <TextBlock Text="Режим" Style="{StaticResource TitleTextStyle}"/>
-                                    <TextBlock Text="{Binding ModeDisplay}"/>
-                                </StackPanel>
-                            </Border>
-                        </UniformGrid>
-                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                            <Button Content="Сохранить" Command="{Binding UpdateCommand}" IsEnabled="{Binding CanWriteSession}"/>
-                            <Button Content="Старт" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding StartCommand}" IsEnabled="{Binding CanWriteSession}"/>
-                            <Button Content="Пауза" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding PauseCommand}" IsEnabled="{Binding CanWriteSession}"/>
-                            <Button Content="Продолжить" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding ResumeCommand}" IsEnabled="{Binding CanWriteSession}"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <Button Content="Завершить" Style="{StaticResource GhostButtonStyle}" Command="{Binding CompleteCommand}" IsEnabled="{Binding CanWriteSession}"/>
-                            <Button Content="Отменить" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding CancelCommand}" IsEnabled="{Binding CanWriteSession}"/>
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-
-            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,8,0">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <TextBlock Text="Сцена и активные ссылки" Style="{StaticResource SectionTitleTextStyle}"/>
-                        <UniformGrid Columns="2" Margin="0,8,0,8">
-                            <Border Style="{StaticResource SummaryMetricCardStyle}" Margin="0,0,6,6">
-                                <StackPanel>
-                                    <TextBlock Text="Сцена" Style="{StaticResource TitleTextStyle}"/>
-                                    <TextBlock Text="{Binding SceneSummary}" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource SummaryMetricCardStyle}" Margin="0,0,0,6">
-                                <StackPanel>
-                                    <TextBlock Text="Карта сцены" Style="{StaticResource TitleTextStyle}"/>
-                                    <TextBlock Text="{Binding SceneMapSummary}" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource SummaryMetricCardStyle}" Margin="0,0,6,6">
-                                <StackPanel>
-                                    <TextBlock Text="Бой" Style="{StaticResource TitleTextStyle}"/>
-                                    <TextBlock Text="{Binding CombatSummary}" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource SummaryMetricCardStyle}" Margin="0,0,0,6">
-                                <StackPanel>
-                                    <TextBlock Text="Игрокам" Style="{StaticResource TitleTextStyle}"/>
-                                    <TextBlock Text="{Binding IsPlayerVisible}"/>
-                                </StackPanel>
-                            </Border>
-                        </UniformGrid>
-
-                        <TextBlock Text="CurrentSceneId" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding CurrentSceneId, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBlock Text="Название сцены" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding CurrentSceneName, UpdateSourceTrigger=PropertyChanged}"/>
-                        <Button Content="Сохранить сцену" Margin="0,8,0,0" Command="{Binding SetSceneCommand}" IsEnabled="{Binding CanWriteSession}"/>
-
-                        <TextBlock Text="Режим сессии" Foreground="{StaticResource MutedBrush}" Margin="0,12,0,2"/>
-                        <ComboBox ItemsSource="{Binding ModeOptions}" SelectedItem="{Binding Mode, UpdateSourceTrigger=PropertyChanged}"/>
-                        <Button Content="Сменить режим" Margin="0,8,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SetModeCommand}" IsEnabled="{Binding CanWriteSession}"/>
-
-                        <TextBlock Text="Scene MapId" Foreground="{StaticResource MutedBrush}" Margin="0,12,0,2"/>
-                        <TextBox Text="{Binding ActiveSceneMapId, UpdateSourceTrigger=PropertyChanged}"/>
-                        <Button Content="Назначить активную карту сцены" Margin="0,8,0,0" Command="{Binding SetActiveSceneMapCommand}" IsEnabled="{Binding CanWriteSession}"/>
-
-                        <TextBlock Text="Combat EncounterId" Foreground="{StaticResource MutedBrush}" Margin="0,12,0,2"/>
-                        <TextBox Text="{Binding ActiveCombatEncounterId, UpdateSourceTrigger=PropertyChanged}"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <Button Content="Назначить бой" Command="{Binding SetActiveCombatCommand}" IsEnabled="{Binding CanWriteSession}"/>
-                            <Button Content="Снять бой" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding ClearActiveCombatCommand}" IsEnabled="{Binding CanWriteSession}"/>
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-
-            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="12">
+            <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,8">
                 <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="Заметки и быстрые переходы" Style="{StaticResource SectionTitleTextStyle}"/>
-                        <CheckBox Content="Сессия видна игрокам" IsChecked="{Binding IsPlayerVisible}" Margin="0,8,0,0"/>
-                        <TextBlock Text="VisibilityMode" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding VisibilityMode, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBlock Text="Публичные заметки" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding PublicNotes, UpdateSourceTrigger=PropertyChanged}" MinHeight="70" TextWrapping="Wrap" AcceptsReturn="True"/>
-                        <TextBlock Text="Заметки GM" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding GMNotes, UpdateSourceTrigger=PropertyChanged}" MinHeight="70" TextWrapping="Wrap" AcceptsReturn="True"/>
-                        <Button Content="Сохранить заметки" Margin="0,8,0,10" Command="{Binding SaveNotesCommand}" IsEnabled="{Binding CanWriteSession}"/>
+                        <TextBlock Text="Проведение сессии" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                     </StackPanel>
-                    <ListBox Grid.Row="1" ItemsSource="{Binding QuickLinks}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:SessionQuickLinkVm}">
-                                <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,6" Padding="8">
-                                    <StackPanel>
-                                        <DockPanel>
-                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                            <TextBlock DockPanel.Dock="Right" Text="{Binding StateText}" Foreground="{StaticResource MutedBrush}"/>
-                                        </DockPanel>
-                                        <TextBlock Text="{Binding TargetId}" Foreground="{StaticResource MutedBrush}" FontSize="11" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+                        <Button AutomationProperties.AutomationId="AdminSession_Refresh" Content="Обновить" Command="{Binding LoadCommand}" IsEnabled="{Binding CanUseSession}"/>
+                        <Button AutomationProperties.AutomationId="AdminSession_Create" Content="Создать сессию" Margin="8,0,0,0" Command="{Binding CreateCommand}" IsEnabled="{Binding CanUseSession}"/>
+                    </WrapPanel>
                 </Grid>
             </Border>
-        </Grid>
 
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8" Margin="0,8,0,0">
-            <DockPanel>
-                <TextBlock Text="{Binding LastRefreshText}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Right"/>
-                <StackPanel>
-                    <TextBlock Text="{Binding WarningMessage}" Foreground="#FFFBBF24" TextWrapping="Wrap"/>
-                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFFCA5A5" TextWrapping="Wrap"/>
-                </StackPanel>
-            </DockPanel>
-        </Border>
-    </Grid>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.95*" MinWidth="260"/>
+                    <ColumnDefinition Width="1.1*" MinWidth="300"/>
+                    <ColumnDefinition Width="1.05*" MinWidth="300"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,8,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+                            <TextBlock Text="Сессия" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock Text="Название" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,3"/>
+                            <TextBox AutomationProperties.AutomationId="AdminSession_Name" Text="{Binding SessionName, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Краткое описание" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,3"/>
+                            <TextBox AutomationProperties.AutomationId="AdminSession_Description" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" MinHeight="64" TextWrapping="Wrap" AcceptsReturn="True"/>
+
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Состояние" Foreground="{StaticResource MutedBrush}"/>
+                                    <TextBlock Text="{Binding StatusDisplay}" FontWeight="SemiBold" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="Режим" Foreground="{StaticResource MutedBrush}"/>
+                                    <TextBlock Text="{Binding ModeDisplay}" FontWeight="SemiBold" Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="Режим проведения" Foreground="{StaticResource MutedBrush}" Margin="0,14,0,3"/>
+                            <ComboBox AutomationProperties.AutomationId="AdminSession_Mode"
+                                      ItemsSource="{Binding ModeOptions}" SelectedValuePath="Id"
+                                      SelectedValue="{Binding Mode, UpdateSourceTrigger=PropertyChanged}"/>
+                            <WrapPanel Margin="0,8,0,0">
+                                <Button Content="Применить режим" Command="{Binding SetModeCommand}" IsEnabled="{Binding CanWriteSession}"/>
+                                <Button Content="Сохранить" Margin="8,0,0,0" Command="{Binding UpdateCommand}" IsEnabled="{Binding CanWriteSession}"/>
+                            </WrapPanel>
+
+                            <TextBlock Text="Управление" Foreground="{StaticResource MutedBrush}" Margin="0,16,0,4"/>
+                            <WrapPanel>
+                                <Button Content="Начать" Command="{Binding StartCommand}" IsEnabled="{Binding CanWriteSession}"/>
+                                <Button Content="Пауза" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding PauseCommand}" IsEnabled="{Binding CanWriteSession}"/>
+                                <Button Content="Продолжить" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding ResumeCommand}" IsEnabled="{Binding CanWriteSession}"/>
+                            </WrapPanel>
+                            <WrapPanel Margin="0,6,0,0">
+                                <Button Content="Завершить" Style="{StaticResource GhostButtonStyle}" Command="{Binding CompleteCommand}" IsEnabled="{Binding CanWriteSession}"/>
+                                <Button Content="Отменить" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding CancelCommand}" IsEnabled="{Binding CanWriteSession}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,8,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+                            <TextBlock Text="Игровой контекст" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock Text="Сцена" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,3"/>
+                            <TextBlock Text="{Binding SceneSummary}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                            <TextBox AutomationProperties.AutomationId="AdminSession_SceneName" Text="{Binding CurrentSceneName, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0"/>
+                            <Button Content="Обновить название сцены" Margin="0,6,0,0" HorizontalAlignment="Left" Command="{Binding SetSceneCommand}" IsEnabled="{Binding CanWriteSession}"/>
+
+                            <Separator Margin="0,12"/>
+                            <TextBlock Text="Активная карта" Foreground="{StaticResource MutedBrush}"/>
+                            <TextBlock Text="{Binding SceneMapSummary}" FontWeight="SemiBold" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                            <TextBlock Text="Карта назначается в редакторе карт и связывается с этой сессией сервером." Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+
+                            <TextBlock Text="Активный бой" Foreground="{StaticResource MutedBrush}" Margin="0,14,0,0"/>
+                            <TextBlock Text="{Binding CombatSummary}" FontWeight="SemiBold" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                            <Button Content="Снять активный бой" Margin="0,7,0,0" HorizontalAlignment="Left" Style="{StaticResource GhostButtonStyle}" Command="{Binding ClearActiveCombatCommand}" IsEnabled="{Binding CanWriteSession}"/>
+
+                            <TextBlock Text="Связанные разделы" Foreground="{StaticResource MutedBrush}" Margin="0,16,0,4"/>
+                            <ItemsControl ItemsSource="{Binding QuickLinks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,3">
+                                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Title}" TextWrapping="Wrap"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding StateText}" Foreground="{StaticResource MutedBrush}" Margin="8,0,0,0"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="12">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+                            <TextBlock Text="Требует внимания" Style="{StaticResource SectionTitleTextStyle}" AutomationProperties.AutomationId="AdminSession_Attention_Title"/>
+                            <TextBlock Text="Заявки и решения из существующих рабочих очередей." Foreground="{StaticResource MutedBrush}" Margin="0,3,0,8" TextWrapping="Wrap"/>
+                            <ItemsControl ItemsSource="{Binding AttentionItems}" AutomationProperties.AutomationId="AdminSession_Attention_Items">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,8" Padding="8">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Summary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                    <Border HorizontalAlignment="Left" MinWidth="132" Margin="0,7,0,0" Padding="8,3"
+                                                            Background="{StaticResource NriSecondarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="3">
+                                                        <TextBlock Text="{Binding State}" TextWrapping="NoWrap" TextAlignment="Center"
+                                                                   AutomationProperties.AutomationId="AdminSession_Attention_Status"/>
+                                                    </Border>
+                                                    <Button Content="Открыть"
+                                                            HorizontalAlignment="Left"
+                                                            Margin="0,7,0,0"
+                                                            Command="{Binding DataContext.SelectSectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding ActionRoute}"
+                                                            AutomationProperties.AutomationId="AdminSession_Attention_Open"/>
+                                                </StackPanel>
+                                            </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Expander Header="Безопасная автоматизация" Margin="0,8,0,0"
+                                      AutomationProperties.AutomationId="AdminSession_AutomationExpander">
+                                <StackPanel Margin="0,8,0,0">
+                                    <TextBlock Text="Политики используют только типизированные действия. Опасные изменения требуют подтверждения GM." Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                    <ListBox ItemsSource="{Binding AutomationPolicies}" SelectedItem="{Binding SelectedAutomationPolicy}" MaxHeight="180"
+                                             AutomationProperties.AutomationId="AdminSession_AutomationPolicies">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,0,0,8">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Trigger}" Foreground="{StaticResource MutedBrush}"/>
+                                                    <TextBlock Text="{Binding Decision}" Foreground="{StaticResource MutedBrush}"/>
+                                                    <TextBlock Text="{Binding Description}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <Button Content="Проверить без изменений" Command="{Binding PreviewAutomationCommand}" IsEnabled="{Binding CanPreviewAutomation}"
+                                            HorizontalAlignment="Left" Margin="0,6,0,0" AutomationProperties.AutomationId="AdminSession_AutomationDryRun"/>
+                                    <TextBlock Text="{Binding AutomationPreview}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </Expander>
+
+                            <Expander Header="Участники кампании" Margin="0,8,0,0"
+                                      AutomationProperties.AutomationId="AdminSession_MembersExpander">
+                                <StackPanel Margin="0,8,0,0">
+                                    <TextBlock Text="Роли и основные права показаны понятными названиями. Полный набор прав контролирует сервер."
+                                               Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                    <ItemsControl ItemsSource="{Binding CampaignMembers}" AutomationProperties.AutomationId="AdminSession_CampaignMembers">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,6" Padding="10,8">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Identity}" FontWeight="SemiBold" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="Основные права" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,2"/>
+                                                            <TextBlock Text="{Binding RightsSummary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Top" TextAlignment="Right" TextWrapping="Wrap">
+                                                            <Run Text="Роль: "/><Run Text="{Binding Role}"/><LineBreak/><Run Text="{Binding Status}"/>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Expander>
+
+                            <Expander Header="Заметки сессии" Margin="0,8,0,0">
+                                <StackPanel Margin="0,8,0,0">
+                                    <CheckBox Content="Сессия видна игрокам" IsChecked="{Binding IsPlayerVisible}"/>
+                                    <TextBlock Text="Видимость" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,3"/>
+                                    <ComboBox ItemsSource="{Binding VisibilityOptions}" SelectedValuePath="Id" SelectedValue="{Binding VisibilityMode}"/>
+                                    <TextBlock Text="Игрокам" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,3"/>
+                                    <TextBox Text="{Binding PublicNotes, UpdateSourceTrigger=PropertyChanged}" MinHeight="58" TextWrapping="Wrap" AcceptsReturn="True"/>
+                                    <TextBlock Text="Только GM" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,3"/>
+                                    <TextBox Text="{Binding GMNotes, UpdateSourceTrigger=PropertyChanged}" MinHeight="58" TextWrapping="Wrap" AcceptsReturn="True"/>
+                                    <Button Content="Сохранить заметки" Margin="0,8,0,0" HorizontalAlignment="Left" Command="{Binding SaveNotesCommand}" IsEnabled="{Binding CanWriteSession}"/>
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8" Margin="0,8,0,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding LastRefreshText}" Foreground="{StaticResource MutedBrush}"/>
+                    <StackPanel>
+                        <TextBlock Text="{Binding WarningMessage}" Foreground="#FFFBBF24" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFFCA5A5" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </patterns:NriOperationalWorkspaceHost>
 </UserControl>
+

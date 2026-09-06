@@ -2,8 +2,10 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:Nri.PlayerClient.ViewModels"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
              AutomationProperties.AutomationId="PlayerEventJournal_Tab">
-    <Grid Margin="8">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="PlayerEventJournal_Workspace">
+      <Grid Margin="8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -19,13 +21,12 @@
 
                 <StackPanel>
                     <TextBlock Text="Журнал событий" FontSize="20" FontWeight="Bold"/>
-                    <TextBlock Text="Только события, открытые игрокам. Внутренние GM-детали не отображаются."
+                    <TextBlock Text="События, которые известны активному персонажу."
                                Foreground="{StaticResource TextSecondaryBrush}"
                                Margin="0,4,0,0"/>
                 </StackPanel>
 
                 <WrapPanel Grid.Column="1" VerticalAlignment="Center">
-                    <Button AutomationProperties.AutomationId="PlayerEventJournal_CheckFlags_Button" Content="Проверить доступность" Command="{Binding RefreshFlagsCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,6,0"/>
                     <Button AutomationProperties.AutomationId="PlayerEventJournal_Refresh_Button" Content="Обновить" Command="{Binding RefreshCommand}" Margin="0,0,6,0"/>
                     <Button AutomationProperties.AutomationId="PlayerEventJournal_Search_Button" Content="Поиск" Command="{Binding SearchCommand}"/>
                 </WrapPanel>
@@ -46,19 +47,14 @@
                     </Grid.RowDefinitions>
 
                     <WrapPanel Grid.Row="0" Margin="0,0,0,8">
-                        <StackPanel Width="150" Margin="0,0,8,0">
-                            <TextBlock Text="Кампания" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBox Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-                        <StackPanel Width="150" Margin="0,0,8,0">
-                            <TextBlock Text="Сессия" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBox Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-                        <StackPanel Width="170" Margin="0,0,8,0">
+                        <StackPanel Width="190" Margin="0,0,8,0">
                             <TextBlock Text="Категория" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <ComboBox AutomationProperties.AutomationId="PlayerEventJournal_Filter_Type" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding Category}"/>
+                            <ComboBox AutomationProperties.AutomationId="PlayerEventJournal_Filter_Type"
+                                      ItemsSource="{Binding CategoryOptions}"
+                                      SelectedItem="{Binding SelectedCategoryOption}"
+                                      DisplayMemberPath="Label"/>
                         </StackPanel>
-                        <StackPanel Width="260">
+                        <StackPanel Width="320">
                             <TextBlock Text="Поиск" Foreground="{StaticResource TextSecondaryBrush}"/>
                             <TextBox AutomationProperties.AutomationId="PlayerEventJournal_Search" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
@@ -74,8 +70,8 @@
                               HeadersVisibility="Column">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Время" Binding="{Binding OccurredText}" Width="130"/>
-                            <DataGridTextColumn Header="Категория" Binding="{Binding Category}" Width="120"/>
-                            <DataGridTextColumn Header="Важность" Binding="{Binding Severity}" Width="110"/>
+                            <DataGridTextColumn Header="Категория" Binding="{Binding CategoryLabel}" Width="120"/>
+                            <DataGridTextColumn Header="Важность" Binding="{Binding SeverityLabel}" Width="110"/>
                             <DataGridTextColumn Header="Событие" Binding="{Binding Title}" Width="2*"/>
                             <DataGridTextColumn Header="Контекст" Binding="{Binding ContextText}" Width="2*"/>
                         </DataGrid.Columns>
@@ -96,11 +92,11 @@
                                 <UniformGrid Columns="2">
                                     <StackPanel Margin="0,0,8,8">
                                         <TextBlock Text="Категория" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding SelectedEntry.Category}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding SelectedEntry.CategoryLabel}" FontWeight="SemiBold"/>
                                     </StackPanel>
                                     <StackPanel Margin="0,0,8,8">
                                         <TextBlock Text="Важность" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding SelectedEntry.Severity}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding SelectedEntry.SeverityLabel}" FontWeight="SemiBold"/>
                                     </StackPanel>
                                     <StackPanel Margin="0,0,8,8">
                                         <TextBlock Text="Когда" Foreground="{StaticResource TextSecondaryBrush}"/>
@@ -122,7 +118,7 @@
                                     <Border Style="{StaticResource CardStyle}" Padding="8" Margin="0,0,0,6">
                                         <StackPanel>
                                             <TextBlock Text="{Binding Display}" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding LinkRole}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding LinkRoleLabel}" Foreground="{StaticResource TextSecondaryBrush}"/>
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -154,5 +150,6 @@
                 <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" DockPanel.Dock="Right" TextWrapping="Wrap"/>
             </DockPanel>
         </Border>
-    </Grid>
+      </Grid>
+    </patterns:NriOperationalWorkspaceHost>
 </UserControl>

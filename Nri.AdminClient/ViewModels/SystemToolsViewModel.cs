@@ -47,6 +47,8 @@ public sealed partial class SystemToolsViewModel : ViewModelBase
     private string _combatSmokeSummary = "Проверка боя не запускалась.";
     private string _definitionDryRunSummary = "Проверка справочников не запускалась.";
     private string _inventoryDiagnosticsSummary = "Диагностика инвентаря не запускалась.";
+    private string _performanceSummary = "Метрики производительности не загружены.";
+    private string _performanceWarnings = "Предупреждений нет.";
 
     public SystemToolsViewModel(CommandApi api)
     {
@@ -59,6 +61,8 @@ public sealed partial class SystemToolsViewModel : ViewModelBase
         RunDefinitionDryRunCommand = new RelayCommand(RunDefinitionDryRun);
         RunInventoryDiagnosticsCommand = new RelayCommand(RunInventoryDiagnostics);
         RefreshServerStatusCommand = new RelayCommand(RefreshServerStatus);
+        RefreshPerformanceCommand = new RelayCommand(RefreshPerformance);
+        ExportPerformanceSnapshotCommand = new RelayCommand(ExportPerformanceSnapshot);
         RefreshLogsCommand = new RelayCommand(RefreshLogs);
         RefreshBackupsCommand = new RelayCommand(RefreshBackups);
         CreateBackupCommand = new RelayCommand(CreateBackup);
@@ -68,6 +72,7 @@ public sealed partial class SystemToolsViewModel : ViewModelBase
         RefreshBackupMaintenanceCommand = new RelayCommand(RefreshBackupMaintenance);
         SetBackupMaintenanceCommand = new RelayCommand(SetBackupMaintenance);
         InitializeDataPortabilityCommands();
+        InitializeReferencePack0188();
         ClearErrorCommand = new RelayCommand(() => { ErrorMessage = string.Empty; StatusMessage = "Ошибки очищены."; });
         RefreshLocalClientStatus();
     }
@@ -83,6 +88,9 @@ public sealed partial class SystemToolsViewModel : ViewModelBase
     public ObservableCollection<SystemMetricUiItem> ServerMetrics { get; } = new ObservableCollection<SystemMetricUiItem>();
     public ObservableCollection<LogLineUiItem> ClientLogLines { get; } = new ObservableCollection<LogLineUiItem>();
     public ObservableCollection<BackupListUiItem> Backups { get; } = new ObservableCollection<BackupListUiItem>();
+    public ObservableCollection<PerformanceCommandUiItem0214> PerformanceCommands { get; } = new ObservableCollection<PerformanceCommandUiItem0214>();
+    public ObservableCollection<PerformanceClientUiItem0214> PerformanceClients { get; } = new ObservableCollection<PerformanceClientUiItem0214>();
+    public ObservableCollection<SystemMetricUiItem> PerformanceServerMetrics { get; } = new ObservableCollection<SystemMetricUiItem>();
 
     public ICommand RefreshAllCommand { get; }
     public ICommand LoadFeatureFlagsCommand { get; }
@@ -92,6 +100,8 @@ public sealed partial class SystemToolsViewModel : ViewModelBase
     public ICommand RunDefinitionDryRunCommand { get; }
     public ICommand RunInventoryDiagnosticsCommand { get; }
     public ICommand RefreshServerStatusCommand { get; }
+    public ICommand RefreshPerformanceCommand { get; }
+    public ICommand ExportPerformanceSnapshotCommand { get; }
     public ICommand RefreshLogsCommand { get; }
     public ICommand RefreshBackupsCommand { get; }
     public ICommand CreateBackupCommand { get; }
@@ -186,6 +196,8 @@ public sealed partial class SystemToolsViewModel : ViewModelBase
     public string CombatSmokeSummary { get => _combatSmokeSummary; private set { if (_combatSmokeSummary != value) { _combatSmokeSummary = value; Notify(); } } }
     public string DefinitionDryRunSummary { get => _definitionDryRunSummary; private set { if (_definitionDryRunSummary != value) { _definitionDryRunSummary = value; Notify(); } } }
     public string InventoryDiagnosticsSummary { get => _inventoryDiagnosticsSummary; private set { if (_inventoryDiagnosticsSummary != value) { _inventoryDiagnosticsSummary = value; Notify(); } } }
+    public string PerformanceSummary { get => _performanceSummary; private set { if (_performanceSummary != value) { _performanceSummary = value; Notify(); } } }
+    public string PerformanceWarnings { get => _performanceWarnings; private set { if (_performanceWarnings != value) { _performanceWarnings = value; Notify(); } } }
 
     public void SelectTab(string tabKey)
     {
@@ -199,6 +211,7 @@ public sealed partial class SystemToolsViewModel : ViewModelBase
             "server" => 6,
             "definition_check" => 7,
             "inventory" => 8,
+            "performance" => 9,
             _ => 0
         };
 
@@ -227,6 +240,8 @@ public sealed partial class SystemToolsViewModel : ViewModelBase
     private void RunDefinitionDryRun() => RunSafe("system.ui.definition_dryrun", RunDefinitionDryRunCore);
     private void RunInventoryDiagnostics() => RunSafe("system.ui.inventory_diagnostics", RunInventoryDiagnosticsCore);
     private void RefreshServerStatus() => RunSafe("system.ui.server_status.refresh", () => { RefreshLocalClientStatus(); RefreshServerStatusCore(); RefreshOverviewCards(); });
+    private void RefreshPerformance() => RunSafe("system.ui.performance.refresh", RefreshPerformanceCore);
+    private void ExportPerformanceSnapshot() => RunSafe("system.ui.performance.export", ExportPerformanceSnapshotCore);
     private void RefreshLogs() => RunSafe("system.ui.logs.opened", RefreshLogsCore);
     private void RefreshBackups() => RunSafe("system.ui.backups.refresh", () => { RefreshBackupsCore(); RefreshBackupMaintenanceCore(); });
     private void CreateBackup() => RunSafe("system.ui.backups.create", CreateBackupCore);
@@ -555,6 +570,107 @@ public sealed partial class SystemToolsViewModel : ViewModelBase
         StatusMessage = ServerStatusSummary;
     }
 
+    private void RefreshPerformanceCore()
+    {
+        PerformanceCommands.Clear();
+        PerformanceClients.Clear();
+        PerformanceServerMetrics.Clear();
+        var response = _api.AdminDiagnosticsGet();
+        if (!IsOk(response))
+        {
+            PerformanceSummary = Friendly(response, "Метрики производительности недоступны.");
+            PerformanceWarnings = PerformanceSummary;
+            StatusMessage = PerformanceSummary;
+            return;
+        }
+
+        var performance = AsDictionary(Get(response.Payload, "performance"));
+        if (performance == null)
+        {
+            PerformanceSummary = "Сервер не вернул performance snapshot.";
+            PerformanceWarnings = PerformanceSummary;
+            StatusMessage = PerformanceSummary;
+            return;
+        }
+
+        var server = AsDictionary(Get(performance, "server")) ?? new Dictionary<string, object>();
+        AddPerformanceMetric("Private bytes", Long(server, "privateBytes"), Long(server, "peakPrivateBytes"));
+        AddPerformanceMetric("Working set", Long(server, "workingSetBytes"), Long(server, "peakWorkingSetBytes"));
+        AddPerformanceMetric("Managed heap", Long(server, "managedHeapBytes"), Long(server, "peakManagedHeapBytes"));
+        PerformanceServerMetrics.Add(new SystemMetricUiItem { Name = "CPU", Value = $"{Double(server, "cpuPercent"):0.##}%", State = "сейчас" });
+        PerformanceServerMetrics.Add(new SystemMetricUiItem { Name = "Потоки", Value = Int(server, "threads").ToString(CultureInfo.CurrentCulture), State = $"пик {Int(server, "peakThreads")}" });
+        PerformanceServerMetrics.Add(new SystemMetricUiItem { Name = "Дескрипторы", Value = Int(server, "handles").ToString(CultureInfo.CurrentCulture), State = $"пик {Int(server, "peakHandles")}" });
+
+        foreach (var client in AsDictionaries(Get(performance, "clientsByType")))
+        {
+            PerformanceClients.Add(new PerformanceClientUiItem0214
+            {
+                ClientType = Str(client, "clientType", "Клиент"),
+                Connected = Int(client, "connected"),
+                Memory = FormatBytes(Long(client, "privateBytes")),
+                PeakMemory = FormatBytes(Long(client, "peakPrivateBytes")),
+                Cpu = Double(client, "cpuPercent"),
+                UiLagP95 = Double(client, "uiLagP95Ms"),
+                UiLagMax = Double(client, "uiLagMaxMs"),
+                Pollers = Int(client, "activePollers"),
+                ReconnectLoops = Int(client, "activeReconnectLoops"),
+                Timers = Int(client, "activeTimers"),
+                InFlightRefreshes = Int(client, "inFlightRefreshes")
+            });
+        }
+
+        foreach (var command in AsDictionaries(Get(performance, "commands")))
+        {
+            PerformanceCommands.Add(new PerformanceCommandUiItem0214
+            {
+                Command = Str(command, "command"),
+                Category = Str(command, "category"),
+                Count = Int(command, "count"),
+                Errors = Int(command, "errors"),
+                P50 = Double(command, "p50Ms"),
+                P95 = Double(command, "p95Ms"),
+                P99 = Double(command, "p99Ms"),
+                Maximum = Long(command, "maxMs"),
+                LargestRequest = Int(command, "maxRequestBytes"),
+                LargestResponse = Int(command, "maxResponseBytes")
+            });
+        }
+
+        var warnings = AsList(Get(performance, "warnings")).Select(Safe).Where(value => !string.IsNullOrWhiteSpace(value)).ToArray();
+        PerformanceWarnings = warnings.Length == 0 ? "Блокирующих предупреждений нет." : string.Join(Environment.NewLine, warnings);
+        PerformanceSummary = $"Время работы: {TimeSpan.FromSeconds(Long(performance, "elapsedSeconds")):g}; клиентов: {PerformanceClients.Sum(item => item.Connected)}; команд: {PerformanceCommands.Sum(item => item.Count)}; samples: {Long(performance, "retainedSamples")}/{Long(performance, "capacity")}.";
+        StatusMessage = "Performance snapshot обновлён.";
+    }
+
+    private void ExportPerformanceSnapshotCore()
+    {
+        var response = _api.AdminDiagnosticsGet();
+        if (!IsOk(response)) throw new InvalidOperationException(Friendly(response, "Не удалось экспортировать performance snapshot."));
+        var performance = AsDictionary(Get(response.Payload, "performance"))
+                          ?? throw new InvalidOperationException("Performance snapshot отсутствует.");
+        var folder = Path.Combine(AppContext.BaseDirectory, "diagnostics-exports");
+        Directory.CreateDirectory(folder);
+        var file = Path.Combine(folder, $"performance-{DateTime.Now:yyyyMMdd-HHmmss}.json");
+        File.WriteAllText(file, JsonProtocolSerializer.Serialize(performance), new System.Text.UTF8Encoding(false));
+        StatusMessage = "Performance snapshot экспортирован: " + file;
+    }
+
+    private void AddPerformanceMetric(string name, long current, long peak)
+    {
+        PerformanceServerMetrics.Add(new SystemMetricUiItem
+        {
+            Name = name,
+            Value = FormatBytes(current),
+            State = "пик " + FormatBytes(peak)
+        });
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes <= 0) return "0 MB";
+        return $"{bytes / 1024d / 1024d:0.##} MB";
+    }
+
     private void RefreshLocalClientStatus()
     {
         ClientStatusSummary = $"Клиент подключается к: {Nri.AdminClient.App.ClientConfig.ServerHost}:{Nri.AdminClient.App.ClientConfig.ServerPort}; журнал: {ClientLogService.Instance.LogFilePath}";
@@ -819,6 +935,16 @@ public sealed partial class SystemToolsViewModel : ViewModelBase
         if (value is int i) return i;
         if (long.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)) return parsed;
         return 0;
+    }
+
+    private static double Double(IDictionary<string, object> source, string key)
+    {
+        var value = Get(source, key);
+        if (value is double d) return d;
+        if (value is float f) return f;
+        if (value is decimal m) return (double)m;
+        if (double.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)) return parsed;
+        return 0d;
     }
 
     private static bool Bool(IDictionary<string, object> source, string key)
@@ -1141,6 +1267,39 @@ public sealed class BackupListUiItem
     public string CreatedBy => string.IsNullOrWhiteSpace(CreatedByDisplayName) ? CreatedByUserId : CreatedByDisplayName;
     public string SizeLabel => SizeBytes <= 0 ? "—" : $"{Math.Round(SizeBytes / 1024d / 1024d, 2)} MB";
     public string VerificationLabel => IsVerified ? "Проверен" : (string.IsNullOrWhiteSpace(VerificationStatus) ? "Не проверен" : VerificationStatus);
+}
+
+public sealed class PerformanceCommandUiItem0214
+{
+    public string Command { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public int Count { get; set; }
+    public int Errors { get; set; }
+    public double P50 { get; set; }
+    public double P95 { get; set; }
+    public double P99 { get; set; }
+    public long Maximum { get; set; }
+    public int LargestRequest { get; set; }
+    public int LargestResponse { get; set; }
+    public string LargestRequestText => FormatPayload(LargestRequest);
+    public string LargestResponseText => FormatPayload(LargestResponse);
+
+    private static string FormatPayload(int bytes) => bytes < 1024 ? $"{bytes} B" : $"{bytes / 1024d:0.##} KB";
+}
+
+public sealed class PerformanceClientUiItem0214
+{
+    public string ClientType { get; set; } = string.Empty;
+    public int Connected { get; set; }
+    public string Memory { get; set; } = string.Empty;
+    public string PeakMemory { get; set; } = string.Empty;
+    public double Cpu { get; set; }
+    public double UiLagP95 { get; set; }
+    public double UiLagMax { get; set; }
+    public int Pollers { get; set; }
+    public int ReconnectLoops { get; set; }
+    public int Timers { get; set; }
+    public int InFlightRefreshes { get; set; }
 }
 
 internal static class SystemToolsEnumerableExtensions

@@ -1,0 +1,750 @@
+<UserControl x:Class="Nri.AssetConfigurators.Wpf.Views.AssetConfiguratorWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AssetConfiguratorWorkspace_Route">
+    <UserControl.Resources>
+        <DataTemplate x:Key="CatalogRegionTemplate">
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Каталог компонентов"
+                               Style="{StaticResource SectionTitleTextStyle}"/>
+                    <Grid Grid.Row="1" Margin="0,10,0,8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Поиск по названию или категории"
+                                 AutomationProperties.Name="Поиск компонентов"
+                                 AutomationProperties.AutomationId="AdminAssetConfigurators_ComponentSearch"/>
+                        <ComboBox Grid.Row="1"
+                                  ItemsSource="{Binding Categories}"
+                                  SelectedItem="{Binding SelectedCategory}"
+                                  Margin="0,6,0,0"
+                                  AutomationProperties.Name="Категория компонентов"/>
+                    </Grid>
+                    <ListBox Grid.Row="2"
+                             ItemsSource="{Binding Components}"
+                             SelectedItem="{Binding SelectedCatalogComponent}"
+                             AutomationProperties.AutomationId="AdminAssetConfigurators_ComponentCatalog">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="4,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   TextWrapping="Wrap"
+                                                   FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Group}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="11"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="{Binding Cost, StringFormat={}{0:N0} АР}"
+                                                   HorizontalAlignment="Right"/>
+                                        <TextBlock Text="{Binding SlotSize, StringFormat={}слоты: {0}}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="11"
+                                                   HorizontalAlignment="Right"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel Grid.Row="3" Margin="0,8,0,0">
+                        <ComboBox ItemsSource="{Binding MountOptions}"
+                                  SelectedItem="{Binding SelectedMount}"
+                                  DisplayMemberPath="Title"
+                                  ToolTip="Для оружия выберите способ установки"
+                                  AutomationProperties.Name="Способ установки"/>
+                        <Button Content="Добавить в конфигурацию"
+                                Command="{Binding AddComponentCommand}"
+                                Margin="0,6,0,0"
+                                AutomationProperties.AutomationId="AdminAssetConfigurators_AddComponent"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="SelectedComponentsTemplate">
+            <StackPanel>
+                <TextBlock Text="Установленные компоненты"
+                           Style="{StaticResource SectionTitleTextStyle}"
+                           Margin="0,12,0,6"/>
+                <ListBox ItemsSource="{Binding SelectedComponents}"
+                         MinHeight="110"
+                         MaxHeight="240"
+                         AutomationProperties.AutomationId="AdminAssetConfigurators_SelectedComponents">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="AutomationProperties.Name"
+                                    Value="{Binding DisplayName}"/>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="4,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding CategoryLabel}"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               FontSize="11"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Quantity, StringFormat={}× {0}}"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0"/>
+                                <Button Grid.Column="2"
+                                        Content="−"
+                                        ToolTip="Уменьшить количество"
+                                        Command="{Binding DataContext.DecreaseQuantityCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                        CommandParameter="{Binding}"
+                                        Width="32"
+                                        Height="28"/>
+                                <Button Grid.Column="3"
+                                        Content="+"
+                                        ToolTip="Увеличить количество"
+                                        Command="{Binding DataContext.IncreaseQuantityCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                        CommandParameter="{Binding}"
+                                        Width="32"
+                                        Height="28"
+                                        Margin="4,0"/>
+                                <Button Grid.Column="4"
+                                        Content="×"
+                                        ToolTip="Удалить компонент"
+                                        Style="{StaticResource GhostButtonStyle}"
+                                        Command="{Binding DataContext.RemoveComponentCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                        CommandParameter="{Binding}"
+                                        Width="32"
+                                        Height="28"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ResultRegionTemplate">
+            <Border Style="{StaticResource CardStyle}" Margin="8,0,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Результат"
+                                   Style="{StaticResource SectionTitleTextStyle}"/>
+                        <controls:NriStatusBadge Grid.Column="1"
+                                                 Text="{Binding ResultStatusLabel}"
+                                                 StatusKind="Info"
+                                                 Margin="8,0,0,0"
+                                                 AutomationProperties.AutomationId="AdminAssetConfigurators_ResultStatus"/>
+                    </Grid>
+                    <UniformGrid Grid.Row="1" Columns="2" Margin="0,10,0,8">
+                        <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,4,0">
+                            <StackPanel>
+                                <TextBlock Text="Стоимость"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="{Binding CostSummary}"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           AutomationProperties.AutomationId="AdminAssetConfigurators_TotalCost"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SubtleCardStyle}" Margin="4,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Энергия"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="{Binding EnergySummary}"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+                    <StackPanel Grid.Row="2">
+                        <TextBlock Text="{Binding LimitSummary}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,6"/>
+                        <controls:NriRouteStateHost State="{Binding RouteState, Mode=OneWay}"
+                                                    ActiveStates="validation"
+                                                    AutomationProperties.AutomationId="AdminAssetConfigurators_StateHost">
+                            <controls:NriValidationSummary ItemsSource="{Binding ValidationMessages}"
+                                                           Title="Проверьте параметры"
+                                                           AutomationProperties.AutomationId="AdminAssetConfigurators_ValidationSummary">
+                                <controls:NriValidationSummary.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Message}"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{StaticResource NriDangerBrush}"
+                                                   Margin="0,2"
+                                                   AutomationProperties.Name="{Binding Message}"/>
+                                    </DataTemplate>
+                                </controls:NriValidationSummary.ItemTemplate>
+                            </controls:NriValidationSummary>
+                        </controls:NriRouteStateHost>
+                        <ItemsControl ItemsSource="{Binding Warnings}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Message}"
+                                               Foreground="{StaticResource NriWarningBrush}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,2"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                    <Expander Grid.Row="3"
+                              Header="Итоговая сводка"
+                              IsExpanded="True"
+                              Margin="0,6,0,8">
+                        <TextBox Text="{Binding ResultSummary, Mode=OneWay}"
+                                 IsReadOnly="True"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="104"
+                                 AutomationProperties.AutomationId="AdminAssetConfigurators_Summary"/>
+                    </Expander>
+                    <Expander Grid.Row="4"
+                              Header="Подробный расчёт"
+                              IsExpanded="True">
+                        <ListView ItemsSource="{Binding Breakdown}"
+                                  AutomationProperties.AutomationId="AdminAssetConfigurators_Breakdown">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="Позиция" DisplayMemberBinding="{Binding Label}" Width="145"/>
+                                    <GridViewColumn Header="Значение" DisplayMemberBinding="{Binding Value, StringFormat={}{0:N0}}" Width="85"/>
+                                    <GridViewColumn Header="Ед." DisplayMemberBinding="{Binding Unit}" Width="45"/>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </Expander>
+                    <StackPanel Grid.Row="5" Margin="0,8,0,0">
+                        <TextBlock Text="{Binding ComparisonSummary}"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,4,0,0"
+                                   AutomationProperties.AutomationId="AdminAssetConfigurators_Status"/>
+                        <controls:NriToastHost Message="{Binding StatusMessage}"
+                                               FeedbackKind="Info"
+                                               IsOpen="True"
+                                               Margin="0,6,0,0"
+                                               AutomationProperties.AutomationId="AdminAssetConfigurators_Toast"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="SpacecraftConfigurationTemplate">
+            <Border Style="{StaticResource CardStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              AutomationProperties.AutomationId="AdminAssetConfigurators_SpacecraftForm">
+                    <StackPanel Margin="2">
+                        <DockPanel LastChildFill="False">
+                            <TextBlock Text="Конфигурация корабля"
+                                       Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock DockPanel.Dock="Right"
+                                       Text="{Binding SourceVersion}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </DockPanel>
+                        <TextBlock Text="Название *" Margin="0,10,0,3"/>
+                        <TextBox Text="{Binding ConfigurationName, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="AdminAssetConfigurators_SpacecraftName"/>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Режим"/>
+                                <ComboBox ItemsSource="{Binding Modes}"
+                                          SelectedItem="{Binding SelectedMode}"
+                                          DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Качество *"/>
+                                <ComboBox ItemsSource="{Binding Qualities}"
+                                          SelectedItem="{Binding Quality}"
+                                          DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Размер *"/>
+                                <ComboBox ItemsSource="{Binding Sizes}"
+                                          SelectedItem="{Binding Size}"
+                                          DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Класс *"/>
+                                <ComboBox ItemsSource="{Binding Classes}"
+                                          SelectedItem="{Binding ShipClass}"
+                                          DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <TextBlock Text="Толщина брони, %" Margin="0,8,0,3"/>
+                        <controls:NriBoundedNumberField Value="{Binding ArmorThicknessValue, Mode=TwoWay}"
+                                                        Minimum="0"
+                                                        Maximum="500"
+                                                        AccessibleName="Толщина брони корабля"/>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Система управления *"/>
+                                <ComboBox ItemsSource="{Binding ControlSystems}"
+                                          SelectedItem="{Binding ControlSystem}"
+                                          DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Наценка *"/>
+                                <ComboBox ItemsSource="{Binding PriceTiers}"
+                                          SelectedItem="{Binding PriceTier}"
+                                          DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Реактор *"/>
+                                <ComboBox ItemsSource="{Binding ReactorTypes}"
+                                          SelectedItem="{Binding ReactorType}"
+                                          DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Уровень реактора *"/>
+                                <ComboBox ItemsSource="{Binding Levels}"
+                                          SelectedItem="{Binding ReactorLevel}"
+                                          DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+
+                        <Expander Header="Двигатели" Margin="0,10,0,0">
+                            <StackPanel Margin="0,6,0,0">
+                                <UniformGrid Columns="3">
+                                    <ComboBox ItemsSource="{Binding EngineTypes}"
+                                              SelectedItem="{Binding EngineType}"
+                                              DisplayMemberPath="DisplayName"
+                                              Margin="0,0,4,0"/>
+                                    <ComboBox ItemsSource="{Binding EngineSizes}"
+                                              SelectedItem="{Binding EngineSize}"
+                                              DisplayMemberPath="DisplayName"
+                                              Margin="4,0"/>
+                                    <ComboBox ItemsSource="{Binding Levels}"
+                                              SelectedItem="{Binding EngineLevel}"
+                                              DisplayMemberPath="DisplayName"
+                                              Margin="4,0,0,0"/>
+                                </UniformGrid>
+                                <DockPanel Margin="0,6,0,0">
+                                    <controls:NriBoundedNumberField Value="{Binding EngineQuantityValue, Mode=TwoWay}"
+                                                                    Minimum="1"
+                                                                    Maximum="4"
+                                                                    AccessibleName="Количество двигателей"
+                                                                    Width="90"/>
+                                    <Button DockPanel.Dock="Right"
+                                            Content="Добавить двигатель"
+                                            Command="{Binding AddEngineCommand}"/>
+                                </DockPanel>
+                                <ListBox ItemsSource="{Binding Engines}" Margin="0,6,0,0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="3">
+                                                <Button DockPanel.Dock="Right"
+                                                        Content="×"
+                                                        ToolTip="Удалить двигатель"
+                                                        Style="{StaticResource GhostButtonStyle}"
+                                                        Command="{Binding DataContext.RemoveEngineCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                        CommandParameter="{Binding}"/>
+                                                <TextBlock Text="{Binding Summary}" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Expander>
+
+                        <Expander Header="Сенсоры и модули корпуса" Margin="0,8,0,0">
+                            <StackPanel Margin="0,6,0,0">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right"
+                                            Content="Добавить сенсор"
+                                            Command="{Binding AddSensorCommand}"/>
+                                    <ComboBox ItemsSource="{Binding Sensors}"
+                                              SelectedItem="{Binding Sensor}"
+                                              DisplayMemberPath="DisplayName"/>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding SelectedSensors}" Margin="0,4,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right"
+                                                        Content="×"
+                                                        ToolTip="Удалить сенсор"
+                                                        Style="{StaticResource GhostButtonStyle}"
+                                                        Command="{Binding DataContext.RemoveSensorCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <DockPanel Margin="0,6,0,0">
+                                    <Button DockPanel.Dock="Right"
+                                            Content="Добавить модуль"
+                                            Command="{Binding AddAuxiliaryCommand}"/>
+                                    <ComboBox ItemsSource="{Binding AuxiliaryModules}"
+                                              SelectedItem="{Binding AuxiliaryModule}"
+                                              DisplayMemberPath="DisplayName"/>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding SelectedAuxiliaryModules}" Margin="0,4,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right"
+                                                        Content="×"
+                                                        ToolTip="Удалить модуль"
+                                                        Style="{StaticResource GhostButtonStyle}"
+                                                        Command="{Binding DataContext.RemoveAuxiliaryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Expander>
+
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource SelectedComponentsTemplate}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="LandMarineConfigurationTemplate">
+            <Border Style="{StaticResource CardStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              AutomationProperties.AutomationId="AdminAssetConfigurators_LandMarineForm">
+                    <StackPanel Margin="2">
+                        <DockPanel LastChildFill="False">
+                            <TextBlock Text="Конфигурация техники" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding SourceVersion}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </DockPanel>
+                        <TextBlock Text="Название *" Margin="0,10,0,3"/>
+                        <TextBox Text="{Binding ConfigurationName, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="AdminAssetConfigurators_LandMarineName"/>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Режим"/>
+                                <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Качество *"/>
+                                <ComboBox ItemsSource="{Binding Qualities}" SelectedItem="{Binding Quality}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <UniformGrid Columns="3" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Профиль *"/>
+                                <ComboBox ItemsSource="{Binding Types}" SelectedItem="{Binding Type}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0">
+                                <TextBlock Text="Размер *"/>
+                                <ComboBox ItemsSource="{Binding Sizes}" SelectedItem="{Binding Size}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Класс *"/>
+                                <ComboBox ItemsSource="{Binding Classes}" SelectedItem="{Binding VehicleClass}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <TextBlock Text="Толщина брони, %" Margin="0,8,0,3"/>
+                        <controls:NriBoundedNumberField Value="{Binding ArmorThicknessValue, Mode=TwoWay}"
+                                                        Minimum="0"
+                                                        Maximum="1500"
+                                                        AccessibleName="Толщина брони техники"/>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Наземный двигатель"/>
+                                <ComboBox ItemsSource="{Binding Engines}" SelectedItem="{Binding LandEngine}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Уровень"/>
+                                <ComboBox ItemsSource="{Binding Levels}" SelectedItem="{Binding LandLevel}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Водный двигатель"/>
+                                <ComboBox ItemsSource="{Binding Engines}" SelectedItem="{Binding WaterEngine}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Уровень"/>
+                                <ComboBox ItemsSource="{Binding Levels}" SelectedItem="{Binding WaterLevel}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Реактор *"/>
+                                <ComboBox ItemsSource="{Binding ReactorTypes}" SelectedItem="{Binding ReactorType}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Уровень реактора *"/>
+                                <ComboBox ItemsSource="{Binding Levels}" SelectedItem="{Binding ReactorLevel}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Пилотирование *"/>
+                                <ComboBox ItemsSource="{Binding PilotSystems}" SelectedItem="{Binding PilotSystem}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Наценка *"/>
+                                <ComboBox ItemsSource="{Binding PriceTiers}" SelectedItem="{Binding PriceTier}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+
+                        <Expander Header="Сенсоры и усиление корпуса" Margin="0,10,0,0">
+                            <StackPanel Margin="0,6,0,0">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Добавить сенсор" Command="{Binding AddSensorCommand}"/>
+                                    <ComboBox ItemsSource="{Binding Sensors}" SelectedItem="{Binding Sensor}" DisplayMemberPath="DisplayName"/>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding SelectedSensors}" Margin="0,4,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Content="×" Style="{StaticResource GhostButtonStyle}"
+                                                        Command="{Binding DataContext.RemoveSensorCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <DockPanel Margin="0,6,0,0">
+                                    <Button DockPanel.Dock="Right" Content="Добавить усиление" Command="{Binding AddAuxiliaryCommand}"/>
+                                    <ComboBox ItemsSource="{Binding AuxiliaryModules}" SelectedItem="{Binding AuxiliaryModule}" DisplayMemberPath="DisplayName"/>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding SelectedAuxiliaryModules}" Margin="0,4,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Content="×" Style="{StaticResource GhostButtonStyle}"
+                                                        Command="{Binding DataContext.RemoveAuxiliaryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Expander>
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource SelectedComponentsTemplate}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="BuildingConfigurationTemplate">
+            <Border Style="{StaticResource CardStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              AutomationProperties.AutomationId="AdminAssetConfigurators_BuildingForm">
+                    <StackPanel Margin="2">
+                        <DockPanel LastChildFill="False">
+                            <TextBlock Text="Конфигурация здания" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding SourceVersion}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </DockPanel>
+                        <TextBlock Text="Название *" Margin="0,10,0,3"/>
+                        <TextBox Text="{Binding ConfigurationName, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="AdminAssetConfigurators_BuildingName"/>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Режим"/>
+                                <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Качество *"/>
+                                <ComboBox ItemsSource="{Binding Qualities}" SelectedItem="{Binding Quality}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Тип здания *"/>
+                                <ComboBox ItemsSource="{Binding BuildingTypes}" SelectedItem="{Binding BuildingType}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Размер этажа *"/>
+                                <ComboBox ItemsSource="{Binding FloorSizes}" SelectedItem="{Binding FloorSize}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <TextBlock Text="Количество этажей *" Margin="0,8,0,3"/>
+                        <controls:NriBoundedNumberField Value="{Binding FloorCountValue, Mode=TwoWay}"
+                                                        Minimum="1"
+                                                        Maximum="1000"
+                                                        AccessibleName="Количество этажей"/>
+                        <TextBlock Text="Способ строительства *" Margin="0,8,0,3"/>
+                        <ComboBox ItemsSource="{Binding ConstructionMethods}" SelectedItem="{Binding ConstructionMethod}" DisplayMemberPath="DisplayName"/>
+                        <UniformGrid Columns="3" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Корпус *"/>
+                                <ComboBox ItemsSource="{Binding HullMaterials}" SelectedItem="{Binding HullMaterial}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0">
+                                <TextBlock Text="Броня *"/>
+                                <ComboBox ItemsSource="{Binding ArmorMaterials}" SelectedItem="{Binding ArmorMaterial}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Защита *"/>
+                                <ComboBox ItemsSource="{Binding ShieldMaterials}" SelectedItem="{Binding ShieldMaterial}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Реактор *"/>
+                                <ComboBox ItemsSource="{Binding ReactorTypes}" SelectedItem="{Binding ReactorType}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                            <StackPanel Margin="4,0,0,0">
+                                <TextBlock Text="Уровень реактора *"/>
+                                <ComboBox ItemsSource="{Binding Levels}" SelectedItem="{Binding ReactorLevel}" DisplayMemberPath="DisplayName"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <TextBlock Text="Местоположение" Margin="0,8,0,3"/>
+                        <TextBox Text="{Binding LocationDescription, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Читаемое описание места; внутренний Location ID не требуется."/>
+                        <TextBlock Text="Назначение" Margin="0,8,0,3"/>
+                        <TextBox Text="{Binding Purpose, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Expander Header="Дополнительно: комментарий GM"
+                                  Visibility="{Binding GmFieldsVisibility}"
+                                  Margin="0,8,0,0">
+                            <TextBox Text="{Binding GmComment, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     MinHeight="64"
+                                     Margin="0,6,0,0"/>
+                        </Expander>
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource SelectedComponentsTemplate}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ToolWorkspaceTemplate">
+            <Grid Margin="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="310"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="1.15*"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="0.9*"/>
+                </Grid.ColumnDefinitions>
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CatalogRegionTemplate}"/>
+                <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center"/>
+                <ContentPresenter Grid.Column="2"
+                                  Content="{Binding}"
+                                  ContentTemplate="{Binding RelativeSource={RelativeSource AncestorType=ContentControl}, Path=Tag}"/>
+                <GridSplitter Grid.Column="3" Width="6" HorizontalAlignment="Center"/>
+                <ContentControl Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource ResultRegionTemplate}"/>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminAssetConfigurators_OperationalHost">
+        <patterns:NriOperationalWorkspaceHost.Header>
+            <DockPanel Margin="8,8,8,10">
+                <StackPanel>
+                    <TextBlock Text="Конструкторы активов" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Корабли, техника и здания по классическим каталогам с локальным детерминированным предпросмотром."
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                </StackPanel>
+            </DockPanel>
+        </patterns:NriOperationalWorkspaceHost.Header>
+        <TabControl SelectedIndex="{Binding SelectedConfiguratorIndex, Mode=TwoWay}"
+                    AutomationProperties.AutomationId="AssetConfiguratorWorkspace_Tools">
+            <TabItem Header="Космические корабли и станции"
+                     DataContext="{Binding Spacecraft}"
+                     AutomationProperties.AutomationId="AdminAssetConfigurators_SpacecraftTab">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <WrapPanel Margin="8,4,8,0">
+                        <Button Content="Демо" Command="{Binding LoadDemoCommand}"
+                                AutomationProperties.AutomationId="AdminAssetConfigurators_SpacecraftDemo"/>
+                        <Button Content="Сбросить" Style="{StaticResource GhostButtonStyle}" Command="{Binding ResetCommand}" Margin="6,0,0,0"
+                                AutomationProperties.AutomationId="AdminAssetConfigurators_SpacecraftReset"/>
+                        <Button Content="Сохранить снимок" Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveSnapshotCommand}" Margin="6,0,0,0"/>
+                        <Button Content="Проверить готовность" Command="{Binding PrepareProjectCommand}" Margin="6,0,0,0"/>
+                    </WrapPanel>
+                    <ContentControl Grid.Row="1"
+                                    Content="{Binding}"
+                                    ContentTemplate="{StaticResource ToolWorkspaceTemplate}"
+                                    Tag="{StaticResource SpacecraftConfigurationTemplate}"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Наземная и морская техника"
+                     DataContext="{Binding LandMarine}"
+                     AutomationProperties.AutomationId="AdminAssetConfigurators_LandMarineTab">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <WrapPanel Margin="8,4,8,0">
+                        <Button Content="Демо" Command="{Binding LoadDemoCommand}"
+                                AutomationProperties.AutomationId="AdminAssetConfigurators_LandMarineDemo"/>
+                        <Button Content="Сбросить" Style="{StaticResource GhostButtonStyle}" Command="{Binding ResetCommand}" Margin="6,0,0,0"
+                                AutomationProperties.AutomationId="AdminAssetConfigurators_LandMarineReset"/>
+                        <Button Content="Сохранить снимок" Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveSnapshotCommand}" Margin="6,0,0,0"/>
+                        <Button Content="Проверить готовность" Command="{Binding PrepareProjectCommand}" Margin="6,0,0,0"/>
+                    </WrapPanel>
+                    <ContentControl Grid.Row="1"
+                                    Content="{Binding}"
+                                    ContentTemplate="{StaticResource ToolWorkspaceTemplate}"
+                                    Tag="{StaticResource LandMarineConfigurationTemplate}"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Здания и укрепления"
+                     DataContext="{Binding Building}"
+                     AutomationProperties.AutomationId="AdminAssetConfigurators_BuildingTab">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <WrapPanel Margin="8,4,8,0">
+                        <Button Content="Демо" Command="{Binding LoadDemoCommand}"
+                                AutomationProperties.AutomationId="AdminAssetConfigurators_BuildingDemo"/>
+                        <Button Content="Сбросить" Style="{StaticResource GhostButtonStyle}" Command="{Binding ResetCommand}" Margin="6,0,0,0"
+                                AutomationProperties.AutomationId="AdminAssetConfigurators_BuildingReset"/>
+                        <Button Content="Сохранить снимок" Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveSnapshotCommand}" Margin="6,0,0,0"/>
+                        <Button Content="Проверить готовность" Command="{Binding PrepareProjectCommand}" Margin="6,0,0,0"/>
+                    </WrapPanel>
+                    <ContentControl Grid.Row="1"
+                                    Content="{Binding}"
+                                    ContentTemplate="{StaticResource ToolWorkspaceTemplate}"
+                                    Tag="{StaticResource BuildingConfigurationTemplate}"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

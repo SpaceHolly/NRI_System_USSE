@@ -1,0 +1,95 @@
+<UserControl x:Class="Nri.PlayerClient.Views.Journal.PlayerQuestJournalView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:nri="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             Background="{StaticResource NriApplicationBackgroundBrush}"
+             Foreground="{StaticResource TextBrush}"
+             AutomationProperties.AutomationId="PlayerQuestJournal_Route">
+    <patterns:NriCollectionBrowserHost Margin="10"
+                                       AutomationProperties.AutomationId="PlayerQuestJournal_Workspace">
+        <patterns:NriCollectionBrowserHost.Header>
+            <nri:NriPageHeader Breadcrumbs="Журнал"
+                               Title="Задачи"
+                               Subtitle="Активные, доступные и завершённые задачи персонажа."
+                               StatusText="{Binding StatusMessage}">
+                <nri:NriPageHeader.PrimaryAction>
+                    <Button Content="Обновить"
+                            Command="{Binding RefreshCommand}"
+                            AutomationProperties.AutomationId="PlayerQuestJournal_Refresh"/>
+                </nri:NriPageHeader.PrimaryAction>
+            </nri:NriPageHeader>
+        </patterns:NriCollectionBrowserHost.Header>
+
+        <patterns:NriCollectionBrowserHost.Collection>
+            <Border Style="{StaticResource CardStyle}">
+                <TabControl AutomationProperties.AutomationId="PlayerQuestJournal_Categories">
+                    <TabItem Header="Активные" AutomationProperties.AutomationId="PlayerQuestJournal_ActiveTab">
+                        <ListBox AutomationProperties.AutomationId="PlayerQuestJournal_ActiveList"
+                                 ItemsSource="{Binding ActiveQuests}"
+                                 SelectedItem="{Binding SelectedQuest, Mode=TwoWay}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                    <TabItem Header="Доступные" AutomationProperties.AutomationId="PlayerQuestJournal_AvailableTab">
+                        <ListBox AutomationProperties.AutomationId="PlayerQuestJournal_AvailableList"
+                                 ItemsSource="{Binding AvailableQuests}"
+                                 SelectedItem="{Binding SelectedQuest, Mode=TwoWay}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                    <TabItem Header="История" AutomationProperties.AutomationId="PlayerQuestJournal_CompletedTab">
+                        <ListBox AutomationProperties.AutomationId="PlayerQuestJournal_CompletedList"
+                                 ItemsSource="{Binding CompletedQuests}"
+                                 SelectedItem="{Binding SelectedQuest, Mode=TwoWay}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                </TabControl>
+            </Border>
+        </patterns:NriCollectionBrowserHost.Collection>
+
+        <patterns:NriCollectionBrowserHost.Inspector>
+            <Border Style="{StaticResource CardStyle}"
+                    AutomationProperties.AutomationId="PlayerQuestJournal_Details">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="{Binding SelectedQuest.Title, TargetNullValue=Задача не выбрана}"
+                                   FontSize="18"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap"
+                                   AutomationProperties.AutomationId="PlayerQuestJournal_SelectedTitle"/>
+                        <nri:NriStatusBadge Text="{Binding SelectedQuest.StatusLabel}" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding SelectedQuest.Summary}" TextWrapping="Wrap" Margin="0,10,0,12"/>
+
+                        <TextBlock Text="Цели" FontWeight="SemiBold"/>
+                        <ListBox AutomationProperties.AutomationId="PlayerQuestJournal_Objectives"
+                                 ItemsSource="{Binding Objectives}"
+                                 MinHeight="140"
+                                 Margin="0,4,0,10">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource SubtleCardStyle}" Padding="8" Margin="0,0,0,6">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Display}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <TextBlock Text="Награды" FontWeight="SemiBold"/>
+                        <ListBox AutomationProperties.AutomationId="PlayerQuestJournal_Rewards"
+                                 ItemsSource="{Binding Rewards}"
+                                 MinHeight="100"
+                                 Margin="0,4,0,10"/>
+
+                        <TextBlock AutomationProperties.AutomationId="PlayerQuestJournal_VisibilityHint"
+                                   Text="{Binding VisibilityHint}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </patterns:NriCollectionBrowserHost.Inspector>
+    </patterns:NriCollectionBrowserHost>
+</UserControl>

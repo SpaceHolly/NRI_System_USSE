@@ -14,13 +14,15 @@
         xmlns:converters="clr-namespace:Nri.AdminClient.Converters"
         xmlns:administration="clr-namespace:Nri.AdminClient.Views.Administration"
         xmlns:dashboard="clr-namespace:Nri.AdminClient.Views.Dashboard"
+        xmlns:system="clr-namespace:Nri.AdminClient.Views.SystemViews"
         xmlns:systemTools="clr-namespace:Nri.AdminClient.Views.SystemTools"
         xmlns:fate="clr-namespace:Nri.AdminClient.Views.Fate"
+        xmlns:nri="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
         Title="NRI System USSE — Панель Гейм-мастера"
         Height="920"
         Width="1540"
         MinHeight="760"
-        MinWidth="1240" Background="#FF111827">
+        MinWidth="1080" Background="{StaticResource NriApplicationBackgroundBrush}">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <converters:AdminNavigationIconPathConverter x:Key="AdminNavigationIconPathConverter"/>
@@ -28,6 +30,8 @@
         <Style x:Key="SectionHostTabControlStyle" TargetType="TabControl">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabControl">
@@ -45,6 +49,8 @@
                                                   ContentSource="SelectedContent"
                                                   ContentTemplate="{TemplateBinding SelectedContentTemplate}"
                                                   ContentStringFormat="{TemplateBinding SelectedContentStringFormat}"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                                   KeyboardNavigation.TabIndex="2"
                                                   KeyboardNavigation.TabNavigation="Local"
                                                   KeyboardNavigation.DirectionalNavigation="Contained"/>
@@ -157,82 +163,127 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid Margin="12">
+    <Grid Background="{StaticResource NriApplicationBackgroundBrush}">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="12,10">
+        <nri:NriShellHeader Grid.Row="0"
+                            Height="68"
+                            AutomationProperties.AutomationId="Admin_Shell_Header"
+                            ProductName="NRI System USSE"
+                            ContextTitle="{Binding ActiveCampaignSummary}"
+                            ContextSubtitle="{Binding ActiveSessionTopBarSummary}"
+                            ConnectionText="{Binding ConnectionStage}"
+                            UserDisplayName="{Binding LoginSummary}">
+            <nri:NriShellHeader.Actions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Height="36" Content="{Binding NotificationSummary}" Style="{StaticResource NriSecondaryButtonStyle}" IsEnabled="False"/>
+                    <Button Height="36" AutomationProperties.AutomationId="Admin_Server_Button" AutomationProperties.Name="Подключение" Style="{StaticResource NriSecondaryButtonStyle}" Content="Подключение" Command="{Binding OpenConnectionPopupCommand}" Margin="8,0,0,0"/>
+                    <Button Height="36" AutomationProperties.AutomationId="Admin_Auth_Button" AutomationProperties.Name="Учётная запись" Style="{StaticResource NriSecondaryButtonStyle}" Content="Учётная запись" Command="{Binding ToggleAuthPopupCommand}" Margin="8,0,0,0"/>
+                </StackPanel>
+            </nri:NriShellHeader.Actions>
+        </nri:NriShellHeader>
+
+        <Border Grid.Row="1" Margin="12,8,12,0" Padding="12,8"
+                Background="{StaticResource NriPrimarySurfaceBrush}"
+                BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="4"
+                AutomationProperties.AutomationId="Admin_GameContext_Bar">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.2*"/>
-                    <ColumnDefinition Width="1.2*"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="1.4*"/>
+                    <ColumnDefinition Width="300"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="360"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Кампания" Style="{StaticResource NriMetadataTextStyle}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <nri:NriOptionField Grid.Column="1" Height="36" ItemsSource="{Binding GameCampaignOptions}" SelectedValue="{Binding SelectedGameCampaignId, UpdateSourceTrigger=PropertyChanged}" AccessibleName="Кампания" AutomationProperties.AutomationId="Admin_GameContext_Campaign_Selector"/>
+                <Button Grid.Column="2" Height="36" Content="Выбрать" Command="{Binding SelectGameCampaignCommand}" Style="{StaticResource NriSecondaryButtonStyle}" Margin="6,0,0,0" AutomationProperties.AutomationId="Admin_GameContext_Campaign_Select"/>
+                <TextBlock Grid.Column="3" Text="{Binding ActiveCampaignRoleSummary}" VerticalAlignment="Center" Margin="14,0"
+                           TextWrapping="NoWrap" AutomationProperties.AutomationId="Admin_GameContext_Campaign_Role"/>
+                <nri:NriOptionField Grid.Column="4" Height="36" ItemsSource="{Binding GameSessionOptions}" SelectedValue="{Binding SelectedGameSessionId, UpdateSourceTrigger=PropertyChanged}" AccessibleName="Сессия" AutomationProperties.AutomationId="Admin_GameContext_Session_Selector"/>
+                <Button Grid.Column="5" Height="36" Content="Открыть" Command="{Binding SelectGameSessionCommand}" Style="{StaticResource NriSecondaryButtonStyle}" Margin="6,0,0,0" AutomationProperties.AutomationId="Admin_GameContext_Session_Select"/>
+                <TextBlock Grid.Column="6" Text="Контекст проведения" Style="{StaticResource NriMetadataTextStyle}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="16,0,0,0"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Margin="12,8,12,0" Padding="12,8"
+                Background="{StaticResource NriSecondarySurfaceBrush}"
+                BorderBrush="{StaticResource NriDangerBrush}" BorderThickness="1" CornerRadius="4"
+                Visibility="{Binding IsGlobalSuperAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"
+                AutomationProperties.AutomationId="Admin_SuperAdmin_Override_Banner">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel>
-                    <TextBlock Text="Активная кампания" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
-                    <TextBlock Text="{Binding ActiveCampaignSummary}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                <StackPanel Margin="0,0,12,0">
+                    <TextBlock Text="Явный доступ SuperAdmin" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding SuperAdminOverrideWarning}" Style="{StaticResource NriSecondaryTextStyle}" TextWrapping="Wrap"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                    <TextBlock Text="Активная сессия" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
-                    <TextBlock Text="{Binding ActiveSessionTopBarSummary}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                </StackPanel>
-                <Border Grid.Column="2" Style="{StaticResource StatusBadgeStyle}" VerticalAlignment="Center" Height="30" Padding="12,4">
-                    <TextBlock Text="{Binding ConnectionState}" Foreground="#FFF8FAFC" FontWeight="SemiBold"/>
-                </Border>
-                <StackPanel Grid.Column="3" Margin="12,0" VerticalAlignment="Center">
-                    <TextBlock Text="Поиск GM" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
-                    <TextBox Text="{Binding ShellSearchText, UpdateSourceTrigger=PropertyChanged}"
-                             ToolTip="Поиск по открытому рабочему пространству."
-                             MinWidth="220"/>
-                    <DockPanel>
-                        <TextBlock Text="{Binding ShellSearchHint}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextWrapping="Wrap"/>
-                        <Button DockPanel.Dock="Right"
-                                Style="{StaticResource GhostButtonStyle}"
-                                Content="Открыть"
-                                Command="{Binding OpenFirstShellSearchResultCommand}"
-                                ToolTip="Открыть первый результат"
-                                Padding="6,1"
-                                Margin="8,2,0,0"/>
-                    </DockPanel>
-                </StackPanel>
-                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="{Binding NotificationSummary}" Style="{StaticResource GhostButtonStyle}" IsEnabled="False" VerticalAlignment="Center" MinHeight="30"/>
-                    <TextBox AutomationProperties.AutomationId="Admin_SelectedSection_Input"
-                             Width="1"
-                             Height="1"
-                             Opacity="0"
-                             Padding="0"
-                             Margin="0"
-                             BorderThickness="0"
-                             ToolTip="Открытый раздел"
-                             Text="{Binding SelectedSection, UpdateSourceTrigger=PropertyChanged}"
-                             VerticalAlignment="Center"/>
-                    <Button AutomationProperties.AutomationId="Admin_OpenCharacters_Button" Style="{StaticResource GhostButtonStyle}" Content="Персонажи" Click="OnOpenCharactersRouteClick" VerticalAlignment="Center" MinHeight="30"/>
-                    <Button AutomationProperties.AutomationId="Admin_OpenClasses_Button" Style="{StaticResource GhostButtonStyle}" Content="Классы" Click="OnOpenClassesRouteClick" VerticalAlignment="Center" MinHeight="30"/>
-                    <Button x:Name="ServerButton" AutomationProperties.AutomationId="Admin_Server_Button" Style="{StaticResource GhostButtonStyle}" Content="Сервер" Command="{Binding OpenConnectionPopupCommand}" VerticalAlignment="Center" MinHeight="30"/>
-                    <Button x:Name="AuthButton" AutomationProperties.AutomationId="Admin_Auth_Button" Style="{StaticResource GhostButtonStyle}" Content="{Binding LoginSummary}" Command="{Binding ToggleAuthPopupCommand}" VerticalAlignment="Center" MinHeight="30"/>
+                <nri:NriOptionField Grid.Column="1" ItemsSource="{Binding SuperAdminCampaignOptions}" SelectedValue="{Binding SelectedSuperAdminCampaignId, UpdateSourceTrigger=PropertyChanged}"
+                                    AccessibleName="Кампания для явного доступа" Margin="0,0,8,0" AutomationProperties.AutomationId="Admin_SuperAdmin_Override_Campaign_Selector"/>
+                <TextBox Grid.Column="2" Text="{Binding SuperAdminOverrideReason, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,12,0"
+                         ToolTip="Причина обязательна и сохраняется в аудите" AutomationProperties.Name="Причина явного доступа" AutomationProperties.AutomationId="Admin_SuperAdmin_Override_Reason"/>
+                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                    <Button Content="Включить" Command="{Binding StartSuperAdminOverrideCommand}" Style="{StaticResource NriSecondaryButtonStyle}" AutomationProperties.AutomationId="Admin_SuperAdmin_Override_Start"/>
+                    <Button Content="Завершить" Command="{Binding EndSuperAdminOverrideCommand}" Style="{StaticResource NriSecondaryButtonStyle}" Margin="6,0,0,0" AutomationProperties.AutomationId="Admin_SuperAdmin_Override_End"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1">
+        <Border Grid.Row="3" Margin="12,8,12,0" Padding="12,8"
+                Background="{StaticResource NriSecondarySurfaceBrush}"
+                BorderBrush="{StaticResource NriWarningBrush}" BorderThickness="1" CornerRadius="4"
+                Visibility="{Binding IsConnectionStaleReadOnly, Converter={StaticResource BooleanToVisibilityConverter}}"
+                AutomationProperties.AutomationId="Admin_Reconnect_Banner">
+            <StackPanel>
+                <TextBlock Text="{Binding ReconnectStatusText}" FontWeight="SemiBold"/>
+                <TextBlock Text="Соединение восстанавливается. Рабочая область остаётся доступной только для чтения; изменения временно не отправляются."
+                           Style="{StaticResource NriSecondaryTextStyle}" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="4" Margin="12">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="280"/>
+                <ColumnDefinition Width="{Binding NavigationWidth}"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,8,8,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <StackPanel Margin="0,0,0,2">
-                            <TextBlock Text="Панель Гейм-мастера" Style="{StaticResource HeaderTitleTextStyle}"/>
-                        </StackPanel>
-                        <TextBlock Text="GM-пульт кампании" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,2"/>
-                        <TextBlock AutomationProperties.AutomationId="Admin_LoginState_Text" Text="{Binding LoginState}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,12"/>
-                        <ItemsControl ItemsSource="{Binding NavigationGroups}">
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="Рабочий режим" Style="{StaticResource NriCardTitleTextStyle}" VerticalAlignment="Center"/>
+                            <Button DockPanel.Dock="Right" Content="⇤" Command="{Binding ToggleNavigationCommand}" Style="{StaticResource NriSecondaryButtonStyle}" Padding="8" AutomationProperties.AutomationId="Admin_Navigation_Toggle" AutomationProperties.Name="Свернуть или развернуть навигацию"/>
+                        </DockPanel>
+                        <nri:NriModeSwitcher ItemsSource="{Binding ShellModes}"
+                                             SelectedValuePath="Id"
+                                             SelectedValue="{Binding SelectedAdminModeId, Mode=TwoWay}"
+                                             AutomationProperties.Name="Рабочий режим"
+                                             AutomationProperties.AutomationId="Admin_Mode_Switcher">
+                            <nri:NriModeSwitcher.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="AutomationProperties.Name" Value="{Binding Title}"/>
+                                </Style>
+                            </nri:NriModeSwitcher.ItemContainerStyle>
+                            <nri:NriModeSwitcher.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:AdminShellMode}">
+                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" AutomationProperties.AutomationId="{Binding AutomationId}"/>
+                                </DataTemplate>
+                            </nri:NriModeSwitcher.ItemTemplate>
+                        </nri:NriModeSwitcher>
+                        <Separator Margin="0,8"/>
+                        <TextBlock AutomationProperties.AutomationId="Admin_LoginState_Text" Text="{Binding LoginState}" Style="{StaticResource NriMetadataTextStyle}" TextWrapping="Wrap" Margin="4,0,4,8"/>
+                        <ItemsControl ItemsSource="{Binding VisibleNavigationGroups}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:AdminNavigationGroup}">
                                     <StackPanel Margin="0,0,0,12">
@@ -272,93 +323,32 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <Border Style="{StaticResource SubtleCardStyle}" Margin="0,6,0,0">
-                            <StackPanel>
-                                <TextBlock Text="Рабочее пространство" Style="{StaticResource TitleTextStyle}"/>
-                                <TextBlock Text="{Binding WorkspaceSummary}" Margin="0,4,0,8" TextWrapping="Wrap"/>
-                                <TextBlock Text="Сводка открытых разделов и закреплённых панелей." Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource SubtleCardStyle}" Margin="0,10,0,0">
-                            <StackPanel>
-                                <TextBlock Text="Выбранный персонаж" Style="{StaticResource TitleTextStyle}"/>
-                                <TextBlock Text="{Binding SelectedPlayerSummary}" Margin="0,6,0,0" TextWrapping="Wrap"/>
-                                <TextBlock Text="{Binding SelectedCharacterSummary}" Margin="0,4,0,0" TextWrapping="Wrap"/>
-                                <TextBox AutomationProperties.AutomationId="AdminCharacterEditor_SelectedCharacterId_Input"
-                                         Text="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"
-                                         ToolTip="Технический ID выбранного персонажа"
-                                         Margin="0,6,0,0"/>
-                                <Button AutomationProperties.AutomationId="AdminCharacterEditor_OpenCharactersRoute_Button"
-                                        Content="Открыть редактор персонажей"
-                                        Click="OnOpenCharactersRouteClick"
-                                        Margin="0,6,0,0"/>
-                                <Border Style="{StaticResource SubtleCardStyle}"
-                                        Margin="0,8,0,0"
-                                        AutomationProperties.AutomationId="AdminCharacterWorkspace_ConsolidatedNotice"
-                                        AutomationProperties.Name="Character v2 workspace route">
-                                    <StackPanel>
-                                        <TextBlock Text="Редактор Character v2" Style="{StaticResource TitleTextStyle}"/>
-                                        <TextBlock Text="Полный редактор персонажа теперь находится в разделе «Персонажи»."
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   Margin="0,4,0,0"
-                                                   TextWrapping="Wrap"/>
-                                        <TextBlock Text="Используйте кнопку выше, чтобы открыть единый профильный редактор без дублирующих старых форм."
-                                                   Foreground="{StaticResource MutedBrush}"
-                                                   Margin="0,4,0,0"
-                                                   TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding OwnershipSummary}"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   Margin="0,8,0,0"
-                                                   TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding SelectedRequestSummary}"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   Margin="0,4,0,0"
-                                                   TextWrapping="Wrap"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </Border>
+                        <Button Content="Панели проведения"
+                                Command="{Binding ToggleWorkspacePanelManagerCommand}"
+                                Style="{StaticResource NriSecondaryButtonStyle}"
+                                Margin="0,8,0,0"
+                                Visibility="{Binding IsConductMode, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                AutomationProperties.AutomationId="Admin_Workspace_Manager_Button"/>
                     </StackPanel>
                     </ScrollViewer>
             </Border>
 
-            <Grid Grid.Column="1" Margin="0,8,0,0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Border Style="{StaticResource CardStyle}" Padding="14,10" Margin="0,0,0,8">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="{Binding SelectedNavigationBreadcrumb}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
-                            <TextBlock Text="{Binding SelectedNavigationTitle}" Style="{StaticResource HeaderTitleTextStyle}"/>
-                            <TextBlock Text="{Binding SelectedNavigationSubtitle}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" MaxWidth="860"/>
-                        </StackPanel>
-                        <TextBlock Grid.Column="1" Text="{Binding BusyMessage}" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
-                </Border>
-                <TabControl x:Name="MainSectionTabControl" Grid.Row="1" Style="{StaticResource SectionHostTabControlStyle}" SelectedValuePath="Tag" SelectedValue="{Binding SelectedSection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+            <nri:NriRouteHost Grid.Column="1" Margin="0,8,0,0"
+                              IsHitTestVisible="{Binding AreServerMutationsEnabled}"
+                              Breadcrumbs="{Binding SelectedNavigationBreadcrumb}"
+                              RouteTitle="{Binding SelectedNavigationTitle}"
+                              RouteSubtitle="{Binding SelectedNavigationSubtitle}"
+                              AutomationProperties.AutomationId="Admin_Route_Host">
+                <TabControl x:Name="MainSectionTabControl" Style="{StaticResource SectionHostTabControlStyle}" SelectedValuePath="Tag" SelectedValue="{Binding SelectedSection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            AutomationProperties.AutomationId="Admin_MainSection_Tabs">
                     <TabItem Header="Обзор" Tag="admin.dashboard">
                         <dashboard:AdminFunctionalDashboardView DataContext="{Binding FunctionalDashboard}"/>
                     </TabItem>
 
                     <TabItem Header="Люди" Tag="admin.users">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                        <Grid>
+                        <administration:AdminUsersView/>
+                        <ScrollViewer Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                         <Grid Margin="8" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" MinWidth="1180">
                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                             <Grid>
@@ -413,13 +403,16 @@
                                             </DataGrid>
                                             <Border Style="{StaticResource SubtleCardStyle}" Margin="0,8,0,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="Создать персонажа" Style="{StaticResource TitleTextStyle}"/>
-                                                    <WrapPanel Margin="0,4,0,0">
-                                                        <TextBox Width="130" Text="{Binding CreateCharacterName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Имя"/>
-                                                        <TextBox Width="100" Margin="6,0,0,0" Text="{Binding CreateCharacterRace, UpdateSourceTrigger=PropertyChanged}" ToolTip="Раса"/>
-                                                        <Button Margin="6,0,0,0" Content="Создать" Command="{Binding CreateCharacterCommand}" IsEnabled="{Binding CanCreateCharacterForOwner}"/>
-                                                    </WrapPanel>
-                                                    <TextBox Margin="0,6,0,0" Height="52" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding CreateCharacterBackstory, UpdateSourceTrigger=PropertyChanged}" ToolTip="Предыстория"/>
+                                                    <TextBlock Text="Создание персонажей" Style="{StaticResource TitleTextStyle}"/>
+                                                    <TextBlock Text="Происхождение, параметры тела и стартовые характеристики настраиваются в редакторе Character v2."
+                                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                                               TextWrapping="Wrap"
+                                                               Margin="0,4,0,8"/>
+                                                    <Button Content="Открыть создание персонажей"
+                                                            HorizontalAlignment="Left"
+                                                            Command="{Binding SelectSectionCommand}"
+                                                            CommandParameter="admin.character_creation"
+                                                            AutomationProperties.AutomationId="AdminCharacters_OpenCharacterCreation"/>
                                                 </StackPanel>
                                             </Border>
 
@@ -430,10 +423,19 @@
                             </Grid>
                         </Grid>
                         </ScrollViewer>
+                        </Grid>
                     </TabItem>
 
                     <TabItem Header="Персонажи" Tag="admin.characters" AutomationProperties.AutomationId="AdminCharacters_Tab">
                         <characters:AdminCharacterWorkspaceView/>
+                    </TabItem>
+                    <TabItem Header="Создание персонажей" Tag="admin.character_creation" AutomationProperties.AutomationId="AdminCharacterCreation_Tab">
+                        <characters:AdminCharacterCreationView DataContext="{Binding CharacterCreation}"/>
+                    </TabItem>
+                    <TabItem Header="Конструкторы активов"
+                             Tag="admin.asset_configurators"
+                             AutomationProperties.AutomationId="AdminAssetConfigurators_Tab">
+                        <administration:AdminAssetConfiguratorsView DataContext="{Binding AssetConfigurators}"/>
                     </TabItem>
                     
 
@@ -442,154 +444,19 @@
                     
 
                     <TabItem Header="Система" Tag="system.settings">
-                        <Grid Margin="8" IsEnabled="{Binding ArePrivilegedSectionsEnabled}">
-                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Резервные копии" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding BackupSummary}" TextWrapping="Wrap"/></StackPanel></Border>
-                                <Border Grid.Column="1" Style="{StaticResource SummaryMetricCardStyle}"><StackPanel><TextBlock Text="Диагностика" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding DiagnosticsSummary}" TextWrapping="Wrap"/></StackPanel></Border>
-                            </Grid>
-                            <Grid Grid.Row="1" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0"><StackPanel><DockPanel><TextBlock Text="Резервные копии" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding BackupRefreshCommand}" IsEnabled="{Binding CanRefreshSystem}"/></DockPanel><WrapPanel Margin="0,8,0,0"><TextBox Width="220" Text="{Binding BackupLabel, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Создать резервную копию" Command="{Binding BackupCreateCommand}" IsEnabled="{Binding CanRefreshSystem}"/></WrapPanel><WrapPanel Margin="0,8,0,0"><TextBox Width="220" Text="{Binding SelectedBackupId, UpdateSourceTrigger=PropertyChanged}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Восстановить" Command="{Binding BackupRestoreCommand}" IsEnabled="False" ToolTip="Восстановление доступно только в режиме обслуживания."/><Button Style="{StaticResource GhostButtonStyle}" Content="Экспорт" Command="{Binding BackupExportCommand}" IsEnabled="False" ToolTip="Экспорт резервной копии будет подключён позже."/></WrapPanel><DataGrid Margin="0,8,0,0" ItemsSource="{Binding BackupItems}" SelectedValuePath="Id" SelectedValue="{Binding SelectedBackupId, UpdateSourceTrigger=PropertyChanged}" MinHeight="260"><DataGrid.Columns><DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="1.6*"/><DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.3*"/><DataGridTextColumn Header="Статус" Binding="{Binding State}" Width="1*"/><DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="1.4*"/></DataGrid.Columns></DataGrid></StackPanel></Border>
-                                <Border Grid.Column="1" Style="{StaticResource CardStyle}"><StackPanel><DockPanel><TextBlock Text="Диагностика" Style="{StaticResource SectionTitleTextStyle}"/><Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding DiagnosticsRefreshCommand}" IsEnabled="{Binding CanRefreshSystem}"/></DockPanel><ListBox Margin="0,8,0,0" ItemsSource="{Binding DiagnosticsItems}" SelectedValuePath="Id" SelectedValue="{Binding SelectedDiagnosticsId, UpdateSourceTrigger=PropertyChanged}"><ListBox.ItemTemplate><DataTemplate><Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,6"><StackPanel><TextBlock Text="{Binding Name}" Style="{StaticResource TitleTextStyle}"/><TextBlock Text="{Binding State}"/><TextBlock Text="{Binding Extra}" Opacity="0.8" TextWrapping="Wrap"/></StackPanel></Border></DataTemplate></ListBox.ItemTemplate></ListBox><TextBlock Text="{Binding SelectedDiagnosticsSummary}" Margin="0,8,0,0" TextWrapping="Wrap"/></StackPanel></Border>
-                            </Grid>
-                        </Grid>
+                        <system:AdminSystemOverviewView/>
                     </TabItem>
                     <TabItem Header="Текущая сессия" Tag="session.overview">
                         <sessions:AdminCurrentSessionView DataContext="{Binding CurrentSession}"/>
                     </TabItem>
                     <TabItem Header="Чат / кубики" Tag="session.chat">
-                        <Grid Margin="8" IsEnabled="{Binding ArePrivilegedSectionsEnabled}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
-                            <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0">
-                                <Grid>
-                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                                    <DockPanel>
-                                        <TextBlock Text="Чат / кубики" Style="{StaticResource SectionTitleTextStyle}"/>
-                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                            <Button Style="{StaticResource GhostButtonStyle}" Content="Отдельное окно" Command="{Binding DetachWorkspacePanelCommand}" CommandParameter="SessionChat"/>
-                                            <Button Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding ChatRefreshCommand}" IsEnabled="{Binding IsIdle}"/>
-                                        </StackPanel>
-                                    </DockPanel>
-                                    <ListBox Grid.Row="1" ItemsSource="{Binding MergedSessionFeedRows}" Margin="0,8,0,8">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate DataType="{x:Type vm:ChatMessageRowVm}">
-                                                <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,6">
-                                                    <StackPanel>
-                                                        <TextBlock TextWrapping="Wrap"><Run Text="{Binding Sender}" FontWeight="SemiBold"/><Run Text=": "/><Run Text="{Binding Text}"/></TextBlock>
-                                                        <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource MutedBrush}"/>
-                                                    </StackPanel>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="110"/></Grid.ColumnDefinitions><TextBox Margin="0,0,8,0" Text="{Binding ChatMessageText, UpdateSourceTrigger=PropertyChanged}"/><Button Grid.Column="1" Content="Отправить" Command="{Binding ChatSendCommand}" IsEnabled="{Binding CanSendChat}"/></Grid>
-                                </Grid>
-                            </Border>
-                            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
-                                <StackPanel>
-                                    <DockPanel>
-                                        <TextBlock Text="Лента бросков" Style="{StaticResource SectionTitleTextStyle}"/>
-                                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Отдельное окно" Command="{Binding DetachWorkspacePanelCommand}" CommandParameter="DiceFeed"/>
-                                    </DockPanel>
-                                    <TextBlock Text="Лента показывает броски с комментариями без raw payload." Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
-                                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="Быстрый бросок" Style="{StaticResource TitleTextStyle}"/>
-                                            <WrapPanel Margin="0,6,0,0">
-                                                <ComboBox Width="110" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/>
-                                                <TextBox Width="36" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}" ToolTip="Количество кубиков"/>
-                                                <TextBlock Text="d" VerticalAlignment="Center"/>
-                                                <TextBox Width="46" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}" ToolTip="Грани кубика"/>
-                                                <TextBlock Text="Мод." VerticalAlignment="Center" Margin="8,0,4,0"/>
-                                                <TextBox Width="56" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}"/>
-                                            </WrapPanel>
-                                            <WrapPanel Margin="0,6,0,0">
-                                                <ComboBox Width="140" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
-                                                <Button Margin="8,0,0,0" Content="Бросить" Command="{Binding RollDiceCommand}" IsEnabled="{Binding CanRollCharacterDice}"/>
-                                            </WrapPanel>
-                                            <TextBox Margin="0,6,0,0" Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Комментарий к броску"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <ListBox ItemsSource="{Binding DiceFeedRows}" MinHeight="260"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
+                        <conduct:AdminSessionChatView/>
                     </TabItem>
                     <TabItem Header="Журнал событий" Tag="event.log">
                         <journal:AdminEventJournalView DataContext="{Binding EventJournal}" Margin="8"/>
                     </TabItem>
                     <TabItem Header="Заявки игроков" Tag="requests.formal" AutomationProperties.AutomationId="AdminRequests_Tab">
-                        <Grid Margin="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="1.1*"/>
-                                <ColumnDefinition Width="1.2*"/>
-                            </Grid.ColumnDefinitions>
-                            <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0">
-                                <StackPanel>
-                                    <DockPanel>
-                                        <TextBlock Text="Заявки игроков" Style="{StaticResource SectionTitleTextStyle}"/>
-                                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding RefreshRequestsCommand}" AutomationProperties.AutomationId="AdminRequests_Refresh_Button"/>
-                                    </DockPanel>
-                                    <TextBlock Text="Очередь заявок игроков: рассмотрение, уточнения, одобрение и отклонение." TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,8"/>
-                                    <UniformGrid Columns="2" Margin="0,0,0,8">
-                                        <StackPanel Margin="0,0,6,0">
-                                            <TextBlock Text="Статус" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                            <ComboBox ItemsSource="{Binding RequestStatusFilters}" SelectedItem="{Binding RequestStatusFilter}" AutomationProperties.AutomationId="AdminRequests_Filter_Status"/>
-                                        </StackPanel>
-                                        <StackPanel Margin="6,0,0,0">
-                                            <TextBlock Text="Тип" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                            <ComboBox ItemsSource="{Binding RequestTypeFilters}" SelectedItem="{Binding RequestTypeFilter}" AutomationProperties.AutomationId="AdminRequests_Filter_Type"/>
-                                        </StackPanel>
-                                    </UniformGrid>
-                                    <DataGrid ItemsSource="{Binding PendingRequests}" SelectedValuePath="Id" SelectedValue="{Binding SelectedPendingRequestId, UpdateSourceTrigger=PropertyChanged}" MinHeight="420" AutoGenerateColumns="False" AutomationProperties.AutomationId="AdminRequests_List">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Header="№" Binding="{Binding DisplayId}" Width="0.6*"/>
-                                            <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.4*"/>
-                                            <DataGridTextColumn Header="Статус" Binding="{Binding State}" Width="0.9*"/>
-                                            <DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="2.4*"/>
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                    <TextBlock Text="{Binding SelectedRequestSummary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
-                                </StackPanel>
-                            </Border>
-                            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-                                <StackPanel>
-                                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="Карточка заявки" Style="{StaticResource SectionTitleTextStyle}"/>
-                                            <TextBlock Text="{Binding AdminSelectedRequestTitle}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminRequests_Selected_Title"/>
-                                            <TextBlock Text="{Binding AdminSelectedRequestType}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" AutomationProperties.AutomationId="AdminRequests_Selected_Type"/>
-                                            <TextBlock Text="{Binding AdminSelectedRequestPlayer}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminRequests_Selected_Player"/>
-                                            <TextBlock Text="{Binding AdminSelectedRequestActors}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" AutomationProperties.AutomationId="AdminRequests_Selected_Actors"/>
-                                            <TextBlock Text="{Binding AdminSelectedRequestCharacter}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" AutomationProperties.AutomationId="AdminRequests_Selected_Character"/>
-                                            <TextBlock Text="{Binding AdminSelectedRequestDetails}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminRequests_Selected_Details"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="Решение GM" FontWeight="Bold" FontSize="16"/>
-                                            <TextBox MinHeight="64" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding RequestComment, UpdateSourceTrigger=PropertyChanged}" ToolTip="Комментарий для игрока" AutomationProperties.AutomationId="AdminRequests_DecisionPlayerComment" Margin="0,8,0,0"/>
-                                            <TextBox MinHeight="64" TextWrapping="Wrap" AcceptsReturn="True" Text="{Binding RequestGMOnlyComment, UpdateSourceTrigger=PropertyChanged}" ToolTip="Заметка GM" AutomationProperties.AutomationId="AdminRequests_DecisionGMComment" Margin="0,8,0,0"/>
-                                            <TextBox Visibility="Collapsed" Text="{Binding RequestGMOnlyComment}" AutomationProperties.AutomationId="AdminRequests_AdminNotes"/>
-                                            <WrapPanel Margin="0,10,0,0">
-                                                <Button Content="На рассмотрение" Command="{Binding MarkInReviewRequestCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" AutomationProperties.AutomationId="AdminRequests_MarkInReview_Button"/>
-                                                <Button Content="Одобрить" Command="{Binding ApproveRequestCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" Margin="8,0,0,0" AutomationProperties.AutomationId="AdminRequests_Approve_Button"/>
-                                                <Button Content="Отклонить" Command="{Binding RejectRequestCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" Margin="8,0,0,0" AutomationProperties.AutomationId="AdminRequests_Reject_Button"/>
-                                                <Button Content="Нужны уточнения" Command="{Binding RequestChangesCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" Margin="8,0,0,0" AutomationProperties.AutomationId="AdminRequests_RequestChanges_Button"/>
-                                                <Button Content="Архив" Style="{StaticResource GhostButtonStyle}" Command="{Binding ArchiveRequestCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" Margin="8,0,0,0" AutomationProperties.AutomationId="AdminRequests_Archive_Button"/>
-                                            </WrapPanel>
-                                            <TextBlock Text="{Binding BusyMessage}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminRequests_StatusText"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource CardStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="История заявки" FontWeight="Bold" FontSize="16"/>
-                                            <ListBox ItemsSource="{Binding RequestHistoryRows}" MinHeight="180" AutomationProperties.AutomationId="AdminRequests_AuditTrail" Margin="0,8,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                            </ScrollViewer>
-                        </Grid>
+                        <conduct:AdminRequestsWorkspaceView/>
                     </TabItem>
                     <TabItem Header="Предложения" Tag="proposals.review">
                         <proposals:AdminProposalReviewView DataContext="{Binding ProposalReview}"/>
@@ -598,26 +465,7 @@
                         <notes:AdminGMNotesView DataContext="{Binding GMNotes}" Margin="0"/>
                     </TabItem>
                     <TabItem Header="Блокировки" Tag="locks.active">
-                        <Border Style="{StaticResource CardStyle}" Margin="8">
-                            <StackPanel>
-                                <TextBlock Text="Активные блокировки" Style="{StaticResource SectionTitleTextStyle}"/>
-                                <TextBlock Text="Список активных lock-записей. Принудительное снятие доступно Admin/SuperAdmin." Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,8"/>
-                                <TextBox Text="{Binding LocksSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по имени, ID или владельцу" Margin="0,0,0,8"/>
-                                <DataGrid ItemsSource="{Binding FilteredLockRows}" SelectedValuePath="Id" SelectedValue="{Binding SelectedLockId, UpdateSourceTrigger=PropertyChanged}" MinHeight="320" AutoGenerateColumns="False">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Id блокировки" Binding="{Binding Id}" Width="2*"/>
-                                        <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="1.4*"/>
-                                        <DataGridTextColumn Header="Статус" Binding="{Binding State}" Width="1*"/>
-                                        <DataGridTextColumn Header="Детали / владелец" Binding="{Binding Extra}" Width="2.4*"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                                <TextBlock Text="{Binding SelectedLockSummary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
-                                <WrapPanel Margin="0,8,0,0">
-                                    <Button Content="Обновить" Style="{StaticResource GhostButtonStyle}" Command="{Binding RefreshPeopleSectionCommand}" IsEnabled="{Binding IsIdle}"/>
-                                    <Button Content="Снять блокировку" Command="{Binding ForceUnlockCommand}" IsEnabled="{Binding CanManageSelectedLock}" ToolTip="Доступно Admin/SuperAdmin."/>
-                                </WrapPanel>
-                            </StackPanel>
-                        </Border>
+                        <system:AdminLocksView/>
                     </TabItem>
                     <TabItem Header="Бой" Tag="combat.readonly">
                         <Grid>
@@ -626,7 +474,10 @@
                             <conduct:AdminCombatReadOnlyView Grid.Row="1" DataContext="{Binding CombatReadOnly}"/>
                         </Grid>
                     </TabItem>
-                    <TabItem Header="Справочники" Tag="definitions.browser">
+                    <TabItem Header="Справочники" Tag="definitions.editor" AutomationProperties.AutomationId="AdminDefinitionEditor_Tab">
+                        <administration:AdminDefinitionEditorView DataContext="{Binding DefinitionEditor}"/>
+                    </TabItem>
+                    <TabItem Header="Справочники pack browser" Tag="definitions.browser">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                             <Button HorizontalAlignment="Right" Margin="8" Style="{StaticResource GhostButtonStyle}" Content="Открыть отдельно" Command="{Binding DetachWorkspacePanelCommand}" CommandParameter="DefinitionsBrowser"/>
@@ -634,106 +485,21 @@
                         </Grid>
                     </TabItem>
                     <TabItem Header="Глобальный поиск" Tag="global.search" AutomationProperties.AutomationId="AdminGlobalSearch_Tab">
-                        <Grid Margin="8">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <Border Style="{StaticResource CardStyle}" Padding="12">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="2*"/>
-                                        <ColumnDefinition Width="180"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBox Grid.Column="0"
-                                             AutomationProperties.AutomationId="AdminGlobalSearch_Query"
-                                             Text="{Binding GlobalSearchQuery, UpdateSourceTrigger=PropertyChanged}"
-                                             ToolTip="Введите текст для серверного поиска"/>
-                                    <ComboBox Grid.Column="1"
-                                              AutomationProperties.AutomationId="AdminGlobalSearch_CategoryFilter"
-                                              ItemsSource="{Binding GlobalSearchCategories}"
-                                              SelectedItem="{Binding GlobalSearchCategoryFilter, UpdateSourceTrigger=PropertyChanged}"
-                                              Margin="8,0,0,0"/>
-                                    <CheckBox Grid.Column="2"
-                                              AutomationProperties.AutomationId="AdminGlobalSearch_IncludeArchived"
-                                              Content="Архив"
-                                              IsChecked="{Binding GlobalSearchIncludeArchived}"
-                                              VerticalAlignment="Center"
-                                              Margin="12,0,0,0"/>
-                                    <CheckBox Grid.Column="3"
-                                              AutomationProperties.AutomationId="AdminGlobalSearch_IncludeHidden"
-                                              Content="Скрытое"
-                                              IsChecked="{Binding GlobalSearchIncludeHidden}"
-                                              VerticalAlignment="Center"
-                                              Margin="12,0,0,0"/>
-                                    <Button Grid.Column="4"
-                                            AutomationProperties.AutomationId="AdminGlobalSearch_Button"
-                                            Content="Искать"
-                                            Command="{Binding GlobalSearchCommand}"
-                                            Margin="12,0,0,0"/>
-                                </Grid>
-                            </Border>
-                            <Grid Grid.Row="1" Margin="0,8,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="2.2*"/>
-                                    <ColumnDefinition Width="1*"/>
-                                </Grid.ColumnDefinitions>
-                                <DataGrid Grid.Column="0"
-                                          AutomationProperties.AutomationId="AdminGlobalSearch_Results"
-                                          ItemsSource="{Binding GlobalSearchResults}"
-                                          SelectedItem="{Binding SelectedGlobalSearchResult}"
-                                          AutoGenerateColumns="False"
-                                          IsReadOnly="True"
-                                          MinHeight="360">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Название" Binding="{Binding DisplayTitle}" Width="2*"/>
-                                        <DataGridTextColumn Header="Тип" Binding="{Binding DisplayType}" Width="1.2*"/>
-                                        <DataGridTextColumn Header="Фрагмент" Binding="{Binding Snippet}" Width="3*"/>
-                                        <DataGridTextColumn Header="Источник" Binding="{Binding SourceCollection}" Width="1.2*"/>
-                                        <DataGridTextColumn Header="Маршрут" Binding="{Binding RouteKey}" Width="1.4*"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0" Padding="12">
-                                    <StackPanel>
-                                        <TextBlock AutomationProperties.AutomationId="AdminGlobalSearch_Result_Title"
-                                                   Text="{Binding SelectedGlobalSearchTitle}"
-                                                   Style="{StaticResource SectionTitleTextStyle}"
-                                                   TextWrapping="Wrap"/>
-                                        <TextBlock AutomationProperties.AutomationId="AdminGlobalSearch_Result_EntityType"
-                                                   Text="{Binding SelectedGlobalSearchType}"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   Margin="0,6,0,0"/>
-                                        <TextBlock AutomationProperties.AutomationId="AdminGlobalSearch_Result_Snippet"
-                                                   Text="{Binding SelectedGlobalSearchSnippet}"
-                                                   TextWrapping="Wrap"
-                                                   Margin="0,12,0,0"/>
-                                        <TextBlock Text="{Binding SelectedGlobalSearchRoute}"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   TextWrapping="Wrap"
-                                                   Margin="0,12,0,0"/>
-                                        <Button AutomationProperties.AutomationId="AdminGlobalSearch_Open_Button"
-                                                Content="Открыть"
-                                                Command="{Binding GlobalSearchOpenCommand}"
-                                                Margin="0,16,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-                            <TextBlock Grid.Row="2"
-                                       AutomationProperties.AutomationId="AdminGlobalSearch_StatusText"
-                                       Text="{Binding GlobalSearchStatusText}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       Margin="4,8,0,0"/>
-                        </Grid>
+                        <system:AdminGlobalSearchView/>
                     </TabItem>
                     <TabItem Header="Системные инструменты" Tag="system.tools">
                         <systemTools:SystemToolsView DataContext="{Binding SystemTools}"/>
                     </TabItem>
                     <TabItem Header="Предметы" Tag="admin.items">
                         <administration:AdminItemsEquipmentView/>
+                    </TabItem>
+                    <TabItem Header="Проекты"
+                             Tag="admin.craft_projects"
+                             AutomationProperties.AutomationId="AdminCraftProject_Tab">
+                        <administration:AdminCraftingView DataContext="{Binding Crafting}"/>
+                    </TabItem>
+                    <TabItem Header="Магия и состояния" Tag="admin.magic" AutomationProperties.AutomationId="AdminMagicDefinitions_Tab">
+                        <administration:AdminMagicDefinitionsView DataContext="{Binding MagicDefinitions}"/>
                     </TabItem>
                     <TabItem Header="Классы" Tag="admin.classes">
                         <administration:AdminClassesSkillsView/>
@@ -763,15 +529,32 @@
                     <TabItem Header="Группа сессии" Tag="session.group">
                         <groups:AdminCharacterGroupsView DataContext="{Binding CharacterGroups}"/>
                     </TabItem>
+                    <TabItem Header="Состояния участников" Tag="conduct.live_state" AutomationProperties.AutomationId="AdminLiveState_Tab">
+                        <conduct:AdminLiveActorStateView/>
+                    </TabItem>
+                    <TabItem Header="Погода и путешествия" Tag="conduct.weather_travel" AutomationProperties.AutomationId="AdminWeatherTravel_Tab">
+                        <conduct:AdminWeatherTravelView/>
+                    </TabItem>
                     <TabItem Header="Fate Engine" Tag="fate.engine">
                         <fate:AdminFateControlView DataContext="{Binding FateControl}"/>
                     </TabItem>
-                    <TabItem Header="Карта сцены" Tag="scene.map">
-                        <pages:AdminPlaceholderView Title="Карта сцены"
-                                                    Description="Карты перенесены в ветку 0.16. В 0.14 этот раздел не выполняет команды и не выглядит как готовый редактор."
-                                                    PlannedModuleName="SceneMapControlledDisabled"
-                                                    StatusText="Недоступно / отложено"
-                                                    RelatedFoundationStage="0.16"/>
+                    <TabItem Header="Задачи" Tag="quest.journal" AutomationProperties.AutomationId="AdminQuest_Tab">
+                        <conduct:AdminQuestView DataContext="{Binding Quests}"/>
+                    </TabItem>
+                    <TabItem Header="Магазины" Tag="shop.market" AutomationProperties.AutomationId="AdminShop_Tab">
+                        <conduct:AdminShopView DataContext="{Binding Shops}"/>
+                    </TabItem>
+                    <TabItem Header="Отдых" Tag="rest.downtime" AutomationProperties.AutomationId="AdminRest_Tab">
+                        <conduct:AdminRestView DataContext="{Binding Rest}"/>
+                    </TabItem>
+                    <TabItem Header="Игровой цикл" Tag="gameplay.loop" AutomationProperties.AutomationId="AdminGameplay_Route">
+                        <conduct:AdminGameplayView DataContext="{Binding Gameplay}"/>
+                    </TabItem>
+                    <TabItem Header="Карта сцены" Tag="scene.map" AutomationProperties.AutomationId="AdminSceneMap_Tab">
+                        <conduct:AdminSceneMapView DataContext="{Binding SceneMap}"/>
+                    </TabItem>
+                    <TabItem Header="Генератор локаций" Tag="scene.generator" AutomationProperties.AutomationId="AdminLocationGenerator_Tab">
+                        <conduct:AdminLocationGeneratorView DataContext="{Binding LocationGenerator}"/>
                     </TabItem>
                     <TabItem Header="Повтор боя" Tag="placeholder.combat_replay">
                         <pages:AdminPlaceholderView Title="Повтор боя"
@@ -781,148 +564,104 @@
                                                     RelatedFoundationStage="0.16"/>
                     </TabItem>
                     <TabItem Header="Музыка" Tag="placeholder.audio" AutomationProperties.AutomationId="AdminAudio_Tab">
-                        <Grid Margin="8">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="12">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="Музыка сессии" Style="{StaticResource SectionTitleTextStyle}"/>
-                                        <TextBlock AutomationProperties.AutomationId="AdminAudio_CurrentState_Text" Text="{Binding AudioStateText}" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"/>
-                                    </StackPanel>
-                                    <WrapPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <Button AutomationProperties.AutomationId="AdminAudio_Refresh_Button" Style="{StaticResource GhostButtonStyle}" Content="Обновить" Command="{Binding AudioRefreshCommand}" IsEnabled="{Binding CanControlAudio}"/>
-                                        <Button AutomationProperties.AutomationId="AdminAudio_Resync_Button" Style="{StaticResource GhostButtonStyle}" Content="Синхронизировать" Command="{Binding AudioResyncCommand}" IsEnabled="{Binding CanControlAudio}"/>
-                                    </WrapPanel>
-                                </Grid>
-                            </Border>
-                            <Grid Grid.Row="1" Margin="0,8,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="2*"/>
-                                    <ColumnDefinition Width="1.2*"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                        </Grid.RowDefinitions>
-                                        <DockPanel Margin="0,0,0,8">
-                                            <TextBlock Text="Треки" Style="{StaticResource SectionTitleTextStyle}"/>
-                                            <ComboBox DockPanel.Dock="Right" AutomationProperties.AutomationId="AdminAudio_CategoryFilter" Width="140" ItemsSource="{Binding AudioCategoryOptions}" SelectedItem="{Binding AudioCategoryInput, UpdateSourceTrigger=PropertyChanged}"/>
-                                        </DockPanel>
-                                        <DataGrid Grid.Row="1" AutomationProperties.AutomationId="AdminAudio_TrackList" ItemsSource="{Binding AudioTrackRows}" SelectedItem="{Binding SelectedAudioTrackRow, Mode=TwoWay}" AutoGenerateColumns="False" MinHeight="300">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="160"/>
-                                                <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="2*"/>
-                                                <DataGridTextColumn Header="Категория" Binding="{Binding Category}" Width="100"/>
-                                                <DataGridTextColumn Header="Видимость" Binding="{Binding State}" Width="120"/>
-                                                <DataGridTextColumn Header="Статус" Binding="{Binding Extra}" Width="180"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-                                    </Grid>
-                                </Border>
-                                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12" Margin="8,0,0,0">
-                                    <StackPanel>
-                                        <TextBlock Text="Текущий трек" Style="{StaticResource SectionTitleTextStyle}"/>
-                                        <TextBlock AutomationProperties.AutomationId="AdminAudio_SelectedTrack_Title" Text="{Binding AudioSelectedTrackTitle}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                        <TextBlock Text="Состояние" Margin="0,10,0,0" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding AudioCurrentTrackTitle}" TextWrapping="Wrap"/>
-                                        <TextBlock AutomationProperties.AutomationId="AdminAudio_CurrentCategory" Text="{Binding AudioCurrentCategory, StringFormat=Категория: {0}}" Foreground="{StaticResource MutedBrush}"/>
-                                        <TextBlock Text="{Binding AudioPlaybackStateText, StringFormat=Статус: {0}}" Foreground="{StaticResource MutedBrush}"/>
-                                        <TextBlock Text="ID трека" Margin="0,10,0,0"/>
-                                        <TextBox AutomationProperties.AutomationId="AdminAudio_SelectedTrackId" Text="{Binding AudioSelectedTrackId, UpdateSourceTrigger=PropertyChanged}"/>
-                                        <TextBlock Text="Режим повтора" Margin="0,8,0,0"/>
-                                        <ComboBox AutomationProperties.AutomationId="AdminAudio_LoopMode" ItemsSource="{Binding AudioLoopModeOptions}" SelectedItem="{Binding AudioLoopModeInput, UpdateSourceTrigger=PropertyChanged}"/>
-                                        <TextBlock Text="Плавное переключение, сек." Margin="0,8,0,0"/>
-                                        <TextBox AutomationProperties.AutomationId="AdminAudio_FadeSeconds" Text="{Binding AudioFadeSecondsInput, UpdateSourceTrigger=PropertyChanged}"/>
-                                        <WrapPanel Margin="0,12,0,0">
-                                            <Button AutomationProperties.AutomationId="AdminAudio_Play_Button" Content="Воспроизвести" Command="{Binding AudioSelectTrackCommand}" IsEnabled="{Binding CanControlAudio}"/>
-                                            <Button AutomationProperties.AutomationId="AdminAudio_Pause_Button" Content="Пауза" Command="{Binding AudioPauseCommand}" IsEnabled="{Binding CanControlAudio}"/>
-                                            <Button AutomationProperties.AutomationId="AdminAudio_Stop_Button" Content="Стоп" Command="{Binding AudioStopCommand}" IsEnabled="{Binding CanControlAudio}"/>
-                                            <Button AutomationProperties.AutomationId="AdminAudio_Next_Button" Content="Следующий" Command="{Binding AudioNextTrackCommand}" IsEnabled="{Binding CanControlAudio}"/>
-                                        </WrapPanel>
-                                        <Button Content="Сохранить настройки" Command="{Binding AudioSetModeCommand}" IsEnabled="{Binding CanControlAudio}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-                            <TextBlock Grid.Row="2" AutomationProperties.AutomationId="AdminAudio_StatusText" Text="{Binding AudioStatusText}" Foreground="{StaticResource MutedBrush}"/>
-                        </Grid>
+                        <conduct:AdminAudioWorkspaceView/>
                     </TabItem>
                 </TabControl>
-
-                <Popup IsOpen="{Binding IsConnectionPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=ServerButton}" StaysOpen="False">
-                    <Border Style="{StaticResource CardStyle}" Width="420" Padding="12">
-                        <StackPanel>
-                            <DockPanel>
-                                <TextBlock Text="Подключение к серверу" Style="{StaticResource SectionTitleTextStyle}"/>
-                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="&#1054;&#1090;&#1082;&#1088;&#1099;&#1090;&#1100;" Width="34" Padding="0" Command="{Binding OpenConnectionPopupCommand}"/>
-                            </DockPanel>
-                            <TextBlock Text="Адрес сервера" Margin="0,10,0,0"/>
-                            <TextBox Text="{Binding ServerHostInput, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBlock Text="Порт" Margin="0,8,0,0"/>
-                            <TextBox Text="{Binding ServerPortInput, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBlock Text="{Binding ConnectionStatusDetail}" Margin="0,10,0,0"/>
-                            <TextBlock Text="{Binding LastServerHost, StringFormat=Последний host: {0}}" Margin="0,8,0,0"/>
-                            <TextBlock Text="{Binding LastServerPort, StringFormat=Последний port: {0}}"/>
-                            <WrapPanel Margin="0,12,0,0">
-                                <Button AutomationProperties.AutomationId="Admin_Connect_Button" Content="Подключиться" Command="{Binding ConnectToServerCommand}" IsEnabled="{Binding CanInitiateConnection}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Применить" Command="{Binding ApplyConnectionSettingsCommand}" IsEnabled="{Binding CanInitiateConnection}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Сбросить" Command="{Binding ResetConnectionDefaultsCommand}" IsEnabled="{Binding CanInitiateConnection}"/>
-                                <Button Style="{StaticResource GhostButtonStyle}" Content="Сохранить" Command="{Binding UseSavedConnectionSettingsCommand}" IsEnabled="{Binding CanInitiateConnection}"/>
-                            </WrapPanel>
-                        </StackPanel>
-                    </Border>
-                </Popup>
-
-                <Popup IsOpen="{Binding IsAuthPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=AuthButton}" StaysOpen="False">
-                    <Border Style="{StaticResource CardStyle}" Width="360" Padding="12">
-                        <StackPanel>
-                            <DockPanel>
-                                <TextBlock Text="Характеристики" Style="{StaticResource SectionTitleTextStyle}"/>
-                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}" Content="&#1054;&#1090;&#1082;&#1088;&#1099;&#1090;&#1100;" Width="34" Padding="0" Command="{Binding ToggleAuthPopupCommand}"/>
-                            </DockPanel>
-                            <TextBlock Text="Логин" Margin="0,10,0,0"/>
-                            <TextBox AutomationProperties.AutomationId="Admin_Login_Text" Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBlock Text="Пароль" Margin="0,8,0,0"/>
-                            <PasswordBox x:Name="AdminPasswordBox" AutomationProperties.AutomationId="Admin_Password_Box" PasswordChanged="OnAdminPasswordChanged"/>
-                            <TextBox AutomationProperties.AutomationId="Admin_Password_Automation_Text"
-                                     Text="{Binding PasswordText, UpdateSourceTrigger=PropertyChanged}"
-                                     Width="1"
-                                     Height="1"
-                                     Opacity="0.01"
-                                     IsTabStop="False"
-                                     Margin="0"/>
-                            <TextBlock Text="Старый пароль" Margin="0,8,0,0"/>
-                            <PasswordBox x:Name="AdminOldPasswordBox" PasswordChanged="OnAdminOldPasswordChanged"/>
-                            <TextBlock Text="Новый пароль" Margin="0,8,0,0"/>
-                            <PasswordBox x:Name="AdminNewPasswordBox" PasswordChanged="OnAdminNewPasswordChanged"/>
-                            <TextBlock AutomationProperties.AutomationId="Admin_Auth_LoginState_Text" Text="{Binding LoginState}" Margin="0,10,0,0"/>
-                            <TextBlock Text="{Binding LastErrorMessage}" Foreground="{StaticResource DangerBrush}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding HasConnectionError}" Value="True">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <WrapPanel Margin="0,12,0,0"><Button AutomationProperties.AutomationId="Admin_Login_Button" Content="Войти" Command="{Binding LoginCommand}" HorizontalAlignment="Left" IsEnabled="{Binding CanInitiateConnection}"/><Button Style="{StaticResource GhostButtonStyle}" Content="Сменить пароль" Command="{Binding ChangePasswordCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}"/></WrapPanel>
-                        </StackPanel>
-                    </Border>
-                </Popup>
-            </Grid>
+            </nri:NriRouteHost>
         </Grid>
+
+        <nri:NriConnectionDialog Grid.RowSpan="3"
+                                 IsOpen="{Binding IsConnectionPopupOpen, Mode=TwoWay}"
+                                 CloseCommand="{Binding OpenConnectionPopupCommand}"
+                                 Title="Подключение к серверу"
+                                 Message="Проверьте состояние соединения и подключитесь. Адрес сервера доступен в дополнительных параметрах."
+                                 AutomationProperties.AutomationId="Admin_Connection_Dialog">
+            <StackPanel>
+                <TextBlock AutomationProperties.AutomationId="Admin_ConnectionPopup_State" Text="{Binding ConnectionStage}" FontWeight="SemiBold"/>
+                <TextBlock AutomationProperties.AutomationId="Admin_ConnectionPopup_Detail" Text="{Binding ConnectionStatusDetail}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                <Expander Header="Дополнительно" Margin="0,12,0,0" AutomationProperties.AutomationId="Admin_Connection_Advanced">
+                    <StackPanel Margin="0,8,0,0">
+                        <TextBlock Text="Адрес сервера"/>
+                        <TextBox AutomationProperties.AutomationId="Admin_ServerHost_Input" Text="{Binding ServerHostInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Порт" Margin="0,8,0,0"/>
+                        <TextBox AutomationProperties.AutomationId="Admin_ServerPort_Input" Text="{Binding ServerPortInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="{Binding LastServerHost, StringFormat=Последний адрес: {0}}" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding LastServerPort, StringFormat=Последний порт: {0}}"/>
+                        <WrapPanel Margin="0,10,0,0">
+                            <Button Style="{StaticResource NriSecondaryButtonStyle}" Content="Применить" Command="{Binding ApplyConnectionSettingsCommand}" IsEnabled="{Binding CanInitiateConnection}"/>
+                            <Button Style="{StaticResource NriSecondaryButtonStyle}" Content="Сбросить" Command="{Binding ResetConnectionDefaultsCommand}" IsEnabled="{Binding CanInitiateConnection}"/>
+                            <Button Style="{StaticResource NriSecondaryButtonStyle}" Content="Использовать сохранённые" Command="{Binding UseSavedConnectionSettingsCommand}" IsEnabled="{Binding CanInitiateConnection}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Expander>
+                <Button AutomationProperties.AutomationId="Admin_Connect_Button" Content="Подключиться" Command="{Binding ConnectToServerCommand}" IsEnabled="{Binding CanInitiateConnection}" HorizontalAlignment="Right" Margin="0,16,0,0"/>
+            </StackPanel>
+        </nri:NriConnectionDialog>
+
+        <nri:NriLoginDialog Grid.RowSpan="3"
+                            IsOpen="{Binding IsAuthPopupOpen, Mode=TwoWay}"
+                            Title="Вход"
+                            Message="Войдите в учётную запись администратора, чтобы открыть рабочие разделы."
+                            AutomationProperties.AutomationId="Admin_Login_Dialog">
+            <StackPanel>
+                <TextBlock Text="Логин"/>
+                <TextBox AutomationProperties.AutomationId="Admin_Login_Text" Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="Пароль" Margin="0,8,0,0"/>
+                <PasswordBox x:Name="AdminPasswordBox" AutomationProperties.AutomationId="Admin_Password_Box" PasswordChanged="OnAdminPasswordChanged"/>
+                <TextBox AutomationProperties.AutomationId="Admin_Password_Automation_Text" Text="{Binding PasswordText, UpdateSourceTrigger=PropertyChanged}" Width="1" Height="1" Opacity="0.01" IsTabStop="False" Margin="0"/>
+                <TextBlock AutomationProperties.AutomationId="Admin_Auth_LoginState_Text" Text="{Binding LoginState}" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding AuthenticationStatusMessage}" Foreground="{StaticResource NriDangerBrush}" TextWrapping="Wrap"/>
+                <Expander Header="Дополнительно" Margin="0,10,0,0">
+                    <StackPanel Margin="0,8,0,0">
+                        <TextBlock Text="Старый пароль"/>
+                        <PasswordBox x:Name="AdminOldPasswordBox" PasswordChanged="OnAdminOldPasswordChanged"/>
+                        <TextBlock Text="Новый пароль" Margin="0,8,0,0"/>
+                        <PasswordBox x:Name="AdminNewPasswordBox" PasswordChanged="OnAdminNewPasswordChanged"/>
+                        <Button Style="{StaticResource NriSecondaryButtonStyle}" Content="Сменить пароль" Command="{Binding ChangePasswordCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Expander>
+                <Button AutomationProperties.AutomationId="Admin_Login_Button" Content="Войти" Command="{Binding LoginCommand}" HorizontalAlignment="Right" IsEnabled="{Binding CanInitiateConnection}" Margin="0,16,0,0"/>
+            </StackPanel>
+        </nri:NriLoginDialog>
+
+        <Border Grid.RowSpan="3" Panel.ZIndex="90" Background="{StaticResource NriOverlayBrush}"
+                Visibility="{Binding IsWorkspacePanelManagerOpen, Converter={StaticResource BooleanToVisibilityConverter}}"
+                AutomationProperties.AutomationId="Admin_Workspace_Manager_Overlay">
+            <Border Width="680" MaxHeight="720" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="{StaticResource NriElevatedSurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="20">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <DockPanel Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Панели проведения" Style="{StaticResource NriPageTitleTextStyle}"/>
+                            <TextBlock Text="Закрепляйте панели в рабочей области или выносите их в отдельные окна." Style="{StaticResource NriSecondaryTextStyle}"/>
+                        </StackPanel>
+                        <Button DockPanel.Dock="Right" Content="Закрыть" Command="{Binding ToggleWorkspacePanelManagerCommand}" Style="{StaticResource NriSecondaryButtonStyle}" AutomationProperties.AutomationId="Admin_Workspace_Manager_Close"/>
+                    </DockPanel>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding WorkspacePanels}" AutomationProperties.AutomationId="Admin_Workspace_Manager_List">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:WorkspacePanelDescriptor}">
+                                <Border Background="{StaticResource NriSecondarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding PanelState}" Style="{StaticResource NriMetadataTextStyle}"/>
+                                        </StackPanel>
+                                        <WrapPanel Grid.Column="1">
+                                            <Button Content="Закрепить" Style="{StaticResource NriSecondaryButtonStyle}" Command="{Binding DataContext.AttachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}"/>
+                                            <Button Content="В отдельное окно" Style="{StaticResource NriSecondaryButtonStyle}" Command="{Binding DataContext.DetachWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}" IsEnabled="{Binding CanDetach}"/>
+                                            <Button Content="Показать" Style="{StaticResource NriSecondaryButtonStyle}" Command="{Binding DataContext.ShowWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}"/>
+                                            <Button Content="Скрыть" Style="{StaticResource NriSecondaryButtonStyle}" Command="{Binding DataContext.HideWorkspacePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding PanelId}"/>
+                                        </WrapPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+        </Border>
     </Grid>
 </Window>
 

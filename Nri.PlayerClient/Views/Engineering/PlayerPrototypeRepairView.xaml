@@ -1,0 +1,150 @@
+<UserControl x:Class="Nri.PlayerClient.Views.Engineering.PlayerPrototypeRepairView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource NriApplicationBackgroundBrush}"
+             Foreground="{StaticResource TextBrush}"
+             AutomationProperties.AutomationId="PlayerPrototypeRepair_View">
+    <Grid Margin="4">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0.9*"/>
+            <ColumnDefinition Width="1.4*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,12,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Доступные прототипы" Style="{StaticResource NriSectionTitleTextStyle}"/>
+                    <TextBlock Text="Выберите свой прототип с открытым дефектом. Система сама использует внутренние ссылки."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,10"/>
+                </StackPanel>
+                <TabControl Grid.Row="1"
+                            AutomationProperties.AutomationId="PlayerPrototypeRepair_SelectionTabs">
+                    <TabItem Header="Для ремонта">
+                        <ListBox ItemsSource="{Binding PrototypeRepairCandidates0195}"
+                                 SelectedItem="{Binding SelectedPrototypeRepairCandidate0195, Mode=TwoWay}"
+                                 DisplayMemberPath="Summary"
+                                 AutomationProperties.AutomationId="PlayerPrototypeRepair_CandidateSelector"/>
+                    </TabItem>
+                    <TabItem Header="Мои проекты">
+                        <ListBox ItemsSource="{Binding PrototypeRepairProjects0195}"
+                                 SelectedItem="{Binding SelectedPrototypeRepairProject0195, Mode=TwoWay}"
+                                 DisplayMemberPath="Summary"
+                                 AutomationProperties.AutomationId="PlayerPrototypeRepair_ProjectList"/>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </Border>
+
+        <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="Ремонт прототипа" Style="{StaticResource NriSectionTitleTextStyle}"/>
+                    <TextBlock Text="{Binding SelectedPrototypeRepairCandidate0195.Description, TargetNullValue=Выберите прототип слева.}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,10"/>
+                    <TextBlock Text="Название проекта *" FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding PrototypeRepairProjectName0195, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.AutomationId="PlayerPrototypeRepair_Name"/>
+
+                    <Border Background="{StaticResource NriSecondarySurfaceBrush}"
+                            BorderBrush="{StaticResource NriWarningBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="10"
+                            Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="{Binding PrototypeRepairWarning0195}"
+                                       Foreground="{StaticResource NriWarningBrush}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap"
+                                       AutomationProperties.AutomationId="PlayerPrototypeRepair_Warning"/>
+                            <TextBlock Text="{Binding PrototypeRepairStatus0195}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,6,0,0"
+                                       AutomationProperties.AutomationId="PlayerPrototypeRepair_Status"/>
+                            <TextBlock Text="{Binding PrototypeRepairDefect0195}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0"
+                                       AutomationProperties.AutomationId="PlayerPrototypeRepair_Defect"/>
+                            <TextBlock Text="{Binding PrototypeRepairTestHistory0195}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0"
+                                       AutomationProperties.AutomationId="PlayerPrototypeRepair_TestHistorySummary"/>
+                            <TextBlock Text="{Binding PrototypeRepairProduction0195}"
+                                       Foreground="{StaticResource NriWarningBrush}"
+                                       FontWeight="SemiBold"
+                                       Margin="0,6,0,0"
+                                       AutomationProperties.AutomationId="PlayerPrototypeRepair_ProductionStatus"/>
+                            <TextBlock Text="{Binding PrototypeRepairState0195}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <WrapPanel Margin="0,12,0,0">
+                        <Button Content="Обновить"
+                                Command="{Binding RefreshPrototypeRepairCommand0195}"
+                                Style="{StaticResource NriSecondaryButtonStyle}"
+                                AutomationProperties.AutomationId="PlayerPrototypeRepair_Refresh"/>
+                        <Button Content="Проверить ремонт"
+                                Command="{Binding PreviewPrototypeRepairCommand0195}"
+                                Margin="8,0,0,0"
+                                AutomationProperties.AutomationId="PlayerPrototypeRepair_Preview"/>
+                        <Button Content="Создать черновик"
+                                Command="{Binding CreatePrototypeRepairCommand0195}"
+                                Margin="8,0,0,0"
+                                AutomationProperties.AutomationId="PlayerPrototypeRepair_Create"/>
+                        <Button Content="Отправить GM"
+                                Command="{Binding SubmitPrototypeRepairCommand0195}"
+                                Margin="8,0,0,0"
+                                AutomationProperties.AutomationId="PlayerPrototypeRepair_Submit"/>
+                        <Button Content="Отменить"
+                                Command="{Binding CancelPrototypeRepairCommand0195}"
+                                Style="{StaticResource NriSecondaryButtonStyle}"
+                                Margin="8,0,0,0"
+                                AutomationProperties.AutomationId="PlayerPrototypeRepair_Cancel"/>
+                    </WrapPanel>
+                </StackPanel>
+
+                <Separator Grid.Row="1" Margin="0,14"/>
+
+                <TabControl Grid.Row="2"
+                            AutomationProperties.AutomationId="PlayerPrototypeRepair_Details">
+                    <TabItem Header="Требования">
+                        <ListBox ItemsSource="{Binding PrototypeRepairRequirements0195}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                    <TabItem Header="Ресурсы">
+                        <ListBox ItemsSource="{Binding PrototypeRepairResources0195}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                    <TabItem Header="Стадии">
+                        <ListBox ItemsSource="{Binding PrototypeRepairStages0195}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                    <TabItem Header="Испытания">
+                        <ListBox ItemsSource="{Binding PrototypeRepairTestHistoryRows0195}"
+                                 DisplayMemberPath="Display"
+                                 AutomationProperties.AutomationId="PlayerPrototypeRepair_TestHistory"/>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

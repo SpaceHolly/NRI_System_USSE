@@ -32,7 +32,15 @@ public static class MapFeatureFlags
 public static class MapSpaceNodeTypeIds
 {
     public const string Dimension = "dimension";
+    public const string Galaxy = "galaxy";
+    public const string Sector = "sector";
+    public const string Subsector = "subsector";
     public const string World = "world";
+    public const string Continent = "continent";
+    public const string State = "state";
+    public const string Settlement = "settlement";
+    public const string District = "district";
+    public const string SubLocation = "sub_location";
     public const string StarSystem = "star_system";
     public const string Star = "star";
     public const string Planet = "planet";
@@ -44,18 +52,34 @@ public static class MapSpaceNodeTypeIds
     public const string Country = "country";
     public const string City = "city";
     public const string Interior = "interior";
+    public const string Dungeon = "dungeon";
+    public const string Moon = "moon";
+    public const string Orbital = "orbital";
     public const string Custom = "custom";
 }
 
 public static class MapTypeIds
 {
     public const string World = "world";
+    public const string Continent = "continent";
+    public const string Region = "region";
+    public const string State = "state";
+    public const string Settlement = "settlement";
+    public const string District = "district";
+    public const string Location = "location";
     public const string WorldMap = "world_map";
     public const string Scene = "scene";
     public const string Room = "room";
     public const string Interior = "interior";
+    public const string Dungeon = "dungeon";
+    public const string BattleScene = "battle_scene";
+    public const string Galaxy = "galaxy";
+    public const string Sector = "sector";
+    public const string Subsector = "subsector";
     public const string StarSystem = "star_system";
     public const string Planet = "planet";
+    public const string Moon = "moon";
+    public const string Orbital = "orbital";
     public const string PlanetMap = "planet_map";
     public const string Custom = "custom";
 }
@@ -290,9 +314,16 @@ public sealed class MapSpaceNodeState : EntityBase
 
 public sealed class MapCanvasState : EntityBase
 {
+    public string WorldId { get; set; } = string.Empty;
     public string CampaignId { get; set; } = string.Empty;
     public string RuleSetId { get; set; } = string.Empty;
     public string SpaceNodeId { get; set; } = string.Empty;
+    public List<string> BoundWorldEntityIds { get; set; } = new List<string>();
+    public string PrimaryBoundWorldEntityId { get; set; } = string.Empty;
+    public string CoordinateProfileId { get; set; } = string.Empty;
+    public string ScaleProfileId { get; set; } = string.Empty;
+    public string ParentMapId { get; set; } = string.Empty;
+    public List<string> LayerIds { get; set; } = new List<string>();
     public string MapType { get; set; } = MapTypeIds.Custom;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
@@ -306,7 +337,11 @@ public sealed class MapCanvasState : EntityBase
     public string BackgroundAssetId { get; set; } = string.Empty;
     public string BackgroundImagePath { get; set; } = string.Empty;
     public string VisibilityMode { get; set; } = MapVisibilityModes.Public;
+    public string KnowledgePolicy { get; set; } = "character_discovery";
+    public long EntityRevision { get; set; }
+    public string GeneratorProvenanceId { get; set; } = string.Empty;
     public bool IsArchived { get; set; }
+    public long EditorRevision { get; set; }
     public List<string> Tags { get; set; } = new List<string>();
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
@@ -634,6 +669,18 @@ public sealed class MapSpaceNodeListRequest
     public string ParentId { get; set; } = string.Empty;
     public bool IncludeArchived { get; set; }
     public int Limit { get; set; } = 200;
+    public string RequestId { get; set; } = string.Empty;
+}
+
+public sealed class MapSpaceNodeCreateRequest
+{
+    public string CampaignId { get; set; } = string.Empty;
+    public string RuleSetId { get; set; } = string.Empty;
+    public string ParentId { get; set; } = string.Empty;
+    public string NodeType { get; set; } = MapSpaceNodeTypeIds.Location;
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Visibility { get; set; } = MapVisibilityModes.Party;
     public string RequestId { get; set; } = string.Empty;
 }
 

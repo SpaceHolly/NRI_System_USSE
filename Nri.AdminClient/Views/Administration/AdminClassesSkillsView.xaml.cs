@@ -31,7 +31,7 @@ public partial class AdminClassesSkillsView : UserControl
     private void SelectNodeByInputButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         CommitTextBoxBindings(this);
-        var nodeId = SelectedClassNodeIdTextBox.Text?.Trim() ?? string.Empty;
+        var nodeId = SelectedClassNodePicker.SelectedId?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(nodeId)) return;
         var vm = ViewModel;
         ClientLogService.Instance.Info($"admin.classes.hexagon.select.input nodeId={nodeId} vm={(vm == null ? "null" : "ok")}");
@@ -64,6 +64,7 @@ public partial class AdminClassesSkillsView : UserControl
 
     private void DevelopmentLayoutNode_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
+        if (ViewModel?.DevelopmentLayoutEditingEnabled != true) return;
         if (sender is not System.Windows.Controls.Button button) return;
         if (button.Tag is not DevelopmentHexagonEditorNodeVm node) return;
         var vm = ViewModel;
@@ -80,6 +81,7 @@ public partial class AdminClassesSkillsView : UserControl
 
     private void DevelopmentLayoutNode_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
+        if (ViewModel?.DevelopmentLayoutEditingEnabled != true) return;
         if (!_isDraggingDevelopmentNode || _draggedDevelopmentNode == null) return;
         if (e.LeftButton != System.Windows.Input.MouseButtonState.Pressed) return;
         var pointer = e.GetPosition(DevelopmentLayoutCanvasItems);
@@ -91,6 +93,12 @@ public partial class AdminClassesSkillsView : UserControl
 
     private void DevelopmentLayoutNode_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
+        if (ViewModel?.DevelopmentLayoutEditingEnabled != true)
+        {
+            _isDraggingDevelopmentNode = false;
+            _draggedDevelopmentNode = null;
+            return;
+        }
         if (sender is System.Windows.Controls.Button button && button.IsMouseCaptured)
             button.ReleaseMouseCapture();
         if (_draggedDevelopmentNode != null)

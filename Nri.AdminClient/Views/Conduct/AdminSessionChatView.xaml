@@ -1,0 +1,107 @@
+<UserControl x:Class="Nri.AdminClient.Views.Conduct.AdminSessionChatView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Nri.AdminClient.ViewModels"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminSessionChat_Route">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminSessionChat_OperationalHost">
+        <patterns:NriOperationalWorkspaceHost.Header>
+            <DockPanel Margin="8,8,8,12">
+                <StackPanel>
+                    <TextBlock Text="Чат и кубики" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Общение текущей сессии и понятная лента бросков."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource GhostButtonStyle}"
+                            Content="Отдельное окно"
+                            Command="{Binding DetachWorkspacePanelCommand}"
+                            CommandParameter="SessionChat"/>
+                    <Button Style="{StaticResource GhostButtonStyle}"
+                            Content="Обновить"
+                            Command="{Binding ChatRefreshCommand}"
+                            IsEnabled="{Binding IsIdle}"/>
+                </StackPanel>
+            </DockPanel>
+        </patterns:NriOperationalWorkspaceHost.Header>
+        <Grid Margin="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="1.2*"/>
+            </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <ListBox ItemsSource="{Binding MergedSessionFeedRows}"
+                             AutomationProperties.AutomationId="AdminSessionChat_Feed">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:ChatMessageRowVm}">
+                                <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,6">
+                                    <StackPanel>
+                                        <TextBlock TextWrapping="Wrap">
+                                            <Run Text="{Binding Sender}" FontWeight="SemiBold"/>
+                                            <Run Text=": "/>
+                                            <Run Text="{Binding Text}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Timestamp}" FontSize="12" Foreground="{StaticResource MutedBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Grid Grid.Row="1" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="110"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding ChatMessageText, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="AdminSessionChat_Message"
+                                 ToolTip="Сообщение участникам сессии"/>
+                        <Button Grid.Column="1"
+                                Content="Отправить"
+                                Command="{Binding ChatSendCommand}"
+                                IsEnabled="{Binding CanSendChat}"
+                                AutomationProperties.AutomationId="AdminSessionChat_Send"/>
+                    </Grid>
+                </Grid>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <DockPanel>
+                        <TextBlock Text="Лента бросков" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <Button DockPanel.Dock="Right"
+                                Style="{StaticResource GhostButtonStyle}"
+                                Content="Отдельное окно"
+                                Command="{Binding DetachWorkspacePanelCommand}"
+                                CommandParameter="DiceFeed"/>
+                    </DockPanel>
+                    <TextBlock Text="Быстрый бросок"
+                               Style="{StaticResource TitleTextStyle}"
+                               Margin="0,10,0,4"/>
+                    <WrapPanel>
+                        <ComboBox Width="110" ItemsSource="{Binding DiceModeOptions}" SelectedItem="{Binding DiceModeInput}"/>
+                        <TextBox Width="42" Text="{Binding DiceCount, UpdateSourceTrigger=PropertyChanged}" ToolTip="Количество кубиков"/>
+                        <TextBlock Text="d" VerticalAlignment="Center" Margin="4,0"/>
+                        <TextBox Width="50" Text="{Binding DiceFaces, UpdateSourceTrigger=PropertyChanged}" ToolTip="Количество граней"/>
+                        <TextBlock Text="Модификатор" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                        <TextBox Width="58" Text="{Binding DiceModifier, UpdateSourceTrigger=PropertyChanged}"/>
+                    </WrapPanel>
+                    <WrapPanel Margin="0,6,0,0">
+                        <ComboBox Width="160" ItemsSource="{Binding DiceVisibilityOptions}" SelectedItem="{Binding DiceVisibilityInput}"/>
+                        <Button Margin="8,0,0,0" Content="Бросить" Command="{Binding RollDiceCommand}" IsEnabled="{Binding CanRollCharacterDice}"/>
+                    </WrapPanel>
+                    <TextBox Margin="0,6,0,8"
+                             Text="{Binding DiceDescriptionInput, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Комментарий к броску"/>
+                    <ListBox ItemsSource="{Binding DiceFeedRows}"
+                             MinHeight="220"
+                             AutomationProperties.AutomationId="AdminSessionChat_DiceFeed"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

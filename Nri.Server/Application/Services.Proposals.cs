@@ -1037,7 +1037,7 @@ public partial class ServiceHub
     private void TryPublishProposalSync(PlayerProposalDraftState draft, string operation, string actorId, string requestId)
     {
         if (!ProposalSyncEnabled()) return;
-        _syncEvents.Publish("proposal.changed", SyncScopes.Global, "proposal", draft.Id, operation, actorId,
+        _syncEvents.PublishCampaign(draft.CampaignId, "proposal.changed", "proposal", draft.Id, operation, actorId,
             new Dictionary<string, object> { { "proposalDraftId", draft.Id }, { "status", draft.ProposalStatus }, { "type", draft.ProposalType } },
             requestId);
     }

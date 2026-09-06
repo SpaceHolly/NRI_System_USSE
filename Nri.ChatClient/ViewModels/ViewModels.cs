@@ -2,6 +2,8 @@ using Nri.ChatClient.Diagnostics;
 using Nri.ChatClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
+using Nri.Shared.Domain;
+using Nri.Shared.Diagnostics;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,6 +16,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace Nri.ChatClient.ViewModels;
 
@@ -48,6 +51,8 @@ public class ChatClientMainViewModel : ViewModelBase
     private readonly ClientSessionState _session = new ClientSessionState();
     private readonly JsonTcpClient _client;
     private readonly CommandApi _api;
+    private readonly DispatcherTimer _reconnectPoller;
+    private bool _reconnectInProgress;
 
     private string _connectionState = "Оффлайн";
     private string _statusText = "Укажите сервер и выполните вход";
@@ -80,7 +85,14 @@ public class ChatClientMainViewModel : ViewModelBase
         var resolvedPort = config.ServerPort > 0 ? config.ServerPort : 4600;
         _serverPortInput = resolvedPort.ToString(CultureInfo.InvariantCulture);
         _client = new JsonTcpClient(config, _session);
+        _client.Lifecycle.StateChanged += OnConnectionLifecycleChanged;
+        _session.AuthenticationInvalidated += HandleAuthenticationInvalidated;
         _api = new CommandApi(_client);
+        _reconnectPoller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _reconnectPoller.Tick += (_, _) =>
+        {
+            if (_client.Lifecycle.Current.IsRecovering) AttemptReconnectRestore();
+        };
 
         ToggleConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
         ToggleAuthPopupCommand = new RelayCommand(() => IsAuthPopupOpen = !IsAuthPopupOpen);
@@ -93,6 +105,8 @@ public class ChatClientMainViewModel : ViewModelBase
         RollDiceCommand = new RelayCommand(RollDice);
 
         ClientLogService.Instance.Info("chatclient.vm.initialized");
+        _reconnectPoller.Start();
+        PerformanceTelemetry0214.Current.SetCounter("active_pollers", 1);
     }
 
     public ObservableCollection<TimelineRowVm> ChatRows { get; } = new ObservableCollection<TimelineRowVm>();
@@ -148,7 +162,11 @@ public class ChatClientMainViewModel : ViewModelBase
     public string DiceFaces { get => _diceFaces; set { _diceFaces = value; Notify(); } }
     public string DiceModifier { get => _diceModifier; set { _diceModifier = value; Notify(); } }
 
-    public bool IsOnline => string.Equals(ConnectionState, "Онлайн", StringComparison.OrdinalIgnoreCase);
+    public bool IsOnline => _client.Lifecycle.Current.State == ConnectionLifecycleState.Ready;
+    public bool IsConnectionRecovering => _client.Lifecycle.Current.IsRecovering;
+    public bool IsConnectionStaleReadOnly => _client.Lifecycle.Current.IsStaleReadOnly;
+    public bool AreServerMutationsEnabled => _client.Lifecycle.Current.CanMutate;
+    public string ReconnectStatusText => _client.Lifecycle.Current.ReadableStatus;
     public string UserSummary => IsAuthenticated ? $"Пользователь: {LoginText}" : "Пользователь: не авторизован";
 
     private void ConnectToServer()
@@ -244,7 +262,6 @@ public class ChatClientMainViewModel : ViewModelBase
                 return;
             }
 
-            ConnectionState = "Онлайн";
             IsAuthenticated = true;
             IsAuthPopupOpen = false;
             StatusText = $"Подключено к {ServerHostInput}:{ServerPortInput}";
@@ -267,6 +284,7 @@ public class ChatClientMainViewModel : ViewModelBase
             RefreshChatFeed();
             RefreshDiceFeed();
             BuildMergedTimeline();
+            _client.Lifecycle.MarkReady(-1);
             ClientLogService.Instance.Info($"tab.render chat={ChatRows.Count} dice={DiceRows.Count} merged={MergedTimelineRows.Count}");
         }
         catch (Exception ex)
@@ -493,11 +511,85 @@ public class ChatClientMainViewModel : ViewModelBase
             _ => string.IsNullOrWhiteSpace(ex.Message) ? "Ошибка соединения" : ex.Message
         };
 
+        if (IsAuthenticated && _client.ConnectionGeneration > 0)
+        {
+            _client.Lifecycle.MarkTransportLost(message);
+            StatusText = "Соединение потеряно. Лента доступна только для чтения.";
+            ClientLogService.Instance.Error("connection.recovering", ex);
+            return;
+        }
+
         ConnectionState = "Оффлайн";
         StatusText = message;
         IsAuthenticated = false;
         _client.Disconnect();
         ClientLogService.Instance.Error("connection.error", ex);
+    }
+
+    private void AttemptReconnectRestore()
+    {
+        if (_reconnectInProgress || !IsAuthenticated || string.IsNullOrWhiteSpace(_session.AuthToken)
+            || !_client.Lifecycle.CanAttemptReconnect(DateTime.UtcNow)) return;
+        _reconnectInProgress = true;
+        PerformanceTelemetry0214.Current.SetCounter("active_reconnect_loops", 1);
+        try
+        {
+            _client.Connect();
+            _client.Lifecycle.MarkAuthenticating();
+            _client.Lifecycle.MarkRestoringModules();
+            RefreshChatFeed();
+            RefreshDiceFeed();
+            BuildMergedTimeline();
+            _client.Lifecycle.MarkReady(-1);
+            ClientLogService.Instance.Info($"connection.restore.done client=chat generation={_client.ConnectionGeneration}");
+        }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Warn($"connection.restore.pending client=chat generation={_client.ConnectionGeneration} message={ex.Message}");
+            _client.Lifecycle.MarkTransportLost(reason: ex.Message);
+        }
+        finally
+        {
+            _reconnectInProgress = false;
+            PerformanceTelemetry0214.Current.SetCounter("active_reconnect_loops", 0);
+        }
+    }
+
+    private void OnConnectionLifecycleChanged(object? sender, ConnectionLifecycleChangedEventArgs args)
+    {
+        void Apply()
+        {
+            var current = args.Current;
+            ConnectionState = current.State switch
+            {
+                ConnectionLifecycleState.Reconnecting => "Повторное подключение",
+                ConnectionLifecycleState.RestoringModules => "Обновление ленты",
+                ConnectionLifecycleState.SessionExpired => "Сессия завершена",
+                ConnectionLifecycleState.Ready => "Онлайн",
+                ConnectionLifecycleState.Disconnected => "Оффлайн",
+                _ => current.ReadableStatus
+            };
+            StatusText = current.IsStaleReadOnly
+                ? "Соединение потеряно. Показанные сообщения доступны только для чтения."
+                : current.ReadableStatus;
+            Notify(nameof(ReconnectStatusText));
+            Notify(nameof(IsConnectionRecovering));
+            Notify(nameof(IsConnectionStaleReadOnly));
+            Notify(nameof(AreServerMutationsEnabled));
+            Notify(nameof(IsOnline));
+        }
+
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess()) dispatcher.BeginInvoke((Action)Apply);
+        else Apply();
+    }
+
+    private void HandleAuthenticationInvalidated()
+    {
+        IsAuthenticated = false;
+        IsAuthPopupOpen = true;
+        StatusText = "Сеанс входа завершён. Войдите в учётную запись снова.";
+        ClientLogService.Instance.Warn("auth.session.invalidated client=chat");
     }
 
     private string ResolveSessionId()

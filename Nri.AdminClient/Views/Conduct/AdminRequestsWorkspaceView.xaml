@@ -1,0 +1,128 @@
+<UserControl x:Class="Nri.AdminClient.Views.Conduct.AdminRequestsWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminRequests_Route">
+    <patterns:NriQueueWorkspaceHost AutomationProperties.AutomationId="AdminRequests_QueueHost">
+        <patterns:NriQueueWorkspaceHost.Header>
+            <DockPanel Margin="8,8,8,12">
+                <StackPanel>
+                    <TextBlock Text="Заявки игроков" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Очередь решений GM: рассмотрение, уточнение, одобрение и отклонение."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+                <Button DockPanel.Dock="Right"
+                        Content="Обновить"
+                        Style="{StaticResource GhostButtonStyle}"
+                        Command="{Binding RefreshRequestsCommand}"
+                        AutomationProperties.AutomationId="AdminRequests_Refresh_Button"/>
+            </DockPanel>
+        </patterns:NriQueueWorkspaceHost.Header>
+        <patterns:NriQueueWorkspaceHost.Toolbar>
+            <Grid Margin="8,0,8,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Статус" Foreground="{StaticResource TextSecondaryBrush}"/>
+                     <ComboBox ItemsSource="{Binding RequestStatusFilters}"
+                               DisplayMemberPath="Title"
+                               SelectedValuePath="Value"
+                               SelectedValue="{Binding RequestStatusFilter}"
+                               AutomationProperties.AutomationId="AdminRequests_Filter_Status"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                    <TextBlock Text="Тип" Foreground="{StaticResource TextSecondaryBrush}"/>
+                     <ComboBox ItemsSource="{Binding RequestTypeFilters}"
+                               DisplayMemberPath="Title"
+                               SelectedValuePath="Value"
+                               SelectedValue="{Binding RequestTypeFilter}"
+                               AutomationProperties.AutomationId="AdminRequests_Filter_Type"/>
+                </StackPanel>
+            </Grid>
+        </patterns:NriQueueWorkspaceHost.Toolbar>
+        <patterns:NriQueueWorkspaceHost.Queue>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <DataGrid ItemsSource="{Binding PendingRequests}"
+                          SelectedValuePath="Id"
+                          SelectedValue="{Binding SelectedPendingRequestId, UpdateSourceTrigger=PropertyChanged}"
+                          AutoGenerateColumns="False"
+                          AutomationProperties.AutomationId="AdminRequests_List">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="№" Binding="{Binding DisplayId}" Width="70"/>
+                        <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="1.4*"/>
+                        <DataGridTextColumn Header="Статус" Binding="{Binding State}" Width="0.9*"/>
+                        <DataGridTextColumn Header="Детали" Binding="{Binding Extra}" Width="2.2*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <TextBlock Grid.Row="1"
+                           Text="{Binding NotificationSummary}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           Margin="0,8,0,0"
+                           AutomationProperties.AutomationId="AdminRequests_QueueSummary"/>
+            </Grid>
+        </patterns:NriQueueWorkspaceHost.Queue>
+        <patterns:NriQueueWorkspaceHost.Workspace>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="Карточка заявки" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="{Binding AdminSelectedRequestTitle}"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap"
+                               Margin="0,8,0,0"
+                               AutomationProperties.AutomationId="AdminRequests_Selected_Title"/>
+                    <TextBlock Text="{Binding AdminSelectedRequestType}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding AdminSelectedRequestPlayer}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/>
+                    <TextBlock Text="{Binding AdminSelectedRequestActors}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding AdminSelectedRequestCharacter}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding AdminSelectedRequestDetails}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+
+                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Решение GM" Style="{StaticResource TitleTextStyle}"/>
+                            <TextBlock Text="Комментарий игроку" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,2"/>
+                            <TextBox MinHeight="64"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     Text="{Binding RequestComment, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.AutomationId="AdminRequests_DecisionPlayerComment"/>
+                            <TextBlock Text="Закрытая заметка GM" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,2"/>
+                            <TextBox MinHeight="64"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     Text="{Binding RequestGMOnlyComment, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.AutomationId="AdminRequests_DecisionGMComment"/>
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button AutomationProperties.AutomationId="AdminRequests_MarkInReview_Button" Content="На рассмотрение" Command="{Binding MarkInReviewRequestCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}"/>
+                                <Button AutomationProperties.AutomationId="AdminRequests_Approve_Button" Content="Одобрить" Command="{Binding ApproveRequestCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" Margin="8,0,0,0"/>
+                                <Button AutomationProperties.AutomationId="AdminRequests_RequestChanges_Button" Content="Нужны уточнения" Command="{Binding RequestChangesCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" Margin="8,0,0,0"/>
+                                <Button AutomationProperties.AutomationId="AdminRequests_Reject_Button" Content="Отклонить" Command="{Binding RejectRequestCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" Margin="8,0,0,0"/>
+                                <Button AutomationProperties.AutomationId="AdminRequests_Archive_Button" Content="Архивировать" Style="{StaticResource GhostButtonStyle}" Command="{Binding ArchiveRequestCommand}" IsEnabled="{Binding ArePrivilegedSectionsEnabled}" Margin="8,0,0,0"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="История решения" Style="{StaticResource TitleTextStyle}" Margin="0,14,0,6"/>
+                    <ListBox ItemsSource="{Binding RequestHistoryRows}"
+                             MinHeight="150"
+                             AutomationProperties.AutomationId="AdminRequests_AuditTrail"/>
+                </StackPanel>
+            </ScrollViewer>
+        </patterns:NriQueueWorkspaceHost.Workspace>
+        <patterns:NriQueueWorkspaceHost.Status>
+            <TextBlock Text="{Binding BusyMessage}"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       Margin="8,0,8,8"
+                       TextWrapping="Wrap"
+                       AutomationProperties.AutomationId="AdminRequests_StatusText"/>
+        </patterns:NriQueueWorkspaceHost.Status>
+    </patterns:NriQueueWorkspaceHost>
+</UserControl>

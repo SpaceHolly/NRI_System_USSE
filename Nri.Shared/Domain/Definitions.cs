@@ -79,6 +79,7 @@ public class ClassDefinition : DefinitionDocumentBase
     public List<string> RequiredSkillCodes { get; set; } = new List<string>();
     public int RequiredCharacterLevel { get; set; }
     public int XpCoinCost { get; set; }
+    public RequirementExpression? RequirementExpression { get; set; }
 }
 
 public class SkillDefinition : DefinitionDocumentBase
@@ -117,6 +118,9 @@ public class SkillDefinition : DefinitionDocumentBase
     public int RequiredCharacterLevel { get; set; }
     public int XpCoinCost { get; set; }
     public List<SkillLevelDefinition> Levels { get; set; } = new List<SkillLevelDefinition>();
+    public RequirementExpression? RequirementExpression { get; set; }
+    public List<SkillRankMilestoneDefinition> RankMilestones { get; set; } = new List<SkillRankMilestoneDefinition>();
+    public List<SkillTechniqueDefinition> Techniques { get; set; } = new List<SkillTechniqueDefinition>();
 }
 
 public class RaceDefinition : DefinitionDocumentBase

@@ -12,12 +12,13 @@ public partial class ServiceHub
 {
     public ResponseEnvelope SessionCurrentGet(CommandContext context)
     {
-        RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionReadEnabled())
             return CurrentSessionDisabled(context.Request.Command);
 
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var campaignId = RequireLength(PayloadReader.GetString(payload, "campaignId"), 1, 128, "campaignId");
+        _campaignAuthorization.RequireCampaignCapability(context.Session!, campaignId, CampaignCapabilityIds.SessionViewGMData);
         var sessionId = RequireLength(PayloadReader.GetString(payload, "sessionId"), 0, 128, "sessionId");
         var session = LoadSession(campaignId, sessionId);
         _logger.Admin($"session.current.get campaignId={campaignId} sessionId={sessionId}");
@@ -33,12 +34,14 @@ public partial class ServiceHub
 
     public ResponseEnvelope SessionCurrentCreate(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionWriteEnabled())
             return CurrentSessionDisabled(context.Request.Command);
 
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var campaignId = RequireLength(PayloadReader.GetString(payload, "campaignId"), 1, 128, "campaignId");
+        RequireExpectedContextRevision02110(context);
+        _campaignAuthorization.RequireCampaignCapability(context.Session!, campaignId, CampaignCapabilityIds.SessionCreate);
         var name = SessionFirstNonEmpty(RequireLength(PayloadReader.GetString(payload, "name"), 0, 160, "name"), "Новая сессия");
         var now = DateTime.UtcNow;
         _logger.Admin($"session.current.create.start campaignId={campaignId} actor={actor.Login}");
@@ -53,6 +56,8 @@ public partial class ServiceHub
             Mode = CurrentSessionModeIds.Preparation,
             GMUserId = SessionFirstNonEmpty(RequireLength(PayloadReader.GetString(payload, "gmUserId"), 0, 128, "gmUserId"), actor.Id),
             GMDisplayName = SessionFirstNonEmpty(RequireLength(PayloadReader.GetString(payload, "gmDisplayName"), 0, 160, "gmDisplayName"), actor.Login),
+            LeadGMUserId = actor.Id,
+            LeadGMDisplayName = actor.Login,
             VisibilityMode = NormalizeSessionVisibility(RequireLength(PayloadReader.GetString(payload, "visibilityMode"), 0, 32, "visibilityMode")),
             IsPlayerVisible = !payload.ContainsKey("isPlayerVisible") || PayloadReader.GetBool(payload, "isPlayerVisible"),
             CurrentRealStartUtc = ParseDateTime(payload, "currentRealStartUtc"),
@@ -73,7 +78,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope SessionCurrentUpdate(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionWriteEnabled())
             return CurrentSessionDisabled(context.Request.Command);
 
@@ -100,7 +105,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope SessionCurrentStart(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionWriteEnabled())
             return CurrentSessionDisabled(context.Request.Command);
 
@@ -122,7 +127,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope SessionCurrentPause(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionWriteEnabled())
             return CurrentSessionDisabled(context.Request.Command);
         var session = RequireSessionById(context);
@@ -138,7 +143,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope SessionCurrentResume(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionWriteEnabled())
             return CurrentSessionDisabled(context.Request.Command);
         var session = RequireSessionById(context);
@@ -167,7 +172,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope SessionCurrentSetScene(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionSceneLinkEnabled())
             return CurrentSessionDisabled(context.Request.Command);
         var session = RequireSessionById(context);
@@ -187,7 +192,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope SessionCurrentSetMode(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionWriteEnabled())
             return CurrentSessionDisabled(context.Request.Command);
         var session = RequireSessionById(context);
@@ -201,7 +206,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope SessionCurrentSetActiveSceneMap(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionMapLinkEnabled())
             return CurrentSessionDisabled(context.Request.Command);
         var session = RequireSessionById(context);
@@ -228,7 +233,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope SessionCurrentSetActiveCombat(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionWriteEnabled())
             return CurrentSessionDisabled(context.Request.Command);
         var session = RequireSessionById(context);
@@ -237,34 +242,40 @@ public partial class ServiceHub
         var encounter = _repositories.CombatEncounters.GetByIdAsync(encounterId).GetAwaiter().GetResult();
         if (encounter == null || encounter.Deleted || encounter.Archived)
             return Error("combat encounter not found", ResponseStatus.NotFound, ErrorCode.NotFound);
+        if (!string.Equals(encounter.CampaignId, session.CampaignId, StringComparison.Ordinal))
+            return Error("combat encounter not found", ResponseStatus.NotFound, ErrorCode.NotFound);
         session.ActiveCombatEncounterId = encounter.Id;
         session.ActiveCombatName = SessionFirstNonEmpty(encounter.Name, encounter.Status, encounter.Id);
         session.Mode = CurrentSessionModeIds.Combat;
         TouchSession(session, actor.Id);
         SaveSession(session);
+        EvaluateAutomationEvent02110(session, "combat.started", encounter.Id, actor.Id);
         _logger.Admin($"session.current.setActiveCombat sessionId={session.SessionId} encounterId={encounterId}");
         return SessionResponse(session, "Active combat updated.");
     }
 
     public ResponseEnvelope SessionCurrentClearActiveCombat(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionWriteEnabled())
             return CurrentSessionDisabled(context.Request.Command);
         var session = RequireSessionById(context);
+        var completedCombatId = session.ActiveCombatEncounterId;
         session.ActiveCombatEncounterId = string.Empty;
         session.ActiveCombatName = string.Empty;
         if (string.Equals(session.Mode, CurrentSessionModeIds.Combat, StringComparison.OrdinalIgnoreCase))
             session.Mode = CurrentSessionModeIds.NormalScene;
         TouchSession(session, actor.Id);
         SaveSession(session);
+        if (!string.IsNullOrWhiteSpace(completedCombatId))
+            EvaluateAutomationEvent02110(session, "combat.ended", completedCombatId, actor.Id);
         _logger.Admin($"session.current.clearActiveCombat sessionId={session.SessionId}");
         return SessionResponse(session, "Active combat cleared.");
     }
 
     public ResponseEnvelope SessionCurrentSetNotes(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionWriteEnabled())
             return CurrentSessionDisabled(context.Request.Command);
         var session = RequireSessionById(context);
@@ -287,13 +298,15 @@ public partial class ServiceHub
         }
 
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
-        var campaignId = RequireLength(PayloadReader.GetString(payload, "campaignId"), 0, 128, "campaignId");
+        var campaignId = RequireLength(SessionFirstNonEmpty(PayloadReader.GetString(payload, "campaignId"), context.Session!.GameContext.CampaignId), 0, 128, "campaignId");
         var sessionId = RequireLength(PayloadReader.GetString(payload, "sessionId"), 0, 128, "sessionId");
         var session = LoadSession(campaignId, sessionId);
         if (session == null)
             return Ok("No current session.", new Dictionary<string, object> { { "hasSession", false }, { "session", new Dictionary<string, object>() } });
         if (!IsSessionVisibleForPlayer(session))
             return Error("current session is not visible for player", ResponseStatus.Forbidden, ErrorCode.Forbidden);
+        try { _campaignAuthorization.RequireSessionCapability(context.Session!, session, CampaignCapabilityIds.SessionView); }
+        catch (UnauthorizedAccessException) { return Error("current session is unavailable", ResponseStatus.NotFound, ErrorCode.NotFound); }
 
         _logger.Debug($"session.player.current.get user={actor.Login} sessionId={session.SessionId}");
         return Ok("Current session loaded.", new Dictionary<string, object>
@@ -305,7 +318,7 @@ public partial class ServiceHub
 
     private ResponseEnvelope SetTerminalSessionStatus(CommandContext context, string status, string logEvent, string message)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CurrentSessionWriteEnabled())
             return CurrentSessionDisabled(context.Request.Command);
         var session = RequireSessionById(context);
@@ -330,12 +343,26 @@ public partial class ServiceHub
 
     private CurrentSessionState RequireSessionById(CommandContext context)
     {
+        RequireExpectedContextRevision02110(context);
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var sessionId = RequireLength(PayloadReader.GetString(payload, "sessionId"), 1, 128, "sessionId");
         var session = _repositories.CurrentSessions.Find(Builders<CurrentSessionState>.Filter.Eq(x => x.SessionId, sessionId)).FirstOrDefault()
             ?? _repositories.CurrentSessions.GetById(sessionId);
         if (session == null || session.Deleted || IsArchivedSession(session))
             throw new InvalidOperationException("current session not found");
+        if (!string.IsNullOrWhiteSpace(context.Session!.GameContext.CampaignId)
+            && !string.Equals(context.Session.GameContext.CampaignId, session.CampaignId, StringComparison.Ordinal))
+            throw new KeyNotFoundException("Session not found.");
+        var capability = context.Request.Command == CommandNames.SessionCurrentGet
+            ? CampaignCapabilityIds.SessionViewGMData
+            : context.Request.Command == CommandNames.SessionCurrentStart
+              || context.Request.Command == CommandNames.SessionCurrentPause
+              || context.Request.Command == CommandNames.SessionCurrentResume
+              || context.Request.Command == CommandNames.SessionCurrentComplete
+              || context.Request.Command == CommandNames.SessionCurrentCancel
+                ? CampaignCapabilityIds.SessionRun
+                : CampaignCapabilityIds.SessionEdit;
+        _campaignAuthorization.RequireSessionCapability(context.Session, session, capability);
         return session;
     }
 
@@ -343,8 +370,11 @@ public partial class ServiceHub
     {
         if (!string.IsNullOrWhiteSpace(sessionId))
         {
-            return _repositories.CurrentSessions.Find(Builders<CurrentSessionState>.Filter.Eq(x => x.SessionId, sessionId)).FirstOrDefault()
-                ?? _repositories.CurrentSessions.GetById(sessionId);
+            return _repositories.CurrentSessions.Find(
+                Builders<CurrentSessionState>.Filter.Eq(x => x.SessionId, sessionId)
+                & Builders<CurrentSessionState>.Filter.Eq(x => x.CampaignId, campaignId)
+                & Builders<CurrentSessionState>.Filter.Eq(x => x.IsArchived, false)
+                & Builders<CurrentSessionState>.Filter.Eq(x => x.Archived, false)).FirstOrDefault();
         }
 
         if (string.IsNullOrWhiteSpace(campaignId)) return null;
@@ -378,6 +408,7 @@ public partial class ServiceHub
     {
         session.UpdatedAtUtc = DateTime.UtcNow;
         session.UpdatedByUserId = userId ?? string.Empty;
+        session.EntityRevision++;
     }
 
     private void SyncSceneActiveLink(CurrentSessionState session, MapCanvasState? map, string userId)
@@ -422,18 +453,21 @@ public partial class ServiceHub
             { "activeCombatEncounterId", session.ActiveCombatEncounterId ?? string.Empty },
             { "activeCombatName", session.ActiveCombatName ?? string.Empty },
             { "activeGroupId", session.ActiveGroupId ?? string.Empty },
+            { "activeTravelSessionId", session.ActiveTravelSessionId ?? string.Empty },
             { "activeGroupName", ResolveActiveGroupName(session.ActiveGroupId ?? string.Empty) },
             { "activeGroupMemberCount", CountVisibleGroupMembersForSession(session.ActiveGroupId ?? string.Empty, playerSafe: false) },
             { "currentWorldDate", session.CurrentWorldDate ?? string.Empty },
             { "gmUserId", session.GMUserId ?? string.Empty },
             { "gmDisplayName", session.GMDisplayName ?? string.Empty },
+            { "leadGMDisplayName", SessionFirstNonEmpty(session.LeadGMDisplayName, session.GMDisplayName) },
+            { "revision", session.EntityRevision },
             { "visibilityMode", session.VisibilityMode ?? MapVisibilityModes.Party },
             { "isPlayerVisible", session.IsPlayerVisible },
             { "publicNotes", session.PublicNotes ?? string.Empty },
             { "gmNotes", session.GMNotes ?? string.Empty },
-            { "startedAtUtc", session.StartedAtUtc ?? DateTime.MinValue },
-            { "pausedAtUtc", session.PausedAtUtc ?? DateTime.MinValue },
-            { "endedAtUtc", session.EndedAtUtc ?? DateTime.MinValue },
+            { "startedAtUtc", session.StartedAtUtc.HasValue ? (object)session.StartedAtUtc.Value : string.Empty },
+            { "pausedAtUtc", session.PausedAtUtc.HasValue ? (object)session.PausedAtUtc.Value : string.Empty },
+            { "endedAtUtc", session.EndedAtUtc.HasValue ? (object)session.EndedAtUtc.Value : string.Empty },
             { "updatedAtUtc", session.UpdatedAtUtc == default ? session.UpdatedUtc : session.UpdatedAtUtc },
             { "quickLinks", BuildQuickLinks(session).Cast<object>().ToArray() },
             { "diagnosticsSummary", BuildSessionDiagnostics(session) }
@@ -476,10 +510,10 @@ public partial class ServiceHub
             Link("room", "Открыть помещение", !string.IsNullOrWhiteSpace(session.ActiveRoomId), session.ActiveRoomId),
             Link("combat", "Открыть бой", !string.IsNullOrWhiteSpace(session.ActiveCombatEncounterId), session.ActiveCombatEncounterId),
             Link("chat", "Открыть чат / кубики", true, session.SessionId),
-            Link("requests", "Заявки игроков будут подключены в 0.14.4", false, string.Empty),
-            Link("event_journal", "Журнал событий будет подключён в 0.14.8", false, string.Empty),
+            Link("requests", "Открыть заявки игроков", true, string.Empty),
+            Link("event_journal", "Открыть журнал событий", true, string.Empty),
             Link("active_group", "Открыть активную группу", !string.IsNullOrWhiteSpace(session.ActiveGroupId), session.ActiveGroupId ?? string.Empty),
-            Link("calendar", "Календарь будет добавлен в 0.14.5-0.14.6", false, string.Empty)
+            Link("calendar", "Открыть календарь", true, string.Empty)
         };
     }
 
@@ -510,7 +544,7 @@ public partial class ServiceHub
         if (string.IsNullOrWhiteSpace(session.ActiveSceneMapId)) warnings.Add("Активная карта сцены не выбрана.");
         if (string.IsNullOrWhiteSpace(session.ActiveGroupId)) warnings.Add("Активная группа не выбрана.");
         if (string.IsNullOrWhiteSpace(session.ActiveCombatEncounterId)) warnings.Add("Активного боя нет.");
-        if (string.IsNullOrWhiteSpace(session.CurrentWorldDate)) warnings.Add("Календарь будет добавлен в 0.14.5-0.14.6.");
+        if (string.IsNullOrWhiteSpace(session.CurrentWorldDate)) warnings.Add("Мировая дата для сессии не выбрана.");
         return warnings;
     }
 

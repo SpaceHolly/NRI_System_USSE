@@ -66,6 +66,7 @@ public class SessionUserState : EntityBase
     public DateTime LastSeenUtc { get; set; } = DateTime.UtcNow;
     public string? CurrentGameSessionId { get; set; }
     public string? ActiveCharacterId { get; set; }
+    public long ContextRevision { get; set; }
 }
 
 public class World : EntityBase
@@ -79,6 +80,8 @@ public class Campaign : EntityBase
     public string WorldId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string NarrativeSummary { get; set; } = string.Empty;
+    public string OwnerUserId { get; set; } = string.Empty;
+    public long EntityRevision { get; set; } = 1;
 }
 
 public class GameSession : EntityBase

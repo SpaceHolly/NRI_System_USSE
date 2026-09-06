@@ -3,12 +3,15 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Diagnostics;
+using System.Text;
 using System.Threading;
 using Nri.Server.Application;
 using Nri.Server.Infrastructure;
 using Nri.Server.Logging;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
+using Nri.Shared.Diagnostics;
 
 namespace Nri.Server.Networking;
 
@@ -141,8 +144,23 @@ public class TcpJsonServer
                         continue;
                     }
 
+                    PerformanceTelemetry0214.Current.ObserveClient(connection.ConnectionId, request.ClientDiagnostics);
+                    var stopwatch = Stopwatch.StartNew();
                     var response = _dispatcher.Dispatch(connection.ConnectionId, request);
-                    writer.WriteLine(JsonProtocolSerializer.Serialize(response));
+                    var responseJson = JsonProtocolSerializer.Serialize(response);
+                    writer.WriteLine(responseJson);
+                    PerformanceTelemetry0214.Current.Record(new PerformanceSample0214
+                    {
+                        Source = "Nri.Server",
+                        Category = "server_transport",
+                        Command = request.Command,
+                        Status = response.Status.ToString(),
+                        Outcome = response.Status == ResponseStatus.Ok ? "completed" : "failed",
+                        ElapsedMilliseconds = stopwatch.ElapsedMilliseconds,
+                        RequestBytes = Encoding.UTF8.GetByteCount(line),
+                        ResponseBytes = Encoding.UTF8.GetByteCount(responseJson),
+                        ConnectionGeneration = request.ConnectionGeneration
+                    });
                 }
             }
         }
@@ -157,6 +175,7 @@ public class TcpJsonServer
         finally
         {
             _sessionManager.DisconnectByConnection(connection.ConnectionId);
+            PerformanceTelemetry0214.Current.RemoveClient(connection.ConnectionId);
             _connections.Remove(connection.ConnectionId);
             _logger.Session($"Disconnected {connection.ConnectionId}, online={_connections.Count}");
         }

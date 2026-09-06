@@ -302,9 +302,98 @@ public sealed class AdminDefinitionHandlers
             RequiredCharacterLevel = TryGetInt(map, "requiredCharacterLevel") ?? 0,
             XpCoinCost = TryGetInt(map, "xpCoinCost") ?? 0,
             Levels = ReadSkillLevels(map),
+            RequirementExpression = ReadRequirementExpression(map, "requirementExpression"),
+            RankMilestones = ReadSkillRankMilestones(map),
+            Techniques = ReadSkillTechniques(map),
             IsActive = GetBool(map, "isActive", true),
             Status = ParseEnum<DefinitionStatus>(GetString(map, "status"), DefinitionStatus.Draft)
         };
+    }
+
+    private static RequirementExpression? ReadRequirementExpression(IDictionary<string, object> map, string key)
+    {
+        if (!map.TryGetValue(key, out var raw) || raw == null) return null;
+        var expressionMap = ToObjectDictionary(raw);
+        if (expressionMap == null || expressionMap.Count == 0) return null;
+        var expression = ReadRequirementExpressionMap(expressionMap);
+        RequirementExpressionEvaluator0219.Validate(expression);
+        return expression;
+    }
+
+    private static RequirementExpression ReadRequirementExpressionMap(IDictionary<string, object> map)
+    {
+        var expression = new RequirementExpression
+        {
+            Kind = FirstNonEmpty(GetString(map, "kind"), RequirementExpressionKinds.Leaf),
+            LeafType = GetString(map, "leafType"),
+            TargetId = GetString(map, "targetId"),
+            MinimumValue = TryGetInt(map, "minimumValue") ?? 0,
+            RequiredCount = TryGetInt(map, "requiredCount") ?? 0,
+            PublicLabel = GetString(map, "publicLabel"),
+            GMLabel = GetString(map, "gmLabel"),
+            IsHidden = GetBool(map, "isHidden", false)
+        };
+        if (map.TryGetValue("children", out var rawChildren) && rawChildren is IEnumerable children)
+        {
+            foreach (var child in children)
+            {
+                var childMap = ToObjectDictionary(child);
+                if (childMap != null && childMap.Count > 0) expression.Children.Add(ReadRequirementExpressionMap(childMap));
+            }
+        }
+        return expression;
+    }
+
+    private static List<SkillRankMilestoneDefinition> ReadSkillRankMilestones(IDictionary<string, object> map)
+    {
+        var result = new List<SkillRankMilestoneDefinition>();
+        if (!map.TryGetValue("rankMilestones", out var raw) || raw is not IEnumerable items) return result;
+        foreach (var item in items)
+        {
+            var itemMap = ToObjectDictionary(item);
+            if (itemMap == null) continue;
+            result.Add(new SkillRankMilestoneDefinition
+            {
+                Rank = TryGetInt(itemMap, "rank") ?? 0,
+                DisplayName = GetString(itemMap, "displayName"),
+                PublicDescription = GetString(itemMap, "publicDescription"),
+                GMDescription = GetString(itemMap, "gmDescription"),
+                RequirementExpression = ReadRequirementExpression(itemMap, "requirementExpression")
+            });
+        }
+        return result;
+    }
+
+    private static List<SkillTechniqueDefinition> ReadSkillTechniques(IDictionary<string, object> map)
+    {
+        var result = new List<SkillTechniqueDefinition>();
+        if (!map.TryGetValue("techniques", out var raw) || raw is not IEnumerable items) return result;
+        foreach (var item in items)
+        {
+            var itemMap = ToObjectDictionary(item);
+            if (itemMap == null) continue;
+            result.Add(new SkillTechniqueDefinition
+            {
+                Id = GetString(itemMap, "id"),
+                DisplayName = GetString(itemMap, "displayName"),
+                SkillId = GetString(itemMap, "skillId"),
+                MinimumRank = TryGetInt(itemMap, "minimumRank") ?? 0,
+                MaximumRank = TryGetInt(itemMap, "maximumRank"),
+                ActionDefinitionId = GetString(itemMap, "actionDefinitionId"),
+                RequiredEquipmentTags = GetStringList(itemMap, "requiredEquipmentTags"),
+                RequiredAbilityId = GetString(itemMap, "requiredAbilityId"),
+                RequiredStateId = GetString(itemMap, "requiredStateId"),
+                HalfActionCost = TryGetInt(itemMap, "halfActionCost") ?? 1,
+                ReactionCost = TryGetInt(itemMap, "reactionCost") ?? 0,
+                PublicDescription = GetString(itemMap, "publicDescription"),
+                GMDescription = GetString(itemMap, "gmDescription"),
+                RuleSetId = FirstNonEmpty(GetString(itemMap, "ruleSetId"), "fantasy_nri_default"),
+                Revision = TryGetInt(itemMap, "revision") ?? 1,
+                IsArchived = GetBool(itemMap, "isArchived", false),
+                RequirementExpression = ReadRequirementExpression(itemMap, "requirementExpression")
+            });
+        }
+        return result;
     }
 
     private static RaceDefinitionDto ReadRaceDefinition(IDictionary<string, object> payload)
@@ -510,6 +599,35 @@ public sealed class AdminDefinitionHandlers
             { "requiredSkillCodes", dto.RequiredSkillCodes.Cast<object>().ToArray() },
             { "requiredCharacterLevel", dto.RequiredCharacterLevel },
             { "xpCoinCost", dto.XpCoinCost },
+            { "requirementExpression", RequirementExpressionPayload(dto.RequirementExpression) },
+            { "rankMilestones", dto.RankMilestones.Select(milestone => new Dictionary<string, object>
+                {
+                    { "rank", milestone.Rank },
+                    { "displayName", milestone.DisplayName },
+                    { "publicDescription", milestone.PublicDescription },
+                    { "gmDescription", milestone.GMDescription },
+                    { "requirementExpression", RequirementExpressionPayload(milestone.RequirementExpression) }
+                }).Cast<object>().ToArray() },
+            { "techniques", dto.Techniques.Select(technique => new Dictionary<string, object>
+                {
+                    { "id", technique.Id },
+                    { "displayName", technique.DisplayName },
+                    { "skillId", technique.SkillId },
+                    { "minimumRank", technique.MinimumRank },
+                    { "maximumRank", technique.MaximumRank.HasValue ? (object)technique.MaximumRank.Value : string.Empty },
+                    { "actionDefinitionId", technique.ActionDefinitionId },
+                    { "requiredEquipmentTags", technique.RequiredEquipmentTags.Cast<object>().ToArray() },
+                    { "requiredAbilityId", technique.RequiredAbilityId },
+                    { "requiredStateId", technique.RequiredStateId },
+                    { "halfActionCost", technique.HalfActionCost },
+                    { "reactionCost", technique.ReactionCost },
+                    { "publicDescription", technique.PublicDescription },
+                    { "gmDescription", technique.GMDescription },
+                    { "ruleSetId", technique.RuleSetId },
+                    { "revision", technique.Revision },
+                    { "isArchived", technique.IsArchived },
+                    { "requirementExpression", RequirementExpressionPayload(technique.RequirementExpression) }
+                }).Cast<object>().ToArray() },
             { "levels", dto.Levels.Select(level => new Dictionary<string, object>
                 {
                     { "level", level.Level },
@@ -531,6 +649,23 @@ public sealed class AdminDefinitionHandlers
                 }).Cast<object>().ToArray() },
             { "isActive", dto.IsActive }, { "status", dto.Status.ToString() },
             { "createdUtc", dto.CreatedUtc }, { "updatedUtc", dto.UpdatedUtc }
+        };
+    }
+
+    private static object RequirementExpressionPayload(RequirementExpression? expression)
+    {
+        if (expression == null) return new Dictionary<string, object>();
+        return new Dictionary<string, object>
+        {
+            { "kind", expression.Kind },
+            { "requiredCount", expression.RequiredCount },
+            { "leafType", expression.LeafType },
+            { "targetId", expression.TargetId },
+            { "minimumValue", expression.MinimumValue },
+            { "publicLabel", expression.PublicLabel },
+            { "gmLabel", expression.GMLabel },
+            { "isHidden", expression.IsHidden },
+            { "children", expression.Children.Select(RequirementExpressionPayload).ToArray() }
         };
     }
 
