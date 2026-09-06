@@ -103,6 +103,7 @@ public partial class ServiceHub
 
         _logger.Admin($"map.scene.create.start campaignId={campaignId} ruleSetId={ruleSetId}");
         var saved = _repositories.MapCanvases.UpsertAsync(map).GetAwaiter().GetResult();
+        _mapIdentityResolver.SynchronizeSceneProjection(saved, saved.Id, actor.Id);
         _logger.Admin($"map.scene.create.done mapId={saved.Id}");
 
         return Ok("Scene map created.", new Dictionary<string, object>
@@ -123,9 +124,10 @@ public partial class ServiceHub
 
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var mapId = RequireLength(PayloadReader.GetString(payload, "mapId"), 1, 128, "mapId");
-        var map = _repositories.MapCanvases.GetByIdAsync(mapId).GetAwaiter().GetResult();
-        if (map == null || map.Deleted || !string.Equals(map.MapType, MapTypeIds.Scene, StringComparison.OrdinalIgnoreCase))
-            return Error("scene map not found", ResponseStatus.NotFound, ErrorCode.NotFound);
+        var identity = _mapIdentityResolver.ResolveSceneMap(mapId);
+        if (!identity.IsResolved) return MapIdentityError0202(identity);
+        var map = identity.CanonicalMap!;
+        mapId = identity.CanonicalMapId;
 
         var markers = _repositories.MapMarkers.ListByMapAsync(mapId, includeArchived: false, limit: 2000).GetAwaiter().GetResult();
         var bindings = _repositories.MapMarkerBindings.ListByMapAsync(mapId, 2000).GetAwaiter().GetResult();
@@ -145,9 +147,10 @@ public partial class ServiceHub
 
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var mapId = RequireLength(PayloadReader.GetString(payload, "mapId"), 1, 128, "mapId");
-        var map = _repositories.MapCanvases.GetByIdAsync(mapId).GetAwaiter().GetResult();
-        if (map == null || map.Deleted || !string.Equals(map.MapType, MapTypeIds.Scene, StringComparison.OrdinalIgnoreCase))
-            return Error("scene map not found", ResponseStatus.NotFound, ErrorCode.NotFound);
+        var identity = _mapIdentityResolver.ResolveSceneMap(mapId);
+        if (!identity.IsResolved) return MapIdentityError0202(identity);
+        var map = identity.CanonicalMap!;
+        mapId = identity.CanonicalMapId;
 
         if (payload.ContainsKey("name"))
             map.Name = RequireLength(PayloadReader.GetString(payload, "name"), 1, 160, "name");
@@ -173,6 +176,7 @@ public partial class ServiceHub
             map.ExtraData["showCoordinates"] = PayloadReader.GetBool(payload, "showCoordinates");
 
         var saved = _repositories.MapCanvases.UpsertAsync(map).GetAwaiter().GetResult();
+        _mapIdentityResolver.SynchronizeSceneProjection(saved, identity.LegacyMapId, actor.Id, identity.CompatibilityProjection);
         _logger.Admin($"map.scene.updateSettings actor={actor.Login} mapId={mapId}");
         return Ok("Scene map settings updated.", new Dictionary<string, object>
         {
@@ -192,10 +196,16 @@ public partial class ServiceHub
 
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var mapId = RequireLength(PayloadReader.GetString(payload, "mapId"), 1, 128, "mapId");
-        var archived = _repositories.MapCanvases.ArchiveAsync(mapId).GetAwaiter().GetResult();
-        if (!archived) return Error("scene map not found", ResponseStatus.NotFound, ErrorCode.NotFound);
-        _logger.Admin($"map.scene.archive actor={actor.Login} mapId={mapId}");
-        return Ok("Scene map archived.", new Dictionary<string, object> { { "mapId", mapId } });
+        var identity = _mapIdentityResolver.ResolveSceneMap(mapId);
+        if (!identity.IsResolved) return MapIdentityError0202(identity);
+        var canonical = identity.CanonicalMap!;
+        canonical.IsArchived = true;
+        canonical.Archived = true;
+        canonical.UpdatedAtUtc = DateTime.UtcNow;
+        var saved = _repositories.MapCanvases.UpsertAsync(canonical).GetAwaiter().GetResult();
+        _mapIdentityResolver.SynchronizeSceneProjection(saved, identity.LegacyMapId, actor.Id, identity.CompatibilityProjection);
+        _logger.Admin($"map.scene.archive actor={actor.Login} mapId={identity.CanonicalMapId}");
+        return Ok("Scene map archived.", new Dictionary<string, object> { { "mapId", identity.CanonicalMapId } });
     }
 
     public ResponseEnvelope MapSceneMarkerList(CommandContext context)
@@ -650,9 +660,10 @@ public partial class ServiceHub
         var notes = RequireLength(PayloadReader.GetString(payload, "notes"), 0, 2048, "notes");
 
         _logger.Admin($"map.scene.active.set.start campaignId={campaignId} sessionId={sessionId} mapId={mapId}");
-        var map = _repositories.MapCanvases.GetByIdAsync(mapId).GetAwaiter().GetResult();
-        if (map == null || map.Deleted || map.Archived || map.IsArchived || !string.Equals(map.MapType, MapTypeIds.Scene, StringComparison.OrdinalIgnoreCase))
-            return Error("scene map not found", ResponseStatus.NotFound, ErrorCode.NotFound);
+        var identity = _mapIdentityResolver.ResolveSceneMap(mapId);
+        if (!identity.IsResolved) return MapIdentityError0202(identity);
+        var map = identity.CanonicalMap!;
+        mapId = identity.CanonicalMapId;
         if (!string.Equals(map.CampaignId, campaignId, StringComparison.OrdinalIgnoreCase))
             return Error("scene map campaign mismatch", ResponseStatus.ValidationFailed, ErrorCode.ValidationFailed);
 
@@ -832,13 +843,24 @@ public partial class ServiceHub
 
         var playerMap = PayloadReader.GetDictionary(sceneResponse.Payload, "map")
             ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        var canonicalMapId = PayloadReader.GetString(playerMap, "mapId") ?? link.MapId;
+        var projectionRevision = PayloadReader.GetLong(sceneResponse.Payload, "projectionRevision")
+            ?? PayloadReader.GetLong(playerMap, "projectionRevision")
+            ?? 0L;
+        var canonicalMapRevision = PayloadReader.GetLong(sceneResponse.Payload, "canonicalMapRevision")
+            ?? PayloadReader.GetLong(playerMap, "canonicalMapRevision")
+            ?? 0L;
 
         _logger.Debug($"map.player.scene.active.get.done user={actor.Login} mapId={link.MapId}");
         return Ok("Active scene map loaded.", new Dictionary<string, object>
         {
             { "hasActiveMap", true },
-            { "mapId", link.MapId },
+            { "mapId", canonicalMapId },
             { "map", playerMap },
+            { "projectionRevision", projectionRevision },
+            { "canonicalMapRevision", canonicalMapRevision },
+            { "fullSnapshotVersion", 1 },
+            { "snapshotKind", "full" },
             { "warnings", warnings.ToArray() },
             { "builtAtUtc", DateTime.UtcNow }
         });
@@ -855,73 +877,28 @@ public partial class ServiceHub
 
         var payload = context.Request.Payload ?? new Dictionary<string, object>();
         var mapId = RequireLength(PayloadReader.GetString(payload, "mapId"), 1, 128, "mapId");
-        var includeMarkers = !payload.ContainsKey("includeMarkers") || PayloadReader.GetBool(payload, "includeMarkers");
-
         _logger.Debug($"map.player.scene.get.start user={actor.Login} mapId={mapId}");
-        var map = _repositories.MapCanvases.GetByIdAsync(mapId).GetAwaiter().GetResult();
-        if (map == null || map.Deleted || map.Archived || map.IsArchived || !string.Equals(map.MapType, MapTypeIds.Scene, StringComparison.OrdinalIgnoreCase))
-            return Error("scene map not found", ResponseStatus.NotFound, ErrorCode.NotFound);
-
-        if (!IsMapVisibleForPlayer(map))
+        var projection = _playerMapProjectionService.BuildSceneMap(mapId, new PlayerMapProjectionContext0204
         {
-            _logger.Debug($"map.player.scene.get.forbidden user={actor.Login} mapId={mapId}");
-            return Error("scene map is not visible for player", ResponseStatus.Forbidden, ErrorCode.Forbidden);
-        }
-
-        var fogEnabled = MapFogEnabled();
-        var fog = fogEnabled ? _repositories.MapFogLayers.GetByMapIdAsync(mapId).GetAwaiter().GetResult() : null;
-        var playerHiddenRanges = BuildPlayerHiddenRanges(fog, map);
-
-        var warnings = new List<string>();
-        var markerPayloads = Array.Empty<object>();
-        if (includeMarkers)
-        {
-            if (!MapMarkersEnabled())
-            {
-                warnings.Add("marker endpoints disabled by feature flags");
-            }
-            else
-            {
-                var markers = _repositories.MapMarkers.ListByMapAsync(mapId, includeArchived: false, limit: 5000).GetAwaiter().GetResult();
-                var bindings = _repositories.MapMarkerBindings.ListByMapAsync(mapId, 5000).GetAwaiter().GetResult();
-                var filtered = markers
-                    .Where(marker => IsMarkerVisibleForPlayer(marker) && IsMarkerVisibleForPlayerByFog(marker, map, fog, playerHiddenRanges))
-                    .ToArray();
-                markerPayloads = filtered
-                    .Select(marker => PlayerMarkerPayload(marker, bindings.Where(binding => string.Equals(binding.MarkerId, marker.Id, StringComparison.OrdinalIgnoreCase)).ToArray()))
-                    .Cast<object>()
-                    .ToArray();
-                _logger.Debug($"map.player.scene.projection.markers filtered={markerPayloads.Length} all={markers.Count}");
-            }
-        }
-
-        if (!fogEnabled)
-            warnings.Add("fog of war disabled by feature flags");
-
-        _logger.Debug($"map.player.scene.get.done user={actor.Login} mapId={mapId}");
-        return Ok("Player scene map loaded.", new Dictionary<string, object>
-        {
-            {
-                "map", new Dictionary<string, object>
-                {
-                    { "mapId", map.Id },
-                    { "name", map.Name ?? string.Empty },
-                    { "description", map.Description ?? string.Empty },
-                    { "mapType", map.MapType ?? MapTypeIds.Scene },
-                    { "widthMeters", map.WidthMeters },
-                    { "heightMeters", map.HeightMeters },
-                    { "gridCellSizeMeters", map.GridCellSizeMeters },
-                    { "showGrid", Bool(map.ExtraData, "showGrid", true) },
-                    { "showCoordinates", Bool(map.ExtraData, "showCoordinates", true) },
-                    { "markers", markerPayloads },
-                    { "fogEnabled", fogEnabled && fog != null && !string.Equals(fog.Mode, FogOfWarModeIds.Disabled, StringComparison.OrdinalIgnoreCase) },
-                    { "fogOfWarVisibleState", PlayerFogPayload(fog, map, playerHiddenRanges) },
-                    { "builtAtUtc", DateTime.UtcNow }
-                }
-            },
-            { "warnings", warnings.Cast<object>().ToArray() },
-            { "builtAtUtc", DateTime.UtcNow }
+            ActorUserId = actor.Id,
+            CharacterId = PayloadReader.GetString(payload, "characterId") ?? string.Empty,
+            CampaignId = PayloadReader.GetString(payload, "campaignId") ?? string.Empty,
+            SessionId = PayloadReader.GetString(payload, "sessionId") ?? string.Empty,
+            ActiveGroupId = PayloadReader.GetString(payload, "activeGroupId") ?? string.Empty,
+            IncludeMarkers = !payload.ContainsKey("includeMarkers") || PayloadReader.GetBool(payload, "includeMarkers")
         });
+        if (!projection.Success)
+        {
+            var status = projection.ErrorKind == "not_found" ? ResponseStatus.NotFound
+                : projection.ErrorKind == "forbidden" ? ResponseStatus.Forbidden
+                : ResponseStatus.Conflict;
+            var code = status == ResponseStatus.NotFound ? ErrorCode.NotFound
+                : status == ResponseStatus.Forbidden ? ErrorCode.Forbidden
+                : ErrorCode.Conflict;
+            return Error(projection.Message, status, code);
+        }
+        _logger.Debug($"map.player.scene.get.done user={actor.Login} mapId={mapId} projectionRevision={PayloadReader.GetString(projection.Payload, "projectionRevision")}");
+        return Ok(projection.Message, projection.Payload);
     }
 
     private bool MapSceneReadEnabled()

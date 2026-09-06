@@ -17,6 +17,25 @@ public partial class ServiceHub
     private const string DataPortabilityVersion = "0.14.59";
     private const string ImportConfirmation = "IMPORT";
     private const string DevAccessLeakToken = "DEV_ACCESS_01459_DO_NOT_LEAK_TO_PLAYER";
+    private static readonly HashSet<string> CharacterScopedCampaignCollections = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "characters",
+        "character_module_states",
+        "character_attribute_profiles",
+        "character_subattribute_profiles",
+        "character_skill_profiles",
+        "character_development_profiles",
+        "character_wallet_profiles",
+        "character_inventory_profiles",
+        "character_reputation_profiles",
+        "character_holdings_profiles",
+        "character_companion_profiles",
+        "character_race_or_species_profiles",
+        "character_body_profiles",
+        "character_knowledge_profiles",
+        "character_condition_profiles",
+        "character_title_profiles"
+    };
 
     private static readonly DevAccessKnownAccount[] KnownDevAccounts =
     {
@@ -29,6 +48,10 @@ public partial class ServiceHub
     private static readonly string[] DefinitionExportCollections =
     {
         "unified_definitions",
+        "definition_editor_profiles",
+        "content_definition_records",
+        "content_definition_audit_events",
+        "content_definition_validation_results",
         "class_definitions",
         "race_definitions",
         "skill_definition_documents",
@@ -45,6 +68,10 @@ public partial class ServiceHub
     private static readonly HashSet<string> DefinitionImportCollections = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "unified_definitions",
+        "definition_editor_profiles",
+        "content_definition_records",
+        "content_definition_audit_events",
+        "content_definition_validation_results",
         "class_definitions",
         "race_definitions",
         "skill_definition_documents",
@@ -77,6 +104,9 @@ public partial class ServiceHub
         "character_body_profiles",
         "character_knowledge_profiles",
         "character_condition_profiles",
+        "character_creation_policies",
+        "character_creation_drafts",
+        "character_title_profiles",
         "player_requests",
         "player_request_comments",
         "gm_notes",
@@ -84,20 +114,236 @@ public partial class ServiceHub
         "event_journal_entries",
         "event_journal_links",
         "current_sessions",
+        "campaigns",
+        "campaign_memberships",
+        "campaign_capability_definitions",
+        "session_participations",
+        "automation_policy_definitions",
+        "automation_execution_records",
         "campaign_world_times",
         "world_calendar_events",
         "real_schedule_events",
         "audio_states",
         "audio_client_settings",
+        "quest_definitions",
+        "quest_instances",
+        "quest_objectives",
+        "quest_reward_bundles",
+        "quest_reward_grants",
+        "quest_audit_events",
+        "shop_definitions",
+        "shop_instances",
+        "shop_offers",
+        "purchase_requests",
+        "purchase_receipts",
+        "purchase_grants",
+        "shop_audit_events",
+        "rest_sessions",
+        "rest_participants",
+        "downtime_actions",
+        "recovery_grants",
+        "rest_audit_events",
+        "asset_configuration_blueprints",
+        "project_base_states",
+        "project_stages",
+        "project_requirements",
+        "project_resource_requirements",
+        "project_approvals",
+        "project_audit_entries",
+        "construction_sites",
+        "construction_resource_reservations",
+        "construction_stage_consumptions",
+        "asset_states",
+        "large_asset_maintenance_profiles",
+        "asset_operation_states",
+        "asset_maintenance_reservations",
+        "asset_maintenance_stage_consumptions",
+        "maintenance_service_records",
+        "actor_runtime_states",
+        "runtime_subject_capacity_profiles",
+        "runtime_effect_instances",
+        "action_execution_states",
+        "resource_reservation_states",
+        "live_state_events",
+        "weather_states",
+        "travel_sessions",
+        "environmental_tolerance_profiles",
+        "measurement_instrument_profiles",
+        "environmental_protection_profiles",
+        "environment_observations",
+        "map_space_nodes",
+        "map_states",
+        "map_coordinate_profiles",
+        "map_scale_profiles",
+        "map_semantic_layers",
+        "map_semantic_features",
+        "map_portals",
+        "map_generator_recipes",
+        "map_generation_jobs",
+        "map_identity_mappings",
+        "map_room_interiors",
+        "map_markers",
+        "map_marker_bindings",
+        "map_fog_layers",
+        "map_scene_active_links",
+        "world_map_states",
+        "world_map_layers",
+        "world_map_legends",
+        "world_map_profiles",
+        "world_map_regions",
+        "world_map_locations",
+        "world_map_labels",
+        "world_map_definitions",
+        "world_map_markers",
+        "session_world_map_states",
+        "scene_map_definitions",
+        "scene_map_markers",
+        "session_scene_map_states",
+        "map_token_instances",
+        "map_token_move_operations",
+        "legal_entity_licenses",
         "fate_engine_profiles",
         "fate_engine_states",
         "fate_roll_logs",
+        "scene_map_layers",
+        "scene_map_shapes",
+        "scene_map_tile_layers",
+        "scene_map_tile_patches",
+        "scene_map_asset_instances",
+        "scene_map_generation_presets",
+        "scene_map_templates",
+        "scene_map_generation_runs",
+        "combat_encounters",
+        "combat_participants",
+        "combat_turns",
+        "combat_rounds",
+        "combat_actions",
+        "combat_runtime_logs",
+        "combat_replay_events",
         "data_portability_acceptance_markers"
     };
 
     private static readonly HashSet<string> CampaignImportCollections = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
-        "data_portability_acceptance_markers"
+        "data_portability_acceptance_markers",
+        "campaigns",
+        "campaign_memberships",
+        "campaign_capability_definitions",
+        "current_sessions",
+        "session_participations",
+        "character_ownerships",
+        "characters",
+        "character_module_states",
+        "character_attribute_profiles",
+        "character_subattribute_profiles",
+        "character_skill_profiles",
+        "character_development_profiles",
+        "character_wallet_profiles",
+        "character_inventory_profiles",
+        "character_reputation_profiles",
+        "character_holdings_profiles",
+        "character_companion_profiles",
+        "character_race_or_species_profiles",
+        "character_body_profiles",
+        "character_knowledge_profiles",
+        "character_condition_profiles",
+        "character_creation_policies",
+        "character_creation_drafts",
+        "character_title_profiles",
+        "automation_policy_definitions",
+        "automation_execution_records",
+        "quest_definitions",
+        "quest_instances",
+        "quest_objectives",
+        "quest_reward_bundles",
+        "quest_reward_grants",
+        "quest_audit_events",
+        "shop_definitions",
+        "shop_instances",
+        "shop_offers",
+        "purchase_requests",
+        "purchase_receipts",
+        "purchase_grants",
+        "shop_audit_events",
+        "rest_sessions",
+        "rest_participants",
+        "downtime_actions",
+        "recovery_grants",
+        "rest_audit_events",
+        "asset_configuration_blueprints",
+        "project_base_states",
+        "project_stages",
+        "project_requirements",
+        "project_resource_requirements",
+        "project_approvals",
+        "project_audit_entries",
+        "construction_sites",
+        "construction_resource_reservations",
+        "construction_stage_consumptions",
+        "asset_states",
+        "large_asset_maintenance_profiles"
+        ,"asset_operation_states"
+        ,"asset_maintenance_reservations"
+        ,"asset_maintenance_stage_consumptions"
+        ,"maintenance_service_records"
+        ,"actor_runtime_states"
+        ,"runtime_subject_capacity_profiles"
+        ,"runtime_effect_instances"
+        ,"action_execution_states"
+        ,"resource_reservation_states"
+        ,"live_state_events"
+        ,"weather_states"
+        ,"travel_sessions"
+        ,"environmental_tolerance_profiles"
+        ,"measurement_instrument_profiles"
+        ,"environmental_protection_profiles"
+        ,"environment_observations"
+        ,"map_space_nodes"
+        ,"map_states"
+        ,"map_coordinate_profiles"
+        ,"map_scale_profiles"
+        ,"map_semantic_layers"
+        ,"map_semantic_features"
+        ,"map_portals"
+        ,"map_generator_recipes"
+        ,"map_generation_jobs"
+        ,"map_identity_mappings"
+        ,"map_room_interiors"
+        ,"map_markers"
+        ,"map_marker_bindings"
+        ,"map_fog_layers"
+        ,"map_scene_active_links"
+        ,"world_map_states"
+        ,"world_map_layers"
+        ,"world_map_legends"
+        ,"world_map_profiles"
+        ,"world_map_regions"
+        ,"world_map_locations"
+        ,"world_map_labels"
+        ,"world_map_definitions"
+        ,"world_map_markers"
+        ,"session_world_map_states"
+        ,"scene_map_definitions"
+        ,"scene_map_markers"
+        ,"session_scene_map_states"
+        ,"map_token_instances"
+        ,"map_token_move_operations"
+        ,"scene_map_layers"
+        ,"scene_map_shapes"
+        ,"scene_map_tile_layers"
+        ,"scene_map_tile_patches"
+        ,"scene_map_asset_instances"
+        ,"scene_map_generation_presets"
+        ,"scene_map_templates"
+        ,"scene_map_generation_runs"
+        ,"combat_encounters"
+        ,"combat_participants"
+        ,"combat_turns"
+        ,"combat_rounds"
+        ,"combat_actions"
+        ,"combat_runtime_logs"
+        ,"combat_replay_events"
+        ,"legal_entity_licenses"
     };
 
     public ResponseEnvelope DevAccessAdminStatus(CommandContext context)
@@ -252,31 +498,34 @@ public partial class ServiceHub
 
     public ResponseEnvelope DataPortabilityAdminExportCampaignData(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
+        var campaignId = ResolveRequestedCampaign02110(context);
+        _campaignAuthorization.RequireCampaignCapability(context.Session!, campaignId, CampaignCapabilityIds.CampaignViewAudit);
         EnsureDataPortabilityIndexes();
         var packageName = SafePackageName(DataPortabilityFirstNonEmpty(PayloadReader.GetString(context.Request.Payload, "packageName"), "campaign_export"));
         var includeSensitive = PayloadReader.GetBool(context.Request.Payload, "includeSensitive");
-        var result = CreateExportPackage(actor, "campaign_data", packageName, CampaignExportCollections, includeSensitive, sanitizeAccounts: !includeSensitive);
+        var result = CreateExportPackage(actor, "campaign_data", packageName, CampaignExportCollections, includeSensitive, sanitizeAccounts: !includeSensitive, campaignId);
         WriteDataPortabilityAudit(actor, "data_export.campaign.created", $"Campaign data export created: {packageName}", "data_portability", false);
         return Ok("Campaign data export created.", result);
     }
 
     public ResponseEnvelope DataPortabilityAdminImportCampaignDataDryRun(CommandContext context)
     {
-        var actor = RequireAdmin(context);
-        EnsureDataPortabilityIndexes();
+        var actor = GetCurrentAccount(context);
+        var campaignId = ResolveRequestedCampaign02110(context);
+        _campaignAuthorization.RequireCampaignCapability(context.Session!, campaignId, CampaignCapabilityIds.CampaignManageSettings);
         var validation = ValidatePackageFromPayload(context.Request.Payload, actor, writeRecord: false);
         if (!validation.IsValid) throw new ArgumentException("Package validation failed: " + string.Join("; ", validation.Errors));
         if (!string.Equals(validation.PackageType, "campaign_data", StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Package is not a campaign data package.");
-        var plan = BuildImportPlan(validation, CampaignImportCollections);
-        UpsertImportRecord(actor, validation, "campaign_data", "dry_run", "dry_run_passed", plan, Array.Empty<string>());
-        WriteDataPortabilityAudit(actor, "data_import.campaign.dry_run", $"Campaign import dry-run: {validation.PackageName}", "data_portability", false);
+        var plan = BuildCampaignImportDryRunPlan(validation, context.Request.Payload);
         return Ok("Campaign data import dry-run completed.", plan);
     }
 
     public ResponseEnvelope DataPortabilityAdminImportCampaignData(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
+        var campaignId = ResolveRequestedCampaign02110(context);
+        _campaignAuthorization.RequireCampaignCapability(context.Session!, campaignId, CampaignCapabilityIds.CampaignManageSettings);
         EnsureNonProductionImport("Campaign data import is disabled in Production.");
         EnsureDataPortabilityIndexes();
         RequireConfirmation(context.Request.Payload);
@@ -435,7 +684,7 @@ public partial class ServiceHub
         if (presenceCreated) _repositories.Presence.Insert(presence); else _repositories.Presence.Replace(presence);
     }
 
-    private Dictionary<string, object> CreateExportPackage(UserAccount actor, string packageType, string packageName, IEnumerable<string> collections, bool includeSensitive, bool sanitizeAccounts)
+    private Dictionary<string, object> CreateExportPackage(UserAccount actor, string packageType, string packageName, IEnumerable<string> collections, bool includeSensitive, bool sanitizeAccounts, string campaignId = "")
     {
         var packageId = $"{packageType}_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}".Substring(0, 58);
         var root = DataPortabilityPackageRoot();
@@ -449,7 +698,10 @@ public partial class ServiceHub
         foreach (var collectionName in collections.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             var collection = _mongo.Database.GetCollection<BsonDocument>(collectionName);
-            var docs = collection.Find(FilterDefinition<BsonDocument>.Empty).ToList();
+            var filter = string.IsNullOrWhiteSpace(campaignId)
+                ? FilterDefinition<BsonDocument>.Empty
+                : CampaignExportFilter02110(collectionName, campaignId);
+            var docs = collection.Find(filter).ToList();
             if (sanitizeAccounts && string.Equals(collectionName, "accounts", StringComparison.OrdinalIgnoreCase))
                 docs = docs.Select(RedactAccountDocument).ToList();
 
@@ -533,6 +785,25 @@ public partial class ServiceHub
             ["checksumSha256"] = packageChecksum,
             ["collections"] = manifestCollections.Select(x => DocumentPayload(x.AsBsonDocument)).Cast<object>().ToArray()
         };
+    }
+
+    private FilterDefinition<BsonDocument> CampaignExportFilter02110(string collectionName, string campaignId)
+    {
+        var filter = Builders<BsonDocument>.Filter;
+        if (string.Equals(collectionName, "campaigns", StringComparison.OrdinalIgnoreCase))
+            return filter.Eq("_id", campaignId) | filter.Eq("Id", campaignId);
+        if (string.Equals(collectionName, "campaign_capability_definitions", StringComparison.OrdinalIgnoreCase))
+            return FilterDefinition<BsonDocument>.Empty;
+        if (CharacterScopedCampaignCollections.Contains(collectionName))
+        {
+            var characterIds = _mongo.CharacterOwnerships.Find(x => x.CampaignId == campaignId)
+                .ToList().Select(x => x.CharacterId).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal).ToArray();
+            if (characterIds.Length == 0) return filter.In("_id", Array.Empty<string>());
+            return string.Equals(collectionName, "characters", StringComparison.OrdinalIgnoreCase)
+                ? filter.In("_id", characterIds) | filter.In("Id", characterIds)
+                : filter.In("CharacterId", characterIds) | filter.In("characterId", characterIds);
+        }
+        return filter.Eq("CampaignId", campaignId) | filter.Eq("campaignId", campaignId);
     }
 
     private DataPackageValidationResult ValidatePackageFromPayload(IDictionary<string, object> payload, UserAccount actor, bool writeRecord)
@@ -642,6 +913,654 @@ public partial class ServiceHub
             ["plannedCount"] = items.Count,
             ["warnings"] = skipped.Select(x => "Skipped non-allowed collection: " + x).ToArray()
         };
+    }
+
+    private Dictionary<string, object> BuildCampaignImportDryRunPlan(
+        DataPackageValidationResult validation,
+        IDictionary<string, object> payload)
+    {
+        var plan = BuildImportPlan(validation, CampaignImportCollections);
+        plan["dryRun"] = true;
+        plan["liveDatabaseWrites"] = 0;
+
+        var focusMapId = PayloadReader.GetString(payload, "focusMapId") ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(focusMapId))
+            return BuildMapImportDryRunPlan0201(plan, validation, focusMapId);
+
+        var focusWeatherId = PayloadReader.GetString(payload, "focusWeatherId") ?? string.Empty;
+        var focusTravelId = PayloadReader.GetString(payload, "focusTravelId") ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(focusWeatherId) || !string.IsNullOrWhiteSpace(focusTravelId))
+            return BuildWeatherTravelImportDryRunPlan0217(plan, validation, focusWeatherId, focusTravelId);
+
+        var focusProjectId = PayloadReader.GetString(payload, "focusProjectId") ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(focusProjectId))
+        {
+            var allowedManifestCollections = ManifestCollections(validation.Manifest)
+                .Select(x => x.GetValue("collectionName", "").ToString())
+                .Where(x => !string.IsNullOrWhiteSpace(x) && CampaignImportCollections.Contains(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            var duplicateIdentityConflicts = new List<string>();
+            var genericPlannedCounts = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (var collectionName in allowedManifestCollections)
+            {
+                var rows = ReadPackageDocuments(validation, collectionName);
+                genericPlannedCounts[collectionName] = rows.Count;
+                duplicateIdentityConflicts.AddRange(rows
+                    .GroupBy(DocumentId, StringComparer.OrdinalIgnoreCase)
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Count() > 1)
+                    .Select(x => collectionName + ":" + x.Key));
+            }
+
+            if (duplicateIdentityConflicts.Count > 0)
+                throw new ArgumentException("Campaign import dry-run found duplicate identities: " + string.Join("; ", duplicateIdentityConflicts));
+
+            plan["validatedCollections"] = allowedManifestCollections;
+            plan["resolvedReferenceCount"] = 0;
+            plan["unresolvedReferences"] = Array.Empty<string>();
+            plan["duplicateIdentityConflicts"] = duplicateIdentityConflicts.ToArray();
+            plan["plannedCounts"] = genericPlannedCounts;
+            plan["competingCollections"] = Array.Empty<string>();
+            return BuildCampaignContextImportDryRunPlan02110(plan, validation);
+        }
+
+        var projects = ReadPackageDocuments(validation, "project_base_states");
+        var sites = ReadPackageDocuments(validation, "construction_sites");
+        var reservations = ReadPackageDocuments(validation, "construction_resource_reservations");
+        var consumptions = ReadPackageDocuments(validation, "construction_stage_consumptions");
+        var assets = ReadPackageDocuments(validation, "asset_states");
+        var maintenanceProfiles = ReadPackageDocuments(validation, "large_asset_maintenance_profiles");
+        var blueprints = ReadPackageDocuments(validation, "asset_configuration_blueprints");
+        var ownerships = ReadPackageDocuments(validation, "character_ownerships");
+        var inventoryProfiles = ReadPackageDocuments(validation, "character_inventory_profiles");
+
+        var projectRows = projects.Where(x => DocumentId(x) == focusProjectId).ToList();
+        if (projectRows.Count == 1 && string.Equals(DocumentString(projectRows[0], "RuntimeKind"), AssetMaintenanceRuntimeIds0198.RuntimeKind, StringComparison.OrdinalIgnoreCase))
+            return BuildAssetMaintenanceImportDryRunPlan0198(plan, validation, focusProjectId, projectRows[0]);
+        var siteRows = sites.Where(x => DocumentString(x, "ProjectId") == focusProjectId).ToList();
+        var reservationRows = reservations.Where(x => DocumentString(x, "ProjectId") == focusProjectId).ToList();
+        var consumptionRows = consumptions.Where(x => DocumentString(x, "ProjectId") == focusProjectId).ToList();
+        var assetRows = assets.Where(x => DocumentString(x, "ConstructionProjectId") == focusProjectId).ToList();
+        var maintenanceRows = maintenanceProfiles.Where(x => DocumentString(x, "ProjectId") == focusProjectId).ToList();
+
+        var expectedCounts = new Dictionary<string, object>
+        {
+            ["project_base_states"] = 1,
+            ["construction_sites"] = 1,
+            ["construction_resource_reservations"] = 3,
+            ["construction_stage_consumptions"] = 3,
+            ["asset_states"] = 1,
+            ["large_asset_maintenance_profiles"] = 1
+        };
+        var plannedCounts = new Dictionary<string, object>
+        {
+            ["project_base_states"] = projectRows.Count,
+            ["construction_sites"] = siteRows.Count,
+            ["construction_resource_reservations"] = reservationRows.Count,
+            ["construction_stage_consumptions"] = consumptionRows.Count,
+            ["asset_states"] = assetRows.Count,
+            ["large_asset_maintenance_profiles"] = maintenanceRows.Count
+        };
+
+        var unresolved = new List<string>();
+        var resolvedReferenceCount = 0;
+        var duplicates = new List<string>();
+        foreach (var pair in plannedCounts)
+        {
+            var expected = Convert.ToInt32(expectedCounts[pair.Key]);
+            var actual = Convert.ToInt32(pair.Value);
+            if (actual != expected)
+                unresolved.Add($"{pair.Key}: expected {expected}, found {actual}");
+        }
+
+        var focusedRows = new Dictionary<string, List<BsonDocument>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["project_base_states"] = projectRows,
+            ["construction_sites"] = siteRows,
+            ["construction_resource_reservations"] = reservationRows,
+            ["construction_stage_consumptions"] = consumptionRows,
+            ["asset_states"] = assetRows,
+            ["large_asset_maintenance_profiles"] = maintenanceRows
+        };
+        foreach (var pair in focusedRows)
+        {
+            duplicates.AddRange(pair.Value
+                .GroupBy(DocumentId, StringComparer.OrdinalIgnoreCase)
+                .Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Count() > 1)
+                .Select(x => pair.Key + ":" + x.Key));
+        }
+
+        var project = projectRows.SingleOrDefault();
+        var site = siteRows.SingleOrDefault();
+        var asset = assetRows.SingleOrDefault();
+        var maintenance = maintenanceRows.SingleOrDefault();
+        if (project != null)
+        {
+            ResolveReference(
+                string.Equals(DocumentString(project, "RuntimeKind"), "asset_construction_0197", StringComparison.OrdinalIgnoreCase),
+                "project runtime kind", unresolved, ref resolvedReferenceCount);
+            ResolveReference(
+                string.Equals(DocumentString(project, "Status"), "completed", StringComparison.OrdinalIgnoreCase),
+                "project completed status", unresolved, ref resolvedReferenceCount);
+        }
+
+        var siteId = site == null ? string.Empty : DocumentId(site);
+        var assetId = asset == null ? string.Empty : DocumentId(asset);
+        if (site != null)
+        {
+            ResolveReference(DocumentString(site, "ProjectId") == focusProjectId,
+                "site -> project", unresolved, ref resolvedReferenceCount);
+            ResolveReference(DocumentString(site, "AssetInstanceId") == assetId,
+                "site -> asset", unresolved, ref resolvedReferenceCount);
+        }
+        foreach (var row in reservationRows)
+        {
+            ResolveReference(DocumentString(row, "ProjectId") == focusProjectId,
+                "reservation -> project", unresolved, ref resolvedReferenceCount);
+            ResolveReference(DocumentString(row, "ConstructionSiteId") == siteId,
+                "reservation -> site", unresolved, ref resolvedReferenceCount);
+        }
+        foreach (var row in consumptionRows)
+        {
+            ResolveReference(DocumentString(row, "ProjectId") == focusProjectId,
+                "consumption -> project", unresolved, ref resolvedReferenceCount);
+            ResolveReference(DocumentString(row, "ConstructionSiteId") == siteId,
+                "consumption -> site", unresolved, ref resolvedReferenceCount);
+        }
+        if (asset != null)
+        {
+            ResolveReference(DocumentString(asset, "ConstructionProjectId") == focusProjectId,
+                "asset -> project", unresolved, ref resolvedReferenceCount);
+            ResolveReference(DocumentString(asset, "ConstructionSiteId") == siteId,
+                "asset -> site", unresolved, ref resolvedReferenceCount);
+            ResolveReference(!string.Equals(DocumentString(asset, "AssetType"), "inventory_item", StringComparison.OrdinalIgnoreCase),
+                "asset is not an inventory item", unresolved, ref resolvedReferenceCount);
+            ResolveReference(!PackageDocumentsContainId(inventoryProfiles, assetId),
+                "asset absent from character inventory profiles", unresolved, ref resolvedReferenceCount);
+        }
+        if (maintenance != null)
+        {
+            ResolveReference(DocumentString(maintenance, "ProjectId") == focusProjectId,
+                "maintenance -> project", unresolved, ref resolvedReferenceCount);
+            ResolveReference(DocumentString(maintenance, "AssetInstanceId") == assetId,
+                "maintenance -> asset", unresolved, ref resolvedReferenceCount);
+            ResolveReference(asset != null && DocumentString(asset, "MaintenanceProfileId") == DocumentId(maintenance),
+                "asset -> maintenance", unresolved, ref resolvedReferenceCount);
+        }
+
+        var blueprintId = site == null ? string.Empty : DocumentString(site, "BlueprintId");
+        ResolveReference(blueprints.Any(x => DocumentId(x) == blueprintId),
+            "blueprint reference", unresolved, ref resolvedReferenceCount);
+
+        var ownerCharacterId = site == null ? string.Empty : DocumentString(site, "OwnerId");
+        var ownerUserId = site == null ? string.Empty : DocumentString(site, "OwnerUserId");
+        ResolveReference(ownerships.Any(x =>
+                DocumentString(x, "CharacterId") == ownerCharacterId &&
+                DocumentString(x, "OwnerUserId") == ownerUserId),
+            "owner reference", unresolved, ref resolvedReferenceCount);
+
+        var locationId = site == null ? string.Empty : DocumentString(site, "LocationId");
+        var targetLocationExists = !string.IsNullOrWhiteSpace(locationId) &&
+            _mongo.Database.GetCollection<BsonDocument>("map_space_nodes")
+                .Find(Builders<BsonDocument>.Filter.Eq("_id", locationId))
+                .Limit(1)
+                .Any();
+        ResolveReference(targetLocationExists, "location reference", unresolved, ref resolvedReferenceCount);
+
+        if (duplicates.Count > 0 || unresolved.Count > 0)
+        {
+            var details = duplicates.Concat(unresolved).ToArray();
+            throw new ArgumentException("Campaign construction import dry-run failed: " + string.Join("; ", details));
+        }
+
+        plan["focusProjectId"] = focusProjectId;
+        plan["validatedCollections"] = focusedRows.Keys.ToArray();
+        plan["resolvedReferenceCount"] = resolvedReferenceCount;
+        plan["unresolvedReferences"] = unresolved.ToArray();
+        plan["duplicateIdentityConflicts"] = duplicates.ToArray();
+        plan["expectedCounts"] = expectedCounts;
+        plan["plannedCounts"] = plannedCounts;
+        plan["assetClassifiedAsInventoryItem"] = false;
+        plan["referenceSources"] = new[]
+        {
+            "package:asset_configuration_blueprints",
+            "package:character_ownerships",
+            "target-readonly:map_space_nodes"
+        };
+        plan["competingCollections"] = Array.Empty<string>();
+        return plan;
+    }
+
+    private Dictionary<string, object> BuildCampaignContextImportDryRunPlan02110(
+        Dictionary<string, object> plan,
+        DataPackageValidationResult validation)
+    {
+        var campaigns = ReadPackageDocuments(validation, "campaigns");
+        var memberships = ReadPackageDocuments(validation, "campaign_memberships");
+        var sessions = ReadPackageDocuments(validation, "current_sessions");
+        var participations = ReadPackageDocuments(validation, "session_participations");
+        var ownerships = ReadPackageDocuments(validation, "character_ownerships");
+        var policies = ReadPackageDocuments(validation, "automation_policy_definitions");
+        var executions = ReadPackageDocuments(validation, "automation_execution_records");
+        var unresolved = new List<string>();
+        var resolved = 0;
+
+        var campaignIds = new HashSet<string>(campaigns.Select(DocumentId), StringComparer.OrdinalIgnoreCase);
+        var sessionIds = new HashSet<string>(sessions.Select(x => DataPortabilityFirstNonEmpty(DocumentString(x, "SessionId"), DocumentId(x))), StringComparer.OrdinalIgnoreCase);
+        var policyIds = new HashSet<string>(policies.Select(DocumentId), StringComparer.OrdinalIgnoreCase);
+        var membershipKeys = new HashSet<string>(memberships.Select(x => DocumentString(x, "CampaignId") + ":" + DocumentString(x, "UserId")), StringComparer.OrdinalIgnoreCase);
+        var ownershipByCampaignCharacter = new HashSet<string>(ownerships.Select(x => DocumentString(x, "CampaignId") + ":" + DocumentString(x, "CharacterId")), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var membership in memberships)
+            ResolveReference(campaignIds.Contains(DocumentString(membership, "CampaignId")), "membership -> campaign: " + DocumentId(membership), unresolved, ref resolved);
+        foreach (var session in sessions)
+            ResolveReference(campaignIds.Contains(DocumentString(session, "CampaignId")), "session -> campaign: " + DocumentId(session), unresolved, ref resolved);
+        foreach (var participation in participations)
+        {
+            var campaignId = DocumentString(participation, "CampaignId");
+            var userId = DocumentString(participation, "UserId");
+            ResolveReference(sessionIds.Contains(DocumentString(participation, "SessionId")), "participation -> session: " + DocumentId(participation), unresolved, ref resolved);
+            ResolveReference(membershipKeys.Contains(campaignId + ":" + userId), "participation -> membership: " + DocumentId(participation), unresolved, ref resolved);
+            foreach (var characterId in DocumentStringArray(participation, "AllowedCharacterIds"))
+                ResolveReference(ownershipByCampaignCharacter.Contains(campaignId + ":" + characterId), "participation -> character ownership: " + characterId, unresolved, ref resolved);
+        }
+        foreach (var ownership in ownerships)
+        {
+            var campaignId = DocumentString(ownership, "CampaignId");
+            foreach (var userId in new[] { DocumentString(ownership, "OwnerUserId"), DocumentString(ownership, "ControlledByUserId") }.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
+                ResolveReference(membershipKeys.Contains(campaignId + ":" + userId), "character ownership -> membership: " + DocumentId(ownership) + ":" + userId, unresolved, ref resolved);
+        }
+        foreach (var policy in policies)
+            ResolveReference(campaignIds.Contains(DocumentString(policy, "CampaignId")), "automation policy -> campaign: " + DocumentId(policy), unresolved, ref resolved);
+        foreach (var execution in executions)
+        {
+            ResolveReference(policyIds.Contains(DocumentString(execution, "PolicyId")), "automation execution -> policy: " + DocumentId(execution), unresolved, ref resolved);
+            ResolveReference(sessionIds.Contains(DocumentString(execution, "SessionId")), "automation execution -> session: " + DocumentId(execution), unresolved, ref resolved);
+        }
+
+        if (unresolved.Count > 0)
+            throw new ArgumentException("Campaign context import dry-run failed: " + string.Join("; ", unresolved));
+
+        plan["resolvedReferenceCount"] = resolved;
+        plan["unresolvedReferences"] = unresolved.ToArray();
+        plan["membershipOwnershipMappings"] = memberships.Select(membership =>
+        {
+            var campaignId = DocumentString(membership, "CampaignId");
+            var userId = DocumentString(membership, "UserId");
+            return (object)new Dictionary<string, object>
+            {
+                ["campaignId"] = campaignId,
+                ["userId"] = userId,
+                ["roleId"] = DocumentString(membership, "PrimaryRoleId"),
+                ["ownedCharacterIds"] = ownerships
+                    .Where(x => DocumentString(x, "CampaignId") == campaignId && DocumentString(x, "OwnerUserId") == userId)
+                    .Select(x => DocumentString(x, "CharacterId")).Where(x => !string.IsNullOrWhiteSpace(x)).ToArray()
+            };
+        }).ToArray();
+        plan["sessionParticipationCount"] = participations.Count;
+        plan["automationPolicyCount"] = policies.Count;
+        plan["automationExecutionCount"] = executions.Count;
+        plan["activeGameContextExported"] = false;
+        plan["activeGameContextContract"] = "Excluded: connection/user preference state is reconstructed after authentication.";
+        return plan;
+    }
+
+    private Dictionary<string, object> BuildWeatherTravelImportDryRunPlan0217(
+        Dictionary<string, object> plan,
+        DataPackageValidationResult validation,
+        string focusWeatherId,
+        string focusTravelId)
+    {
+        var weatherRows = ReadPackageDocuments(validation, "weather_states");
+        var travelRows = ReadPackageDocuments(validation, "travel_sessions");
+        var toleranceRows = ReadPackageDocuments(validation, "environmental_tolerance_profiles");
+        var instrumentRows = ReadPackageDocuments(validation, "measurement_instrument_profiles");
+        var protectionRows = ReadPackageDocuments(validation, "environmental_protection_profiles");
+        var observationRows = ReadPackageDocuments(validation, "environment_observations");
+
+        var selectedWeather = string.IsNullOrWhiteSpace(focusWeatherId)
+            ? weatherRows
+            : weatherRows.Where(x => DocumentId(x) == focusWeatherId).ToList();
+        var selectedTravel = string.IsNullOrWhiteSpace(focusTravelId)
+            ? travelRows
+            : travelRows.Where(x => DocumentId(x) == focusTravelId).ToList();
+
+        var unresolved = new List<string>();
+        var duplicates = new List<string>();
+        var resolvedReferenceCount = 0;
+
+        duplicates.AddRange(selectedWeather.GroupBy(DocumentId, StringComparer.OrdinalIgnoreCase)
+            .Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Count() > 1)
+            .Select(x => "weather_states:" + x.Key));
+        duplicates.AddRange(selectedTravel.GroupBy(DocumentId, StringComparer.OrdinalIgnoreCase)
+            .Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Count() > 1)
+            .Select(x => "travel_sessions:" + x.Key));
+        duplicates.AddRange(observationRows.GroupBy(DocumentId, StringComparer.OrdinalIgnoreCase)
+            .Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Count() > 1)
+            .Select(x => "environment_observations:" + x.Key));
+
+        foreach (var weather in selectedWeather)
+        {
+            var schemaVersion = int.TryParse(DocumentString(weather, "WindUnitSchemaVersion"), out var parsed) ? parsed : 1;
+            if (schemaVersion < 2 && string.IsNullOrWhiteSpace(DocumentString(weather, "TrueWindKmh")))
+                unresolved.Add("legacy weather wind unit cannot be normalized");
+        }
+        foreach (var observation in observationRows)
+        {
+            ResolveReference(toleranceRows.Count > 0, "environment tolerance profiles", unresolved, ref resolvedReferenceCount);
+            var instrumentProfileId = DocumentString(observation, "InstrumentProfileId");
+            if (!string.IsNullOrWhiteSpace(instrumentProfileId))
+                ResolveReference(instrumentRows.Any(x => DocumentId(x) == instrumentProfileId), "measurement instrument profile", unresolved, ref resolvedReferenceCount);
+        }
+
+        if (!string.IsNullOrWhiteSpace(focusWeatherId))
+            ResolveReference(selectedWeather.Count == 1, "focused weather state", unresolved, ref resolvedReferenceCount);
+        if (!string.IsNullOrWhiteSpace(focusTravelId))
+            ResolveReference(selectedTravel.Count == 1, "focused travel session", unresolved, ref resolvedReferenceCount);
+
+        bool DefinitionExists(string id) => !string.IsNullOrWhiteSpace(id) &&
+            _mongo.Database.GetCollection<BsonDocument>("unified_definitions")
+                .Find(Builders<BsonDocument>.Filter.Eq("_id", id)).Limit(1).Any();
+
+        foreach (var weather in selectedWeather)
+        {
+            ResolveReference(DocumentString(weather, "RandomAlgorithmId") == WeatherDeterministicRandom.AlgorithmId,
+                "supported weather RNG algorithm", unresolved, ref resolvedReferenceCount);
+            ResolveReference(DocumentString(weather, "RandomAlgorithmVersion") == WeatherDeterministicRandom.AlgorithmVersion.ToString(),
+                "supported weather RNG version", unresolved, ref resolvedReferenceCount);
+            ResolveReference(DefinitionExists(DocumentString(weather, "ClimateProfileId")),
+                "weather climate profile", unresolved, ref resolvedReferenceCount);
+            ResolveReference(DefinitionExists(DocumentString(weather, "CurrentPatternId")),
+                "weather pattern", unresolved, ref resolvedReferenceCount);
+        }
+
+        foreach (var travel in selectedTravel)
+        {
+            ResolveReference(DefinitionExists(DocumentString(travel, "ModeDefinitionId")),
+                "travel mode", unresolved, ref resolvedReferenceCount);
+            var segments = travel.GetValue("Segments", new BsonArray()).AsBsonArray;
+            ResolveReference(segments.Count > 0, "travel segments", unresolved, ref resolvedReferenceCount);
+            foreach (var segmentValue in segments)
+            {
+                if (!segmentValue.IsBsonDocument) continue;
+                var segment = segmentValue.AsBsonDocument;
+                var terrainId = DocumentString(segment, "TerrainProfileId");
+                ResolveReference(DefinitionExists(terrainId), "segment terrain profile", unresolved, ref resolvedReferenceCount);
+                ResolveReference(!string.IsNullOrWhiteSpace(DocumentString(segment, "FromLocationId")),
+                    "segment origin", unresolved, ref resolvedReferenceCount);
+                ResolveReference(!string.IsNullOrWhiteSpace(DocumentString(segment, "ToLocationId")),
+                    "segment destination", unresolved, ref resolvedReferenceCount);
+            }
+        }
+
+        if (duplicates.Count > 0 || unresolved.Count > 0)
+            throw new ArgumentException("Weather/travel import dry-run failed: " + string.Join("; ", duplicates.Concat(unresolved)));
+
+        plan["focusWeatherId"] = focusWeatherId;
+        plan["focusTravelId"] = focusTravelId;
+        plan["validatedCollections"] = new[] { "weather_states", "travel_sessions", "environmental_tolerance_profiles", "measurement_instrument_profiles", "environmental_protection_profiles", "environment_observations" };
+        plan["resolvedReferenceCount"] = resolvedReferenceCount;
+        plan["unresolvedReferences"] = unresolved.ToArray();
+        plan["duplicateIdentityConflicts"] = duplicates.ToArray();
+        plan["expectedCounts"] = new Dictionary<string, object>
+        {
+            ["weather_states"] = selectedWeather.Count,
+            ["travel_sessions"] = selectedTravel.Count,
+            ["environmental_tolerance_profiles"] = toleranceRows.Count,
+            ["measurement_instrument_profiles"] = instrumentRows.Count,
+            ["environmental_protection_profiles"] = protectionRows.Count,
+            ["environment_observations"] = observationRows.Count
+        };
+        plan["plannedCounts"] = new Dictionary<string, object>
+        {
+            ["weather_states"] = selectedWeather.Count,
+            ["travel_sessions"] = selectedTravel.Count,
+            ["environmental_tolerance_profiles"] = toleranceRows.Count,
+            ["measurement_instrument_profiles"] = instrumentRows.Count,
+            ["environmental_protection_profiles"] = protectionRows.Count,
+            ["environment_observations"] = observationRows.Count
+        };
+        plan["supportedRandomAlgorithm"] = WeatherDeterministicRandom.AlgorithmId;
+        plan["supportedRandomAlgorithmVersion"] = WeatherDeterministicRandom.AlgorithmVersion;
+        plan["windUnitSchemaVersion"] = 2;
+        plan["legacyWindKmhConversionPlanned"] = selectedWeather.Any(x => (int.TryParse(DocumentString(x, "WindUnitSchemaVersion"), out var version) ? version : 1) < 2);
+        plan["competingCollections"] = Array.Empty<string>();
+        return plan;
+    }
+
+    private Dictionary<string, object> BuildMapImportDryRunPlan0201(
+        Dictionary<string, object> plan,
+        DataPackageValidationResult validation,
+        string focusMapId)
+    {
+        var rootCollections = new[]
+        {
+            "map_states",
+            "map_coordinate_profiles",
+            "map_scale_profiles",
+            "world_map_states",
+            "scene_map_definitions",
+            "world_map_definitions"
+        };
+        var dependentCollections = new[]
+        {
+            "map_identity_mappings",
+            "map_semantic_layers",
+            "map_semantic_features",
+            "map_portals",
+            "map_generator_recipes",
+            "map_generation_jobs",
+            "map_markers",
+            "map_marker_bindings",
+            "map_fog_layers",
+            "map_scene_active_links",
+            "world_map_layers",
+            "world_map_legends",
+            "world_map_profiles",
+            "world_map_regions",
+            "world_map_locations",
+            "world_map_labels",
+            "world_map_markers",
+            "session_world_map_states",
+            "scene_map_markers",
+            "session_scene_map_states",
+            "map_token_instances",
+            "map_token_move_operations",
+            "scene_map_layers",
+            "scene_map_shapes",
+            "scene_map_tile_layers",
+            "scene_map_tile_patches",
+            "scene_map_asset_instances",
+            "scene_map_generation_runs"
+        };
+
+        var roots = rootCollections.ToDictionary(
+            name => name,
+            name => ReadPackageDocuments(validation, name)
+                .Where(x => DocumentId(x) == focusMapId || DocumentString(x, "MapId") == focusMapId)
+                .ToList(),
+            StringComparer.OrdinalIgnoreCase);
+        var related = dependentCollections.ToDictionary(
+            name => name,
+            name => ReadPackageDocuments(validation, name)
+                .Where(x => MapImportDocumentReferences0201(x, focusMapId))
+                .ToList(),
+            StringComparer.OrdinalIgnoreCase);
+
+        var rootCount = roots.Sum(x => x.Value.Count);
+        var unresolved = new List<string>();
+        var duplicates = new List<string>();
+        if (rootCount == 0)
+            unresolved.Add("canonical map root not found in export package");
+
+        foreach (var pair in roots.Concat(related))
+        {
+            duplicates.AddRange(pair.Value
+                .GroupBy(DocumentId, StringComparer.OrdinalIgnoreCase)
+                .Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Count() > 1)
+                .Select(x => pair.Key + ":" + x.Key));
+        }
+
+        if (duplicates.Count > 0 || unresolved.Count > 0)
+            throw new ArgumentException("Campaign map import dry-run failed: " + string.Join("; ", duplicates.Concat(unresolved)));
+
+        var plannedCounts = roots.Concat(related)
+            .Where(x => x.Value.Count > 0)
+            .ToDictionary(x => x.Key, x => (object)x.Value.Count, StringComparer.OrdinalIgnoreCase);
+        plan["focusMapId"] = focusMapId;
+        plan["validatedCollections"] = plannedCounts.Keys.ToArray();
+        plan["resolvedReferenceCount"] = related.Sum(x => x.Value.Count);
+        plan["unresolvedReferences"] = unresolved.ToArray();
+        plan["duplicateIdentityConflicts"] = duplicates.ToArray();
+        plan["plannedCounts"] = plannedCounts;
+        plan["canonicalRootCount"] = rootCount;
+        plan["competingCollections"] = roots.Where(x => x.Value.Count > 0).Select(x => x.Key).ToArray();
+        plan["referenceRule"] = "Every dependent row must reference focusMapId through a canonical map reference field.";
+        return plan;
+    }
+
+    private static bool MapImportDocumentReferences0201(BsonDocument document, string mapId)
+    {
+        var fields = new[]
+        {
+            "MapId", "CanonicalMapId", "LegacyMapId", "WorldMapId", "SceneMapId", "ParentSceneMapId", "ActiveSceneMapId", "ActiveWorldMapId"
+        };
+        return fields.Any(field => string.Equals(DocumentString(document, field), mapId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private Dictionary<string, object> BuildAssetMaintenanceImportDryRunPlan0198(
+        Dictionary<string, object> plan,
+        DataPackageValidationResult validation,
+        string focusProjectId,
+        BsonDocument project)
+    {
+        var operations = ReadPackageDocuments(validation, "asset_operation_states");
+        var reservations = ReadPackageDocuments(validation, "asset_maintenance_reservations").Where(x => DocumentString(x, "ProjectId") == focusProjectId).ToList();
+        var consumptions = ReadPackageDocuments(validation, "asset_maintenance_stage_consumptions").Where(x => DocumentString(x, "ProjectId") == focusProjectId).ToList();
+        var records = ReadPackageDocuments(validation, "maintenance_service_records").Where(x => DocumentString(x, "ProjectId") == focusProjectId).ToList();
+        var assets = ReadPackageDocuments(validation, "asset_states");
+        var profiles = ReadPackageDocuments(validation, "large_asset_maintenance_profiles");
+        var ownerships = ReadPackageDocuments(validation, "character_ownerships");
+        var locations = ReadPackageDocuments(validation, "map_space_nodes");
+        var licenses = ReadPackageDocuments(validation, "legal_entity_licenses");
+        var inventoryProfiles = ReadPackageDocuments(validation, "character_inventory_profiles");
+
+        var snapshot = project.GetValue("DefinitionSnapshot", new BsonDocument()).AsBsonDocument
+            .GetValue("AssetMaintenance", new BsonDocument()).AsBsonDocument;
+        var assetId = DocumentString(snapshot, "AssetId");
+        var assetRows = assets.Where(x => DocumentId(x) == assetId).ToList();
+        var operationRows = operations.Where(x => DocumentString(x, "AssetId") == assetId).ToList();
+        var profileRows = profiles.Where(x => DocumentString(x, "AssetInstanceId") == assetId).ToList();
+        var serviceRows = records.Where(x => DocumentString(x, "AssetId") == assetId).ToList();
+
+        var expectedCounts = new Dictionary<string, object>
+        {
+            ["project_base_states"] = 1,
+            ["asset_states"] = 1,
+            ["large_asset_maintenance_profiles"] = 1,
+            ["asset_operation_states"] = 1,
+            ["asset_maintenance_reservations"] = 3,
+            ["asset_maintenance_stage_consumptions"] = 3,
+            ["maintenance_service_records"] = 1
+        };
+        var focusedRows = new Dictionary<string, List<BsonDocument>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["project_base_states"] = new List<BsonDocument> { project },
+            ["asset_states"] = assetRows,
+            ["large_asset_maintenance_profiles"] = profileRows,
+            ["asset_operation_states"] = operationRows,
+            ["asset_maintenance_reservations"] = reservations,
+            ["asset_maintenance_stage_consumptions"] = consumptions,
+            ["maintenance_service_records"] = serviceRows
+        };
+        var plannedCounts = focusedRows.ToDictionary(x => x.Key, x => (object)x.Value.Count, StringComparer.OrdinalIgnoreCase);
+        var unresolved = new List<string>();
+        var duplicates = new List<string>();
+        var resolved = 0;
+        foreach (var pair in focusedRows)
+        {
+            if (pair.Value.Count != Convert.ToInt32(expectedCounts[pair.Key])) unresolved.Add($"{pair.Key}: expected {expectedCounts[pair.Key]}, found {pair.Value.Count}");
+            duplicates.AddRange(pair.Value.GroupBy(DocumentId, StringComparer.OrdinalIgnoreCase).Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Count() > 1).Select(x => pair.Key + ":" + x.Key));
+        }
+        var asset = assetRows.SingleOrDefault();
+        var profile = profileRows.SingleOrDefault();
+        var operation = operationRows.SingleOrDefault();
+        var record = serviceRows.SingleOrDefault();
+        ResolveReference(string.Equals(DocumentString(project, "Status"), ProjectStatusIds.Completed, StringComparison.OrdinalIgnoreCase), "maintenance project completed", unresolved, ref resolved);
+        ResolveReference(asset != null && !string.Equals(DocumentString(asset, "AssetType"), "inventory_item", StringComparison.OrdinalIgnoreCase), "asset is not inventory item", unresolved, ref resolved);
+        ResolveReference(asset != null && !PackageDocumentsContainId(inventoryProfiles, assetId), "asset absent from inventory", unresolved, ref resolved);
+        ResolveReference(profile != null && DocumentString(profile, "AssetInstanceId") == assetId, "profile -> asset", unresolved, ref resolved);
+        ResolveReference(operation != null && DocumentString(operation, "AssetId") == assetId, "operation -> asset", unresolved, ref resolved);
+        ResolveReference(record != null && DocumentString(record, "AssetId") == assetId && DocumentString(record, "ProjectId") == focusProjectId, "service record references", unresolved, ref resolved);
+        ResolveReference(reservations.All(x => DocumentString(x, "AssetId") == assetId), "reservations -> asset", unresolved, ref resolved);
+        ResolveReference(consumptions.All(x => DocumentString(x, "AssetId") == assetId), "consumptions -> asset", unresolved, ref resolved);
+        var ownerId = DocumentString(snapshot, "OwnerId");
+        ResolveReference(ownerships.Any(x => DocumentString(x, "CharacterId") == ownerId), "owner reference", unresolved, ref resolved);
+        ResolveReference(locations.Any(x => DocumentId(x) == DocumentString(snapshot, "LocationId")), "location reference", unresolved, ref resolved);
+        var specialistId = DocumentString(snapshot, "SpecialistReferenceId");
+        ResolveReference(ownerships.Any(x => DocumentString(x, "CharacterId") == specialistId), "specialist NPC reference", unresolved, ref resolved);
+        var licenseIds = snapshot.GetValue("LicenseDocumentReferences", new BsonArray()).AsBsonArray.Select(x => x.ToString()).Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
+        ResolveReference(licenseIds.Length > 0 && licenseIds.All(id => licenses.Any(x => DocumentId(x) == id)), "issued-license references", unresolved, ref resolved);
+        if (duplicates.Count > 0 || unresolved.Count > 0)
+            throw new ArgumentException("Campaign maintenance import dry-run failed: " + string.Join("; ", duplicates.Concat(unresolved)));
+
+        plan["focusProjectId"] = focusProjectId;
+        plan["validatedCollections"] = focusedRows.Keys.ToArray();
+        plan["resolvedReferenceCount"] = resolved;
+        plan["unresolvedReferences"] = unresolved.ToArray();
+        plan["duplicateIdentityConflicts"] = duplicates.ToArray();
+        plan["expectedCounts"] = expectedCounts;
+        plan["plannedCounts"] = plannedCounts;
+        plan["assetIdUnchanged"] = true;
+        plan["assetClassifiedAsInventoryItem"] = false;
+        plan["competingCollections"] = Array.Empty<string>();
+        return plan;
+    }
+
+    private List<BsonDocument> ReadPackageDocuments(DataPackageValidationResult validation, string collectionName)
+    {
+        var manifestEntry = ManifestCollections(validation.Manifest).FirstOrDefault(x =>
+            string.Equals(x.GetValue("collectionName", "").ToString(), collectionName, StringComparison.OrdinalIgnoreCase));
+        if (manifestEntry == null)
+            throw new ArgumentException("Campaign package is missing required collection: " + collectionName);
+
+        var fileName = manifestEntry.GetValue("fileName", "").ToString();
+        var filePath = Path.GetFullPath(Path.Combine(validation.PackagePath, fileName));
+        return File.ReadLines(filePath, Encoding.UTF8)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(BsonDocument.Parse)
+            .ToList();
+    }
+
+    private static string DocumentId(BsonDocument document)
+        => document.GetValue("_id", document.GetValue("Id", document.GetValue("id", ""))).ToString();
+
+    private static string DocumentString(BsonDocument document, string field)
+        => document.GetValue(field, "").ToString();
+
+    private static string[] DocumentStringArray(BsonDocument document, string field)
+        => document.TryGetValue(field, out var value) && value.IsBsonArray
+            ? value.AsBsonArray.Select(x => x.ToString()).Where(x => !string.IsNullOrWhiteSpace(x)).ToArray()
+            : Array.Empty<string>();
+
+    private static bool PackageDocumentsContainId(IEnumerable<BsonDocument> documents, string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return false;
+        return documents.Any(x => x.ToJson().IndexOf(id, StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    private static void ResolveReference(
+        bool resolved,
+        string label,
+        ICollection<string> unresolved,
+        ref int resolvedReferenceCount)
+    {
+        if (resolved)
+        {
+            resolvedReferenceCount++;
+            return;
+        }
+        unresolved.Add(label);
     }
 
     private string[] ApplyImportPackage(DataPackageValidationResult validation, ISet<string> allowedCollections)

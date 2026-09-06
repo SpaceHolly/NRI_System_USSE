@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Nri.Shared.Utilities;
 
@@ -92,12 +93,12 @@ public static class PayloadReader
                 }
 
                 var valueType = item.GetType();
-                var keyProperty = valueType.GetProperty("Key");
-                var valueProperty = valueType.GetProperty("Value");
+                var keyProperty = valueType.GetProperties().FirstOrDefault(x => string.Equals(x.Name, "Key", StringComparison.OrdinalIgnoreCase));
+                var valueProperty = valueType.GetProperties().FirstOrDefault(x => string.Equals(x.Name, "Value", StringComparison.OrdinalIgnoreCase));
                 if (keyProperty == null || valueProperty == null)
                 {
-                    keyProperty = valueType.GetProperty("Name");
-                    valueProperty = valueType.GetProperty("Value");
+                    keyProperty = valueType.GetProperties().FirstOrDefault(x => string.Equals(x.Name, "Name", StringComparison.OrdinalIgnoreCase));
+                    valueProperty = valueType.GetProperties().FirstOrDefault(x => string.Equals(x.Name, "Value", StringComparison.OrdinalIgnoreCase));
                 }
                 if (keyProperty == null || valueProperty == null) continue;
                 var reflectedKey = Convert.ToString(keyProperty.GetValue(item));

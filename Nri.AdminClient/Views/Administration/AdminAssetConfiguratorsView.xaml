@@ -1,0 +1,146 @@
+<UserControl x:Class="Nri.AdminClient.Views.Administration.AdminAssetConfiguratorsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:nri="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             xmlns:asset="clr-namespace:Nri.AssetConfigurators.Wpf.Views;assembly=Nri.AssetConfigurators.Wpf"
+             Background="{StaticResource NriApplicationBackgroundBrush}"
+             Foreground="{StaticResource TextBrush}"
+             AutomationProperties.AutomationId="AdminAssetConfigurators_Route">
+    <patterns:NriOperationalWorkspaceHost Margin="10">
+        <patterns:NriOperationalWorkspaceHost.Header>
+            <nri:NriPageHeader Breadcrumbs="Администрирование"
+                               Title="Конструкторы активов"
+                               Subtitle="Проверяйте расчёты и просматривайте сохранённые игроками чертежи."
+                               StatusText="{Binding StatusMessage}"/>
+        </patterns:NriOperationalWorkspaceHost.Header>
+
+        <TabControl AutomationProperties.AutomationId="AdminAssetConfigurators_ModeTabs">
+            <TabItem Header="Конструкторы"
+                     AutomationProperties.AutomationId="AdminAssetConfiguratorWorkspace_Tab">
+                <asset:AssetConfiguratorWorkspaceView DataContext="{Binding Workspace}"/>
+            </TabItem>
+            <TabItem Header="Чертежи игроков"
+                     AutomationProperties.AutomationId="AdminAssetBlueprints_Tab">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="360"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Style="{StaticResource CardStyle}">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top">
+                                <TextBlock Text="Чертежи игроков" FontSize="18" FontWeight="SemiBold"/>
+                                <WrapPanel Margin="0,8,0,6">
+                                    <Button Content="Обновить"
+                                            Command="{Binding RefreshBlueprintsCommand}"
+                                            AutomationProperties.AutomationId="AdminAssetBlueprints_Refresh"/>
+                                    <CheckBox Content="Показывать архив"
+                                              IsChecked="{Binding IncludeArchived}"
+                                              Margin="10,5,0,0"/>
+                                </WrapPanel>
+                                <TextBox Text="{Binding OwnerFilter, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Быстрый поиск по логину владельца."
+                                         AutomationProperties.Name="Фильтр по владельцу"
+                                         AutomationProperties.AutomationId="AdminAssetBlueprints_OwnerFilter"/>
+                                <ComboBox ItemsSource="{Binding KindOptions}"
+                                          SelectedItem="{Binding SelectedKindOption, Mode=TwoWay}"
+                                          DisplayMemberPath="Label"
+                                          Margin="0,6,0,10"
+                                          AutomationProperties.Name="Фильтр по типу конструкции"
+                                          AutomationProperties.AutomationId="AdminAssetBlueprints_KindFilter"/>
+                            </StackPanel>
+                            <ListBox ItemsSource="{Binding BlueprintsView}"
+                                     SelectedItem="{Binding SelectedBlueprint, Mode=TwoWay}"
+                                     HorizontalContentAlignment="Stretch"
+                                     AutomationProperties.AutomationId="AdminAssetBlueprints_List">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="AutomationProperties.Name"
+                                                Value="{Binding AccessibleSummary}"/>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="5"
+                                                    AutomationProperties.Name="{Binding AccessibleSummary}">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding OwnerText}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding ConfiguratorKindLabel}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding StatusLabel}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="{Binding SelectedBlueprint.Name}"
+                                           FontSize="22"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.OwnerText, StringFormat=Владелец: {0}}"
+                                           AutomationProperties.AutomationId="AdminAssetBlueprints_Owner"
+                                           Margin="0,8,0,0"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.ConfiguratorKindLabel, StringFormat=Тип: {0}}"
+                                           AutomationProperties.AutomationId="AdminAssetBlueprints_Kind"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.StatusLabel, StringFormat=Статус: {0}}"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.UpdatedText, StringFormat=Обновлён: {0}}"/>
+                                <Separator Margin="0,12"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.ReadableSummary}"
+                                           TextWrapping="Wrap"
+                                           AutomationProperties.AutomationId="AdminAssetBlueprints_Summary"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.CostText}" Margin="0,10,0,0"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.EnergyText}"/>
+                                <TextBlock Text="{Binding SelectedBlueprint.ValidationText}"/>
+                                <ItemsControl ItemsSource="{Binding SelectedBlueprint.Breakdown}"
+                                              Margin="0,10,0,0"
+                                              AutomationProperties.AutomationId="AdminAssetBlueprints_Breakdown">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Expander Header="Заметка GM"
+                                          IsExpanded="False"
+                                          Margin="0,12,0,0">
+                                    <TextBlock Text="{Binding SelectedBlueprint.AdminGmNotes}"
+                                               TextWrapping="Wrap"/>
+                                </Expander>
+                                <Button Content="Открыть в конструкторе"
+                                        Command="{Binding OpenBlueprintCommand}"
+                                        Margin="0,14,0,0"
+                                        HorizontalAlignment="Left"
+                                        AutomationProperties.AutomationId="AdminAssetBlueprints_Open"/>
+                                <Button Content="Подготовить канонический черновик"
+                                        Command="{Binding PrepareCanonicalBlueprintDraftCommand}"
+                                        Margin="0,8,0,0"
+                                        HorizontalAlignment="Left"
+                                        ToolTip="Создаёт только несохранённый черновик definition. Производственный проект и готовый актив не создаются."
+                                        AutomationProperties.AutomationId="AdminAssetBlueprints_PrepareCanonicalDraft"/>
+                                <TextBlock Text="{Binding CanonicalDraftStatus}"
+                                           Margin="0,8,0,0"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           AutomationProperties.AutomationId="AdminAssetBlueprints_CanonicalDraftStatus"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <patterns:NriOperationalWorkspaceHost.Status>
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="{StaticResource DangerBrush}"
+                       TextWrapping="Wrap"
+                       AutomationProperties.AutomationId="AdminAssetBlueprints_Error"/>
+        </patterns:NriOperationalWorkspaceHost.Status>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

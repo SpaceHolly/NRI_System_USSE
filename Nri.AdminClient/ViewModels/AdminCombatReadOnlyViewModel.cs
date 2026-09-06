@@ -8,1297 +8,1259 @@ using System.Windows.Input;
 using Nri.AdminClient.Diagnostics;
 using Nri.AdminClient.Networking;
 using Nri.Shared.Contracts;
+using Nri.Shared.Utilities;
 
 namespace Nri.AdminClient.ViewModels;
 
 public sealed class AdminCombatReadOnlyViewModel : ViewModelBase
 {
     private readonly CommandApi _api;
-    private string _encounterId = string.Empty;
-    private string _encounterName = "Бой не выбран";
-    private string _encounterStatus = "unknown";
-    private int _roundNumber;
-    private int _activeTurnIndex;
-    private string _activeParticipantId = string.Empty;
-    private string _activeParticipantName = "нет активного участника";
-    private string _currentTurnSummary = "Ход не загружен";
-    private string _currentRoundSummary = "Раунд не загружен";
-    private string _diagnosticsSummary = "Диагностика не загружена";
-    private string _replayStatus = "Replay не загружен";
-    private string _errorMessage = string.Empty;
-    private string _warningMessage = string.Empty;
-    private bool _isLoading;
-    private bool _isWriteBusy;
-    private bool _areCombatReadFlagsEnabled;
-    private bool _canUseCombatWriteEndpoints;
-    private bool _canUseTurnEngine;
-    private bool _canUseAttackRoll;
-    private bool _canUseDefensePreview;
-    private bool _canUseDamage;
-    private bool _canUseConditions;
-    private bool _canUseWeaponAttack;
-    private bool _canUseFateHook;
-    private DateTime _lastRefreshAtUtc;
-    private CombatParticipantUiItem? _selectedParticipant;
-    private CombatParticipantUiItem? _selectedTargetParticipant;
-    private string _writeStatusMessage = string.Empty;
-    private string _campaignId = string.Empty;
-    private string _sessionId = string.Empty;
-    private string _ruleSetId = string.Empty;
-    private string _newEncounterName = "New combat encounter";
-    private string _newParticipantDisplayName = string.Empty;
-    private string _newParticipantCharacterId = string.Empty;
-    private string _newParticipantTeamId = "team-a";
+    private string _campaignId = "dev-campaign-core";
+    private string _sessionId = "dev-session-core";
+    private string _newCombatName = "Тестовый бой";
+    private string _newParticipantName = "Участник";
     private string _newParticipantType = "npc";
-    private int _newParticipantInitiative;
-    private int _vitalsMaxHealth = 20;
-    private int _vitalsCurrentHealth = 20;
-    private int _vitalsTemporaryHealth;
-    private int _vitalsMaxMorale;
-    private int _vitalsCurrentMorale;
-    private int _attackBonus;
-    private int _coverModifier;
-    private int _situationalModifier;
-    private bool _spendActionPoint;
-    private string _selectedWeaponDefinitionId = string.Empty;
-    private string _selectedAmmoDefinitionId = string.Empty;
-    private int _damageAmount = 1;
-    private int _damageOverride;
-    private string _damageType = "physical";
-    private bool _autoApplyDamage;
-    private string _selectedConditionDefinitionId = string.Empty;
-    private string _selectedConditionInstanceId = string.Empty;
-    private int _conditionStackCount = 1;
-    private string _conditionDurationMode = "until_removed";
-    private int _conditionDurationRounds;
-    private string _fateRollContext = "attack_roll";
-    private int _fateBaseRoll = 10;
-    private string _fateDiceExpression = "1d20";
-    private string _lastRulesResultSummary = string.Empty;
+    private string _newParticipantTeam = "neutral";
+    private string _newParticipantVisibility = "player_visible";
+    private string _selectedVisibility = "player_visible";
+    private string _selectedMapTokenId = string.Empty;
+    private string _selectedMapTokenName = string.Empty;
+    private string _selectedMapTokenVisibility = "hidden";
+    private string _combatMapStatusText = "Боевой слой карты не загружен.";
+    private string _activeSceneMapText = "Активная карта сцены не выбрана.";
+    private double _combatMapCanvasWidth = 520d;
+    private double _combatMapCanvasHeight = 300d;
+    private string _combatMapScaleText = "Карта не загружена.";
+    private double _combatMapWidthMeters = 1d;
+    private double _combatMapHeightMeters = 1d;
+    private double _combatMapGridMeters = 5d;
+    private AdminCombatTrackerCombatItem? _selectedCombat;
+    private AdminCombatTrackerParticipantItem? _selectedParticipant;
+    private AdminCombatTrackerParticipantItem? _selectedAttackTarget;
+    private AdminCombatTrackerParticipantItem? _selectedArmorUntrained;
+    private AdminCombatTrackerParticipantItem? _selectedArmorTrained;
+    private AdminCombatSkillOptionVm? _selectedAttackSkill;
+    private AdminCombatWeaponOptionVm? _selectedAttackWeapon;
+    private AdminCombatFacingOptionVm? _selectedAttackFacing;
+    private string _attackResolutionText = "Выберите действующего участника, цель и навык.";
+    private string _armorComparisonText = "Выберите двух участников в латах.";
+    private AdminCombatMapTokenItem? _selectedCombatMapToken;
+    private AdminCombatMapTokenItem? _selectedCombatOverlayToken;
+    private bool _isBusy;
+    private string _statusMessage = "Трекер боя готов.";
+    private string _errorMessage = string.Empty;
+    private DateTime _lastRefreshAtUtc;
 
     public AdminCombatReadOnlyViewModel(CommandApi api)
     {
         _api = api;
-        RefreshSnapshotCommand = new RelayCommand(RefreshSnapshot);
-        RefreshLogsCommand = new RelayCommand(RefreshLogs);
-        RefreshDiagnosticsCommand = new RelayCommand(RefreshDiagnostics);
-        RefreshReplayCommand = new RelayCommand(RefreshReplay);
-        RefreshFlagsCommand = new RelayCommand(RefreshFeatureFlags);
-        ClearErrorCommand = new RelayCommand(() => { ErrorMessage = string.Empty; WarningMessage = string.Empty; });
-        SelectParticipantCommand = new RelayCommand<CombatParticipantUiItem>(item => SelectedParticipant = item);
-        CreateEncounterCommand = new RelayCommand(CreateEncounter);
-        EndEncounterCommand = new RelayCommand(EndEncounter);
-        CancelEncounterCommand = new RelayCommand(CancelEncounter);
-        AddParticipantCommand = new RelayCommand(AddParticipant);
-        RemoveParticipantCommand = new RelayCommand(RemoveParticipant);
-        SetVitalsCommand = new RelayCommand(SetVitals);
-        SortInitiativeCommand = new RelayCommand(SortInitiative);
-        StartRoundCommand = new RelayCommand(StartRound);
-        StartTurnCommand = new RelayCommand(StartTurn);
-        EndTurnCommand = new RelayCommand(EndTurn);
-        NextTurnCommand = new RelayCommand(NextTurn);
-        NextRoundCommand = new RelayCommand(NextRound);
-        SkipTurnCommand = new RelayCommand(SkipTurn);
-        DelayTurnCommand = new RelayCommand(DelayTurn);
-        AttackRollCommand = new RelayCommand(AttackRoll);
-        DefensePreviewCommand = new RelayCommand(DefensePreview);
-        ApplyDamageCommand = new RelayCommand(ApplyDamage);
-        ApplyConditionCommand = new RelayCommand(ApplyCondition);
-        RemoveConditionCommand = new RelayCommand(RemoveCondition);
-        WeaponAttackResolveCommand = new RelayCommand(WeaponAttackResolve);
-        FatePreviewCommand = new RelayCommand(FatePreview);
+        RefreshCombatMapCommand = new RelayCommand(() => Run("Обновить combat map overlay", RefreshCombatMap));
+        AddSelectedTokenToCombatCommand = new RelayCommand(() => Run("Добавить токен в бой", AddSelectedTokenToCombat));
+        LinkSelectedOverlayTokenCommand = new RelayCommand(() => Run("Привязать выбранный токен", LinkSelectedOverlayToken));
+        UnlinkSelectedOverlayTokenCommand = new RelayCommand(() => Run("Отвязать выбранный токен", UnlinkSelectedOverlayToken));
+        SyncVisibilityFromTokenCommand = new RelayCommand(() => Run("Синхронизировать видимость токена", SyncVisibilityFromToken));
+        FocusSelectedTokenCommand = new RelayCommand(() => Run("Фокус токена", FocusSelectedToken));
+        RefreshCommand = new RelayCommand(() => Run("Обновить", Refresh));
+        CreateCombatCommand = new RelayCommand(() => Run("Создать бой", CreateCombat));
+        AddParticipantCommand = new RelayCommand(() => Run("Добавить участника", AddParticipant));
+        UpdateParticipantCommand = new RelayCommand(() => Run("Сохранить участника", UpdateParticipant));
+        RemoveParticipantCommand = new RelayCommand(() => Run("Удалить участника", RemoveParticipant));
+        SetParticipantVisibilityCommand = new RelayCommand(() => Run("Обновить видимость", SetParticipantVisibility));
+        LinkMapTokenCommand = new RelayCommand(() => Run("Привязать токен", LinkMapToken));
+        UnlinkMapTokenCommand = new RelayCommand(() => Run("Отвязать токен", UnlinkMapToken));
+        RollInitiativeCommand = new RelayCommand(() => Run("Бросить инициативу", RollInitiative));
+        StartCombatCommand = new RelayCommand(() => Run("Начать бой", StartCombat));
+        PauseCombatCommand = new RelayCommand(() => Run("Пауза", PauseCombat));
+        ResumeCombatCommand = new RelayCommand(() => Run("Продолжить", ResumeCombat));
+        NextTurnCommand = new RelayCommand(() => Run("Следующий ход", NextTurn));
+        SkipTurnCommand = new RelayCommand(() => Run("Пропустить ход", SkipTurn));
+        PreviousTurnCommand = new RelayCommand(() => Run("Предыдущий ход", PreviousTurn));
+        EndCombatCommand = new RelayCommand(() => Run("Завершить бой", EndCombat));
+        AddLogEventCommand = new RelayCommand(() => Run("Добавить событие", AddLogEvent));
+        ExecuteAttackCommand = new RelayCommand(() => Run("Разрешить атаку", ExecuteAttack));
+        ComparePlateArmorCommand = new RelayCommand(() => Run("Сравнить ношение лат", ComparePlateArmor));
+        SelectedAttackFacing = AttackFacingOptions[0];
     }
 
-    public string EncounterId { get => _encounterId; set { if (_encounterId != value) { _encounterId = value; Notify(); NotifyCombatCommandState(); } } }
-    public string EncounterName { get => _encounterName; private set { if (_encounterName != value) { _encounterName = value; Notify(); } } }
-    public string EncounterStatus { get => _encounterStatus; private set { if (_encounterStatus != value) { _encounterStatus = value; Notify(); } } }
-    public int RoundNumber { get => _roundNumber; private set { if (_roundNumber != value) { _roundNumber = value; Notify(); } } }
-    public int ActiveTurnIndex { get => _activeTurnIndex; private set { if (_activeTurnIndex != value) { _activeTurnIndex = value; Notify(); } } }
-    public string ActiveParticipantId { get => _activeParticipantId; private set { if (_activeParticipantId != value) { _activeParticipantId = value; Notify(); } } }
-    public string ActiveParticipantName { get => _activeParticipantName; private set { if (_activeParticipantName != value) { _activeParticipantName = value; Notify(); } } }
-    public string CurrentTurnSummary { get => _currentTurnSummary; private set { if (_currentTurnSummary != value) { _currentTurnSummary = value; Notify(); } } }
-    public string CurrentRoundSummary { get => _currentRoundSummary; private set { if (_currentRoundSummary != value) { _currentRoundSummary = value; Notify(); } } }
-    public string DiagnosticsSummary { get => _diagnosticsSummary; private set { if (_diagnosticsSummary != value) { _diagnosticsSummary = value; Notify(); } } }
-    public string ReplayStatus { get => _replayStatus; private set { if (_replayStatus != value) { _replayStatus = value; Notify(); } } }
-    public string ErrorMessage { get => _errorMessage; private set { if (_errorMessage != value) { _errorMessage = value; Notify(); Notify(nameof(HasError)); } } }
-    public string WarningMessage { get => _warningMessage; private set { if (_warningMessage != value) { _warningMessage = value; Notify(); Notify(nameof(HasWarning)); } } }
-    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
-    public bool HasWarning => !string.IsNullOrWhiteSpace(WarningMessage);
-    public bool IsLoading { get => _isLoading; private set { if (_isLoading != value) { _isLoading = value; Notify(); Notify(nameof(CanRefresh)); } } }
-    public bool IsWriteBusy { get => _isWriteBusy; private set { if (_isWriteBusy != value) { _isWriteBusy = value; Notify(); NotifyCombatCommandState(); } } }
-    public bool CanRefresh => !IsLoading;
-    public bool AreCombatReadFlagsEnabled { get => _areCombatReadFlagsEnabled; private set { if (_areCombatReadFlagsEnabled != value) { _areCombatReadFlagsEnabled = value; Notify(); } } }
-    public bool CanUseCombatWriteEndpoints { get => _canUseCombatWriteEndpoints; private set { if (_canUseCombatWriteEndpoints != value) { _canUseCombatWriteEndpoints = value; Notify(); NotifyCombatCommandState(); } } }
-    public bool CanUseTurnEngine { get => _canUseTurnEngine; private set { if (_canUseTurnEngine != value) { _canUseTurnEngine = value; Notify(); NotifyCombatCommandState(); } } }
-    public bool CanUseAttackRoll { get => _canUseAttackRoll; private set { if (_canUseAttackRoll != value) { _canUseAttackRoll = value; Notify(); NotifyCombatCommandState(); } } }
-    public bool CanUseDefensePreview { get => _canUseDefensePreview; private set { if (_canUseDefensePreview != value) { _canUseDefensePreview = value; Notify(); NotifyCombatCommandState(); } } }
-    public bool CanUseDamage { get => _canUseDamage; private set { if (_canUseDamage != value) { _canUseDamage = value; Notify(); NotifyCombatCommandState(); } } }
-    public bool CanUseConditions { get => _canUseConditions; private set { if (_canUseConditions != value) { _canUseConditions = value; Notify(); NotifyCombatCommandState(); } } }
-    public bool CanUseWeaponAttack { get => _canUseWeaponAttack; private set { if (_canUseWeaponAttack != value) { _canUseWeaponAttack = value; Notify(); NotifyCombatCommandState(); } } }
-    public bool CanUseFateHook { get => _canUseFateHook; private set { if (_canUseFateHook != value) { _canUseFateHook = value; Notify(); NotifyCombatCommandState(); } } }
-    public bool CanCreateEncounter => CanUseCombatWriteEndpoints && !IsWriteBusy;
-    public bool CanRunEncounterCommand => CanUseCombatWriteEndpoints && !IsWriteBusy && !string.IsNullOrWhiteSpace(EncounterId);
-    public bool CanRunSelectedParticipantCommand => CanRunEncounterCommand && SelectedParticipant != null;
-    public bool CanRunTurnCommand => CanUseTurnEngine && !IsWriteBusy && !string.IsNullOrWhiteSpace(EncounterId);
-    public bool CanRunSelectedTurnCommand => CanRunTurnCommand && SelectedParticipant != null;
-    public bool CanRunTargetCommand => !IsWriteBusy && !string.IsNullOrWhiteSpace(EncounterId) && SelectedTargetParticipant != null;
-    public bool CanRunAttackCommand => CanUseAttackRoll && CanRunTargetCommand;
-    public bool CanRunDefensePreviewCommand => CanUseDefensePreview && CanRunTargetCommand;
-    public bool CanRunDamageCommand => CanUseDamage && CanRunTargetCommand;
-    public bool CanRunVitalsCommand => CanUseDamage && CanRunSelectedParticipantCommand;
-    public bool CanRunConditionCommand => CanUseConditions && CanRunTargetCommand;
-    public bool CanRunWeaponAttackCommand => CanUseWeaponAttack && CanRunTargetCommand;
-    public bool CanRunFatePreviewCommand => CanUseFateHook && !IsWriteBusy;
-    public DateTime LastRefreshAtUtc { get => _lastRefreshAtUtc; private set { if (_lastRefreshAtUtc != value) { _lastRefreshAtUtc = value; Notify(); Notify(nameof(LastRefreshText)); } } }
-    public string LastRefreshText => LastRefreshAtUtc == default ? "ещё не обновлялось" : LastRefreshAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
-    public int ParticipantsCount => Participants.Count;
-    public int LogsCount => RecentLogs.Count;
-    public int ReplayCount => RecentReplayEvents.Count;
+    public ObservableCollection<AdminCombatTrackerCombatItem> Combats { get; } = new();
+    public ObservableCollection<AdminCombatTrackerParticipantItem> Participants { get; } = new();
+    public ObservableCollection<AdminCombatTrackerParticipantItem> InitiativeOrder { get; } = new();
+    public ObservableCollection<AdminCombatTrackerLogItem> CombatLog { get; } = new();
+    public ObservableCollection<AdminCombatMapTokenItem> CombatMapJoinableTokens { get; } = new();
+    public ObservableCollection<AdminCombatMapTokenItem> CombatMapOverlayTokens { get; } = new();
+    public ObservableCollection<AdminCombatSkillOptionVm> AttackSkillOptions { get; } = new();
+    public ObservableCollection<AdminCombatWeaponOptionVm> AttackWeaponOptions { get; } = new();
+    public ObservableCollection<AdminCombatFacingOptionVm> AttackFacingOptions { get; } = new(new[]
+    {
+        new AdminCombatFacingOptionVm("torso", "Корпус / торс"),
+        new AdminCombatFacingOptionVm("front", "Лобовая броня"),
+        new AdminCombatFacingOptionVm("side", "Бортовая броня"),
+        new AdminCombatFacingOptionVm("rear", "Кормовая броня")
+    });
+    public ObservableCollection<MapGridLineUiItem> CombatMapGridLines { get; } = new();
+    public ObservableCollection<SceneMapTilePatchUiItem> CombatMapTilePatches { get; } = new();
+    public ObservableCollection<SceneMapAssetInstanceUiItem> CombatMapAssetInstances { get; } = new();
+    public ObservableCollection<string> CombatMapWarnings { get; } = new();
+    public string[] ParticipantTypes { get; } = { "player_character", "npc", "companion", "enemy", "neutral", "creature", "vehicle", "custom" };
+    public string[] VisibilityModes { get; } = { "player_visible", "gm_only", "hidden" };
 
-    public CombatParticipantUiItem? SelectedParticipant
+    public string CampaignId { get => _campaignId; set { _campaignId = value ?? string.Empty; Notify(); } }
+    public string SessionId { get => _sessionId; set { _sessionId = value ?? string.Empty; Notify(); } }
+    public string NewCombatName { get => _newCombatName; set { _newCombatName = value ?? string.Empty; Notify(); } }
+    public string NewParticipantName { get => _newParticipantName; set { _newParticipantName = value ?? string.Empty; Notify(); } }
+    public string NewParticipantType { get => _newParticipantType; set { _newParticipantType = value ?? string.Empty; Notify(); } }
+    public string NewParticipantTeam { get => _newParticipantTeam; set { _newParticipantTeam = value ?? string.Empty; Notify(); } }
+    public string NewParticipantVisibility { get => _newParticipantVisibility; set { _newParticipantVisibility = value ?? string.Empty; Notify(); } }
+    public string SelectedVisibility { get => _selectedVisibility; set { _selectedVisibility = value ?? string.Empty; Notify(); } }
+    public string SelectedMapTokenId { get => _selectedMapTokenId; set { _selectedMapTokenId = value ?? string.Empty; Notify(); } }
+    public string SelectedMapTokenName { get => _selectedMapTokenName; set { _selectedMapTokenName = value ?? string.Empty; Notify(); } }
+    public string SelectedMapTokenVisibility { get => _selectedMapTokenVisibility; set { _selectedMapTokenVisibility = value ?? string.Empty; Notify(); } }
+    public string CombatMapStatusText { get => _combatMapStatusText; private set { _combatMapStatusText = value ?? string.Empty; Notify(); } }
+    public string ActiveSceneMapText { get => _activeSceneMapText; private set { _activeSceneMapText = value ?? string.Empty; Notify(); } }
+    public double CombatMapCanvasWidth { get => _combatMapCanvasWidth; private set { if (Math.Abs(_combatMapCanvasWidth - value) > 0.01) { _combatMapCanvasWidth = value; Notify(); } } }
+    public double CombatMapCanvasHeight { get => _combatMapCanvasHeight; private set { if (Math.Abs(_combatMapCanvasHeight - value) > 0.01) { _combatMapCanvasHeight = value; Notify(); } } }
+    public string CombatMapScaleText { get => _combatMapScaleText; private set { _combatMapScaleText = value ?? string.Empty; Notify(); } }
+    public bool IsBusy { get => _isBusy; private set { _isBusy = value; Notify(); } }
+    public string StatusMessage { get => _statusMessage; private set { _statusMessage = value ?? string.Empty; Notify(); } }
+    public string ErrorMessage { get => _errorMessage; private set { _errorMessage = value ?? string.Empty; Notify(); Notify(nameof(HasError)); } }
+    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+    public DateTime LastRefreshAtUtc { get => _lastRefreshAtUtc; private set { _lastRefreshAtUtc = value; Notify(); Notify(nameof(LastRefreshText)); } }
+    public string LastRefreshText => LastRefreshAtUtc == default ? "не обновлялось" : LastRefreshAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+
+    public AdminCombatTrackerCombatItem? SelectedCombat
+    {
+        get => _selectedCombat;
+        set
+        {
+            _selectedCombat = value;
+            Notify();
+            if (value != null) LoadCombat(value.CombatId);
+        }
+    }
+
+    public AdminCombatTrackerParticipantItem? SelectedParticipant
     {
         get => _selectedParticipant;
         set
         {
-            if (_selectedParticipant != value)
-            {
-                _selectedParticipant = value;
-                Notify();
-                Notify(nameof(SelectedParticipantSummary));
-                if (SelectedTargetParticipant == null && value != null) SelectedTargetParticipant = Participants.FirstOrDefault(item => item.Id != value.Id) ?? value;
-                VitalsMaxHealth = value?.MaxHealth > 0 ? value.MaxHealth : VitalsMaxHealth;
-                VitalsCurrentHealth = value?.CurrentHealth > 0 ? value.CurrentHealth : VitalsCurrentHealth;
-                VitalsTemporaryHealth = value?.TemporaryHealth ?? VitalsTemporaryHealth;
-                VitalsMaxMorale = value?.MaxMorale ?? VitalsMaxMorale;
-                VitalsCurrentMorale = value?.CurrentMorale ?? VitalsCurrentMorale;
-                NotifyCombatCommandState();
-            }
+            _selectedParticipant = value;
+            SelectedVisibility = value?.VisibilityMode ?? "player_visible";
+            SelectedMapTokenId = value?.MapTokenId ?? string.Empty;
+            SelectedMapTokenName = value?.MapTokenDisplayName ?? string.Empty;
+            SelectedMapTokenVisibility = value?.MapTokenVisibility ?? "hidden";
+            Notify();
+            Notify(nameof(SelectedParticipantSummary));
+            LoadAttackSkills(value?.CharacterId);
+            LoadAttackWeapons(value?.CharacterId);
+            SelectedAttackTarget = Participants.FirstOrDefault(x => !string.Equals(x.ParticipantId, value?.ParticipantId, StringComparison.OrdinalIgnoreCase));
         }
     }
 
-    public CombatParticipantUiItem? SelectedTargetParticipant
+    public AdminCombatTrackerParticipantItem? SelectedAttackTarget
     {
-        get => _selectedTargetParticipant;
+        get => _selectedAttackTarget;
+        set { _selectedAttackTarget = value; Notify(); }
+    }
+
+    public AdminCombatTrackerParticipantItem? SelectedArmorUntrained
+    {
+        get => _selectedArmorUntrained;
+        set { _selectedArmorUntrained = value; Notify(); }
+    }
+
+    public AdminCombatTrackerParticipantItem? SelectedArmorTrained
+    {
+        get => _selectedArmorTrained;
+        set { _selectedArmorTrained = value; Notify(); }
+    }
+
+    public AdminCombatSkillOptionVm? SelectedAttackSkill
+    {
+        get => _selectedAttackSkill;
+        set { _selectedAttackSkill = value; Notify(); }
+    }
+
+    public AdminCombatWeaponOptionVm? SelectedAttackWeapon
+    {
+        get => _selectedAttackWeapon;
+        set { _selectedAttackWeapon = value; Notify(); }
+    }
+
+    public AdminCombatFacingOptionVm? SelectedAttackFacing
+    {
+        get => _selectedAttackFacing;
+        set { _selectedAttackFacing = value; Notify(); }
+    }
+
+    public string AttackResolutionText
+    {
+        get => _attackResolutionText;
+        private set { _attackResolutionText = value ?? string.Empty; Notify(); }
+    }
+
+    public string ArmorComparisonText
+    {
+        get => _armorComparisonText;
+        private set { _armorComparisonText = value ?? string.Empty; Notify(); }
+    }
+
+    public AdminCombatMapTokenItem? SelectedCombatMapToken
+    {
+        get => _selectedCombatMapToken;
         set
         {
-            if (_selectedTargetParticipant != value)
+            _selectedCombatMapToken = value;
+            if (value != null)
             {
-                _selectedTargetParticipant = value;
-                Notify();
-                Notify(nameof(SelectedTargetSummary));
-                NotifyCombatCommandState();
+                SelectedMapTokenId = value.TokenId;
+                SelectedMapTokenName = value.DisplayName;
+                SelectedMapTokenVisibility = value.CombatVisibility;
             }
+            Notify();
         }
     }
 
-    public string SelectedParticipantSummary => SelectedParticipant == null
-        ? "Выберите участника боя."
-        : $"{SelectedParticipant.DisplayName} • {SelectedParticipant.HitPointsText} • {SelectedParticipant.ConditionsText}";
-
-    public string SelectedTargetSummary => SelectedTargetParticipant == null
-        ? "Target participant is not selected."
-        : $"{SelectedTargetParticipant.DisplayName} - {SelectedTargetParticipant.HitPointsText}";
-
-    public string WriteStatusMessage { get => _writeStatusMessage; private set { if (_writeStatusMessage != value) { _writeStatusMessage = value; Notify(); } } }
-    public string CampaignId { get => _campaignId; set { if (_campaignId != value) { _campaignId = value; Notify(); } } }
-    public string SessionId { get => _sessionId; set { if (_sessionId != value) { _sessionId = value; Notify(); } } }
-    public string RuleSetId { get => _ruleSetId; set { if (_ruleSetId != value) { _ruleSetId = value; Notify(); } } }
-    public string NewEncounterName { get => _newEncounterName; set { if (_newEncounterName != value) { _newEncounterName = value; Notify(); } } }
-    public string NewParticipantDisplayName { get => _newParticipantDisplayName; set { if (_newParticipantDisplayName != value) { _newParticipantDisplayName = value; Notify(); } } }
-    public string NewParticipantCharacterId { get => _newParticipantCharacterId; set { if (_newParticipantCharacterId != value) { _newParticipantCharacterId = value; Notify(); } } }
-    public string NewParticipantTeamId { get => _newParticipantTeamId; set { if (_newParticipantTeamId != value) { _newParticipantTeamId = value; Notify(); } } }
-    public string NewParticipantType { get => _newParticipantType; set { if (_newParticipantType != value) { _newParticipantType = value; Notify(); } } }
-    public int NewParticipantInitiative { get => _newParticipantInitiative; set { if (_newParticipantInitiative != value) { _newParticipantInitiative = value; Notify(); } } }
-    public int VitalsMaxHealth { get => _vitalsMaxHealth; set { if (_vitalsMaxHealth != value) { _vitalsMaxHealth = value; Notify(); } } }
-    public int VitalsCurrentHealth { get => _vitalsCurrentHealth; set { if (_vitalsCurrentHealth != value) { _vitalsCurrentHealth = value; Notify(); } } }
-    public int VitalsTemporaryHealth { get => _vitalsTemporaryHealth; set { if (_vitalsTemporaryHealth != value) { _vitalsTemporaryHealth = value; Notify(); } } }
-    public int VitalsMaxMorale { get => _vitalsMaxMorale; set { if (_vitalsMaxMorale != value) { _vitalsMaxMorale = value; Notify(); } } }
-    public int VitalsCurrentMorale { get => _vitalsCurrentMorale; set { if (_vitalsCurrentMorale != value) { _vitalsCurrentMorale = value; Notify(); } } }
-    public int AttackBonus { get => _attackBonus; set { if (_attackBonus != value) { _attackBonus = value; Notify(); } } }
-    public int CoverModifier { get => _coverModifier; set { if (_coverModifier != value) { _coverModifier = value; Notify(); } } }
-    public int SituationalModifier { get => _situationalModifier; set { if (_situationalModifier != value) { _situationalModifier = value; Notify(); } } }
-    public bool SpendActionPoint { get => _spendActionPoint; set { if (_spendActionPoint != value) { _spendActionPoint = value; Notify(); } } }
-    public string SelectedWeaponDefinitionId { get => _selectedWeaponDefinitionId; set { if (_selectedWeaponDefinitionId != value) { _selectedWeaponDefinitionId = value; Notify(); } } }
-    public string SelectedAmmoDefinitionId { get => _selectedAmmoDefinitionId; set { if (_selectedAmmoDefinitionId != value) { _selectedAmmoDefinitionId = value; Notify(); } } }
-    public int DamageAmount { get => _damageAmount; set { if (_damageAmount != value) { _damageAmount = value; Notify(); } } }
-    public int DamageOverride { get => _damageOverride; set { if (_damageOverride != value) { _damageOverride = value; Notify(); } } }
-    public string DamageType { get => _damageType; set { if (_damageType != value) { _damageType = value; Notify(); } } }
-    public bool AutoApplyDamage { get => _autoApplyDamage; set { if (_autoApplyDamage != value) { _autoApplyDamage = value; Notify(); } } }
-    public string SelectedConditionDefinitionId { get => _selectedConditionDefinitionId; set { if (_selectedConditionDefinitionId != value) { _selectedConditionDefinitionId = value; Notify(); } } }
-    public string SelectedConditionInstanceId { get => _selectedConditionInstanceId; set { if (_selectedConditionInstanceId != value) { _selectedConditionInstanceId = value; Notify(); } } }
-    public int ConditionStackCount { get => _conditionStackCount; set { if (_conditionStackCount != value) { _conditionStackCount = value; Notify(); } } }
-    public string ConditionDurationMode { get => _conditionDurationMode; set { if (_conditionDurationMode != value) { _conditionDurationMode = value; Notify(); } } }
-    public int ConditionDurationRounds { get => _conditionDurationRounds; set { if (_conditionDurationRounds != value) { _conditionDurationRounds = value; Notify(); } } }
-    public string FateRollContext { get => _fateRollContext; set { if (_fateRollContext != value) { _fateRollContext = value; Notify(); } } }
-    public int FateBaseRoll { get => _fateBaseRoll; set { if (_fateBaseRoll != value) { _fateBaseRoll = value; Notify(); } } }
-    public string FateDiceExpression { get => _fateDiceExpression; set { if (_fateDiceExpression != value) { _fateDiceExpression = value; Notify(); } } }
-    public string LastRulesResultSummary { get => _lastRulesResultSummary; private set { if (_lastRulesResultSummary != value) { _lastRulesResultSummary = value; Notify(); } } }
-
-    public ObservableCollection<CombatParticipantUiItem> Participants { get; } = new ObservableCollection<CombatParticipantUiItem>();
-    public ObservableCollection<CombatLogUiItem> RecentLogs { get; } = new ObservableCollection<CombatLogUiItem>();
-    public ObservableCollection<CombatReplayUiItem> RecentReplayEvents { get; } = new ObservableCollection<CombatReplayUiItem>();
-    public ObservableCollection<CombatDiagnosticsSectionUiItem> DiagnosticsSections { get; } = new ObservableCollection<CombatDiagnosticsSectionUiItem>();
-    public ObservableCollection<CombatInitiativeUiItem> InitiativeOrder { get; } = new ObservableCollection<CombatInitiativeUiItem>();
-
-    public ICommand RefreshSnapshotCommand { get; }
-    public ICommand RefreshLogsCommand { get; }
-    public ICommand RefreshDiagnosticsCommand { get; }
-    public ICommand RefreshReplayCommand { get; }
-    public ICommand RefreshFlagsCommand { get; }
-    public ICommand ClearErrorCommand { get; }
-    public ICommand SelectParticipantCommand { get; }
-    public ICommand CreateEncounterCommand { get; }
-    public ICommand EndEncounterCommand { get; }
-    public ICommand CancelEncounterCommand { get; }
-    public ICommand AddParticipantCommand { get; }
-    public ICommand RemoveParticipantCommand { get; }
-    public ICommand SetVitalsCommand { get; }
-    public ICommand SortInitiativeCommand { get; }
-    public ICommand StartRoundCommand { get; }
-    public ICommand StartTurnCommand { get; }
-    public ICommand EndTurnCommand { get; }
-    public ICommand NextTurnCommand { get; }
-    public ICommand NextRoundCommand { get; }
-    public ICommand SkipTurnCommand { get; }
-    public ICommand DelayTurnCommand { get; }
-    public ICommand AttackRollCommand { get; }
-    public ICommand DefensePreviewCommand { get; }
-    public ICommand ApplyDamageCommand { get; }
-    public ICommand ApplyConditionCommand { get; }
-    public ICommand RemoveConditionCommand { get; }
-    public ICommand WeaponAttackResolveCommand { get; }
-    public ICommand FatePreviewCommand { get; }
-
-    private void CreateEncounter()
+    public AdminCombatMapTokenItem? SelectedCombatOverlayToken
     {
-        if (!RequireWriteFlags(CanUseCombatWriteEndpoints, "Combat write flags are disabled.")) return;
-        if (string.IsNullOrWhiteSpace(CampaignId) || string.IsNullOrWhiteSpace(SessionId) || string.IsNullOrWhiteSpace(RuleSetId))
+        get => _selectedCombatOverlayToken;
+        set
         {
-            ErrorMessage = "CampaignId, SessionId and RuleSetId are required to create an encounter.";
+            _selectedCombatOverlayToken = value;
+            if (value != null)
+            {
+                SelectedParticipant = Participants.FirstOrDefault(x => string.Equals(x.ParticipantId, value.ParticipantId, StringComparison.OrdinalIgnoreCase));
+            }
+            Notify();
+        }
+    }
+
+    public string CurrentRoundText => SelectedCombat == null
+        ? "Раунд: -"
+        : SelectedCombat.RoundNumber == 0 && !string.IsNullOrWhiteSpace(SelectedCombat.CurrentParticipantId)
+            ? "Предраундовый ход · до раунда 1"
+            : $"Раунд {SelectedCombat.RoundNumber} / 5 секунд";
+    public string CurrentTurnText => SelectedCombat == null
+        ? "Ход не выбран"
+        : $"Текущий участник: {SelectedCombat.CurrentParticipantName}";
+    public string SelectedParticipantSummary => SelectedParticipant == null ? "Участник не выбран." : $"{SelectedParticipant.DisplayName}: инициатива {SelectedParticipant.InitiativeRoll}, {SelectedParticipant.VisibilityLabel}, {SelectedParticipant.ActionSummary}";
+
+    public ICommand RefreshCommand { get; }
+    public ICommand CreateCombatCommand { get; }
+    public ICommand AddParticipantCommand { get; }
+    public ICommand UpdateParticipantCommand { get; }
+    public ICommand RemoveParticipantCommand { get; }
+    public ICommand SetParticipantVisibilityCommand { get; }
+    public ICommand LinkMapTokenCommand { get; }
+    public ICommand UnlinkMapTokenCommand { get; }
+    public ICommand RefreshCombatMapCommand { get; }
+    public ICommand AddSelectedTokenToCombatCommand { get; }
+    public ICommand LinkSelectedOverlayTokenCommand { get; }
+    public ICommand UnlinkSelectedOverlayTokenCommand { get; }
+    public ICommand SyncVisibilityFromTokenCommand { get; }
+    public ICommand FocusSelectedTokenCommand { get; }
+    public ICommand RollInitiativeCommand { get; }
+    public ICommand StartCombatCommand { get; }
+    public ICommand PauseCombatCommand { get; }
+    public ICommand ResumeCombatCommand { get; }
+    public ICommand NextTurnCommand { get; }
+    public ICommand SkipTurnCommand { get; }
+    public ICommand PreviousTurnCommand { get; }
+    public ICommand EndCombatCommand { get; }
+    public ICommand AddLogEventCommand { get; }
+    public ICommand ExecuteAttackCommand { get; }
+    public ICommand ComparePlateArmorCommand { get; }
+
+    private void ComparePlateArmor()
+    {
+        if (SelectedCombat == null || SelectedArmorUntrained == null || SelectedArmorTrained == null)
+        {
+            ArmorComparisonText = "Выберите участника без подготовки и участника с подготовкой.";
             return;
         }
 
-        RunWrite(CommandNames.CombatV1EncounterCreate, () =>
+        var first = LoadArmorComparison(SelectedArmorUntrained);
+        var second = LoadArmorComparison(SelectedArmorTrained);
+        if (first == null || second == null) return;
+        ArmorComparisonText =
+            $"{SelectedArmorUntrained.DisplayName}\nЗащита лат: {first.Value.Protection}; навык: ранг {first.Value.Rank}; штраф манёвра: -{first.Value.Penalty}\n\n" +
+            $"{SelectedArmorTrained.DisplayName}\nЗащита лат: {second.Value.Protection}; навык: ранг {second.Value.Rank}; штраф манёвра: -{second.Value.Penalty}\n\n" +
+            (first.Value.Protection == second.Value.Protection
+                ? "Вывод: защита одинакова; подготовка уменьшает штраф манёвра, а не усиливает броню."
+                : "Вывод: итоговая защита различается; сравните экипировку и дополнительные модификаторы.");
+        StatusMessage = "Сравнение рассчитано сервером по экипировке и Character v2 навыкам.";
+    }
+
+    private (int Protection, int Rank, int Penalty)? LoadArmorComparison(AdminCombatTrackerParticipantItem participant)
+    {
+        var response = _api.CombatV1DefensePreview(new Dictionary<string, object>
         {
-            var response = _api.CombatV1EncounterCreate(new Dictionary<string, object>
-            {
-                { "campaignId", CampaignId },
-                { "sessionId", SessionId },
-                { "ruleSetId", RuleSetId },
-                { "name", FirstNonEmpty(NewEncounterName, "Combat encounter") },
-                { "requestId", NewRequestId() }
-            });
-            if (!HandleWriteResponse(response, "create encounter")) return false;
-            var createdId = Str(response.Payload, "encounterId");
-            if (!string.IsNullOrWhiteSpace(createdId)) EncounterId = createdId;
-            WriteStatusMessage = $"Encounter created: {FirstNonEmpty(createdId, EncounterId)}";
-            return true;
+            ["encounterId"] = SelectedCombat?.CombatId ?? string.Empty,
+            ["targetParticipantId"] = participant.ParticipantId,
+            ["includeArmor"] = true,
+            ["includeShield"] = false,
+            ["includeCover"] = false,
+            ["includeDistance"] = false,
+            ["strictMode"] = true,
+            ["requestId"] = $"admin-armor-compare-{Guid.NewGuid():N}"
         });
+        if (!EnsureOk(response, $"Не удалось рассчитать защиту для {participant.DisplayName}.")) return null;
+        return (
+            Int(Get(response.Payload, "armorDefenseBonus")),
+            Int(Get(response.Payload, "armorTrainingRank")),
+            Int(Get(response.Payload, "effectiveMobilityPenalty")));
     }
 
-    private void EndEncounter()
+    private void LoadAttackSkills(string? characterId)
     {
-        if (!EnsureEncounterId() || !RequireWriteFlags(CanUseCombatWriteEndpoints, "Combat write flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1EncounterEnd, () => SendSimpleWrite(_api.CombatV1EncounterEnd(new Dictionary<string, object>
+        AttackSkillOptions.Clear();
+        SelectedAttackSkill = null;
+        if (string.IsNullOrWhiteSpace(characterId))
         {
-            { "encounterId", EncounterId },
-            { "reason", "ended from Admin Combat panel" },
-            { "requestId", NewRequestId() }
-        }), "end encounter"));
+            AttackResolutionText = "Для участника без профиля персонажа навыки недоступны.";
+            return;
+        }
+
+        var response = _api.SkillsList(characterId!);
+        if (!EnsureOk(response, "Не удалось загрузить навыки участника.")) return;
+        foreach (var map in Maps(Get(response.Payload, "items")))
+        {
+            if (!Bool(Get(map, "acquired"))) continue;
+            AttackSkillOptions.Add(new AdminCombatSkillOptionVm
+            {
+                SkillCode = Str(Get(map, "skillId")),
+                Name = Str(Get(map, "name"), "Навык"),
+                DefaultAttribute = Str(Get(map, "defaultAttribute")),
+                DefaultSubAttribute = Str(Get(map, "defaultSubAttribute")),
+                Rank = Int(Get(map, "rank")),
+                MasteryBand = Str(Get(map, "masteryBand"), "Без подготовки"),
+                ProficiencyBonus = Int(Get(map, "proficiencyBonus"))
+            });
+        }
+
+        SelectedAttackSkill = AttackSkillOptions.FirstOrDefault();
+        AttackResolutionText = AttackSkillOptions.Count == 0
+            ? "У персонажа нет освоенных боевых навыков."
+            : "Готово к серверной проверке попадания.";
     }
 
-    private void CancelEncounter()
+    private void LoadAttackWeapons(string? characterId)
     {
-        if (!EnsureEncounterId() || !RequireWriteFlags(CanUseCombatWriteEndpoints, "Combat write flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1EncounterCancel, () => SendSimpleWrite(_api.CombatV1EncounterCancel(new Dictionary<string, object>
+        AttackWeaponOptions.Clear();
+        SelectedAttackWeapon = null;
+        if (string.IsNullOrWhiteSpace(characterId)) return;
+
+        var response = _api.CharacterInventoryGet(characterId!);
+        if (!EnsureOk(response, "Не удалось загрузить экипированное оружие участника.")) return;
+        foreach (var map in Maps(Get(response.Payload, "inventory")))
         {
-            { "encounterId", EncounterId },
-            { "reason", "cancelled from Admin Combat panel" },
-            { "requestId", NewRequestId() }
-        }), "cancel encounter"));
+            var category = Str(Get(map, "definitionCategory"), Str(Get(map, "category"), Str(Get(map, "snapshotCategory"))));
+            var isEquipped = Bool(Get(map, "isEquipped")) || Bool(Get(map, "equipped"));
+            if (!isEquipped || !string.Equals(category, "weapon", StringComparison.OrdinalIgnoreCase)) continue;
+            AttackWeaponOptions.Add(new AdminCombatWeaponOptionVm
+            {
+                ItemInstanceId = Str(Get(map, "id"), Str(Get(map, "itemId"))),
+                DefinitionId = Str(Get(map, "itemDefinitionId"), Str(Get(map, "definitionId"), Str(Get(map, "itemCode")))),
+                DisplayName = Str(Get(map, "displayName"), Str(Get(map, "snapshotDisplayName"), Str(Get(map, "name"), "Оружие")))
+            });
+        }
+
+        SelectedAttackWeapon = AttackWeaponOptions.FirstOrDefault();
+        if (SelectedAttackWeapon == null)
+            AttackResolutionText = "У участника нет экипированного оружия с привязкой к справочнику.";
+    }
+
+    private void ExecuteAttack()
+    {
+        if (SelectedCombat == null || SelectedParticipant == null || SelectedAttackTarget == null || SelectedAttackSkill == null || SelectedAttackWeapon == null)
+        {
+            AttackResolutionText = "Выберите действующего участника, цель, экипированное оружие и освоенный навык.";
+            return;
+        }
+
+        var response = _api.CombatV1WeaponAttackResolve(new Dictionary<string, object>
+        {
+            ["encounterId"] = SelectedCombat.CombatId,
+            ["actorParticipantId"] = SelectedParticipant.ParticipantId,
+            ["targetParticipantId"] = SelectedAttackTarget.ParticipantId,
+            ["weaponItemInstanceId"] = SelectedAttackWeapon.ItemInstanceId,
+            ["weaponDefinitionId"] = SelectedAttackWeapon.DefinitionId,
+            ["attackSkillId"] = SelectedAttackSkill.SkillCode,
+            ["attackAttributeId"] = SelectedAttackSkill.DefaultAttribute,
+            ["spendActionPoint"] = true,
+            ["autoApplyDamage"] = true,
+            ["damageType"] = "physical",
+            ["targetProtectionZone"] = SelectedAttackFacing?.Code ?? "torso",
+            ["requestId"] = $"admin-attack-{Guid.NewGuid():N}"
+        });
+        if (!EnsureOk(response, "Сервер не смог разрешить атаку.")) return;
+
+        var attack = Map(Get(response.Payload, "attackResult")) ?? new Dictionary<string, object>();
+        var penetration = Map(Get(response.Payload, "penetrationResult")) ?? new Dictionary<string, object>();
+        var preview = Map(Get(response.Payload, "damagePreview")) ?? new Dictionary<string, object>();
+        var damage = Map(Get(response.Payload, "damageResult")) ?? new Dictionary<string, object>();
+        var weapon = Map(Get(response.Payload, "weaponSummary")) ?? new Dictionary<string, object>();
+        var modifier = Int(Get(attack, "totalModifier"));
+        var hitResult = DisplayHitResult(Str(Get(attack, "hitResult")));
+        var degree = DisplayDegree(Str(Get(attack, "degreeOfSuccess")));
+        var penetrated = Bool(Get(penetration, "isPenetrated"));
+        var weaponName = Str(Get(weapon, "displayName"), "Экипированное оружие");
+        var attackProfileName = Str(Get(weapon, "attackProfileName"), "Основная атака");
+        var protectionZone = DisplayProtectionZone(Str(Get(penetration, "protectionZone"), SelectedAttackFacing?.Code ?? "torso"));
+        var resourceType = Str(Get(damage, "resourceType")).Trim().ToLowerInvariant();
+        var resourceLabel = resourceType == "structure" ? "Прочность" : resourceType == "health" ? "Здоровье" : "Ресурс";
+        var previousResource = resourceType == "structure" ? Int(Get(damage, "previousResource")) : Int(Get(damage, "previousHealth"));
+        var currentResource = resourceType == "structure" ? Int(Get(damage, "currentResource")) : Int(Get(damage, "currentHealth"));
+        var resolutionText =
+            $"{weaponName} · {attackProfileName}\n" +
+            $"Попадание: d20 {Int(Get(attack, "naturalRoll"))} + {modifier:+0;-0;0} = {Int(Get(attack, "attackTotal"))} против защиты {Int(Get(attack, "targetDefense"))} · {hitResult} · {degree}.\n" +
+            $"Пробитие ({protectionZone}): {Int(Get(penetration, "totalPenetration"))} против защиты {Int(Get(penetration, "targetProtection"))} · {(penetrated ? "пробито" : "остановлено")}.\n" +
+            $"Урон: до защиты {Int(Get(preview, "damageBeforeMitigation"))}, предотвращено {Int(Get(preview, "mitigatedDamage"))}, применено {Int(Get(damage, "damageApplied"))}.\n" +
+            $"{resourceLabel}: {previousResource} → {currentResource}.";
+        StatusMessage = "Полная атака разрешена сервером.";
+        LoadCombat(SelectedCombat.CombatId);
+        AttackResolutionText = resolutionText;
+    }
+
+    private void Refresh()
+    {
+        var response = _api.CombatV1EncounterList(new Dictionary<string, object>
+        {
+            ["campaignId"] = CampaignId,
+            ["sessionId"] = SessionId,
+            ["includeEnded"] = false
+        });
+        if (!EnsureOk(response, "Не удалось загрузить список боев.")) return;
+
+        Combats.Clear();
+        foreach (var item in Maps(Get(response.Payload, "items")))
+            Combats.Add(AdminCombatTrackerCombatItem.From(item));
+        if (SelectedCombat == null && Combats.Count > 0)
+            SelectedCombat = Combats[0];
+        else if (SelectedCombat != null)
+            LoadCombat(SelectedCombat.CombatId);
+        LastRefreshAtUtc = DateTime.UtcNow;
+        StatusMessage = "Список боев обновлен.";
+    }
+
+    private void LoadCombat(string combatId)
+    {
+        if (string.IsNullOrWhiteSpace(combatId)) return;
+        var response = _api.CombatV1SnapshotFull(new Dictionary<string, object>
+        {
+            ["encounterId"] = combatId,
+            ["includeParticipants"] = true,
+            ["includeTurns"] = true,
+            ["includeRounds"] = true,
+            ["includeActions"] = true,
+            ["includeLogs"] = true,
+            ["limitActions"] = 100,
+            ["limitLogs"] = 100
+        });
+        if (!EnsureOk(response, "Не удалось загрузить бой.")) return;
+        ApplyCombatPayload(response.Payload);
+        RefreshCombatMap();
+        LastRefreshAtUtc = DateTime.UtcNow;
+    }
+
+    private void CreateCombat()
+    {
+        var response = _api.CombatV1EncounterCreate(new Dictionary<string, object>
+        {
+            ["campaignId"] = CampaignId,
+            ["sessionId"] = SessionId,
+            ["name"] = string.IsNullOrWhiteSpace(NewCombatName) ? "Бой" : NewCombatName,
+            ["ruleSetId"] = "fantasy_nri_default",
+            ["requestId"] = $"admin-combat-create-{Guid.NewGuid():N}"
+        });
+        if (!EnsureOk(response, "Не удалось создать бой.")) return;
+        var encounterId = Str(Get(response.Payload, "encounterId"));
+        Refresh();
+        if (!string.IsNullOrWhiteSpace(encounterId)) LoadCombat(encounterId);
+        StatusMessage = "Бой создан.";
     }
 
     private void AddParticipant()
     {
-        if (!EnsureEncounterId() || !RequireWriteFlags(CanUseCombatWriteEndpoints, "Combat write flags are disabled.")) return;
-        if (string.IsNullOrWhiteSpace(NewParticipantDisplayName))
+        if (SelectedCombat == null) return;
+        var response = _api.CombatV1ParticipantAdd(new Dictionary<string, object>
         {
-            ErrorMessage = "Participant display name is required.";
-            return;
-        }
+            ["encounterId"] = SelectedCombat.CombatId,
+            ["displayName"] = string.IsNullOrWhiteSpace(NewParticipantName) ? "Участник" : NewParticipantName,
+            ["participantType"] = NewParticipantType,
+            ["teamId"] = NewParticipantTeam,
+            ["isHidden"] = !string.Equals(NewParticipantVisibility, "player_visible", StringComparison.OrdinalIgnoreCase),
+            ["isNpc"] = !string.Equals(NewParticipantType, "player_character", StringComparison.OrdinalIgnoreCase),
+            ["initiative"] = 0,
+            ["requestId"] = $"admin-participant-add-{Guid.NewGuid():N}"
+        });
+        if (!EnsureOk(response, "Не удалось добавить участника.")) return;
+        LoadCombat(SelectedCombat.CombatId);
+        StatusMessage = "Участник добавлен.";
+    }
 
-        RunWrite(CommandNames.CombatV1ParticipantAdd, () => SendSimpleWrite(_api.CombatV1ParticipantAdd(new Dictionary<string, object>
+    private void UpdateParticipant()
+    {
+        if (SelectedParticipant == null) return;
+        var response = _api.CombatAdminUpdateParticipant(new Dictionary<string, object>
         {
-            { "encounterId", EncounterId },
-            { "characterId", NewParticipantCharacterId },
-            { "displayName", NewParticipantDisplayName },
-            { "participantType", FirstNonEmpty(NewParticipantType, "npc") },
-            { "teamId", NewParticipantTeamId },
-            { "isNpc", !string.Equals(NewParticipantType, "player_character", StringComparison.OrdinalIgnoreCase) },
-            { "isPlayerControlled", string.Equals(NewParticipantType, "player_character", StringComparison.OrdinalIgnoreCase) },
-            { "initiative", NewParticipantInitiative },
-            { "requestId", NewRequestId() }
-        }), "add participant"));
+            ["participantId"] = SelectedParticipant.ParticipantId,
+            ["displayName"] = SelectedParticipant.DisplayName,
+            ["participantType"] = SelectedParticipant.ParticipantType,
+            ["teamId"] = SelectedParticipant.TeamId,
+            ["visibilityMode"] = SelectedVisibility,
+            ["publicStateText"] = SelectedParticipant.PublicStateText,
+            ["gmStateText"] = SelectedParticipant.GmStateText,
+            ["publicNotes"] = SelectedParticipant.PublicNotes,
+            ["gmNotes"] = SelectedParticipant.GmNotes
+        });
+        if (!EnsureOk(response, "Не удалось сохранить участника.")) return;
+        ApplyCombatPayload(response.Payload);
+        StatusMessage = "Участник сохранен.";
     }
 
     private void RemoveParticipant()
     {
-        if (!EnsureSelectedParticipant() || !RequireWriteFlags(CanUseCombatWriteEndpoints, "Combat write flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1ParticipantRemove, () => SendSimpleWrite(_api.CombatV1ParticipantRemove(new Dictionary<string, object>
+        if (SelectedParticipant == null || SelectedCombat == null) return;
+        var response = _api.CombatV1ParticipantRemove(new Dictionary<string, object>
         {
-            { "encounterId", EncounterId },
-            { "participantId", SelectedParticipant!.Id },
-            { "reason", "removed from Admin Combat panel" },
-            { "requestId", NewRequestId() }
-        }), "remove participant"));
-    }
-
-    private void SetVitals()
-    {
-        if (!EnsureSelectedParticipant() || !RequireWriteFlags(CanUseDamage, "Vitals endpoint flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1ParticipantVitalsSet, () => SendSimpleWrite(_api.CombatV1ParticipantVitalsSet(new Dictionary<string, object>
-        {
-            { "encounterId", EncounterId },
-            { "participantId", SelectedParticipant!.Id },
-            { "maxHealth", VitalsMaxHealth },
-            { "currentHealth", VitalsCurrentHealth },
-            { "temporaryHealth", VitalsTemporaryHealth },
-            { "maxMorale", VitalsMaxMorale },
-            { "currentMorale", VitalsCurrentMorale },
-            { "reason", "set from Admin Combat panel" },
-            { "requestId", NewRequestId() }
-        }), "set vitals"));
-    }
-
-    private void SortInitiative()
-    {
-        if (!EnsureEncounterId() || !RequireWriteFlags(CanUseTurnEngine, "Turn engine flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1InitiativeSort, () => SendSimpleWrite(_api.CombatV1InitiativeSort(new Dictionary<string, object>
-        {
-            { "encounterId", EncounterId },
-            { "sortMode", "descending_initiative_then_tiebreaker" },
-            { "requestId", NewRequestId() }
-        }), "sort initiative"));
-    }
-
-    private void StartRound()
-    {
-        if (!EnsureEncounterId() || !RequireWriteFlags(CanUseTurnEngine, "Turn engine flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1RoundStart, () => SendSimpleWrite(_api.CombatV1RoundStart(new Dictionary<string, object>
-        {
-            { "encounterId", EncounterId },
-            { "roundNumber", RoundNumber <= 0 ? 1 : RoundNumber },
-            { "requestId", NewRequestId() }
-        }), "start round"));
-    }
-
-    private void StartTurn()
-    {
-        var participantId = SelectedParticipant?.Id ?? ActiveParticipantId;
-        if (!EnsureEncounterId() || !RequireParticipantId(participantId, "Select a participant to start turn.") || !RequireWriteFlags(CanUseTurnEngine, "Turn engine flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1TurnStart, () => SendSimpleWrite(_api.CombatV1TurnStart(new Dictionary<string, object>
-        {
-            { "encounterId", EncounterId },
-            { "participantId", participantId },
-            { "requestId", NewRequestId() }
-        }), "start turn"));
-    }
-
-    private void EndTurn()
-    {
-        var participantId = SelectedParticipant?.Id ?? ActiveParticipantId;
-        if (!EnsureEncounterId() || !RequireParticipantId(participantId, "Select a participant to end turn.") || !RequireWriteFlags(CanUseTurnEngine, "Turn engine flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1TurnEnd, () => SendSimpleWrite(_api.CombatV1TurnEnd(new Dictionary<string, object>
-        {
-            { "encounterId", EncounterId },
-            { "participantId", participantId },
-            { "reason", "ended from Admin Combat panel" },
-            { "requestId", NewRequestId() }
-        }), "end turn"));
-    }
-
-    private void NextTurn()
-    {
-        if (!EnsureEncounterId() || !RequireWriteFlags(CanUseTurnEngine, "Turn engine flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1TurnNext, () => SendSimpleWrite(_api.CombatV1TurnNext(new Dictionary<string, object>
-        {
-            { "encounterId", EncounterId },
-            { "requestId", NewRequestId() }
-        }), "next turn"));
-    }
-
-    private void NextRound()
-    {
-        if (!EnsureEncounterId() || !RequireWriteFlags(CanUseTurnEngine, "Turn engine flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1RoundNext, () => SendSimpleWrite(_api.CombatV1RoundNext(new Dictionary<string, object>
-        {
-            { "encounterId", EncounterId },
-            { "requestId", NewRequestId() }
-        }), "next round"));
-    }
-
-    private void SkipTurn()
-    {
-        var participantId = SelectedParticipant?.Id ?? ActiveParticipantId;
-        if (!EnsureEncounterId() || !RequireParticipantId(participantId, "Select a participant to skip turn.") || !RequireWriteFlags(CanUseTurnEngine, "Turn engine flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1TurnSkip, () => SendSimpleWrite(_api.CombatV1TurnSkip(new Dictionary<string, object>
-        {
-            { "encounterId", EncounterId },
-            { "participantId", participantId },
-            { "reason", "skipped from Admin Combat panel" },
-            { "requestId", NewRequestId() }
-        }), "skip turn"));
-    }
-
-    private void DelayTurn()
-    {
-        var participantId = SelectedParticipant?.Id ?? ActiveParticipantId;
-        if (!EnsureEncounterId() || !RequireParticipantId(participantId, "Select a participant to delay turn.") || !RequireWriteFlags(CanUseTurnEngine, "Turn engine flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1TurnDelay, () => SendSimpleWrite(_api.CombatV1TurnDelay(new Dictionary<string, object>
-        {
-            { "encounterId", EncounterId },
-            { "participantId", participantId },
-            { "reason", "delayed from Admin Combat panel" },
-            { "requestId", NewRequestId() }
-        }), "delay turn"));
-    }
-
-    private void AttackRoll()
-    {
-        if (!EnsureTargetParticipant() || !RequireWriteFlags(CanUseAttackRoll, "Attack flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1AttackRoll, () =>
-        {
-            var response = _api.CombatV1AttackRoll(new Dictionary<string, object>
-            {
-                { "encounterId", EncounterId },
-                { "actorParticipantId", FirstNonEmpty(ActiveParticipantId, SelectedParticipant?.Id ?? string.Empty) },
-                { "targetParticipantId", SelectedTargetParticipant!.Id },
-                { "weaponDefinitionId", SelectedWeaponDefinitionId },
-                { "attackBonus", AttackBonus },
-                { "coverModifier", CoverModifier },
-                { "situationalModifier", SituationalModifier },
-                { "spendActionPoint", SpendActionPoint },
-                { "requestId", NewRequestId() }
-            });
-            if (!HandleWriteResponse(response, "attack roll")) return false;
-            LastRulesResultSummary = BuildAttackSummary(response.Payload);
-            WriteStatusMessage = LastRulesResultSummary;
-            return true;
+            ["encounterId"] = SelectedCombat.CombatId,
+            ["participantId"] = SelectedParticipant.ParticipantId,
+            ["reason"] = "Удалён GM из состава боя.",
+            ["requestId"] = $"admin-participant-remove-{Guid.NewGuid():N}"
         });
+        if (!EnsureOk(response, "Не удалось удалить участника.")) return;
+        LoadCombat(SelectedCombat.CombatId);
+        StatusMessage = "Участник удален.";
     }
 
-    private void DefensePreview()
+    private void SetParticipantVisibility()
     {
-        if (!EnsureTargetParticipant() || !RequireWriteFlags(CanUseAttackRoll || AreCombatReadFlagsEnabled, "Defense preview flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1DefensePreview, () =>
+        if (SelectedParticipant == null) return;
+        var response = _api.CombatAdminSetParticipantVisibility(new Dictionary<string, object>
         {
-            var response = _api.CombatV1DefensePreview(new Dictionary<string, object>
-            {
-                { "encounterId", EncounterId },
-                { "targetParticipantId", SelectedTargetParticipant!.Id },
-                { "attackerParticipantId", FirstNonEmpty(ActiveParticipantId, SelectedParticipant?.Id ?? string.Empty) },
-                { "ruleSetId", RuleSetId },
-                { "weaponDefinitionId", SelectedWeaponDefinitionId },
-                { "coverModifierOverride", CoverModifier },
-                { "requestId", NewRequestId() }
-            });
-            if (!HandleWriteResponse(response, "defense preview")) return false;
-            LastRulesResultSummary = $"Defense: {Int(response.Payload, "targetDefense")} (armor {Int(response.Payload, "armorDefenseBonus")}, shield {Int(response.Payload, "shieldDefenseBonus")}, cover {Int(response.Payload, "coverDefenseBonus")})";
-            WriteStatusMessage = LastRulesResultSummary;
-            return true;
-        }, refreshAfterSuccess: false);
-    }
-
-    private void ApplyDamage()
-    {
-        if (!EnsureTargetParticipant() || !RequireWriteFlags(CanUseDamage, "Damage flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1DamageApply, () =>
-        {
-            var response = _api.CombatV1DamageApply(new Dictionary<string, object>
-            {
-                { "encounterId", EncounterId },
-                { "attackerParticipantId", FirstNonEmpty(ActiveParticipantId, SelectedParticipant?.Id ?? string.Empty) },
-                { "targetParticipantId", SelectedTargetParticipant!.Id },
-                { "damageAmount", DamageAmount },
-                { "damageType", FirstNonEmpty(DamageType, "physical") },
-                { "damageSource", "Admin Combat panel" },
-                { "allowAutoDefeat", true },
-                { "reason", "applied from Admin Combat panel" },
-                { "requestId", NewRequestId() }
-            });
-            if (!HandleWriteResponse(response, "apply damage")) return false;
-            LastRulesResultSummary = $"Damage applied: {Int(response.Payload, "damageApplied")} HP {Int(response.Payload, "previousHealth")} -> {Int(response.Payload, "currentHealth")}";
-            WriteStatusMessage = LastRulesResultSummary;
-            return true;
+            ["participantId"] = SelectedParticipant.ParticipantId,
+            ["visibilityMode"] = SelectedVisibility
         });
+        if (!EnsureOk(response, "Не удалось обновить видимость.")) return;
+        ApplyCombatPayload(response.Payload);
     }
 
-    private void ApplyCondition()
+    private void LinkMapToken()
     {
-        if (!EnsureTargetParticipant() || !RequireWriteFlags(CanUseConditions, "Condition flags are disabled.")) return;
-        if (string.IsNullOrWhiteSpace(SelectedConditionDefinitionId))
+        if (SelectedCombat == null || SelectedParticipant == null) return;
+        var response = _api.CombatMapAdminLinkParticipantToken(new Dictionary<string, object>
         {
-            ErrorMessage = "ConditionDefinitionId is required.";
+            ["combatId"] = SelectedCombat.CombatId,
+            ["campaignId"] = CampaignId,
+            ["sessionId"] = SessionId,
+            ["participantId"] = SelectedParticipant.ParticipantId,
+            ["tokenId"] = SelectedMapTokenId
+        });
+        if (!EnsureOk(response, "Не удалось привязать токен карты.")) return;
+        ApplyCombatMapPayload(response.Payload);
+        RefreshCombatMap();
+    }
+
+    private void UnlinkMapToken()
+    {
+        if (SelectedCombat == null || SelectedParticipant == null) return;
+        var response = _api.CombatMapAdminUnlinkParticipantToken(new Dictionary<string, object>
+        {
+            ["combatId"] = SelectedCombat.CombatId,
+            ["campaignId"] = CampaignId,
+            ["sessionId"] = SessionId,
+            ["participantId"] = SelectedParticipant.ParticipantId
+        });
+        if (!EnsureOk(response, "Не удалось отвязать токен карты.")) return;
+        ApplyCombatMapPayload(response.Payload);
+        RefreshCombatMap();
+    }
+
+    private void RefreshCombatMap()
+    {
+        if (SelectedCombat == null)
+        {
+            CombatMapStatusText = "Выберите бой для загрузки боевого слоя карты.";
             return;
         }
 
-        RunWrite(CommandNames.CombatV1ConditionApply, () => SendSimpleWrite(_api.CombatV1ConditionApply(new Dictionary<string, object>
+        var payload = new Dictionary<string, object>
         {
-            { "encounterId", EncounterId },
-            { "targetParticipantId", SelectedTargetParticipant!.Id },
-            { "conditionDefinitionId", SelectedConditionDefinitionId },
-            { "sourceParticipantId", FirstNonEmpty(ActiveParticipantId, SelectedParticipant?.Id ?? string.Empty) },
-            { "stackCount", ConditionStackCount <= 0 ? 1 : ConditionStackCount },
-            { "durationMode", FirstNonEmpty(ConditionDurationMode, "until_removed") },
-            { "durationRounds", ConditionDurationRounds },
-            { "requestId", NewRequestId() }
-        }), "apply condition"));
+            ["combatId"] = SelectedCombat.CombatId,
+            ["campaignId"] = CampaignId,
+            ["sessionId"] = SessionId
+        };
+        var overlay = _api.CombatMapAdminGetActiveSceneMapOverlay(payload);
+        if (!EnsureOk(overlay, "Боевой слой карты недоступен.")) return;
+        ApplyCombatMapPayload(overlay.Payload);
+
+        var joinable = _api.CombatMapAdminListJoinableTokens(payload);
+        if (EnsureOk(joinable, "Не удалось загрузить токены карты."))
+            ApplyJoinableTokens(joinable.Payload);
     }
 
-    private void RemoveCondition()
+    private void AddSelectedTokenToCombat()
     {
-        if (!EnsureTargetParticipant() || !RequireWriteFlags(CanUseConditions, "Condition flags are disabled.")) return;
-        if (string.IsNullOrWhiteSpace(SelectedConditionInstanceId) && string.IsNullOrWhiteSpace(SelectedConditionDefinitionId))
+        if (SelectedCombat == null || SelectedCombatMapToken == null) return;
+        var response = _api.CombatMapAdminAddParticipantFromToken(new Dictionary<string, object>
         {
-            ErrorMessage = "Condition instance id or definition id is required.";
-            return;
+            ["combatId"] = SelectedCombat.CombatId,
+            ["campaignId"] = CampaignId,
+            ["sessionId"] = SessionId,
+            ["tokenId"] = SelectedCombatMapToken.TokenId
+        });
+        if (!EnsureOk(response, "Не удалось добавить участника из токена карты.")) return;
+        ApplyCombatMapPayload(response.Payload);
+        RefreshCombatMap();
+    }
+
+    private void LinkSelectedOverlayToken()
+    {
+        if (SelectedParticipant == null || SelectedCombatMapToken == null) return;
+        var response = _api.CombatMapAdminLinkParticipantToken(new Dictionary<string, object>
+        {
+            ["participantId"] = SelectedParticipant.ParticipantId,
+            ["combatId"] = SelectedCombat?.CombatId ?? string.Empty,
+            ["campaignId"] = CampaignId,
+            ["sessionId"] = SessionId,
+            ["tokenId"] = SelectedCombatMapToken.TokenId
+        });
+        if (!EnsureOk(response, "Не удалось привязать токен карты.")) return;
+        ApplyCombatMapPayload(response.Payload);
+        RefreshCombatMap();
+    }
+
+    private void UnlinkSelectedOverlayToken()
+    {
+        if (SelectedParticipant == null && SelectedCombatOverlayToken != null)
+            SelectedParticipant = Participants.FirstOrDefault(x => string.Equals(x.ParticipantId, SelectedCombatOverlayToken.ParticipantId, StringComparison.OrdinalIgnoreCase));
+        if (SelectedParticipant == null) return;
+        var response = _api.CombatMapAdminUnlinkParticipantToken(new Dictionary<string, object>
+        {
+            ["participantId"] = SelectedParticipant.ParticipantId,
+            ["combatId"] = SelectedCombat?.CombatId ?? string.Empty,
+            ["campaignId"] = CampaignId,
+            ["sessionId"] = SessionId
+        });
+        if (!EnsureOk(response, "Не удалось отвязать токен карты.")) return;
+        ApplyCombatMapPayload(response.Payload);
+        RefreshCombatMap();
+    }
+
+    private void SyncVisibilityFromToken()
+    {
+        if (SelectedParticipant == null) return;
+        var response = _api.CombatMapAdminSyncParticipantVisibilityFromToken(new Dictionary<string, object>
+        {
+            ["participantId"] = SelectedParticipant.ParticipantId,
+            ["combatId"] = SelectedCombat?.CombatId ?? string.Empty,
+            ["campaignId"] = CampaignId,
+            ["sessionId"] = SessionId
+        });
+        if (!EnsureOk(response, "Не удалось синхронизировать видимость с токеном.")) return;
+        ApplyCombatMapPayload(response.Payload);
+    }
+
+    private void FocusSelectedToken()
+    {
+        if (SelectedParticipant == null) return;
+        var response = _api.CombatMapAdminFocusParticipantToken(new Dictionary<string, object>
+        {
+            ["participantId"] = SelectedParticipant.ParticipantId,
+            ["combatId"] = SelectedCombat?.CombatId ?? string.Empty,
+            ["campaignId"] = CampaignId,
+            ["sessionId"] = SessionId
+        });
+        if (!EnsureOk(response, "Не удалось сфокусировать токен.")) return;
+        ApplyCombatMapPayload(response.Payload);
+        StatusMessage = $"Фокус токена: {Str(Get(response.Payload, "focusedMapTokenId"), "нет токена")}";
+    }
+    private void RollInitiative() => RunCombatV1Command(_api.CombatV1InitiativeSort, new Dictionary<string, object>
+    {
+        ["sortMode"] = "descending_initiative_then_tiebreaker",
+        ["requestId"] = $"admin-initiative-{Guid.NewGuid():N}"
+    }, "Инициатива d20 упорядочена.");
+    private void StartCombat()
+    {
+        if (SelectedCombat == null) return;
+        var round = _api.CombatV1RoundStart(new Dictionary<string, object>
+        {
+            ["encounterId"] = SelectedCombat.CombatId,
+            ["roundNumber"] = Math.Max(1, SelectedCombat.RoundNumber),
+            ["requestId"] = $"admin-round-start-{Guid.NewGuid():N}"
+        });
+        if (!EnsureOk(round, "Не удалось начать раунд.")) return;
+        ApplyCombatPayload(round.Payload);
+        var activeParticipantId = Str(Get(round.Payload, "activeParticipantId"));
+        var first = Participants.FirstOrDefault(x => string.Equals(x.ParticipantId, activeParticipantId, StringComparison.OrdinalIgnoreCase))
+            ?? Participants.OrderByDescending(x => x.InitiativeRoll).FirstOrDefault();
+        if (first == null) return;
+        var turn = _api.CombatV1TurnStart(new Dictionary<string, object>
+        {
+            ["encounterId"] = SelectedCombat.CombatId,
+            ["participantId"] = first.ParticipantId,
+            ["requestId"] = $"admin-turn-start-{Guid.NewGuid():N}"
+        });
+        if (!EnsureOk(turn, "Не удалось начать первый ход.")) return;
+        ApplyCombatPayload(turn.Payload);
+        StatusMessage = "Бой начат.";
+    }
+    private void PauseCombat() => RunCombatCommand(_api.CombatAdminPause, "Бой поставлен на паузу.");
+    private void ResumeCombat() => RunCombatCommand(_api.CombatAdminResume, "Бой продолжен.");
+    private void NextTurn() => RunCombatV1Command(_api.CombatV1TurnNext, new Dictionary<string, object> { ["requestId"] = $"admin-next-{Guid.NewGuid():N}" }, "Следующий ход.");
+    private void SkipTurn() => RunCombatV1Command(_api.CombatV1TurnSkip, new Dictionary<string, object> { ["reason"] = "Пропущено GM.", ["requestId"] = $"admin-skip-{Guid.NewGuid():N}" }, "Ход пропущен.");
+    private void PreviousTurn() => RunCombatCommand(_api.CombatAdminPreviousTurn, "Предыдущий ход.");
+    private void EndCombat() => RunCombatV1Command(_api.CombatV1EncounterEnd, new Dictionary<string, object> { ["reason"] = "Завершено GM.", ["requestId"] = $"admin-end-{Guid.NewGuid():N}" }, "Бой завершен.");
+
+    private void RunCombatV1Command(Func<Dictionary<string, object>, ResponseEnvelope> command, Dictionary<string, object> payload, string success)
+    {
+        if (SelectedCombat == null) return;
+        payload["encounterId"] = SelectedCombat.CombatId;
+        var response = command(payload);
+        if (!EnsureOk(response, success)) return;
+        ApplyCombatPayload(response.Payload);
+        StatusMessage = success;
+    }
+
+    private void AddLogEvent()
+    {
+        if (SelectedCombat == null) return;
+        var response = _api.CombatAdminAddTurnEvent(new Dictionary<string, object>
+        {
+            ["combatId"] = SelectedCombat.CombatId,
+            ["eventType"] = "gm.note",
+            ["message"] = "GM событие боя",
+            ["visibility"] = "gm_only"
+        });
+        if (!EnsureOk(response, "Не удалось добавить событие.")) return;
+        ApplyCombatPayload(response.Payload);
+    }
+
+    private void RunCombatCommand(Func<Dictionary<string, object>, ResponseEnvelope> command, string success)
+    {
+        if (SelectedCombat == null) return;
+        var response = command(new Dictionary<string, object> { ["combatId"] = SelectedCombat.CombatId });
+        if (!EnsureOk(response, success)) return;
+        ApplyCombatPayload(response.Payload);
+        StatusMessage = success;
+    }
+
+    private void ApplyCombatPayload(Dictionary<string, object> payload)
+    {
+        var nested = Map(Get(payload, "snapshot"));
+        if (nested != null) payload = nested;
+        var combatMap = Map(Get(payload, "combat"));
+        if (combatMap == null) combatMap = Map(Get(payload, "encounter"));
+        if (combatMap != null)
+        {
+            var item = AdminCombatTrackerCombatItem.From(combatMap);
+            var existing = Combats.FirstOrDefault(x => string.Equals(x.CombatId, item.CombatId, StringComparison.OrdinalIgnoreCase));
+            if (existing == null) Combats.Insert(0, item);
+            else existing.Apply(item);
+            _selectedCombat = existing ?? item;
+            Notify(nameof(SelectedCombat));
+            Notify(nameof(CurrentRoundText));
+            Notify(nameof(CurrentTurnText));
         }
-
-        RunWrite(CommandNames.CombatV1ConditionRemove, () => SendSimpleWrite(_api.CombatV1ConditionRemove(new Dictionary<string, object>
-        {
-            { "encounterId", EncounterId },
-            { "targetParticipantId", SelectedTargetParticipant!.Id },
-            { "conditionInstanceId", SelectedConditionInstanceId },
-            { "conditionDefinitionId", SelectedConditionDefinitionId },
-            { "reason", "removed from Admin Combat panel" },
-            { "requestId", NewRequestId() }
-        }), "remove condition"));
-    }
-
-    private void WeaponAttackResolve()
-    {
-        if (!EnsureTargetParticipant() || !RequireWriteFlags(CanUseWeaponAttack, "Weapon attack flags are disabled.")) return;
-        if (string.IsNullOrWhiteSpace(SelectedWeaponDefinitionId))
-        {
-            ErrorMessage = "WeaponDefinitionId is required for weapon attack.";
-            return;
-        }
-
-        RunWrite(CommandNames.CombatV1WeaponAttackResolve, () =>
-        {
-            var payload = new Dictionary<string, object>
-            {
-                { "encounterId", EncounterId },
-                { "actorParticipantId", FirstNonEmpty(ActiveParticipantId, SelectedParticipant?.Id ?? string.Empty) },
-                { "targetParticipantId", SelectedTargetParticipant!.Id },
-                { "weaponDefinitionId", SelectedWeaponDefinitionId },
-                { "ammoDefinitionId", SelectedAmmoDefinitionId },
-                { "attackBonus", AttackBonus },
-                { "damageType", FirstNonEmpty(DamageType, "physical") },
-                { "coverModifier", CoverModifier },
-                { "situationalModifier", SituationalModifier },
-                { "spendActionPoint", SpendActionPoint },
-                { "autoApplyDamage", AutoApplyDamage },
-                { "requestId", NewRequestId() }
-            };
-            if (DamageOverride > 0) payload["damageOverride"] = DamageOverride;
-            var response = _api.CombatV1WeaponAttackResolve(payload);
-            if (!HandleWriteResponse(response, "weapon attack")) return false;
-            LastRulesResultSummary = BuildWeaponAttackSummary(response.Payload);
-            WriteStatusMessage = LastRulesResultSummary;
-            return true;
-        });
-    }
-
-    private void FatePreview()
-    {
-        if (!RequireWriteFlags(CanUseFateHook, "Fate hook flags are disabled.")) return;
-        RunWrite(CommandNames.CombatV1FatePreview, () =>
-        {
-            var response = _api.CombatV1FatePreview(new Dictionary<string, object>
-            {
-                { "encounterId", EncounterId },
-                { "rollContext", FirstNonEmpty(FateRollContext, "attack_roll") },
-                { "actorParticipantId", FirstNonEmpty(ActiveParticipantId, SelectedParticipant?.Id ?? string.Empty) },
-                { "targetParticipantId", SelectedTargetParticipant?.Id ?? string.Empty },
-                { "baseRoll", FateBaseRoll },
-                { "diceExpression", FirstNonEmpty(FateDiceExpression, "1d20") },
-                { "useFateEngine", true },
-                { "requestId", NewRequestId() }
-            });
-            if (!HandleWriteResponse(response, "fate preview")) return false;
-            LastRulesResultSummary = $"Fate: applied={Bool(response.Payload, "applied")} modifier={Int(response.Payload, "fateModifier")} {Str(response.Payload, "fateSummary")}";
-            WriteStatusMessage = LastRulesResultSummary;
-            return true;
-        }, refreshAfterSuccess: false);
-    }
-
-    private void RefreshSnapshot()
-    {
-        if (!EnsureEncounterId()) return;
-        RunReadOnly("combat.ui.snapshot.refresh", () =>
-        {
-            RefreshFeatureFlags();
-            ClientLogService.Instance.Info($"combat.ui.snapshot.refresh.start encounterId={EncounterId}");
-            var response = _api.CombatV1SnapshotFull(new Dictionary<string, object>
-            {
-                { "encounterId", EncounterId },
-                { "includeParticipants", true },
-                { "includeTurns", true },
-                { "includeRounds", true },
-                { "includeActions", true },
-                { "includeLogs", true },
-                { "includeReplayEvents", false },
-                { "includeDiagnostics", true },
-                { "limitLogs", 100 },
-                { "limitActions", 100 }
-            });
-
-            if (!HandleResponseIssue(response, "snapshot")) return;
-            ApplySnapshot(response.Payload);
-            LastRefreshAtUtc = DateTime.UtcNow;
-            ClientLogService.Instance.Info($"combat.ui.snapshot.refresh.done encounterId={EncounterId} participants={Participants.Count} logs={RecentLogs.Count}");
-        });
-    }
-
-    private void RefreshLogs()
-    {
-        if (!EnsureEncounterId()) return;
-        RunReadOnly("combat.ui.logs.refresh", () =>
-        {
-            var response = _api.CombatV1LogsList(new Dictionary<string, object>
-            {
-                { "encounterId", EncounterId },
-                { "limit", 100 },
-                { "offset", 0 }
-            });
-
-            if (!HandleResponseIssue(response, "logs", warningOnly: true)) return;
-            RecentLogs.Clear();
-            foreach (var entry in AsList(Get(response.Payload, "items")).Select(AsDictionary))
-            {
-                RecentLogs.Add(CombatLogUiItem.From(entry));
-            }
-
-            Notify(nameof(LogsCount));
-            ClientLogService.Instance.Info($"combat.ui.logs.refresh.done encounterId={EncounterId} count={RecentLogs.Count}");
-        });
-    }
-
-    private void RefreshReplay()
-    {
-        if (!EnsureEncounterId()) return;
-        RunReadOnly("combat.ui.replay.refresh", () =>
-        {
-            var response = _api.CombatV1ReplayList(new Dictionary<string, object>
-            {
-                { "encounterId", EncounterId },
-                { "limit", 100 }
-            });
-
-            if (!HandleResponseIssue(response, "replay", warningOnly: true))
-            {
-                ReplayStatus = "Replay выключен или недоступен.";
-                return;
-            }
-
-            RecentReplayEvents.Clear();
-            foreach (var entry in AsList(Get(response.Payload, "items")).Select(AsDictionary))
-            {
-                RecentReplayEvents.Add(CombatReplayUiItem.From(entry));
-            }
-
-            ReplayStatus = RecentReplayEvents.Count == 0 ? "Replay feed пуст." : $"Replay events: {RecentReplayEvents.Count}";
-            Notify(nameof(ReplayCount));
-            ClientLogService.Instance.Info($"combat.ui.replay.refresh.done encounterId={EncounterId} count={RecentReplayEvents.Count}");
-        });
-    }
-
-    private void RefreshDiagnostics()
-    {
-        if (!EnsureEncounterId()) return;
-        RunReadOnly("combat.ui.diagnostics.refresh", () =>
-        {
-            var response = _api.CombatV1DiagnosticsRun(new Dictionary<string, object>
-            {
-                { "encounterId", EncounterId },
-                { "includeEncounterValidation", true },
-                { "includeParticipantValidation", true },
-                { "includeInitiativeValidation", true },
-                { "includeTurnValidation", true },
-                { "includeActionValidation", true },
-                { "strictMode", false }
-            });
-
-            if (!HandleResponseIssue(response, "diagnostics", warningOnly: true)) return;
-            ApplyDiagnostics(response.Payload);
-            ClientLogService.Instance.Info($"combat.ui.diagnostics.refresh.done encounterId={EncounterId} sections={DiagnosticsSections.Count}");
-        });
-    }
-
-    private void RefreshFeatureFlags()
-    {
-        try
-        {
-            var response = _api.SystemFeatureFlagsSnapshot();
-            if (response.Status != ResponseStatus.Ok)
-            {
-                WarningMessage = FriendlyMessage(response, "Снимок функций и модулей недоступен.");
-                return;
-            }
-
-            var flags = AsList(Get(response.Payload, "flags")).Select(AsDictionary).ToList();
-            var required = new[]
-            {
-                "Combat.UseCombatSystemV1",
-                "Combat.UseCombatEncounterRuntime",
-                "Combat.UseCombatReadEndpoints",
-                "Combat.UseCombatSnapshotReadEndpoints"
-            };
-            var missingOrDisabled = required.Where(name => !FlagEnabled(flags, name)).ToList();
-            AreCombatReadFlagsEnabled = missingOrDisabled.Count == 0;
-            CanUseCombatWriteEndpoints = RequiredFlagsEnabled(flags,
-                "Combat.UseCombatSystemV1",
-                "Combat.UseCombatEncounterRuntime",
-                "Combat.UseCombatWriteEndpoints");
-            CanUseTurnEngine = RequiredFlagsEnabled(flags,
-                "Combat.UseCombatSystemV1",
-                "Combat.UseCombatEncounterRuntime",
-                "Combat.UseCombatInitiativeOrder",
-                "Combat.UseCombatTurnEngine",
-                "Combat.UseCombatWriteEndpoints");
-            CanUseAttackRoll = RequiredFlagsEnabled(flags,
-                "Combat.UseCombatSystemV1",
-                "Combat.UseCombatEncounterRuntime",
-                "Combat.UseCombatTurnEngine",
-                "Combat.UseCombatActionEconomySkeleton",
-                "Combat.UseCombatAttackRollMvp",
-                "Combat.UseCombatHitCalculationMvp",
-                "Combat.UseCombatAttackActionEndpoint",
-                "Combat.UseCombatWriteEndpoints");
-            CanUseDefensePreview = RequiredFlagsEnabled(flags,
-                "Combat.UseCombatSystemV1",
-                "Combat.UseCombatEncounterRuntime",
-                "Combat.UseCombatReadEndpoints",
-                "Combat.UseCombatDefenseMvp",
-                "Combat.UseCombatDefensePreviewEndpoint");
-            CanUseDamage = RequiredFlagsEnabled(flags,
-                "Combat.UseCombatSystemV1",
-                "Combat.UseCombatEncounterRuntime",
-                "Combat.UseCombatDamageMvp",
-                "Combat.UseCombatDamageApplicationEndpoint",
-                "Combat.UseCombatParticipantVitals",
-                "Combat.UseCombatWriteEndpoints");
-            CanUseConditions = RequiredFlagsEnabled(flags,
-                "Combat.UseCombatSystemV1",
-                "Combat.UseCombatEncounterRuntime",
-                "Combat.UseCombatConditionsMvp",
-                "Combat.UseCombatConditionApplyEndpoint",
-                "Combat.UseCombatConditionRemoveEndpoint",
-                "Combat.UseCombatWriteEndpoints");
-            CanUseWeaponAttack = RequiredFlagsEnabled(flags,
-                "Combat.UseCombatSystemV1",
-                "Combat.UseCombatEncounterRuntime",
-                "Combat.UseCombatTurnEngine",
-                "Combat.UseCombatActionEconomySkeleton",
-                "Combat.UseCombatAttackRollMvp",
-                "Combat.UseCombatHitCalculationMvp",
-                "Combat.UseCombatAttackActionEndpoint",
-                "Combat.UseCombatWeaponIntegrationMvp",
-                "Combat.UseCombatWriteEndpoints");
-            CanUseFateHook = RequiredFlagsEnabled(flags,
-                "Combat.UseCombatSystemV1",
-                "Combat.UseCombatReadEndpoints",
-                "Combat.UseCombatFateHookMvp");
-            if (!AreCombatReadFlagsEnabled)
-            {
-                WarningMessage = "Чтение боя выключено. Включите нужные dev/test флаги функций.";
-            }
-            else if (!CanUseCombatWriteEndpoints)
-            {
-                WarningMessage = "Combat write flags выключены. Управление боем недоступно.";
-            }
-            ClientLogService.Instance.Info("combat.ui.flags.snapshot.loaded");
-        }
-        catch (Exception ex)
-        {
-            WarningMessage = $"Снимок функций и модулей недоступен: {ex.Message}";
-        }
-    }
-
-    private void ApplySnapshot(IDictionary<string, object> payload)
-    {
-        var encounter = AsDictionary(Get(payload, "encounter"));
-        EncounterName = FirstNonEmpty(Str(encounter, "name"), Str(encounter, "id"), EncounterId);
-        EncounterStatus = Str(encounter, "status");
-        CampaignId = FirstNonEmpty(CampaignId, Str(encounter, "campaignId"));
-        SessionId = FirstNonEmpty(SessionId, Str(encounter, "sessionId"));
-        RuleSetId = FirstNonEmpty(RuleSetId, Str(encounter, "ruleSetId"));
-        RoundNumber = Int(encounter, "roundNumber");
-        ActiveTurnIndex = Int(encounter, "activeTurnIndex");
-        ActiveParticipantId = Str(encounter, "activeParticipantId");
 
         Participants.Clear();
-        foreach (var participant in AsList(Get(payload, "participants")).Select(AsDictionary))
+        foreach (var map in Maps(Get(payload, "participants")))
+            Participants.Add(AdminCombatTrackerParticipantItem.From(map));
+
+        var activeParticipantId = combatMap == null ? string.Empty : Str(Get(combatMap, "activeParticipantId"));
+        var orderedParticipants = Participants.OrderByDescending(x => x.InitiativeRoll).ThenBy(x => x.DisplayName).ToList();
+        for (var index = 0; index < orderedParticipants.Count; index++)
         {
-            Participants.Add(CombatParticipantUiItem.From(participant, ActiveParticipantId));
+            orderedParticipants[index].InitiativeOrderIndex = index + 1;
+            orderedParticipants[index].TurnStatus = string.Equals(orderedParticipants[index].ParticipantId, activeParticipantId, StringComparison.OrdinalIgnoreCase) ? "Текущий ход" : "Ожидает";
         }
-
-        SelectedParticipant = Participants.FirstOrDefault(item => item.Id == ActiveParticipantId) ?? Participants.FirstOrDefault();
-        SelectedTargetParticipant = Participants.FirstOrDefault(item => item.Id != SelectedParticipant?.Id) ?? SelectedParticipant;
-        ActiveParticipantName = Participants.FirstOrDefault(item => item.Id == ActiveParticipantId)?.DisplayName ?? FirstNonEmpty(ActiveParticipantId, "нет активного участника");
-        Notify(nameof(ParticipantsCount));
-
-        var round = AsDictionary(Get(payload, "currentRound"));
-        CurrentRoundSummary = $"Раунд {Int(round, "roundNumber")} • ходов: {Int(round, "turnCount")}";
-
-        var turn = AsDictionary(Get(payload, "currentTurn"));
-        CurrentTurnSummary = $"Раунд {Int(turn, "roundNumber")} / ход {Int(turn, "turnIndex")} • участник: {FirstNonEmpty(Str(turn, "participantId"), ActiveParticipantId, "не указан")} • {Str(turn, "status")}";
+        if (_selectedCombat != null)
+        {
+            _selectedCombat.CurrentParticipantName = Participants.FirstOrDefault(x => string.Equals(x.ParticipantId, activeParticipantId, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? "не назначен";
+            _selectedCombat.CurrentParticipantId = activeParticipantId;
+            Notify(nameof(CurrentRoundText));
+            Notify(nameof(CurrentTurnText));
+        }
 
         InitiativeOrder.Clear();
-        foreach (var entry in AsList(Get(payload, "initiativeOrder")).Select(AsDictionary))
+        foreach (var map in Maps(Get(payload, "initiativeOrder")).DefaultIfEmpty())
         {
-            InitiativeOrder.Add(CombatInitiativeUiItem.From(entry));
+            if (map == null) continue;
+            InitiativeOrder.Add(AdminCombatTrackerParticipantItem.From(map));
+        }
+        if (InitiativeOrder.Count == 0)
+        {
+            foreach (var participant in Participants.OrderBy(x => x.InitiativeOrderIndex))
+                InitiativeOrder.Add(participant);
         }
 
-        RecentLogs.Clear();
-        foreach (var entry in AsList(Get(payload, "recentLogs")).Select(AsDictionary))
+        var rawLogs = Get(payload, "recentLogs") ?? Get(payload, "logs");
+        if (rawLogs != null)
         {
-            RecentLogs.Add(CombatLogUiItem.From(entry));
+            CombatLog.Clear();
+            foreach (var item in Maps(rawLogs).Select(AdminCombatTrackerLogItem.From).OrderByDescending(x => x.CreatedAtUtc))
+                CombatLog.Add(item);
         }
-        Notify(nameof(LogsCount));
 
-        RecentReplayEvents.Clear();
-        foreach (var entry in AsList(Get(payload, "recentReplayEvents")).Select(AsDictionary))
+        if (SelectedParticipant != null)
+            SelectedParticipant = Participants.FirstOrDefault(x => string.Equals(x.ParticipantId, SelectedParticipant.ParticipantId, StringComparison.OrdinalIgnoreCase));
+        LastRefreshAtUtc = DateTime.UtcNow;
+    }
+
+    private void ApplyCombatMapPayload(Dictionary<string, object> payload)
+    {
+        ApplyCombatPayload(payload);
+        var sceneMap = Map(Get(payload, "sceneMap"));
+        ActiveSceneMapText = sceneMap == null
+            ? "Активная карта сцены не выбрана."
+            : $"{Str(Get(sceneMap, "name"), Str(Get(sceneMap, "mapId")))} | {Str(Get(sceneMap, "widthMeters"))}x{Str(Get(sceneMap, "heightMeters"))} м | сетка {Str(Get(sceneMap, "gridSizeMeters"))} м";
+        _combatMapWidthMeters = sceneMap == null ? 1d : Dbl(Get(sceneMap, "widthMeters"), 1d);
+        _combatMapHeightMeters = sceneMap == null ? 1d : Dbl(Get(sceneMap, "heightMeters"), 1d);
+        _combatMapGridMeters = sceneMap == null ? 5d : Math.Max(1d, Dbl(Get(sceneMap, "gridSizeMeters"), 5d));
+
+        CombatMapTilePatches.Clear();
+        foreach (var map in Maps(Get(payload, "tilePatches")))
+            CombatMapTilePatches.Add(SceneMapTilePatchUiItem.From(map));
+
+        CombatMapAssetInstances.Clear();
+        foreach (var map in Maps(Get(payload, "assetInstances")))
+            CombatMapAssetInstances.Add(SceneMapAssetInstanceUiItem.From(map));
+
+        CombatMapOverlayTokens.Clear();
+        foreach (var map in Maps(Get(payload, "combatTokens")))
+            CombatMapOverlayTokens.Add(AdminCombatMapTokenItem.From(map, overlay: true));
+        RebuildCombatMapCanvas();
+
+        CombatMapWarnings.Clear();
+        foreach (var raw in ToEnumerable(Get(payload, "warnings")))
         {
-            RecentReplayEvents.Add(CombatReplayUiItem.From(entry));
+            var value = Convert.ToString(raw, CultureInfo.InvariantCulture);
+            if (!string.IsNullOrWhiteSpace(value)) CombatMapWarnings.Add(value);
         }
-        ReplayStatus = RecentReplayEvents.Count == 0 ? "Replay feed не запрошен или пуст." : $"Replay events: {RecentReplayEvents.Count}";
-        Notify(nameof(ReplayCount));
 
-        ApplyDiagnosticsSummary(AsDictionary(Get(payload, "diagnostics")));
-
-        var warnings = AsList(Get(payload, "warnings")).Select(Convert.ToString).Where(value => !string.IsNullOrWhiteSpace(value)).ToArray();
-        if (warnings.Length > 0) WarningMessage = string.Join("; ", warnings);
+        CombatMapStatusText = $"Боевой слой карты: связанных токенов {CombatMapOverlayTokens.Count}, предупреждений {CombatMapWarnings.Count}.";
+        LastRefreshAtUtc = DateTime.UtcNow;
     }
 
-    private void ApplyDiagnostics(IDictionary<string, object> payload)
+    private void RebuildCombatMapCanvas()
     {
-        ApplyDiagnosticsSummary(AsDictionary(Get(payload, "summary")));
-        DiagnosticsSections.Clear();
-        foreach (var section in AsList(Get(payload, "sections")).Select(AsDictionary))
+        var projection = MapCanvasProjectionHelper.Calculate(_combatMapWidthMeters, _combatMapHeightMeters, 560, 320);
+        CombatMapCanvasWidth = projection.CanvasWidth;
+        CombatMapCanvasHeight = projection.CanvasHeight;
+        CombatMapScaleText = $"Координаты в метрах; 1 м = {projection.Scale:0.###} пикс.; сетка {_combatMapGridMeters:0.##} м";
+
+        CombatMapGridLines.Clear();
+        var step = Math.Max(1d, _combatMapGridMeters);
+        for (var x = 0d; x <= _combatMapWidthMeters + 0.001d; x += step)
         {
-            DiagnosticsSections.Add(CombatDiagnosticsSectionUiItem.From(section));
+            var px = MapCanvasProjectionHelper.ToPixel(x, projection.Scale);
+            CombatMapGridLines.Add(new MapGridLineUiItem { X1 = px, Y1 = 0, X2 = px, Y2 = CombatMapCanvasHeight });
         }
+        for (var y = 0d; y <= _combatMapHeightMeters + 0.001d; y += step)
+        {
+            var py = MapCanvasProjectionHelper.ToPixel(y, projection.Scale);
+            CombatMapGridLines.Add(new MapGridLineUiItem { X1 = 0, Y1 = py, X2 = CombatMapCanvasWidth, Y2 = py });
+        }
+
+        foreach (var patch in CombatMapTilePatches)
+            patch.ApplyScale(projection.Scale);
+        foreach (var asset in CombatMapAssetInstances)
+            asset.ApplyScale(projection.Scale);
+        foreach (var token in CombatMapOverlayTokens)
+            token.ApplyScale(projection.Scale);
     }
 
-    private void ApplyDiagnosticsSummary(IDictionary<string, object> summary)
+    private void ApplyJoinableTokens(Dictionary<string, object> payload)
     {
-        var errors = Int(summary, "errorCount");
-        var warnings = Int(summary, "warningCount");
-        DiagnosticsSummary = $"Ншибки: {errors} • предупреждения: {warnings} • участников: {Int(summary, "participantCount")} • logs: {Int(summary, "logCount")}";
+        CombatMapJoinableTokens.Clear();
+        foreach (var map in Maps(Get(payload, "tokens")))
+            CombatMapJoinableTokens.Add(AdminCombatMapTokenItem.From(map, overlay: false));
+        CombatMapStatusText = $"{CombatMapStatusText} Доступно для добавления: {CombatMapJoinableTokens.Count}.";
     }
-
-    private bool EnsureEncounterId()
+    private void Run(string action, Action body)
     {
-        if (!string.IsNullOrWhiteSpace(EncounterId)) return true;
-        WarningMessage = "Выберите или укажите бой.";
-        ErrorMessage = string.Empty;
-        return false;
-    }
-
-    private void RunReadOnly(string operation, Action action)
-    {
-        if (IsLoading) return;
+        if (IsBusy) return;
         try
         {
-            IsLoading = true;
+            IsBusy = true;
             ErrorMessage = string.Empty;
-            action();
+            ClientLogService.Instance.Info($"admin.combat.tracker.{action}.start");
+            body();
+            ClientLogService.Instance.Info($"admin.combat.tracker.{action}.done");
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Ншибка чтения combat data: {ex.Message}";
-            ClientLogService.Instance.Error($"{operation}.error encounterId={EncounterId} message={ex.Message}");
+            ErrorMessage = ex.Message;
+            ClientLogService.Instance.Error($"admin.combat.tracker.{action}.error {ex.Message}");
         }
         finally
         {
-            IsLoading = false;
+            IsBusy = false;
         }
     }
 
-    private void RunWrite(string command, Func<bool> action, bool refreshAfterSuccess = true)
+    private bool EnsureOk(ResponseEnvelope response, string fallbackError)
     {
-        if (IsWriteBusy) return;
-        try
+        if (response.Status == ResponseStatus.Ok) return true;
+        ErrorMessage = string.IsNullOrWhiteSpace(response.Message) ? fallbackError : response.Message;
+        StatusMessage = ErrorMessage;
+        return false;
+    }
+
+    internal static object? Get(Dictionary<string, object>? map, string key)
+        => map != null && map.TryGetValue(key, out var value) ? value : null;
+
+    private static Dictionary<string, object>? Map(object? raw)
+    {
+        if (raw is Dictionary<string, object> typed) return typed;
+        if (raw is IDictionary dictionary)
         {
-            IsWriteBusy = true;
-            ErrorMessage = string.Empty;
-            WarningMessage = string.Empty;
-            ClientLogService.Instance.Info($"combat.ui.command.start command={command}");
-            var success = action();
-            ClientLogService.Instance.Info($"combat.ui.command.done command={command} success={success}");
-            if (success && refreshAfterSuccess)
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (DictionaryEntry entry in dictionary)
             {
-                RefreshSnapshot();
-                RefreshLogs();
-                RefreshDiagnostics();
+                var key = Convert.ToString(entry.Key);
+                if (!string.IsNullOrWhiteSpace(key)) result[key] = entry.Value ?? string.Empty;
+            }
+            return result;
+        }
+        return null;
+    }
+
+    private static IEnumerable<Dictionary<string, object>> Maps(object? raw)
+    {
+        if (raw is IEnumerable enumerable && raw is not string)
+        {
+            foreach (var item in enumerable)
+            {
+                var map = Map(item);
+                if (map != null) yield return map;
             }
         }
-        catch (Exception ex)
+    }
+
+    private static IEnumerable ToEnumerable(object? raw)
+    {
+        if (raw is IEnumerable enumerable && raw is not string) return enumerable;
+        return Array.Empty<object>();
+    }
+
+    internal static string Str(object? raw, string fallback = "") => string.IsNullOrWhiteSpace(Convert.ToString(raw, CultureInfo.InvariantCulture)) ? fallback : Convert.ToString(raw, CultureInfo.InvariantCulture) ?? fallback;
+    internal static int Int(object? raw, int fallback = 0) => int.TryParse(Convert.ToString(raw, CultureInfo.InvariantCulture), NumberStyles.Any, CultureInfo.InvariantCulture, out var value) ? value : fallback;
+    internal static double Dbl(object? raw, double fallback = 0d) => double.TryParse(Convert.ToString(raw, CultureInfo.InvariantCulture), NumberStyles.Any, CultureInfo.InvariantCulture, out var value) ? value : fallback;
+    internal static bool Bool(object? raw) => bool.TryParse(Convert.ToString(raw, CultureInfo.InvariantCulture), out var value) && value;
+    internal static DateTime Date(object? raw) => DateTime.TryParse(Convert.ToString(raw, CultureInfo.InvariantCulture), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var value) ? value.ToUniversalTime() : DateTime.MinValue;
+
+    internal static string DisplayType(string type)
+    {
+        return (type ?? string.Empty).Trim().ToLowerInvariant() switch
         {
-            ErrorMessage = $"Combat command failed: {ex.Message}";
-            ClientLogService.Instance.Error($"combat.ui.command.error command={command} message={ex.Message}");
-        }
-        finally
-        {
-            IsWriteBusy = false;
-        }
-    }
-
-    private bool SendSimpleWrite(ResponseEnvelope response, string source)
-    {
-        if (!HandleWriteResponse(response, source)) return false;
-        WriteStatusMessage = response.Message;
-        LastRulesResultSummary = response.Message;
-        return true;
-    }
-
-    private bool HandleWriteResponse(ResponseEnvelope response, string source)
-    {
-        if (response.Status == ResponseStatus.Ok) return true;
-        ErrorMessage = FriendlyWriteMessage(response, $"{source}: command failed.");
-        return false;
-    }
-
-    private bool RequireWriteFlags(bool enabled, string message)
-    {
-        if (enabled) return true;
-        WarningMessage = message;
-        return false;
-    }
-
-    private bool EnsureSelectedParticipant()
-    {
-        if (EnsureEncounterId() && SelectedParticipant != null) return true;
-        WarningMessage = "Select a participant first.";
-        return false;
-    }
-
-    private bool EnsureTargetParticipant()
-    {
-        if (EnsureEncounterId() && SelectedTargetParticipant != null) return true;
-        WarningMessage = "Select a target participant first.";
-        return false;
-    }
-
-    private bool RequireParticipantId(string participantId, string message)
-    {
-        if (!string.IsNullOrWhiteSpace(participantId)) return true;
-        WarningMessage = message;
-        return false;
-    }
-
-    private void NotifyCombatCommandState()
-    {
-        Notify(nameof(CanCreateEncounter));
-        Notify(nameof(CanRunEncounterCommand));
-        Notify(nameof(CanRunSelectedParticipantCommand));
-        Notify(nameof(CanRunTurnCommand));
-        Notify(nameof(CanRunSelectedTurnCommand));
-        Notify(nameof(CanRunTargetCommand));
-        Notify(nameof(CanRunAttackCommand));
-        Notify(nameof(CanRunDefensePreviewCommand));
-        Notify(nameof(CanRunDamageCommand));
-        Notify(nameof(CanRunVitalsCommand));
-        Notify(nameof(CanRunConditionCommand));
-        Notify(nameof(CanRunWeaponAttackCommand));
-        Notify(nameof(CanRunFatePreviewCommand));
-    }
-
-    private static string NewRequestId() => Guid.NewGuid().ToString("N");
-
-    private static string FriendlyWriteMessage(ResponseEnvelope response, string fallback)
-    {
-        var message = string.IsNullOrWhiteSpace(response.Message) ? fallback : response.Message;
-        if (response.Status == ResponseStatus.Forbidden || response.ErrorCode == ErrorCode.Forbidden) return message.IndexOf("disabled", StringComparison.OrdinalIgnoreCase) >= 0 ? "Combat flags выключены для этой команды." : "Недостаточно прав администратора для combat command.";
-        if (response.Status == ResponseStatus.NotFound || response.ErrorCode == ErrorCode.NotFound) return "Combat entity not found.";
-        return message;
-    }
-
-    private static string BuildAttackSummary(IDictionary<string, object> payload)
-    {
-        return $"Attack: {Str(payload, "hitResult")} roll {Int(payload, "naturalRoll")} total {Int(payload, "attackTotal")} vs {Int(payload, "targetDefense")}";
-    }
-
-    private static string BuildWeaponAttackSummary(IDictionary<string, object> payload)
-    {
-        var attack = AsDictionary(Get(payload, "attackResult"));
-        var preview = AsDictionary(Get(payload, "damagePreview"));
-        return $"Weapon attack: {Str(attack, "hitResult")} damage preview {Int(preview, "finalDamage")}";
-    }
-
-    private bool HandleResponseIssue(ResponseEnvelope response, string source, bool warningOnly = false)
-    {
-        if (response.Status == ResponseStatus.Ok) return true;
-        var message = FriendlyMessage(response, $"{source}: read endpoint недоступен.");
-        if (warningOnly)
-        {
-            WarningMessage = message;
-        }
-        else
-        {
-            ErrorMessage = message;
-        }
-        return false;
-    }
-
-    private static string FriendlyMessage(ResponseEnvelope response, string fallback)
-    {
-        var message = string.IsNullOrWhiteSpace(response.Message) ? fallback : response.Message;
-        if (response.Status == ResponseStatus.Forbidden || response.ErrorCode == ErrorCode.Forbidden) return "Медостаточно прав администратора для чтения combat data.";
-        if (response.Status == ResponseStatus.NotFound || response.ErrorCode == ErrorCode.NotFound) return "Бой не найден.";
-        if (message.IndexOf("disabled", StringComparison.OrdinalIgnoreCase) >= 0 || message.IndexOf("выключ", StringComparison.OrdinalIgnoreCase) >= 0)
-        {
-            return "Чтение боя выключено. Включите нужные dev/test флаги функций.";
-        }
-        return message;
-    }
-
-    private static bool FlagEnabled(IEnumerable<IDictionary<string, object>> flags, string name)
-    {
-        return flags.Any(flag =>
-            string.Equals(Str(flag, "name"), name, StringComparison.OrdinalIgnoreCase) &&
-            Bool(flag, "effectiveValue"));
-    }
-
-    private static bool RequiredFlagsEnabled(IEnumerable<IDictionary<string, object>> flags, params string[] names)
-    {
-        var materialized = flags.ToList();
-        return names.All(name => FlagEnabled(materialized, name));
-    }
-
-    internal static object? Get(IDictionary<string, object> source, string key)
-    {
-        if (source.TryGetValue(key, out var value)) return value;
-        var match = source.Keys.FirstOrDefault(candidate => string.Equals(candidate, key, StringComparison.OrdinalIgnoreCase));
-        return match == null ? null : source[match];
-    }
-
-    internal static IDictionary<string, object> AsDictionary(object? value)
-    {
-        if (value is IDictionary<string, object> dictionary) return dictionary;
-        return new Dictionary<string, object>();
-    }
-
-    internal static IEnumerable<object?> AsList(object? value)
-    {
-        if (value is IEnumerable enumerable && value is not string)
-        {
-            foreach (var item in enumerable) yield return item;
-        }
-    }
-
-    internal static string Str(IDictionary<string, object> source, string key)
-        => Convert.ToString(Get(source, key), CultureInfo.InvariantCulture) ?? string.Empty;
-
-    internal static int Int(IDictionary<string, object> source, string key)
-    {
-        var value = Get(source, key);
-        if (value == null) return 0;
-        if (value is int i) return i;
-        if (int.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)) return parsed;
-        return 0;
-    }
-
-    internal static long Long(IDictionary<string, object> source, string key)
-    {
-        var value = Get(source, key);
-        if (value == null) return 0;
-        if (value is long l) return l;
-        if (long.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)) return parsed;
-        return 0;
-    }
-
-    internal static bool Bool(IDictionary<string, object> source, string key)
-    {
-        var value = Get(source, key);
-        if (value == null) return false;
-        if (value is bool b) return b;
-        return bool.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out var parsed) && parsed;
-    }
-
-    internal static DateTime Date(IDictionary<string, object> source, string key)
-    {
-        var value = Get(source, key);
-        if (value is DateTime dt) return dt;
-        return DateTime.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
-            ? parsed
-            : DateTime.MinValue;
-    }
-
-    internal static string FirstNonEmpty(params string[] values)
-        => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
-}
-
-public sealed class CombatParticipantUiItem
-{
-    public string Id { get; set; } = string.Empty;
-    public string DisplayName { get; set; } = string.Empty;
-    public string CharacterId { get; set; } = string.Empty;
-    public string TeamId { get; set; } = string.Empty;
-    public string ParticipantType { get; set; } = string.Empty;
-    public bool IsActive { get; set; }
-    public bool IsDefeated { get; set; }
-    public bool IsHidden { get; set; }
-    public int CurrentHealth { get; set; }
-    public int MaxHealth { get; set; }
-    public int TemporaryHealth { get; set; }
-    public int CurrentMorale { get; set; }
-    public int MaxMorale { get; set; }
-    public int ConditionCount { get; set; }
-    public List<string> ActiveConditionNames { get; set; } = new List<string>();
-    public int Initiative { get; set; }
-    public bool HasActedThisRound { get; set; }
-    public bool IsCurrentTurn { get; set; }
-    public int ActionPoints { get; set; }
-    public int MinorActionPoints { get; set; }
-    public int ReactionCount { get; set; }
-    public int ReactionLimit { get; set; }
-    public string PositionSummary { get; set; } = string.Empty;
-    public string CoverState { get; set; } = string.Empty;
-    public string VisibilityState { get; set; } = string.Empty;
-    public string HitPointsText => MaxHealth > 0 ? $"{CurrentHealth}/{MaxHealth} (+{TemporaryHealth})" : "HP не заданы";
-    public string MoraleText => MaxMorale > 0 ? $"{CurrentMorale}/{MaxMorale}" : "не задана";
-    public string ConditionsText => ConditionCount == 0 ? "нет состояний" : string.Join(", ", ActiveConditionNames.Take(4));
-    public string TurnStateText => IsCurrentTurn ? "текущий ход" : HasActedThisRound ? "действовал" : "ожидает";
-
-    public static CombatParticipantUiItem From(IDictionary<string, object> source, string activeParticipantId)
-    {
-        var id = AdminCombatReadOnlyViewModel.Str(source, "id");
-        var conditionNames = AdminCombatReadOnlyViewModel.AsList(AdminCombatReadOnlyViewModel.Get(source, "activeConditionIds"))
-            .Select(value => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .ToList();
-        return new CombatParticipantUiItem
-        {
-            Id = id,
-            DisplayName = AdminCombatReadOnlyViewModel.FirstNonEmpty(AdminCombatReadOnlyViewModel.Str(source, "displayName"), id),
-            CharacterId = AdminCombatReadOnlyViewModel.Str(source, "characterId"),
-            TeamId = AdminCombatReadOnlyViewModel.Str(source, "teamId"),
-            ParticipantType = AdminCombatReadOnlyViewModel.Str(source, "participantType"),
-            IsActive = AdminCombatReadOnlyViewModel.Bool(source, "isActive"),
-            IsDefeated = AdminCombatReadOnlyViewModel.Bool(source, "isDefeated"),
-            IsHidden = AdminCombatReadOnlyViewModel.Bool(source, "isHidden"),
-            CurrentHealth = AdminCombatReadOnlyViewModel.Int(source, "currentHealth"),
-            MaxHealth = AdminCombatReadOnlyViewModel.Int(source, "maxHealth"),
-            TemporaryHealth = AdminCombatReadOnlyViewModel.Int(source, "temporaryHealth"),
-            CurrentMorale = AdminCombatReadOnlyViewModel.Int(source, "currentMorale"),
-            MaxMorale = AdminCombatReadOnlyViewModel.Int(source, "maxMorale"),
-            ConditionCount = AdminCombatReadOnlyViewModel.Int(source, "conditionCount"),
-            ActiveConditionNames = conditionNames,
-            Initiative = AdminCombatReadOnlyViewModel.Int(source, "initiative"),
-            HasActedThisRound = AdminCombatReadOnlyViewModel.Bool(source, "hasActedThisRound"),
-            IsCurrentTurn = string.Equals(id, activeParticipantId, StringComparison.OrdinalIgnoreCase),
-            ActionPoints = AdminCombatReadOnlyViewModel.Int(source, "actionPoints"),
-            MinorActionPoints = AdminCombatReadOnlyViewModel.Int(source, "minorActionPoints"),
-            ReactionCount = AdminCombatReadOnlyViewModel.Int(source, "reactionCount"),
-            ReactionLimit = AdminCombatReadOnlyViewModel.Int(source, "reactionLimit"),
-            PositionSummary = AdminCombatReadOnlyViewModel.Str(source, "positionSummary"),
-            CoverState = AdminCombatReadOnlyViewModel.Str(source, "coverState"),
-            VisibilityState = AdminCombatReadOnlyViewModel.Str(source, "visibilityState")
+            "player_character" => "Персонаж",
+            "npc" => "NPC",
+            "companion" => "Компаньон",
+            "enemy" => "Враг",
+            "neutral" => "Нейтральный",
+            "creature" => "Существо",
+            "vehicle" => "Техника",
+            _ => "Другое"
         };
     }
-}
 
-public sealed class CombatLogUiItem
-{
-    public DateTime CreatedAtUtc { get; set; }
-    public int RoundNumber { get; set; }
-    public int TurnIndex { get; set; }
-    public string EventType { get; set; } = string.Empty;
-    public string ActorParticipantId { get; set; } = string.Empty;
-    public string Message { get; set; } = string.Empty;
-    public string Visibility { get; set; } = string.Empty;
-    public string RequestId { get; set; } = string.Empty;
-    public string RoundTurnText => $"R{RoundNumber}/T{TurnIndex}";
-    public string CreatedText => CreatedAtUtc == DateTime.MinValue ? string.Empty : CreatedAtUtc.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture);
-
-    public static CombatLogUiItem From(IDictionary<string, object> source) => new CombatLogUiItem
+    internal static string DisplayVisibility(string visibility)
     {
-        CreatedAtUtc = AdminCombatReadOnlyViewModel.Date(source, "createdAtUtc"),
-        RoundNumber = AdminCombatReadOnlyViewModel.Int(source, "roundNumber"),
-        TurnIndex = AdminCombatReadOnlyViewModel.Int(source, "turnIndex"),
-        EventType = AdminCombatReadOnlyViewModel.Str(source, "eventType"),
-        ActorParticipantId = AdminCombatReadOnlyViewModel.Str(source, "actorParticipantId"),
-        Message = AdminCombatReadOnlyViewModel.Str(source, "message"),
-        Visibility = AdminCombatReadOnlyViewModel.Str(source, "visibility"),
-        RequestId = AdminCombatReadOnlyViewModel.Str(source, "requestId")
+        return (visibility ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "player_visible" => "Виден игрокам",
+            "gm_only" => "Только GM",
+            "hidden" => "Скрыт",
+            _ => "Скрыт"
+        };
+    }
+
+    private static string DisplayHitResult(string value) => (value ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "critical_hit" => "критическое попадание",
+        "hit" => "попадание",
+        "miss" => "промах",
+        "fumble" => "критическая неудача",
+        _ => "результат получен"
+    };
+
+    private static string DisplayDegree(string value) => (value ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "exceptional" => "исключительный успех",
+        "strong" => "сильный успех",
+        "ordinary" => "обычный успех",
+        "failure" => "неудача",
+        _ => "степень не определена"
+    };
+
+    private static string DisplayProtectionZone(string value) => (value ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "front" => "лобовая броня",
+        "side" => "бортовая броня",
+        "rear" => "кормовая броня",
+        _ => "корпус / торс"
     };
 }
 
-public sealed class CombatReplayUiItem
+public sealed class AdminCombatSkillOptionVm
+{
+    public string SkillCode { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string DefaultAttribute { get; set; } = string.Empty;
+    public string DefaultSubAttribute { get; set; } = string.Empty;
+    public int Rank { get; set; }
+    public string MasteryBand { get; set; } = string.Empty;
+    public int ProficiencyBonus { get; set; }
+    public string Summary => $"{Name} · ранг {Rank} · {MasteryBand} ({ProficiencyBonus:+0;-0;0})";
+    public override string ToString() => Summary;
+}
+
+public sealed class AdminCombatWeaponOptionVm
+{
+    public string ItemInstanceId { get; set; } = string.Empty;
+    public string DefinitionId { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public override string ToString() => DisplayName;
+}
+
+public sealed class AdminCombatFacingOptionVm
+{
+    public AdminCombatFacingOptionVm(string code, string displayName)
+    {
+        Code = code;
+        DisplayName = displayName;
+    }
+
+    public string Code { get; }
+    public string DisplayName { get; }
+    public override string ToString() => DisplayName;
+}
+
+public sealed class AdminCombatTrackerCombatItem : ViewModelBase
+{
+    public string CombatId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public int RoundNumber { get; set; }
+    public int CurrentTurnIndex { get; set; }
+    public string CurrentParticipantId { get; set; } = string.Empty;
+    public string CurrentParticipantName { get; set; } = string.Empty;
+    public int ParticipantCount { get; set; }
+    public DateTime UpdatedAtUtc { get; set; }
+
+    public string Summary => $"{Name} · {DisplayStatus} · раунд {RoundNumber}";
+    public override string ToString() => Summary;
+    public string DisplayStatus => Status switch
+    {
+        "setup" => "Подготовка",
+        "draft" => "Подготовка",
+        "active" => "Активен",
+        "paused" => "Пауза",
+        "ended" => "Завершен",
+        "archived" => "Архив",
+        _ => Status
+    };
+
+    public void Apply(AdminCombatTrackerCombatItem other)
+    {
+        CombatId = other.CombatId;
+        Name = other.Name;
+        Status = other.Status;
+        RoundNumber = other.RoundNumber;
+        CurrentTurnIndex = other.CurrentTurnIndex;
+        CurrentParticipantId = other.CurrentParticipantId;
+        CurrentParticipantName = other.CurrentParticipantName;
+        ParticipantCount = other.ParticipantCount;
+        UpdatedAtUtc = other.UpdatedAtUtc;
+        Notify(string.Empty);
+    }
+
+    public static AdminCombatTrackerCombatItem From(Dictionary<string, object> map) => new()
+    {
+        CombatId = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "combatId"), AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "id"))),
+        Name = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "name"), "Бой"),
+        Status = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "status"), "draft"),
+        RoundNumber = AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "roundNumber")),
+        CurrentTurnIndex = AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "currentTurnIndex"), AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "activeTurnIndex"), -1)),
+        CurrentParticipantId = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "currentParticipantId"), AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "activeParticipantId"))),
+        CurrentParticipantName = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "currentParticipantName"), "нет активного участника"),
+        ParticipantCount = AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "participantCount")),
+        UpdatedAtUtc = AdminCombatReadOnlyViewModel.Date(AdminCombatReadOnlyViewModel.Get(map, "updatedAtUtc"))
+    };
+}
+
+public sealed class AdminCombatTrackerParticipantItem : ViewModelBase
+{
+    public string ParticipantId { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string ParticipantType { get; set; } = string.Empty;
+    public string TeamId { get; set; } = string.Empty;
+    public string CharacterId { get; set; } = string.Empty;
+    public string ControllerUserId { get; set; } = string.Empty;
+    public int InitiativeRoll { get; set; }
+    public int InitiativeOrderIndex { get; set; }
+    public string TurnStatus { get; set; } = string.Empty;
+    public int StandardActions { get; set; }
+    public int MinorActions { get; set; }
+    public bool ReactionAvailable { get; set; }
+    public bool Natural20BonusTurn { get; set; }
+    public bool Natural1FirstTurnPenalty { get; set; }
+    public string VisibilityMode { get; set; } = string.Empty;
+    public string PublicStateText { get; set; } = string.Empty;
+    public string GmStateText { get; set; } = string.Empty;
+    public string PublicNotes { get; set; } = string.Empty;
+    public string GmNotes { get; set; } = string.Empty;
+    public string MapTokenId { get; set; } = string.Empty;
+    public string MapTokenDisplayName { get; set; } = string.Empty;
+    public string MapTokenVisibility { get; set; } = string.Empty;
+
+    public string TypeLabel => AdminCombatReadOnlyViewModel.DisplayType(ParticipantType);
+    public string VisibilityLabel => AdminCombatReadOnlyViewModel.DisplayVisibility(VisibilityMode);
+    public string ActionSummary => $"Половины действия: {StandardActions}/2; реакция {(ReactionAvailable ? "доступна" : "потрачена")}";
+    public string InitiativeSummary => InitiativeRoll <= 0 ? "-" : Natural20BonusTurn ? $"{InitiativeRoll} + доп. ход" : Natural1FirstTurnPenalty ? $"{InitiativeRoll} / ограничен" : InitiativeRoll.ToString(CultureInfo.InvariantCulture);
+    public string TokenSummary => string.IsNullOrWhiteSpace(MapTokenId) ? "Без токена" : $"{MapTokenDisplayName} ({MapTokenId})";
+    public override string ToString() => DisplayName;
+
+    public static AdminCombatTrackerParticipantItem From(Dictionary<string, object> map) => new()
+    {
+        ParticipantId = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "participantId"), AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "id"))),
+        DisplayName = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "displayName"), "Участник"),
+        ParticipantType = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "participantType"), "custom"),
+        TeamId = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "teamId"), "neutral"),
+        CharacterId = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "characterId")),
+        ControllerUserId = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "controllerUserId")),
+        InitiativeRoll = AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "initiativeRoll"), AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "initiative"))),
+        InitiativeOrderIndex = AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "initiativeOrderIndex"), 9999),
+        TurnStatus = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "turnStatus"), "waiting"),
+        StandardActions = AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "standardActions"), AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "actionPoints"), 2)),
+        MinorActions = AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "minorActions"), AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "minorActionPoints"))),
+        ReactionAvailable = AdminCombatReadOnlyViewModel.Get(map, "reactionAvailable") != null
+            ? AdminCombatReadOnlyViewModel.Bool(AdminCombatReadOnlyViewModel.Get(map, "reactionAvailable"))
+            : AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "reactionCount")) < AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "reactionLimit"), 1),
+        Natural20BonusTurn = AdminCombatReadOnlyViewModel.Bool(AdminCombatReadOnlyViewModel.Get(map, "natural20BonusTurn")),
+        Natural1FirstTurnPenalty = AdminCombatReadOnlyViewModel.Bool(AdminCombatReadOnlyViewModel.Get(map, "natural1FirstTurnPenalty")),
+        VisibilityMode = AdminCombatReadOnlyViewModel.Get(map, "isHidden") != null
+            ? (AdminCombatReadOnlyViewModel.Bool(AdminCombatReadOnlyViewModel.Get(map, "isHidden")) ? "hidden" : "player_visible")
+            : AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "visibilityMode"), "hidden"),
+        PublicStateText = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "publicStateText")),
+        GmStateText = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "gmStateText")),
+        PublicNotes = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "publicNotes")),
+        GmNotes = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "gmNotes")),
+        MapTokenId = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "mapTokenId")),
+        MapTokenDisplayName = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "mapTokenDisplayName")),
+        MapTokenVisibility = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "mapTokenVisibility"), "hidden")
+    };
+}
+
+public sealed class AdminCombatMapTokenItem : ViewModelBase
+{
+    public string TokenId { get; set; } = string.Empty;
+    public string ParticipantId { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string ParticipantName { get; set; } = string.Empty;
+    public string TokenType { get; set; } = string.Empty;
+    public string LinkStatus { get; set; } = string.Empty;
+    public string VisibilityMode { get; set; } = string.Empty;
+    public string TokenVisibility { get; set; } = string.Empty;
+    public string BadgeText { get; set; } = string.Empty;
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double SizeMeters { get; set; } = 1d;
+    public double RadiusMeters { get; set; }
+    public double PixelX { get; set; }
+    public double PixelY { get; set; }
+    public double PixelLeft { get; set; }
+    public double PixelTop { get; set; }
+    public double PixelDiameter { get; set; } = 20d;
+    public bool IsCurrentTurn { get; set; }
+    public bool CanJoinCombat { get; set; }
+    public string CombatVisibility => TokenVisibility switch
+    {
+        "PlayerVisible" => "player_visible",
+        "GmOnly" => "gm_only",
+        _ => "hidden"
+    };
+    public string PositionText => $"{X:0.##}; {Y:0.##} м";
+    public string Summary => string.IsNullOrWhiteSpace(ParticipantId)
+        ? $"{DisplayName} | {TokenType} | {PositionText}"
+        : $"{ParticipantName} -> {DisplayName} | {LinkStatus} | {PositionText}";
+    public string TurnBadge => IsCurrentTurn ? "Текущий ход" : string.Empty;
+    public string CanvasLabel => string.IsNullOrWhiteSpace(ParticipantName) ? DisplayName : ParticipantName;
+    public string CanvasBadge => FirstNonEmpty(BadgeText, TurnBadge, AdminCombatReadOnlyViewModel.DisplayVisibility(VisibilityMode));
+    public string SideStatusBadge => $"{AdminCombatReadOnlyViewModel.DisplayType(TokenType)} / {AdminCombatReadOnlyViewModel.DisplayVisibility(VisibilityMode)}";
+
+    public void ApplyScale(double scale)
+    {
+        PixelX = MapCanvasProjectionHelper.ToPixel(X, scale);
+        PixelY = MapCanvasProjectionHelper.ToPixel(Y, scale);
+        var meters = RadiusMeters > 0 ? RadiusMeters * 2d : Math.Max(1d, SizeMeters);
+        PixelDiameter = Math.Max(18d, MapCanvasProjectionHelper.ToPixel(meters, scale));
+        PixelLeft = PixelX - (PixelDiameter / 2d);
+        PixelTop = PixelY - (PixelDiameter / 2d);
+        Notify(nameof(PixelX));
+        Notify(nameof(PixelY));
+        Notify(nameof(PixelLeft));
+        Notify(nameof(PixelTop));
+        Notify(nameof(PixelDiameter));
+        Notify(nameof(CanvasLabel));
+        Notify(nameof(CanvasBadge));
+        Notify(nameof(SideStatusBadge));
+    }
+
+    public static AdminCombatMapTokenItem From(Dictionary<string, object> map, bool overlay)
+    {
+        return new AdminCombatMapTokenItem
+        {
+            TokenId = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "mapTokenId"), AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "tokenId"))),
+            ParticipantId = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "participantId")),
+            DisplayName = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "mapTokenDisplayName"), AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "displayName"), AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "tokenId")))),
+            ParticipantName = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "participantName"), AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "displayName"))),
+            TokenType = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "tokenType")),
+            LinkStatus = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "linkStatus"), overlay ? "linked" : "joinable"),
+            VisibilityMode = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "visibilityMode")),
+            TokenVisibility = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "tokenVisibility"), AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "visibility"))),
+            BadgeText = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "mapBadgeText")),
+            X = double.TryParse(Convert.ToString(AdminCombatReadOnlyViewModel.Get(map, "x"), CultureInfo.InvariantCulture), NumberStyles.Any, CultureInfo.InvariantCulture, out var x) ? x : 0d,
+            Y = double.TryParse(Convert.ToString(AdminCombatReadOnlyViewModel.Get(map, "y"), CultureInfo.InvariantCulture), NumberStyles.Any, CultureInfo.InvariantCulture, out var y) ? y : 0d,
+            SizeMeters = AdminCombatReadOnlyViewModel.Dbl(AdminCombatReadOnlyViewModel.Get(map, "size"), 1d),
+            RadiusMeters = AdminCombatReadOnlyViewModel.Dbl(AdminCombatReadOnlyViewModel.Get(map, "radius"), 0d),
+            IsCurrentTurn = AdminCombatReadOnlyViewModel.Bool(AdminCombatReadOnlyViewModel.Get(map, "isCurrentTurn")),
+            CanJoinCombat = AdminCombatReadOnlyViewModel.Bool(AdminCombatReadOnlyViewModel.Get(map, "canJoinCombat"))
+        };
+    }
+
+    private static string FirstNonEmpty(params string[] values)
+    {
+        foreach (var value in values)
+            if (!string.IsNullOrWhiteSpace(value)) return value;
+        return string.Empty;
+    }
+}
+
+public sealed class AdminCombatTrackerLogItem
 {
     public long SequenceNumber { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public string EventType { get; set; } = string.Empty;
     public int RoundNumber { get; set; }
     public int TurnIndex { get; set; }
-    public string ActorParticipantId { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
     public string Visibility { get; set; } = string.Empty;
-    public string CreatedText => CreatedAtUtc == DateTime.MinValue ? string.Empty : CreatedAtUtc.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture);
+    public string DisplayText => $"Раунд {RoundNumber}, ход {TurnIndex}: {Message}";
+    public override string ToString() => DisplayText;
 
-    public static CombatReplayUiItem From(IDictionary<string, object> source) => new CombatReplayUiItem
+    public static AdminCombatTrackerLogItem From(Dictionary<string, object> map) => new()
     {
-        SequenceNumber = AdminCombatReadOnlyViewModel.Long(source, "sequenceNumber"),
-        CreatedAtUtc = AdminCombatReadOnlyViewModel.Date(source, "createdAtUtc"),
-        EventType = AdminCombatReadOnlyViewModel.Str(source, "eventType"),
-        RoundNumber = AdminCombatReadOnlyViewModel.Int(source, "roundNumber"),
-        TurnIndex = AdminCombatReadOnlyViewModel.Int(source, "turnIndex"),
-        ActorParticipantId = AdminCombatReadOnlyViewModel.Str(source, "actorParticipantId"),
-        Visibility = AdminCombatReadOnlyViewModel.Str(source, "visibility")
+        SequenceNumber = long.TryParse(Convert.ToString(AdminCombatReadOnlyViewModel.Get(map, "sequenceNumber"), CultureInfo.InvariantCulture), out var seq) ? seq : 0L,
+        CreatedAtUtc = AdminCombatReadOnlyViewModel.Date(AdminCombatReadOnlyViewModel.Get(map, "createdAtUtc")),
+        EventType = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "eventType")),
+        RoundNumber = AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "roundNumber")),
+        TurnIndex = AdminCombatReadOnlyViewModel.Int(AdminCombatReadOnlyViewModel.Get(map, "turnIndex"), -1),
+        Message = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "message")),
+        Visibility = AdminCombatReadOnlyViewModel.Str(AdminCombatReadOnlyViewModel.Get(map, "visibility"))
     };
 }
 
-public sealed class CombatDiagnosticsSectionUiItem
-{
-    public string Section { get; set; } = string.Empty;
-    public bool IsValid { get; set; }
-    public int ErrorCount { get; set; }
-    public int WarningCount { get; set; }
-    public string StatusText => IsValid ? "OK" : "Есть проблемы";
 
-    public static CombatDiagnosticsSectionUiItem From(IDictionary<string, object> source)
-    {
-        return new CombatDiagnosticsSectionUiItem
-        {
-            Section = AdminCombatReadOnlyViewModel.Str(source, "section"),
-            IsValid = AdminCombatReadOnlyViewModel.Bool(source, "isValid"),
-            ErrorCount = AdminCombatReadOnlyViewModel.AsList(AdminCombatReadOnlyViewModel.Get(source, "errors")).Count(),
-            WarningCount = AdminCombatReadOnlyViewModel.AsList(AdminCombatReadOnlyViewModel.Get(source, "warnings")).Count()
-        };
-    }
-}
-
-public sealed class CombatInitiativeUiItem
-{
-    public string ParticipantId { get; set; } = string.Empty;
-    public string DisplayName { get; set; } = string.Empty;
-    public int Initiative { get; set; }
-    public int OrderIndex { get; set; }
-    public bool IsDelayed { get; set; }
-    public bool IsSkipped { get; set; }
-    public bool IsDefeated { get; set; }
-
-    public static CombatInitiativeUiItem From(IDictionary<string, object> source) => new CombatInitiativeUiItem
-    {
-        ParticipantId = AdminCombatReadOnlyViewModel.Str(source, "participantId"),
-        DisplayName = AdminCombatReadOnlyViewModel.Str(source, "displayName"),
-        Initiative = AdminCombatReadOnlyViewModel.Int(source, "initiative"),
-        OrderIndex = AdminCombatReadOnlyViewModel.Int(source, "orderIndex"),
-        IsDelayed = AdminCombatReadOnlyViewModel.Bool(source, "isDelayed"),
-        IsSkipped = AdminCombatReadOnlyViewModel.Bool(source, "isSkipped"),
-        IsDefeated = AdminCombatReadOnlyViewModel.Bool(source, "isDefeated")
-    };
-}
 

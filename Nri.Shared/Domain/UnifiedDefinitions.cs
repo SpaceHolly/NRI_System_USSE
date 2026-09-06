@@ -40,6 +40,7 @@ public static class DefinitionCategoryIds
     public const string Skill = "skill";
     public const string DevelopmentNode = "developmentNode";
     public const string DevelopmentHexagon = "developmentHexagon";
+    public const string InitialDevelopmentPolicy = "initialDevelopmentPolicy";
     public const string Class = "class";
     public const string Race = "race";
     public const string Subspecies = "subspecies";
@@ -59,8 +60,13 @@ public static class DefinitionCategoryIds
     public const string ConditionGroup = "conditionGroup";
     public const string ConditionTag = "conditionTag";
     public const string DamageType = "damageType";
+    public const string MagicMethod = "magicMethod";
+    public const string MagicDirection = "magicDirection";
     public const string Spell = "spell";
     public const string Seal = "seal";
+    public const string ArcanaForm = "arcanaForm";
+    public const string Ritual = "ritual";
+    public const string Effect = "effect";
     public const string MagicPath = "magicPath";
     public const string MagicElement = "magicElement";
     public const string MagicStone = "magicStone";

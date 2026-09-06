@@ -1,0 +1,143 @@
+<UserControl x:Class="Nri.AdminClient.Views.Conduct.AdminRestView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:AutomationProperties="clr-namespace:System.Windows.Automation;assembly=UIAutomationTypes"
+             xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminRest_Route">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminRest_OperationalHost">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,8">
+            <TextBlock Text="Отдых и действия" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Button Content="Обновить" Command="{Binding RefreshCommand}" Margin="16,0,0,0"/>
+            <TextBlock Text="{Binding StatusMessage}" Margin="16,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center"/>
+        </DockPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0" Margin="0,0,10,0">
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock Text="Сессия отдыха" FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding RestTypes}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding RestType}" AutomationProperties.AutomationId="AdminRest_Type" Margin="0,6,0,0"/>
+                    <controls:NriDurationField Amount="{Binding DurationMinutes, Mode=TwoWay}" Unit="minutes" MinimumMinutes="1" AccessibleName="Плановая длительность отдыха" AutomationProperties.AutomationId="AdminRest_Duration" Margin="0,6,0,0"/>
+                    <ComboBox ItemsSource="{Binding VisibilityModes}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding Visibility}" Margin="0,6,0,0"/>
+                    <ComboBox ItemsSource="{Binding Qualities}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding RestQuality}" Margin="0,6,0,0"/>
+                    <ComboBox ItemsSource="{Binding SafetyModes}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding LocationSafety}" Margin="0,6,0,0"/>
+                    <TextBox Text="{Binding PlayerSummary, UpdateSourceTrigger=PropertyChanged}" MinHeight="52" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,0"/>
+                    <TextBox Text="{Binding GmNotes, UpdateSourceTrigger=PropertyChanged}" MinHeight="52" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,0"/>
+                    <WrapPanel Margin="0,6,0,8">
+                        <Button Content="Создать" Command="{Binding CreateRestCommand}" AutomationProperties.AutomationId="AdminRest_Create" Margin="0,0,6,0"/>
+                        <Button Content="Сохранить" Command="{Binding SaveRestCommand}" AutomationProperties.AutomationId="AdminRest_Details"/>
+                    </WrapPanel>
+                    <Expander Header="Дополнительно: контекст сессии" Margin="0,0,0,8">
+                        <StackPanel Margin="0,6,0,0">
+                            <TextBlock Text="Кампания" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBox AutomationProperties.AutomationId="AdminRest_Advanced_CampaignId" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Сессия" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+                            <TextBox AutomationProperties.AutomationId="AdminRest_Advanced_SessionId" Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                    </Expander>
+                </StackPanel>
+                <ListBox ItemsSource="{Binding RestSessions}" SelectedItem="{Binding SelectedRest}" DisplayMemberPath="Summary" AutomationProperties.AutomationId="AdminRest_List"/>
+            </DockPanel>
+
+            <Grid Grid.Column="1" Margin="0,0,10,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <WrapPanel Grid.Row="0" Margin="0,0,0,6">
+                    <Button Content="Старт" Command="{Binding StartRestCommand}" AutomationProperties.AutomationId="AdminRest_Start" Margin="0,0,6,0"/>
+                    <Button Content="Завершить" Command="{Binding CompleteRestCommand}" AutomationProperties.AutomationId="AdminRest_Complete" Margin="0,0,6,0"/>
+                    <Button Content="Прервать" Command="{Binding InterruptRestCommand}" AutomationProperties.AutomationId="AdminRest_Interrupt" Margin="0,0,6,0"/>
+                    <Button Content="Отменить" Command="{Binding CancelRestCommand}"/>
+                </WrapPanel>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding Participants}" SelectedItem="{Binding SelectedParticipant}" AutoGenerateColumns="False" IsReadOnly="True" AutomationProperties.AutomationId="AdminRest_ParticipantList">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Участник" Binding="{Binding DisplayName}" Width="*"/>
+                        <DataGridTextColumn Header="Статус" Binding="{Binding ParticipationStatus}" Width="120"/>
+                        <DataGridTextColumn Header="Восстановление" Binding="{Binding RecoveryResult}" Width="110"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Grid.Row="2" Margin="0,8,0,6">
+                    <TextBlock Text="Добавить участника" FontWeight="SemiBold"/>
+                    <controls:NriReferencePicker Options="{Binding ParticipantCharacterOptions}"
+                                                 SelectedId="{Binding ParticipantCharacterId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 DisplayName="{Binding ParticipantName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 AutomationIdPrefix="AdminRest_Participant"
+                                                 AutomationProperties.Name="Выберите участника отдыха"
+                                                 Margin="0,4,0,4"/>
+                    <ComboBox ItemsSource="{Binding ParticipantKinds}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding ParticipantKind}" Margin="0,0,0,4"/>
+                    <Expander Header="Дополнительно: учётная запись игрока">
+                        <TextBox AutomationProperties.AutomationId="AdminRest_Advanced_PlayerUserId" Text="{Binding ParticipantPlayerUserId, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Технический ключ игрока, если он не определяется из персонажа"
+                                 Margin="0,4,0,4"/>
+                    </Expander>
+                    <CheckBox Content="Может получить восстановление" IsChecked="{Binding EligibleForRecovery}"/>
+                    <WrapPanel Margin="0,6,0,0">
+                        <Button Content="Добавить" Command="{Binding AddParticipantCommand}" AutomationProperties.AutomationId="AdminRest_AddParticipant" Margin="0,0,6,0"/>
+                        <Button Content="Действует отдельно" Command="{Binding SetParticipantActingCommand}"/>
+                    </WrapPanel>
+                </StackPanel>
+
+                <ListBox Grid.Row="3" ItemsSource="{Binding AuditRows}" AutomationProperties.AutomationId="AdminRest_Audit"/>
+            </Grid>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <DataGrid Grid.Row="0" ItemsSource="{Binding DowntimeActions}" SelectedItem="{Binding SelectedDowntimeAction}" AutoGenerateColumns="False" IsReadOnly="True" AutomationProperties.AutomationId="AdminRest_DowntimeActionList">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Тип" Binding="{Binding ActionType}" Width="120"/>
+                        <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="120"/>
+                        <DataGridTextColumn Header="Описание" Binding="{Binding PlayerText}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <StackPanel Grid.Row="1" Margin="0,8">
+                    <TextBlock Text="Действие во время отдыха" FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding DowntimeTypes}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding DowntimeType}"/>
+                    <TextBox Text="{Binding DowntimeText, UpdateSourceTrigger=PropertyChanged}" MinHeight="44" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,0"/>
+                    <controls:NriDurationField Amount="{Binding DowntimeDurationMinutes, Mode=TwoWay}" Unit="minutes" MinimumMinutes="0" AccessibleName="Длительность действия" Margin="0,6,0,0"/>
+                    <TextBox Text="{Binding GmResult, UpdateSourceTrigger=PropertyChanged}" MinHeight="44" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,0"/>
+                    <WrapPanel Margin="0,6,0,0">
+                        <Button Content="Создать" Command="{Binding CreateDowntimeCommand}" Margin="0,0,6,0"/>
+                        <Button Content="Одобрить" Command="{Binding ApproveDowntimeCommand}" AutomationProperties.AutomationId="AdminRest_ApproveDowntimeAction" Margin="0,0,6,0"/>
+                        <Button Content="Завершить" Command="{Binding CompleteDowntimeCommand}" AutomationProperties.AutomationId="AdminRest_CompleteDowntimeAction"/>
+                    </WrapPanel>
+                </StackPanel>
+
+                <DataGrid Grid.Row="2" ItemsSource="{Binding RecoveryGrants}" SelectedItem="{Binding SelectedRecoveryGrant}" AutoGenerateColumns="False" IsReadOnly="True" AutomationProperties.AutomationId="AdminRest_RecoveryGrantList">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Тип" Binding="{Binding GrantType}" Width="140"/>
+                        <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="140"/>
+                        <DataGridTextColumn Header="Итог" Binding="{Binding RecoverySummaryPlayer}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Button Grid.Row="3" Content="Применить восстановление" Command="{Binding ApplyRecoveryGrantCommand}" AutomationProperties.AutomationId="AdminRest_ApplyRecoveryGrant" Margin="0,8"/>
+                <TextBlock Grid.Row="4" Text="Восстановление применяется только после решения GM. Автоматическое лечение состояний не выполняется." TextWrapping="Wrap"/>
+            </Grid>
+        </Grid>
+
+        <TextBlock Grid.Row="2" Text="Отдых под контролем GM: время планируется и журналируется, но глобальный календарь и медицина не автоматизируются." Margin="0,8,0,0"/>
+    </Grid>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

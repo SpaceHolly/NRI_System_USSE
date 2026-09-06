@@ -7,6 +7,7 @@ using System.Windows.Input;
 using Nri.AdminClient.Diagnostics;
 using Nri.AdminClient.Networking;
 using Nri.Shared.Contracts;
+using Nri.Ui.Wpf.Controls;
 
 namespace Nri.AdminClient.ViewModels;
 
@@ -45,6 +46,7 @@ public sealed class AdminEngineeringViewModel : ViewModelBase
     public ObservableCollection<EngineeringPresetUiItem> Presets { get; } = new();
     public ObservableCollection<EngineeringProjectUiItem> Projects { get; } = new();
     public ObservableCollection<string> ValidationRows { get; } = new();
+    public ObservableCollection<NriReferenceOption> ProjectActorOptions { get; } = new();
 
     public ICommand RefreshCommand { get; }
     public ICommand CreatePlatformCommand { get; }
@@ -63,6 +65,8 @@ public sealed class AdminEngineeringViewModel : ViewModelBase
 
     public string CampaignId { get => _campaignId; set { if (_campaignId != value) { _campaignId = value; Notify(); } } }
     public string RuleSetId { get => _ruleSetId; set { if (_ruleSetId != value) { _ruleSetId = value; Notify(); } } }
+    public string CampaignContextSummary => "Кампания: текущий контекст";
+    public string RuleSetContextSummary => "Набор правил: текущий контекст";
     public string StatusMessage { get => _statusMessage; private set { if (_statusMessage != value) { _statusMessage = value; Notify(); } } }
     public string ErrorMessage { get => _errorMessage; private set { if (_errorMessage != value) { _errorMessage = value; Notify(); } } }
     public EngineeringPlatformUiItem? SelectedPlatform { get => _selectedPlatform; set { if (_selectedPlatform != value) { _selectedPlatform = value; Notify(); if (value != null) ProjectPlatformId = value.PlatformId; } } }
@@ -97,6 +101,7 @@ public sealed class AdminEngineeringViewModel : ViewModelBase
     public string ProjectModuleIds { get; set; } = string.Empty;
     public string ProjectOwnerUserId { get; set; } = string.Empty;
     public string ProjectActorEntityId { get; set; } = string.Empty;
+    public string ProjectActorDisplayName => string.IsNullOrWhiteSpace(ProjectActorEntityId) ? "Актор не выбран" : "Выбранный актор";
     public string ProjectIntendedRole { get; set; } = string.Empty;
     public string ProgressAmount { get; set; } = "10";
 

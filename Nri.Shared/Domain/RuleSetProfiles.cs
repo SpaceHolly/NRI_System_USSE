@@ -197,6 +197,8 @@ public sealed class DevelopmentProfile
     public string Vocation { get; set; } = string.Empty;
     public int TotalXpSpent { get; set; }
     public int Revision { get; set; }
+    public List<string> RecentOperationIds { get; set; } = new List<string>();
+    public InitialDevelopmentState? InitialDevelopment { get; set; }
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public int SchemaVersion { get; set; } = 1;
 }
@@ -261,7 +263,7 @@ public sealed class CharacterWalletValue
     public string Notes { get; set; } = string.Empty;
 }
 
-// Canonical race/species identity profile. Legacy Character remains authoritative.
+// Canonical race/species identity profile used by Character v2 read/write paths.
 public sealed class RaceOrSpeciesProfile
 {
     public string CharacterId { get; set; } = string.Empty;
@@ -272,11 +274,20 @@ public sealed class RaceOrSpeciesProfile
     public string SubspeciesId { get; set; } = string.Empty;
     public string HybridId { get; set; } = string.Empty;
     public string HybridSubtypeId { get; set; } = string.Empty;
+    public string Parent1RaceId { get; set; } = string.Empty;
+    public string Parent2RaceId { get; set; } = string.Empty;
+    public string Parent1SubtypeId { get; set; } = string.Empty;
+    public string Parent2SubtypeId { get; set; } = string.Empty;
+    public string ElementalLineageId { get; set; } = string.Empty;
+    public string InheritedAspectId { get; set; } = string.Empty;
+    public string FlightInheritancePermissionId { get; set; } = string.Empty;
+    public List<string> ResolvedTraitIds { get; set; } = new List<string>();
+    public string OriginKind { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string Source { get; set; } = "legacy_shadow";
     public string Notes { get; set; } = string.Empty;
     public List<string> Tags { get; set; } = new List<string>();
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
 }
 
 // Body/health-like derived values (system-agnostic).
@@ -292,13 +303,31 @@ public sealed class BodyProfile
     public string HeightText { get; set; } = string.Empty;
     public int AgeYears { get; set; }
     public string AgeText { get; set; } = string.Empty;
+    public int AgeAnchorYears { get; set; }
+    public string AgeAnchorWorldDate { get; set; } = string.Empty;
+    public int AgeAnchorWorldAbsoluteDay { get; set; }
+    public int AgeAnchorWorldYearLengthDays { get; set; } = WorldCalendarDefaults.DaysPerYear;
     public string SizeCategory { get; set; } = string.Empty;
     public List<string> BodyTags { get; set; } = new List<string>();
     public List<string> EquipmentCompatibilityTags { get; set; } = new List<string>();
+    public string EnvironmentalToleranceProfileId { get; set; } = string.Empty;
+    public List<EnvironmentalToleranceModifier> EnvironmentalToleranceModifiers { get; set; } = new List<EnvironmentalToleranceModifier>();
+    public int BaseHealth { get; set; }
+    public int NaturalArmorRating { get; set; }
+    public int NaturalPenetrationResistance { get; set; }
+    public int AdultAgeYears { get; set; }
+    public int AverageLifespanYears { get; set; }
+    public int MaximumLifespanYears { get; set; }
+    public List<BodyZoneDefinition> BodyZones { get; set; } = new List<BodyZoneDefinition>();
+    public RaceEquipmentFitProfile EquipmentFit { get; set; } = new RaceEquipmentFitProfile();
+    public List<RacialSenseDefinition> RacialSenses { get; set; } = new List<RacialSenseDefinition>();
+    public List<RacialMovementAbilityDefinition> MovementAbilities { get; set; } = new List<RacialMovementAbilityDefinition>();
+    public List<NaturalAttackDefinition> NaturalAttacks { get; set; } = new List<NaturalAttackDefinition>();
+    public List<ElementalResistanceTier> ElementalResistances { get; set; } = new List<ElementalResistanceTier>();
     public string Notes { get; set; } = string.Empty;
     public string Source { get; set; } = "legacy_shadow";
     public Dictionary<string, int> BodyStats { get; set; } = new Dictionary<string, int>();
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
 }
 
 // Knowledge + language holder for modular rulesets.
@@ -306,6 +335,29 @@ public sealed class KnowledgeProfile
 {
     public List<string> KnownTopics { get; set; } = new List<string>();
     public List<string> Languages { get; set; } = new List<string>();
+    public List<CharacterLanguageProficiency> LanguageProficiencies { get; set; } = new List<CharacterLanguageProficiency>();
+    public int Revision { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
+}
+
+public sealed class CharacterLanguageProficiency
+{
+    public string LanguageId { get; set; } = string.Empty;
+    public int Level { get; set; }
+    public string SourceType { get; set; } = LanguageProficiencySourceTypeIds.Unknown;
+    public string SourceId { get; set; } = string.Empty;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+public static class LanguageProficiencySourceTypeIds
+{
+    public const string Native = "native";
+    public const string Heritage = "heritage";
+    public const string Education = "education";
+    public const string InitialKnowledge = "initial_knowledge";
+    public const string Training = "training";
+    public const string GmOverride = "gm_override";
+    public const string Unknown = "unknown";
 }
 
 // Current dynamic conditions (effects, statuses, traumas, etc).
@@ -344,6 +396,10 @@ public sealed class CharacterInventoryItemProfileValue
     public string Condition { get; set; } = string.Empty;
     public int Ammo { get; set; }
     public bool IsEquipped { get; set; }
+    public string MeasurementInstrumentProfileId { get; set; } = string.Empty;
+    public bool IsCalibrated { get; set; } = true;
+    public decimal MeasurementCalibrationOffset { get; set; }
+    public string EnvironmentalProtectionProfileId { get; set; } = string.Empty;
     public string SlotId { get; set; } = string.Empty;
     public bool IsPlayerVisible { get; set; } = true;
     public int SortOrder { get; set; }
@@ -428,6 +484,7 @@ public sealed class CharacterCompanionProfileValue
     public string OwnerDisplayName { get; set; } = string.Empty;
     public string InitiativeMode { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public Dictionary<string, int> ResourceMaximums { get; set; } = new Dictionary<string, int>();
     public bool HasSeparateInventory { get; set; }
     public bool IsPlayerVisible { get; set; } = true;
     public bool IsArchived { get; set; }

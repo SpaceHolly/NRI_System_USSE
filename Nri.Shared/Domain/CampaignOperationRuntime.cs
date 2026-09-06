@@ -5,9 +5,9 @@ namespace Nri.Shared.Domain;
 
 public static class SessionFeatureFlags
 {
-    public const bool UseCurrentSessionMvp = false;
-    public const bool UseSessionStateV1 = false;
-    public const bool UseSessionSceneLink = false;
+    public const bool UseCurrentSessionMvp = true;
+    public const bool UseSessionStateV1 = true;
+    public const bool UseSessionSceneLink = true;
     public const bool UseSessionMapLink = false;
     public const bool UseSessionPlayerView = false;
     public const bool UseSessionQuickLinks = false;
@@ -15,11 +15,11 @@ public static class SessionFeatureFlags
 
 public static class CharacterGroupFeatureFlags
 {
-    public const bool UseCharacterGroupsMvp = false;
-    public const bool UseActiveGroupMvp = false;
-    public const bool UseGroupMembershipV1 = false;
+    public const bool UseCharacterGroupsMvp = true;
+    public const bool UseActiveGroupMvp = true;
+    public const bool UseGroupMembershipV1 = true;
     public const bool UseGroupPlayerView = false;
-    public const bool UseGroupSessionLink = false;
+    public const bool UseGroupSessionLink = true;
 }
 
 public static class CharacterOwnershipFeatureFlags
@@ -148,6 +148,35 @@ public static class ProjectFoundationFeatureFlags
     public const bool UseProjectInventoryReservationBoundary = false;
     public const bool UseProjectKnowledgeBoundary = false;
     public const bool UseProjectBlueprintBoundary = false;
+}
+
+public static class UnifiedProjectRuntimeFeatureFlags
+{
+    public const bool UseUnifiedProjectRuntimeV1 = false;
+    public const bool UseCraftItemProjectV1 = false;
+    public const bool UseResearchTheoryProjectV1 = false;
+    public const bool UseReverseEngineeringProjectV1 = false;
+    public const bool UseCreatePrototypeProjectV1 = false;
+    public const bool UsePrototypeRepairProjectV1 = false;
+    public const bool UseLimitedProductionProjectV1 = false;
+    public const bool UseAssetConstructionProjectV1 = false;
+    public const bool UseAssetMaintenanceProjectV1 = false;
+    public const bool UseUnifiedProjectAdminView = false;
+    public const bool UseUnifiedProjectPlayerView = false;
+    public const bool UseUnifiedResearchAdminView = false;
+    public const bool UseUnifiedResearchPlayerView = false;
+    public const bool UseUnifiedReverseEngineeringAdminView = false;
+    public const bool UseUnifiedReverseEngineeringPlayerView = false;
+    public const bool UseUnifiedPrototypeAdminView = false;
+    public const bool UseUnifiedPrototypePlayerView = false;
+    public const bool UseUnifiedPrototypeRepairAdminView = false;
+    public const bool UseUnifiedPrototypeRepairPlayerView = false;
+    public const bool UseUnifiedLimitedProductionAdminView = false;
+    public const bool UseUnifiedLimitedProductionPlayerView = false;
+    public const bool UseUnifiedAssetConstructionAdminView = false;
+    public const bool UseUnifiedAssetConstructionPlayerView = false;
+    public const bool UseUnifiedAssetMaintenanceAdminView = false;
+    public const bool UseUnifiedAssetMaintenancePlayerView = false;
 }
 
 public static class KnowledgeResearchFeatureFlags
@@ -807,15 +836,19 @@ public static class CraftingResultStatusIds
 
 public static class ProjectTypeIds
 {
+    public const string LanguageTraining = "language_training";
     public const string Research = "research";
+    public const string ResearchTheory = "research_theory";
     public const string Crafting = "crafting";
     public const string EngineeringDesign = "engineering_design";
     public const string Manufacturing = "manufacturing";
     public const string FactoryOrder = "factory_order";
     public const string Construction = "construction";
+    public const string AssetMaintenance = "asset_maintenance";
     public const string Repair = "repair";
     public const string Modification = "modification";
     public const string ReverseEngineering = "reverse_engineering";
+    public const string CreatePrototype = "create_prototype";
     public const string ProductionBatch = "production_batch";
     public const string CustomProposal = "custom_proposal";
     public const string Generic = "generic";
@@ -824,11 +857,15 @@ public static class ProjectTypeIds
 public static class ProjectStatusIds
 {
     public const string Draft = "draft";
+    public const string RequirementsReview = "requirements_review";
+    public const string AwaitingApproval = "awaiting_approval";
     public const string Submitted = "submitted";
     public const string InReview = "in_review";
     public const string Approved = "approved";
     public const string Preparation = "preparation";
+    public const string ResourcesReserved = "resources_reserved";
     public const string WaitingResources = "waiting_resources";
+    public const string InProgress = "in_progress";
     public const string Active = "active";
     public const string Paused = "paused";
     public const string Blocked = "blocked";
@@ -1153,6 +1190,76 @@ public static class ResearchResultTypeIds
     public const string FutureCraftingBoundary = "future_crafting_boundary";
     public const string FutureEngineeringBoundary = "future_engineering_boundary";
     public const string Custom = "custom";
+}
+
+public static class ReverseEngineeringDispositionIds
+{
+    public const string Preserved = "preserved";
+    public const string Damaged = "damaged";
+    public const string Consumed = "consumed";
+    public const string GmDetermined = "gm_determined";
+}
+
+public static class ReverseEngineeringResultStatusIds
+{
+    public const string Prepared = "prepared";
+    public const string Applied = "applied";
+    public const string Failed = "failed";
+}
+
+public static class ReverseEngineeringConfidenceIds
+{
+    public const string Partial = "partial";
+    public const string Substantial = "substantial";
+    public const string Complete = "complete";
+}
+
+public static class PrototypeLifecycleStatusIds
+{
+    public const string AwaitingTest = "awaiting_test";
+    public const string TestedWithDefects = "tested_with_defects";
+    public const string TestedPassed = "tested_passed";
+    public const string TestFailed = "test_failed";
+    public const string RepairInProgress = "repair_in_progress";
+    public const string AwaitingRetest = "awaiting_retest";
+}
+
+public static class PrototypeTestStatusIds
+{
+    public const string AwaitingTest = "awaiting_test";
+    public const string Completed = "completed";
+    public const string AwaitingRetest = "awaiting_retest";
+    public const string RetestCompleted = "retest_completed";
+}
+
+public static class PrototypeProductionApprovalStatusIds
+{
+    public const string NotProductionApproved = "not_production_approved";
+    public const string ApprovedForLimitedProduction = "approved_for_limited_production";
+}
+
+public static class PrototypeTestResultCategoryIds
+{
+    public const string Pass = "pass";
+    public const string PartialPass = "partial_pass";
+    public const string Fail = "fail";
+}
+
+public static class PrototypeProjectOutcomeIds
+{
+    public const string PrototypePassed = "prototype_passed";
+    public const string PrototypeCompletedWithDefects = "prototype_completed_with_defects";
+    public const string PrototypeFailed = "prototype_failed";
+    public const string PrototypeRepairedAndApproved = "prototype_repaired_and_approved";
+}
+
+public static class PrototypeDefectStatusIds
+{
+    public const string Open = "open";
+    public const string RepairInProgress = "repair_in_progress";
+    public const string ResolvedPendingRetest = "resolved_pending_retest";
+    public const string Resolved = "resolved";
+    public const string Reopened = "reopened";
 }
 
 public static class EventJournalEntryTypeIds
@@ -1511,6 +1618,7 @@ public sealed class CurrentSessionState : EntityBase
     public string ActiveCombatEncounterId { get; set; } = string.Empty;
     public string ActiveCombatName { get; set; } = string.Empty;
     public string ActiveGroupId { get; set; } = string.Empty;
+    public string ActiveTravelSessionId { get; set; } = string.Empty;
     public string CurrentWorldDate { get; set; } = string.Empty;
     public DateTime? CurrentRealStartUtc { get; set; }
     public DateTime? CurrentRealEndUtc { get; set; }
@@ -1519,6 +1627,9 @@ public sealed class CurrentSessionState : EntityBase
     public DateTime? EndedAtUtc { get; set; }
     public string GMUserId { get; set; } = string.Empty;
     public string GMDisplayName { get; set; } = string.Empty;
+    public string LeadGMUserId { get; set; } = string.Empty;
+    public string LeadGMDisplayName { get; set; } = string.Empty;
+    public long EntityRevision { get; set; } = 1;
     public string VisibilityMode { get; set; } = MapVisibilityModes.Party;
     public bool IsPlayerVisible { get; set; } = true;
     public bool IsArchived { get; set; }
@@ -1669,11 +1780,183 @@ public sealed class ProjectBaseState : EntityBase
     public DateTime? CompletedAtUtc { get; set; }
     public string PublicNotes { get; set; } = string.Empty;
     public string GMNotes { get; set; } = string.Empty;
+    public int Revision { get; set; } = 1;
+    public string RuntimeKind { get; set; } = string.Empty;
+    public string CreatedOperationId { get; set; } = string.Empty;
+    public string LastOperationId { get; set; } = string.Empty;
+    public string LastOperationCommand { get; set; } = string.Empty;
+    public ProjectDefinitionSnapshot0191? DefinitionSnapshot { get; set; }
     public List<string> Tags { get; set; } = new List<string>();
     public Dictionary<string, object> ProposalPayload { get; set; } = new Dictionary<string, object>();
     public Dictionary<string, object> ExpectedResultSummary { get; set; } = new Dictionary<string, object>();
     public Dictionary<string, object> ExtraData { get; set; } = new Dictionary<string, object>();
     public Dictionary<string, object> ServerOnlyData { get; set; } = new Dictionary<string, object>();
+}
+
+public sealed class ProjectDefinitionSnapshot0191
+{
+    public string TechnologyDefinitionId { get; set; } = string.Empty;
+    public string TechnologyStableKey { get; set; } = string.Empty;
+    public string TechnologyVersion { get; set; } = string.Empty;
+    public int TechnologyRevision { get; set; }
+    public string TechnologyName { get; set; } = string.Empty;
+    public string TechnologyPublicDescription { get; set; } = string.Empty;
+    public string ResearchMethod { get; set; } = string.Empty;
+    public string ExpectedKnowledgeTopic { get; set; } = string.Empty;
+    public string ExpectedKnowledgeLevel { get; set; } = KnowledgeLevelIds.Partial;
+    public string ExpectedKnowledgeType { get; set; } = KnowledgeTypeIds.Technology;
+    public string SourceItemInstanceId { get; set; } = string.Empty;
+    public string SourceItemDefinitionId { get; set; } = string.Empty;
+    public string SourceItemStableKey { get; set; } = string.Empty;
+    public string SourceItemDefinitionVersion { get; set; } = string.Empty;
+    public int SourceItemDefinitionRevision { get; set; }
+    public string SourceItemName { get; set; } = string.Empty;
+    public int SourceItemQuantity { get; set; }
+    public string SourceItemQuality { get; set; } = string.Empty;
+    public string SourceItemCondition { get; set; } = string.Empty;
+    public int SourceItemDurability { get; set; }
+    public int SourceItemMaxDurability { get; set; }
+    public List<string> SourceItemTags { get; set; } = new();
+    public string AnalysisMethod { get; set; } = string.Empty;
+    public string SourceItemDisposition { get; set; } = ReverseEngineeringDispositionIds.Preserved;
+    public List<string> DiscoveredTechnologyDefinitionIds { get; set; } = new();
+    public List<string> DiscoveredRecipeDefinitionIds { get; set; } = new();
+    public List<string> DiscoveredBlueprintDefinitionIds { get; set; } = new();
+    public string BlueprintDefinitionId { get; set; } = string.Empty;
+    public string BlueprintStableKey { get; set; } = string.Empty;
+    public string BlueprintVersion { get; set; } = string.Empty;
+    public int BlueprintRevision { get; set; }
+    public string BlueprintName { get; set; } = string.Empty;
+    public string BlueprintPublicDescription { get; set; } = string.Empty;
+    public string BlueprintKind { get; set; } = string.Empty;
+    public string TargetItemDefinitionId { get; set; } = string.Empty;
+    public string TargetItemStableKey { get; set; } = string.Empty;
+    public string TargetItemName { get; set; } = string.Empty;
+    public string TargetItemPublicDescription { get; set; } = string.Empty;
+    public int PrototypeOutputQuantity { get; set; } = 1;
+    public PrototypeTestProtocolSnapshot0194? PrototypeTestProtocol { get; set; }
+    public List<PrototypeDefectSnapshot0194> PrototypeDefects { get; set; } = new();
+    public PrototypeRepairSnapshot0195? PrototypeRepair { get; set; }
+    public LimitedProductionSnapshot0196? LimitedProduction { get; set; }
+    public AssetConstructionSnapshot0197? AssetConstruction { get; set; }
+    public AssetMaintenanceSnapshot0198? AssetMaintenance { get; set; }
+    public string RecipeDefinitionId { get; set; } = string.Empty;
+    public string RecipeStableKey { get; set; } = string.Empty;
+    public string RecipeVersion { get; set; } = string.Empty;
+    public int RecipeRevision { get; set; }
+    public string RecipeName { get; set; } = string.Empty;
+    public string RecipePublicDescription { get; set; } = string.Empty;
+    public string MethodDefinitionId { get; set; } = string.Empty;
+    public string MethodStableKey { get; set; } = string.Empty;
+    public string MethodVersion { get; set; } = string.Empty;
+    public int MethodRevision { get; set; }
+    public string MethodName { get; set; } = string.Empty;
+    public string ProjectTemplateDefinitionId { get; set; } = string.Empty;
+    public string ProjectTemplateStableKey { get; set; } = string.Empty;
+    public string ProjectTemplateVersion { get; set; } = string.Empty;
+    public int ProjectTemplateRevision { get; set; }
+    public string ProjectTemplateName { get; set; } = string.Empty;
+    public string ApprovalPolicy { get; set; } = string.Empty;
+    public string ResourceReservationPolicy { get; set; } = string.Empty;
+    public string CancellationRefundPolicy { get; set; } = string.Empty;
+    public int EstimatedDurationMinutes { get; set; }
+    public List<ProjectMaterialSnapshot0191> Inputs { get; set; } = new();
+    public List<ProjectMaterialSnapshot0191> Outputs { get; set; } = new();
+    public List<ProjectStageSnapshot0191> Stages { get; set; } = new();
+    public List<ProjectRequirementSnapshot0191> Requirements { get; set; } = new();
+    public string SnapshotChecksum { get; set; } = string.Empty;
+}
+
+public sealed class PrototypeRepairSnapshot0195
+{
+    public string PrototypeId { get; set; } = string.Empty;
+    public string ItemInstanceId { get; set; } = string.Empty;
+    public string PrototypeLifecycleStatus { get; set; } = string.Empty;
+    public string DefectInstanceId { get; set; } = string.Empty;
+    public string DefectDefinitionId { get; set; } = string.Empty;
+    public string DefectStableKey { get; set; } = string.Empty;
+    public string DefectVersion { get; set; } = string.Empty;
+    public int DefectRevision { get; set; }
+    public string DefectName { get; set; } = string.Empty;
+    public string DefectSeverity { get; set; } = string.Empty;
+    public List<string> PublicSymptoms { get; set; } = new();
+    public string GMCauseDetails { get; set; } = string.Empty;
+    public List<string> LimitationTags { get; set; } = new();
+    public string SourceTestResultId { get; set; } = string.Empty;
+    public int SourceTestAttemptNumber { get; set; } = 1;
+    public string RepairMethod { get; set; } = string.Empty;
+    public string ResolutionSummary { get; set; } = string.Empty;
+}
+
+public sealed class PrototypeTestProtocolSnapshot0194
+{
+    public string DefinitionId { get; set; } = string.Empty;
+    public string StableKey { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
+    public int Revision { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string PublicDescription { get; set; } = string.Empty;
+    public string RequiredStageKey { get; set; } = string.Empty;
+    public List<string> PublicSteps { get; set; } = new();
+    public List<string> GMSteps { get; set; } = new();
+    public List<string> MetricLabels { get; set; } = new();
+    public string PassCriteria { get; set; } = string.Empty;
+    public string PartialPassCriteria { get; set; } = string.Empty;
+    public string FailureCriteria { get; set; } = string.Empty;
+    public string PublicResultTemplate { get; set; } = string.Empty;
+    public string GMResultTemplate { get; set; } = string.Empty;
+}
+
+public sealed class PrototypeDefectSnapshot0194
+{
+    public string DefinitionId { get; set; } = string.Empty;
+    public string StableKey { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
+    public int Revision { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Severity { get; set; } = string.Empty;
+    public List<string> PublicSymptoms { get; set; } = new();
+    public string GMCauseDetails { get; set; } = string.Empty;
+    public List<string> LimitationTags { get; set; } = new();
+}
+
+public sealed class ProjectMaterialSnapshot0191
+{
+    public string DefinitionId { get; set; } = string.Empty;
+    public string StableKey { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public string Unit { get; set; } = string.Empty;
+    public string MinimumQuality { get; set; } = string.Empty;
+    public string UsageMode { get; set; } = string.Empty;
+    public bool Optional { get; set; }
+}
+
+public sealed class ProjectStageSnapshot0191
+{
+    public string Key { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public int Order { get; set; }
+    public List<string> AllowedPreviousStageKeys { get; set; } = new();
+    public List<string> AllowedNextStageKeys { get; set; } = new();
+    public string RequiredConditions { get; set; } = string.Empty;
+    public bool RequiresGMDecision { get; set; }
+    public bool IsPlayerVisible { get; set; } = true;
+    public string PublicSummary { get; set; } = string.Empty;
+}
+
+public sealed class ProjectRequirementSnapshot0191
+{
+    public string Kind { get; set; } = string.Empty;
+    public string DefinitionId { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public string MinimumQualityOrRank { get; set; } = string.Empty;
+    public bool Required { get; set; } = true;
+    public bool IsPlayerVisible { get; set; } = true;
+    public string ConsumptionMode { get; set; } = string.Empty;
+    public string PublicExplanation { get; set; } = string.Empty;
+    public string GMExplanation { get; set; } = string.Empty;
 }
 
 public sealed class ProjectStageState : EntityBase
@@ -1970,6 +2253,12 @@ public sealed class ResearchResultState : EntityBase
     public string PublicSummary { get; set; } = string.Empty;
     public string GMSummary { get; set; } = string.Empty;
     public string KnowledgeDefinitionId { get; set; } = string.Empty;
+    public string KnowledgeTopic { get; set; } = string.Empty;
+    public string KnowledgeLevel { get; set; } = KnowledgeLevelIds.Partial;
+    public string KnowledgeType { get; set; } = KnowledgeTypeIds.Technology;
+    public string SourceProjectId { get; set; } = string.Empty;
+    public string CompletionOperationId { get; set; } = string.Empty;
+    public bool KnowledgeAlreadyKnown { get; set; }
     public string AppliedKnowledgeId { get; set; } = string.Empty;
     public string TargetEntityType { get; set; } = KnowledgeEntityTypeIds.Character;
     public string TargetEntityId { get; set; } = string.Empty;
@@ -1985,6 +2274,139 @@ public sealed class ResearchResultState : EntityBase
     public Dictionary<string, object> ResultPayload { get; set; } = new Dictionary<string, object>();
     public Dictionary<string, object> ExtraData { get; set; } = new Dictionary<string, object>();
     public Dictionary<string, object> ServerOnlyData { get; set; } = new Dictionary<string, object>();
+}
+
+public sealed class ReverseEngineeringResultState : EntityBase
+{
+    public string CampaignId { get; set; } = string.Empty;
+    public string ProjectId { get; set; } = string.Empty;
+    public string OwnerCharacterId { get; set; } = string.Empty;
+    public string SourceItemDisplayName { get; set; } = string.Empty;
+    public string SourceItemDefinitionStableKey { get; set; } = string.Empty;
+    public string SourceItemDisposition { get; set; } = ReverseEngineeringDispositionIds.Preserved;
+    public string AnalysisOutcome { get; set; } = string.Empty;
+    public List<string> DiscoveredTechnologyDefinitionIds { get; set; } = new();
+    public List<string> DiscoveredRecipeDefinitionIds { get; set; } = new();
+    public List<string> DiscoveredBlueprintDefinitionIds { get; set; } = new();
+    public string KnowledgeTopic { get; set; } = string.Empty;
+    public string Confidence { get; set; } = ReverseEngineeringConfidenceIds.Partial;
+    public List<string> UnresolvedFindings { get; set; } = new();
+    public string PublicSummary { get; set; } = string.Empty;
+    public string GMSummary { get; set; } = string.Empty;
+    public string Status { get; set; } = ReverseEngineeringResultStatusIds.Prepared;
+    public string CompletionOperationId { get; set; } = string.Empty;
+    public bool SourceDispositionApplied { get; set; }
+    public bool ResourcesConsumed { get; set; }
+    public bool KnowledgeApplied { get; set; }
+    public bool KnowledgeAlreadyKnown { get; set; }
+    public bool IsPlayerVisible { get; set; } = true;
+    public string VisibilityMode { get; set; } = ProjectVisibilityModeIds.OwnerOnly;
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? AppliedAtUtc { get; set; }
+    public string AppliedByUserId { get; set; } = string.Empty;
+    public bool IsArchived { get; set; }
+    public Dictionary<string, object> ResultPayload { get; set; } = new();
+    public Dictionary<string, object> ExtraData { get; set; } = new();
+    public Dictionary<string, object> ServerOnlyData { get; set; } = new();
+}
+
+public sealed class PrototypeRuntimeState : EntityBase
+{
+    public string CampaignId { get; set; } = string.Empty;
+    public string ProjectId { get; set; } = string.Empty;
+    public string ItemInstanceId { get; set; } = string.Empty;
+    public string OwnerCharacterId { get; set; } = string.Empty;
+    public string OwnerUserId { get; set; } = string.Empty;
+    public string BlueprintDefinitionId { get; set; } = string.Empty;
+    public string BlueprintStableKey { get; set; } = string.Empty;
+    public string BlueprintName { get; set; } = string.Empty;
+    public string TargetItemDefinitionId { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string LifecycleStatus { get; set; } = PrototypeLifecycleStatusIds.AwaitingTest;
+    public string TestStatus { get; set; } = PrototypeTestStatusIds.AwaitingTest;
+    public string ProductionApprovalStatus { get; set; } = PrototypeProductionApprovalStatusIds.NotProductionApproved;
+    public string Quality { get; set; } = "prototype";
+    public List<string> ActiveDefectInstanceIds { get; set; } = new();
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+    public string CreatedByUserId { get; set; } = string.Empty;
+    public string CreationOperationId { get; set; } = string.Empty;
+    public string TestReservationOperationId { get; set; } = string.Empty;
+    public bool IsTestReserved { get; set; } = true;
+    public string ActiveRepairProjectId { get; set; } = string.Empty;
+    public string RepairReservationOperationId { get; set; } = string.Empty;
+    public bool IsRepairReserved { get; set; }
+    public string LatestTestResultId { get; set; } = string.Empty;
+    public string ProductionApprovedByUserId { get; set; } = string.Empty;
+    public DateTime? ProductionApprovedAtUtc { get; set; }
+    public string ProductionApprovalSourceTestResultId { get; set; } = string.Empty;
+    public bool IsPlayerVisible { get; set; } = true;
+    public int Revision { get; set; } = 1;
+    public Dictionary<string, object> ExtraData { get; set; } = new();
+    public Dictionary<string, object> ServerOnlyData { get; set; } = new();
+}
+
+public sealed class PrototypeTestResultState : EntityBase
+{
+    public string CampaignId { get; set; } = string.Empty;
+    public string ProjectId { get; set; } = string.Empty;
+    public string PrototypeId { get; set; } = string.Empty;
+    public string ItemInstanceId { get; set; } = string.Empty;
+    public string OwnerCharacterId { get; set; } = string.Empty;
+    public string TestProtocolDefinitionId { get; set; } = string.Empty;
+    public string TestProtocolStableKey { get; set; } = string.Empty;
+    public string TestProtocolVersion { get; set; } = string.Empty;
+    public int TestProtocolRevision { get; set; }
+    public string TestProtocolName { get; set; } = string.Empty;
+    public List<string> ExecutedSteps { get; set; } = new();
+    public Dictionary<string, decimal> ObservedMetrics { get; set; } = new();
+    public string ResultCategory { get; set; } = PrototypeTestResultCategoryIds.PartialPass;
+    public string PublicSummary { get; set; } = string.Empty;
+    public string GMSummary { get; set; } = string.Empty;
+    public List<string> GeneratedDefectInstanceIds { get; set; } = new();
+    public List<string> ResolvedDefectInstanceIds { get; set; } = new();
+    public int AttemptNumber { get; set; } = 1;
+    public string PreviousTestResultId { get; set; } = string.Empty;
+    public string RepairProjectId { get; set; } = string.Empty;
+    public DateTime StartedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime CompletedAtUtc { get; set; } = DateTime.UtcNow;
+    public string ExecutedByUserId { get; set; } = string.Empty;
+    public string ExecutionOperationId { get; set; } = string.Empty;
+    public bool IsPlayerVisible { get; set; } = true;
+    public int Revision { get; set; } = 1;
+    public Dictionary<string, object> ExtraData { get; set; } = new();
+    public Dictionary<string, object> ServerOnlyData { get; set; } = new();
+}
+
+public sealed class PrototypeDefectInstanceState : EntityBase
+{
+    public string CampaignId { get; set; } = string.Empty;
+    public string ProjectId { get; set; } = string.Empty;
+    public string PrototypeId { get; set; } = string.Empty;
+    public string ItemInstanceId { get; set; } = string.Empty;
+    public string OwnerCharacterId { get; set; } = string.Empty;
+    public string SourceTestResultId { get; set; } = string.Empty;
+    public string DefectDefinitionId { get; set; } = string.Empty;
+    public string DefectStableKey { get; set; } = string.Empty;
+    public string DefectVersion { get; set; } = string.Empty;
+    public int DefectRevision { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Severity { get; set; } = string.Empty;
+    public string Status { get; set; } = PrototypeDefectStatusIds.Open;
+    public List<string> PublicSymptoms { get; set; } = new();
+    public string GMCauseDetails { get; set; } = string.Empty;
+    public List<string> LimitationTags { get; set; } = new();
+    public DateTime DetectedAtUtc { get; set; } = DateTime.UtcNow;
+    public string DetectionOperationId { get; set; } = string.Empty;
+    public string RepairProjectId { get; set; } = string.Empty;
+    public DateTime? RepairAppliedAtUtc { get; set; }
+    public string ResolutionSummary { get; set; } = string.Empty;
+    public string RetestResultId { get; set; } = string.Empty;
+    public DateTime? ResolvedAtUtc { get; set; }
+    public bool IsPlayerVisible { get; set; } = true;
+    public int Revision { get; set; } = 1;
+    public Dictionary<string, object> ExtraData { get; set; } = new();
+    public Dictionary<string, object> ServerOnlyData { get; set; } = new();
 }
 
 public sealed class CurrentSessionCreateRequest

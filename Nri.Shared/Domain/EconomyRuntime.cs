@@ -180,6 +180,28 @@ public sealed class AssetState : EntityBase
     public string EstimatedValueCurrencyId { get; set; } = string.Empty;
     public long EstimatedValueAmount { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsArchived { get; set; }
+    public string LifecycleStatus { get; set; } = "operational";
+    public string BlueprintStableKey { get; set; } = string.Empty;
+    public int BlueprintRevision { get; set; }
+    public string ConstructionProjectId { get; set; } = string.Empty;
+    public string ConstructionSiteId { get; set; } = string.Empty;
+    public string OwnerKind { get; set; } = "character";
+    public string OwnerId { get; set; } = string.Empty;
+    public string LocationDisplayName { get; set; } = string.Empty;
+    public string ConfigurationSummary { get; set; } = string.Empty;
+    public int StructuralIntegrity { get; set; }
+    public int ArmorIntegrity { get; set; }
+    public int ShieldIntegrity { get; set; }
+    public string EnergyProfileSummary { get; set; } = string.Empty;
+    public string StorageCapacitySummary { get; set; } = string.Empty;
+    public List<string> ModuleReferences { get; set; } = new List<string>();
+    public string LicenseSummary { get; set; } = string.Empty;
+    public string MaintenanceProfileId { get; set; } = string.Empty;
+    public string Provenance { get; set; } = string.Empty;
+    public int Revision { get; set; } = 1;
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
     public List<string> Tags { get; set; } = new List<string>();
     public string Notes { get; set; } = string.Empty;
 }

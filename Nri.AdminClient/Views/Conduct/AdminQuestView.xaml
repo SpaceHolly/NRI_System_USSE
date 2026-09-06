@@ -1,0 +1,173 @@
+<UserControl x:Class="Nri.AdminClient.Views.Conduct.AdminQuestView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminQuest_Route">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminQuest_OperationalHost">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Задачи" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Quest Journal MVP: назначения, цели, ручной прогресс и награды без автоматической экономики."
+                               Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                </StackPanel>
+                <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+                    <Button Content="Обновить" Command="{Binding RefreshCommand}" AutomationProperties.AutomationId="AdminQuest_Refresh"/>
+                </WrapPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.1*"/>
+                <ColumnDefinition Width="1.4*"/>
+                <ColumnDefinition Width="1.3*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Список задач" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <StackPanel Grid.Row="1" Margin="0,8,0,8">
+                        <TextBox Text="{Binding NewQuestTitle, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding NewQuestSummary, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="58" Margin="0,0,0,6"/>
+                        <Button Content="Создать задачу" Command="{Binding CreateQuestCommand}" AutomationProperties.AutomationId="AdminQuest_Create"/>
+                        <Expander Header="Дополнительно: контекст сессии" Margin="0,8,0,0">
+                            <StackPanel Margin="0,6,0,0">
+                                <TextBlock Text="Кампания" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBox AutomationProperties.AutomationId="AdminQuest_Advanced_CampaignId" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Сессия" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+                                <TextBox AutomationProperties.AutomationId="AdminQuest_Advanced_SessionId" Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
+                    <DataGrid Grid.Row="2"
+                              AutomationProperties.AutomationId="AdminQuest_List"
+                              ItemsSource="{Binding Quests}"
+                              SelectedItem="{Binding SelectedQuest, Mode=TwoWay}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Задача" Binding="{Binding Title}" Width="2*"/>
+                            <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="*"/>
+                            <DataGridTextColumn Header="Видимость" Binding="{Binding Visibility}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0" AutomationProperties.AutomationId="AdminQuest_Details">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Карточка задачи" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="Статус" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <ComboBox ItemsSource="{Binding StatusOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding StatusInput}" AutomationProperties.AutomationId="AdminQuest_Status"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,8,8">
+                                <TextBlock Text="Видимость" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <ComboBox ItemsSource="{Binding VisibilityOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding VisibilityInput}" AutomationProperties.AutomationId="AdminQuest_Visibility"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <WrapPanel Margin="0,0,0,8">
+                            <Button Content="Сохранить" Command="{Binding SaveQuestCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Назначить" Command="{Binding AssignQuestCommand}" AutomationProperties.AutomationId="AdminQuest_Assign" Margin="0,0,6,0"/>
+                            <Button Content="Сделать доступной" Command="{Binding SetAvailableCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,6,0"/>
+                            <Button Content="Начать" Command="{Binding SetActiveCommand}" Style="{StaticResource GhostButtonStyle}" Margin="0,0,6,0"/>
+                            <Button Content="Завершить" Command="{Binding CompleteQuestCommand}" AutomationProperties.AutomationId="AdminQuest_Complete" Margin="0,0,6,0"/>
+                            <Button Content="Провалить" Command="{Binding FailQuestCommand}" AutomationProperties.AutomationId="AdminQuest_Fail" Style="{StaticResource GhostButtonStyle}"/>
+                        </WrapPanel>
+                        <TextBlock Text="Назначенный персонаж" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <controls:NriReferencePicker Options="{Binding CharacterOptions}"
+                                                     SelectedId="{Binding AssignedCharacterId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     DisplayName="{Binding AssignedCharacterDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     AutomationIdPrefix="AdminQuest_AssignedCharacter"
+                                                     AutomationProperties.Name="Выберите персонажа для задачи"
+                                                     Margin="0,2,0,6"/>
+                        <Expander Header="Дополнительно: несколько назначений" Margin="0,2,0,10">
+                            <StackPanel Margin="0,6,0,0">
+                                <TextBlock Text="Дополнительные персонажи" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBox Text="{Binding AssignedCharacterIdsInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Технические ключи через запятую"/>
+                                <TextBlock Text="Учетные записи игроков" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+                                <TextBox Text="{Binding AssignedPlayerUserIdsInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Технические ключи через запятую"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <TextBlock Text="Цели" Style="{StaticResource SectionTitleTextStyle}" Margin="0,8,0,0"/>
+                        <DataGrid AutomationProperties.AutomationId="AdminQuest_ObjectiveList"
+                                  ItemsSource="{Binding Objectives}"
+                                  SelectedItem="{Binding SelectedObjective, Mode=TwoWay}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  MinHeight="160">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Цель" Binding="{Binding Title}" Width="2*"/>
+                                <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="*"/>
+                                <DataGridTextColumn Header="Прогресс" Binding="{Binding Display}" Width="1.6*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBox Text="{Binding ObjectiveTitleInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,4"/>
+                        <TextBox Text="{Binding ObjectiveTextInput, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="52"/>
+                        <UniformGrid Columns="3" Margin="0,6,0,6" AutomationProperties.AutomationId="AdminQuest_ObjectiveProgress">
+                            <ComboBox ItemsSource="{Binding ObjectiveStatusOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding ObjectiveStatusInput}"/>
+                            <TextBox Text="{Binding ObjectiveProgressCurrent, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Text="{Binding ObjectiveProgressTarget, UpdateSourceTrigger=PropertyChanged}"/>
+                        </UniformGrid>
+                        <WrapPanel>
+                            <Button Content="Добавить цель" Command="{Binding AddObjectiveCommand}" AutomationProperties.AutomationId="AdminQuest_AddObjective" Margin="0,0,6,0"/>
+                            <Button Content="Сохранить прогресс" Command="{Binding SaveObjectiveProgressCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Цель выполнена" Command="{Binding CompleteObjectiveCommand}" Style="{StaticResource GhostButtonStyle}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="10">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Награды" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBlock Text="Деньги" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/>
+                        <TextBox Text="{Binding RewardMoneyInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="MO / опыт" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+                        <TextBox Text="{Binding RewardXpInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Предметы" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+                        <TextBox Text="{Binding RewardItemInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Особая награда, знания или репутация" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+                        <TextBox Text="{Binding RewardCustomInput, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="60"/>
+                        <WrapPanel Margin="0,8,0,8" AutomationProperties.AutomationId="AdminQuest_RewardBundle">
+                            <Button Content="Сохранить награды" Command="{Binding SaveRewardBundleCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Предпросмотр" Command="{Binding PreviewRewardsCommand}" AutomationProperties.AutomationId="AdminQuest_RewardPreview" Margin="0,0,6,0"/>
+                            <Button Content="Подготовить выдачу" Command="{Binding CreateRewardGrantCommand}" AutomationProperties.AutomationId="AdminQuest_CreateRewardGrant"/>
+                        </WrapPanel>
+                        <TextBlock Text="Подготовленные выдачи" FontWeight="SemiBold" AutomationProperties.AutomationId="AdminQuest_RewardGrant"/>
+                        <ListBox ItemsSource="{Binding RewardGrants}" MinHeight="100"/>
+                        <TextBlock Text="История изменений" FontWeight="SemiBold" Margin="0,10,0,0" AutomationProperties.AutomationId="AdminQuest_Audit"/>
+                        <ListBox ItemsSource="{Binding AuditRows}" MinHeight="160"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <TextBlock Grid.Row="2" Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}" Margin="4,8,0,0"/>
+    </Grid>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

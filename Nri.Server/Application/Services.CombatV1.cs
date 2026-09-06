@@ -10,6 +10,44 @@ namespace Nri.Server.Application;
 
 public partial class ServiceHub
 {
+    public ResponseEnvelope CombatV1EncounterList(CommandContext context)
+    {
+        var actor = RequireCombatV1Read(context);
+        if (actor == null) return Error("combat v1 read endpoints disabled", ResponseStatus.Forbidden, ErrorCode.Forbidden);
+
+        var campaignId = PayloadReader.GetString(context.Request.Payload, "campaignId") ?? string.Empty;
+        var sessionId = PayloadReader.GetString(context.Request.Payload, "sessionId") ?? string.Empty;
+        var includeEnded = PayloadReader.GetBool(context.Request.Payload, "includeEnded");
+        var limit = Math.Max(1, Math.Min(PayloadReader.GetInt(context.Request.Payload, "limit") ?? 100, 200));
+        if (string.IsNullOrWhiteSpace(campaignId) && string.IsNullOrWhiteSpace(sessionId))
+            throw new ArgumentException("campaign_or_session_required");
+
+        var encounters = !string.IsNullOrWhiteSpace(sessionId)
+            ? _repositories.CombatEncounters.ListBySessionAsync(sessionId, limit).GetAwaiter().GetResult()
+            : _repositories.CombatEncounters.ListByCampaignAsync(campaignId, limit).GetAwaiter().GetResult();
+        var items = encounters
+            .Where(x => string.IsNullOrWhiteSpace(campaignId) || string.Equals(x.CampaignId, campaignId, StringComparison.OrdinalIgnoreCase))
+            .Where(x => includeEnded || string.Equals(x.Status, CombatRuntimeStatuses.Active, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(x.Status, CombatRuntimeStatuses.Draft, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(x.Status, CombatRuntimeStatuses.Paused, StringComparison.OrdinalIgnoreCase))
+            .Select(x => CombatEncounterSummaryPayload(new CombatEncounterSummary
+            {
+                Id = x.Id,
+                CampaignId = x.CampaignId,
+                SessionId = x.SessionId,
+                Name = x.Name,
+                Status = x.Status,
+                RuleSetId = x.RuleSetId,
+                RoundNumber = x.RoundNumber,
+                ActiveTurnIndex = x.ActiveTurnIndex,
+                ActiveParticipantId = x.ActiveParticipantId,
+                StartedAtUtc = x.StartedAtUtc,
+                EndedAtUtc = x.EndedAtUtc,
+                Tags = x.Tags == null ? new List<string>() : x.Tags.ToList()
+            })).Cast<object>().ToArray();
+        return Ok("Combat v1 encounters loaded.", new Dictionary<string, object> { ["items"] = items });
+    }
+
     public ResponseEnvelope CombatV1EncounterCreate(CommandContext context)
     {
         var actor = RequireCombatV1Write(context);
@@ -251,6 +289,17 @@ public partial class ServiceHub
         request.RequestId = FirstNonEmpty(request.RequestId, context.Request.RequestId ?? string.Empty);
         var result = CombatV1ActionEconomyService().SpendActionPointsAsync(request, actor).GetAwaiter().GetResult();
         return Ok("Combat v1 action points processed.", CombatActionEconomyResponsePayload(result));
+    }
+
+    public ResponseEnvelope CombatV1PreparedActionTrigger(CommandContext context)
+    {
+        var actor = RequireCombatV1ActionWrite(context);
+        if (actor == null) return Error("combat v1 prepared action disabled", ResponseStatus.Forbidden, ErrorCode.Forbidden);
+
+        var request = ParseCombatPreparedActionTriggerRequest(context.Request.Payload);
+        request.RequestId = FirstNonEmpty(request.RequestId, context.Request.RequestId ?? string.Empty);
+        var result = CombatV1ActionEconomyService().TriggerPreparedActionAsync(request, actor).GetAwaiter().GetResult();
+        return Ok("Combat v1 prepared action triggered.", CombatActionEconomyResponsePayload(result));
     }
 
     public ResponseEnvelope CombatV1AttackRoll(CommandContext context)
@@ -510,16 +559,7 @@ public partial class ServiceHub
 
     private UserAccount? RequireCombatV1ActionWrite(CommandContext context)
     {
-        UserAccount actor;
-        try
-        {
-            actor = RequireAdmin(context);
-        }
-        catch
-        {
-            _logger.Admin($"combat.action.forbidden command={context.Request.Command}");
-            throw;
-        }
+        var actor = GetCurrentAccount(context);
 
         if (!CombatV1ActionWriteEnabled())
         {
@@ -532,16 +572,7 @@ public partial class ServiceHub
 
     private UserAccount? RequireCombatV1AttackWrite(CommandContext context)
     {
-        UserAccount actor;
-        try
-        {
-            actor = RequireAdmin(context);
-        }
-        catch
-        {
-            _logger.Admin($"combat.attack.roll.forbidden command={context.Request.Command}");
-            throw;
-        }
+        var actor = GetCurrentAccount(context);
 
         if (!CombatV1AttackWriteEnabled())
         {
@@ -686,16 +717,7 @@ public partial class ServiceHub
 
     private UserAccount? RequireCombatV1WeaponAttackWrite(CommandContext context)
     {
-        UserAccount actor;
-        try
-        {
-            actor = RequireAdmin(context);
-        }
-        catch
-        {
-            _logger.Admin($"combat.weapon_attack.forbidden command={context.Request.Command}");
-            throw;
-        }
+        var actor = GetCurrentAccount(context);
 
         if (!CombatV1WeaponAttackWriteEnabled())
         {
@@ -1009,8 +1031,14 @@ public partial class ServiceHub
             ControllerUserId = PayloadReader.GetString(payload, "controllerUserId") ?? string.Empty,
             IsNpc = PayloadReader.GetBool(payload, "isNpc"),
             IsPlayerControlled = PayloadReader.GetBool(payload, "isPlayerControlled"),
+            IsHidden = PayloadReader.GetBool(payload, "isHidden"),
             Initiative = PayloadReader.GetInt(payload, "initiative") ?? 0,
             InitiativeTieBreaker = PayloadReader.GetInt(payload, "initiativeTieBreaker") ?? 0,
+            MaxStructure = PayloadReader.GetInt(payload, "maxStructure") ?? 0,
+            CurrentStructure = PayloadReader.GetInt(payload, "currentStructure") ?? 0,
+            FrontProtection = PayloadReader.GetInt(payload, "frontProtection") ?? 0,
+            SideProtection = PayloadReader.GetInt(payload, "sideProtection") ?? 0,
+            RearProtection = PayloadReader.GetInt(payload, "rearProtection") ?? 0,
             Tags = GetStringList(payload, "tags"),
             Notes = PayloadReader.GetString(payload, "notes") ?? string.Empty,
             RequestId = PayloadReader.GetString(payload, "requestId") ?? string.Empty
@@ -1183,6 +1211,11 @@ public partial class ServiceHub
 
     private static CombatActionDeclareRequest ParseCombatActionDeclareRequest(IDictionary<string, object> payload)
     {
+        var payloadSummary = GetObjectDictionary(payload, "payloadSummary");
+        var triggerDefinitionId = PayloadReader.GetString(payload, "triggerDefinitionId") ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(triggerDefinitionId))
+            payloadSummary["triggerDefinitionId"] = triggerDefinitionId.Trim();
+
         return new CombatActionDeclareRequest
         {
             EncounterId = PayloadReader.GetString(payload, "encounterId") ?? string.Empty,
@@ -1194,7 +1227,7 @@ public partial class ServiceHub
             ActionPointCost = PayloadReader.GetInt(payload, "actionPointCost") ?? 0,
             MinorActionPointCost = PayloadReader.GetInt(payload, "minorActionPointCost") ?? 0,
             ReactionCost = PayloadReader.GetInt(payload, "reactionCost") ?? 0,
-            PayloadSummary = GetObjectDictionary(payload, "payloadSummary"),
+            PayloadSummary = payloadSummary,
             Notes = PayloadReader.GetString(payload, "notes") ?? string.Empty,
             RequestId = PayloadReader.GetString(payload, "requestId") ?? string.Empty
         };
@@ -1237,6 +1270,19 @@ public partial class ServiceHub
         };
     }
 
+    private static CombatPreparedActionTriggerRequest ParseCombatPreparedActionTriggerRequest(IDictionary<string, object> payload)
+    {
+        return new CombatPreparedActionTriggerRequest
+        {
+            EncounterId = PayloadReader.GetString(payload, "encounterId") ?? string.Empty,
+            PreparedActionId = PayloadReader.GetString(payload, "preparedActionId") ?? string.Empty,
+            TriggerDefinitionId = PayloadReader.GetString(payload, "triggerDefinitionId") ?? string.Empty,
+            TargetParticipantIds = GetStringList(payload, "targetParticipantIds"),
+            TriggerContext = PayloadReader.GetString(payload, "triggerContext") ?? string.Empty,
+            RequestId = PayloadReader.GetString(payload, "requestId") ?? string.Empty
+        };
+    }
+
     private static CombatAttackDeclareRequest ParseCombatAttackDeclareRequest(IDictionary<string, object> payload)
     {
         return new CombatAttackDeclareRequest
@@ -1245,6 +1291,8 @@ public partial class ServiceHub
             ActorParticipantId = PayloadReader.GetString(payload, "actorParticipantId") ?? string.Empty,
             TargetParticipantId = PayloadReader.GetString(payload, "targetParticipantId") ?? string.Empty,
             WeaponDefinitionId = PayloadReader.GetString(payload, "weaponDefinitionId") ?? string.Empty,
+            AttackProfileId = PayloadReader.GetString(payload, "attackProfileId") ?? string.Empty,
+            NaturalAttackId = PayloadReader.GetString(payload, "naturalAttackId") ?? string.Empty,
             AttackSkillId = PayloadReader.GetString(payload, "attackSkillId") ?? string.Empty,
             AttackAttributeId = PayloadReader.GetString(payload, "attackAttributeId") ?? string.Empty,
             AttackBonus = PayloadReader.GetInt(payload, "attackBonus") ?? 0,
@@ -1369,6 +1417,8 @@ public partial class ServiceHub
             TargetParticipantId = PayloadReader.GetString(payload, "targetParticipantId") ?? string.Empty,
             WeaponItemInstanceId = PayloadReader.GetString(payload, "weaponItemInstanceId") ?? string.Empty,
             WeaponDefinitionId = PayloadReader.GetString(payload, "weaponDefinitionId") ?? string.Empty,
+            AttackProfileId = PayloadReader.GetString(payload, "attackProfileId") ?? string.Empty,
+            NaturalAttackId = PayloadReader.GetString(payload, "naturalAttackId") ?? string.Empty,
             AmmoItemInstanceId = PayloadReader.GetString(payload, "ammoItemInstanceId") ?? string.Empty,
             AmmoDefinitionId = PayloadReader.GetString(payload, "ammoDefinitionId") ?? string.Empty,
             AttackSkillId = PayloadReader.GetString(payload, "attackSkillId") ?? string.Empty,
@@ -1376,6 +1426,7 @@ public partial class ServiceHub
             AttackBonus = PayloadReader.GetInt(payload, "attackBonus") ?? 0,
             DamageOverride = PayloadReader.GetInt(payload, "damageOverride"),
             DamageType = PayloadReader.GetString(payload, "damageType") ?? string.Empty,
+            TargetProtectionZone = PayloadReader.GetString(payload, "targetProtectionZone") ?? "torso",
             DistanceMeters = GetDecimalNullable(payload, "distanceMeters"),
             CoverModifier = PayloadReader.GetInt(payload, "coverModifier") ?? 0,
             SituationalModifier = PayloadReader.GetInt(payload, "situationalModifier") ?? 0,
@@ -1415,23 +1466,8 @@ public partial class ServiceHub
 
     private static Dictionary<string, object> GetObjectDictionary(IDictionary<string, object> payload, string key)
     {
-        if (payload == null || !payload.TryGetValue(key, out var value) || value == null) return new Dictionary<string, object>();
-        if (value is IDictionary<string, object> typed)
-            return typed.Where(x => !string.IsNullOrWhiteSpace(x.Key)).ToDictionary(x => x.Key, x => x.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase);
-        if (value is System.Collections.IDictionary dictionary)
-        {
-            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            foreach (System.Collections.DictionaryEntry entry in dictionary)
-            {
-                var childKey = Convert.ToString(entry.Key) ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(childKey)) continue;
-                result[childKey] = entry.Value ?? string.Empty;
-            }
-
-            return result;
-        }
-
-        return new Dictionary<string, object>();
+        return PayloadReader.GetDictionary(payload, key)
+            ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
     }
 
     private static long GetLong(IDictionary<string, object> payload, string key)
@@ -1510,8 +1546,8 @@ public partial class ServiceHub
             { "activeTurnIndex", encounter.ActiveTurnIndex },
             { "activeParticipantId", encounter.ActiveParticipantId },
             { "participantCount", encounter.ParticipantCount },
-            { "startedAtUtc", encounter.StartedAtUtc },
-            { "endedAtUtc", encounter.EndedAtUtc.HasValue ? (object)encounter.EndedAtUtc.Value : string.Empty },
+            { "startedAtUtc", CombatDatePayload(encounter.StartedAtUtc) },
+            { "endedAtUtc", CombatDatePayload(encounter.EndedAtUtc) },
             { "tags", encounter.Tags.Cast<object>().ToArray() }
         };
     }
@@ -1530,6 +1566,11 @@ public partial class ServiceHub
             { "isNpc", participant.IsNpc },
             { "isPlayerControlled", participant.IsPlayerControlled },
             { "initiative", participant.Initiative },
+            { "natural20BonusTurn", participant.Natural20BonusTurn },
+            { "natural20BonusTurnUsed", participant.Natural20BonusTurnUsed },
+            { "natural1FirstTurnPenalty", participant.Natural1FirstTurnPenalty },
+            { "natural1PenaltyConsumed", participant.Natural1PenaltyConsumed },
+            { "natural1PenaltyActive", participant.Natural1PenaltyActive },
             { "isActive", participant.IsActive },
             { "isDefeated", participant.IsDefeated },
             { "isHidden", participant.IsHidden },
@@ -1540,16 +1581,29 @@ public partial class ServiceHub
             { "reactionLimit", participant.ReactionLimit },
             { "maxHealth", participant.MaxHealth },
             { "currentHealth", participant.CurrentHealth },
+            { "maxStructure", participant.MaxStructure },
+            { "currentStructure", participant.CurrentStructure },
+            { "frontProtection", participant.FrontProtection },
+            { "sideProtection", participant.SideProtection },
+            { "rearProtection", participant.RearProtection },
+            { "disabledModuleName", participant.DisabledModuleName },
             { "temporaryHealth", participant.TemporaryHealth },
             { "maxMorale", participant.MaxMorale },
             { "currentMorale", participant.CurrentMorale },
             { "lastDamageTaken", participant.LastDamageTaken },
             { "lastDamageType", participant.LastDamageType },
-            { "defeatedAtUtc", participant.DefeatedAtUtc },
+            { "defeatedAtUtc", CombatDatePayload(participant.DefeatedAtUtc) },
             { "defeatedReason", participant.DefeatedReason },
             { "conditionCount", participant.ConditionCount },
             { "activeConditionIds", participant.ActiveConditionIds.Cast<object>().ToArray() },
             { "positionSummary", participant.PositionSummary },
+            { "sceneMapId", participant.SceneMapId },
+            { "mapTokenId", participant.MapTokenId },
+            { "mapTokenDisplayName", participant.MapTokenDisplayName },
+            { "mapTokenVisibility", participant.MapTokenVisibility },
+            { "mapLinkStatus", participant.MapLinkStatus },
+            { "mapBadgeText", participant.MapBadgeText },
+            { "mapBadgeColorKey", participant.MapBadgeColorKey },
             { "distanceMeters", participant.DistanceMeters },
             { "coverState", participant.CoverState },
             { "visibilityState", participant.VisibilityState },
@@ -1569,7 +1623,7 @@ public partial class ServiceHub
             { "eventType", entry.EventType },
             { "message", entry.Message },
             { "visibility", entry.Visibility },
-            { "createdAtUtc", entry.CreatedAtUtc },
+            { "createdAtUtc", CombatDatePayload(entry.CreatedAtUtc) },
             { "requestId", entry.RequestId },
             { "payloadSummary", DictionaryPayload(entry.PayloadSummary) }
         };
@@ -1587,7 +1641,7 @@ public partial class ServiceHub
             { "turnIndex", entry.TurnIndex },
             { "actorParticipantId", entry.ActorParticipantId },
             { "visibility", entry.Visibility },
-            { "createdAtUtc", entry.CreatedAtUtc },
+            { "createdAtUtc", CombatDatePayload(entry.CreatedAtUtc) },
             { "requestId", entry.RequestId },
             { "dataSummary", DictionaryPayload(entry.DataSummary) }
         };
@@ -1632,9 +1686,15 @@ public partial class ServiceHub
             { "recentReplayEvents", response.RecentReplayEvents.Select(CombatReplayEventSummaryPayload).Cast<object>().ToArray() },
             { "diagnostics", CombatDiagnosticsSummaryPayload(response.Diagnostics) },
             { "warnings", response.Warnings.Cast<object>().ToArray() },
-            { "builtAtUtc", response.BuiltAtUtc }
+            { "builtAtUtc", CombatDatePayload(response.BuiltAtUtc) }
         };
     }
+
+    private static object CombatDatePayload(DateTime value)
+        => value <= DateTime.MinValue.AddDays(1) ? string.Empty : (object)value;
+
+    private static object CombatDatePayload(DateTime? value)
+        => value.HasValue ? CombatDatePayload(value.Value) : string.Empty;
 
     private static Dictionary<string, object> CombatRoundSummaryPayload(CombatRoundSummary round)
     {
@@ -1642,8 +1702,8 @@ public partial class ServiceHub
         {
             { "encounterId", round.EncounterId },
             { "roundNumber", round.RoundNumber },
-            { "startedAtUtc", round.StartedAtUtc },
-            { "endedAtUtc", round.EndedAtUtc.HasValue ? (object)round.EndedAtUtc.Value : string.Empty },
+            { "startedAtUtc", CombatDatePayload(round.StartedAtUtc) },
+            { "endedAtUtc", CombatDatePayload(round.EndedAtUtc) },
             { "turnCount", round.TurnCount },
             { "completedParticipantIds", round.CompletedParticipantIds.Cast<object>().ToArray() }
         };
@@ -1658,8 +1718,8 @@ public partial class ServiceHub
             { "turnIndex", turn.TurnIndex },
             { "participantId", turn.ParticipantId },
             { "status", turn.Status },
-            { "startedAtUtc", turn.StartedAtUtc },
-            { "endedAtUtc", turn.EndedAtUtc.HasValue ? (object)turn.EndedAtUtc.Value : string.Empty },
+            { "startedAtUtc", CombatDatePayload(turn.StartedAtUtc) },
+            { "endedAtUtc", CombatDatePayload(turn.EndedAtUtc) },
             { "skipped", turn.Skipped },
             { "skipReason", turn.SkipReason },
             { "actionPointsStarted", turn.ActionPointsStarted },
@@ -1703,7 +1763,7 @@ public partial class ServiceHub
             { "minorActionPointCost", action.MinorActionPointCost },
             { "reactionCost", action.ReactionCost },
             { "status", action.Status },
-            { "createdAtUtc", action.CreatedAtUtc },
+            { "createdAtUtc", CombatDatePayload(action.CreatedAtUtc) },
             { "requestId", action.RequestId }
         };
     }
@@ -1774,6 +1834,7 @@ public partial class ServiceHub
             { "minorActionPointsRemaining", response.MinorActionPointsRemaining },
             { "reactionsUsed", response.ReactionsUsed },
             { "reactionLimit", response.ReactionLimit },
+            { "alreadyApplied", response.AlreadyApplied },
             { "message", response.Message },
             { "warnings", response.Warnings.Cast<object>().ToArray() },
             { "snapshot", CombatFullSnapshotResponsePayload(response.Snapshot) }
@@ -1786,9 +1847,11 @@ public partial class ServiceHub
         {
             { "encounterId", response.EncounterId },
             { "actionId", response.ActionId },
+            { "alreadyApplied", response.AlreadyApplied },
             { "actorParticipantId", response.ActorParticipantId },
             { "targetParticipantId", response.TargetParticipantId },
             { "weaponDefinitionId", response.WeaponDefinitionId },
+            { "attackProfileId", response.AttackProfileId },
             { "roll", response.Roll },
             { "naturalRoll", response.NaturalRoll },
             { "attackTotal", response.AttackTotal },
@@ -1833,6 +1896,9 @@ public partial class ServiceHub
             { "targetDefense", response.TargetDefense },
             { "baseDefense", response.BaseDefense },
             { "armorDefenseBonus", response.ArmorDefenseBonus },
+            { "armorMobilityPenalty", response.ArmorMobilityPenalty },
+            { "armorTrainingRank", response.ArmorTrainingRank },
+            { "effectiveMobilityPenalty", response.EffectiveMobilityPenalty },
             { "shieldDefenseBonus", response.ShieldDefenseBonus },
             { "coverDefenseBonus", response.CoverDefenseBonus },
             { "distanceDefenseBonus", response.DistanceDefenseBonus },
@@ -1889,11 +1955,15 @@ public partial class ServiceHub
             { "damageType", response.DamageType },
             { "previousHealth", response.PreviousHealth },
             { "currentHealth", response.CurrentHealth },
+            { "resourceType", response.ResourceType },
+            { "previousResource", response.PreviousResource },
+            { "currentResource", response.CurrentResource },
             { "previousTemporaryHealth", response.PreviousTemporaryHealth },
             { "currentTemporaryHealth", response.CurrentTemporaryHealth },
             { "targetDefeated", response.TargetDefeated },
             { "defeatedReason", response.DefeatedReason },
             { "actionId", response.ActionId },
+            { "alreadyApplied", response.AlreadyApplied },
             { "message", response.Message },
             { "warnings", response.Warnings.Cast<object>().ToArray() },
             { "snapshot", CombatFullSnapshotResponsePayload(response.Snapshot) }
@@ -1962,10 +2032,26 @@ public partial class ServiceHub
             { "damageResult", CombatDamageResultResponsePayload(response.DamageResult) },
             { "weaponSummary", CombatWeaponCombatSummaryPayload(response.WeaponSummary) },
             { "ammoSummary", CombatAmmoCombatSummaryPayload(response.AmmoSummary) },
+            { "penetrationResult", CombatPenetrationResultPayload(response.PenetrationResult) },
             { "damagePreview", CombatDamagePreviewPayload(response.DamagePreview) },
+            { "areaTargetResults", response.AreaTargetResults.Select(CombatAreaTargetResultPayload022Gate2).Cast<object>().ToArray() },
             { "warnings", response.Warnings.Cast<object>().ToArray() },
             { "message", response.Message },
             { "snapshot", CombatFullSnapshotResponsePayload(response.Snapshot) }
+        };
+    }
+
+    private static Dictionary<string, object> CombatAreaTargetResultPayload022Gate2(CombatAreaTargetResult022Gate2 result)
+    {
+        return new Dictionary<string, object>
+        {
+            { "targetParticipantId", result.TargetParticipantId },
+            { "targetDisplayName", result.TargetDisplayName },
+            { "isHit", result.IsHit },
+            { "attackTotal", result.AttackTotal },
+            { "targetDefense", result.TargetDefense },
+            { "damagePreview", CombatDamagePreviewPayload(result.DamagePreview) },
+            { "damageResult", CombatDamageResultResponsePayload(result.DamageResult) }
         };
     }
 
@@ -1975,6 +2061,8 @@ public partial class ServiceHub
         {
             { "weaponItemInstanceId", weapon.WeaponItemInstanceId },
             { "weaponDefinitionId", weapon.WeaponDefinitionId },
+            { "attackProfileId", weapon.AttackProfileId },
+            { "attackProfileName", weapon.AttackProfileName },
             { "displayName", weapon.DisplayName },
             { "weaponType", weapon.WeaponType },
             { "handedness", weapon.Handedness },
@@ -2007,10 +2095,30 @@ public partial class ServiceHub
             { "ammoDamageModifier", preview.AmmoDamageModifier },
             { "fateModifier", preview.FateModifier },
             { "criticalMultiplier", preview.CriticalMultiplier },
+            { "damageBeforeMitigation", preview.DamageBeforeMitigation },
             { "finalDamage", preview.FinalDamage },
+            { "protectionValue", preview.ProtectionValue },
+            { "penetrationValue", preview.PenetrationValue },
+            { "mitigatedDamage", preview.MitigatedDamage },
+            { "failedPenetrationDamageTransfer", preview.FailedPenetrationDamageTransfer },
+            { "isPenetrated", preview.IsPenetrated },
+            { "penetrationType", preview.PenetrationType },
+            { "protectionZone", preview.ProtectionZone },
             { "damageType", preview.DamageType },
             { "isDraftBased", preview.IsDraftBased },
             { "fate", CombatFateHookResultPayload(preview.Fate) }
+        };
+    }
+
+    private static Dictionary<string, object> CombatPenetrationResultPayload(CombatPenetrationResult0219 result)
+    {
+        return new Dictionary<string, object>
+        {
+            { "penetrationType", result.PenetrationType },
+            { "totalPenetration", result.TotalPenetration },
+            { "targetProtection", result.TargetProtection },
+            { "effectiveProtection", result.EffectiveProtection },
+            { "isPenetrated", result.IsPenetrated }
         };
     }
 

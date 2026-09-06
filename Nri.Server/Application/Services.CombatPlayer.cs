@@ -45,12 +45,14 @@ public partial class ServiceHub
             ?? throw new KeyNotFoundException("Combat encounter not found.");
         EnsurePlayerMaySeeEncounter(actor, encounter, request.CharacterId, request.ParticipantId);
 
+        var participants = _repositories.CombatParticipants.ListByEncounterAsync(request.EncounterId, 500).GetAwaiter().GetResult().ToList();
+        var hiddenParticipants = participants.Where(x => x.IsHidden).ToList();
         var logs = _repositories.CombatRuntimeLogs.ListByEncounterAsync(request.EncounterId, Math.Max(1, Math.Min(request.Limit, 200))).GetAwaiter().GetResult()
-            .Where(IsPublicCombatLog)
+            .Where(x => IsPlayerVisibleCombatLog(x, hiddenParticipants))
             .Where(x => request.SinceUtc == null || x.CreatedAtUtc >= request.SinceUtc.Value)
-            .OrderBy(x => x.CreatedAtUtc)
+            .OrderByDescending(x => x.CreatedAtUtc)
             .Take(Math.Max(1, Math.Min(request.Limit, 100)))
-            .Select(CombatPlayerLogItemFromLog)
+            .Select(x => CombatPlayerLogItemFromLog(x, participants))
             .ToList();
 
         _logger.Admin($"combat.player.feed.done encounterId={request.EncounterId} count={logs.Count}");
@@ -63,8 +65,17 @@ public partial class ServiceHub
 
     private CombatPlayerSnapshotResponse BuildCombatPlayerSnapshot(CombatPlayerSnapshotRequest request, UserAccount actor)
     {
-        var encounter = _repositories.CombatEncounters.GetByIdAsync(request.EncounterId).GetAwaiter().GetResult()
-            ?? throw new KeyNotFoundException("Combat encounter not found.");
+        var encounter = ResolvePlayerEncounter(request, actor);
+        if (encounter == null)
+        {
+            return new CombatPlayerSnapshotResponse
+            {
+                HasActiveCombat = false,
+                Warnings = new List<string> { "GM ещё не начал доступный вам бой." },
+                BuiltAtUtc = DateTime.UtcNow
+            };
+        }
+        request.EncounterId = encounter.Id;
         var participants = _repositories.CombatParticipants.ListByEncounterAsync(request.EncounterId, 500).GetAwaiter().GetResult().ToList();
         var myParticipant = ResolvePlayerParticipant(actor, request, participants);
         if (myParticipant == null)
@@ -76,12 +87,13 @@ public partial class ServiceHub
         var activeParticipant = participants.FirstOrDefault(x => string.Equals(x.Id, encounter.ActiveParticipantId, StringComparison.Ordinal));
         var visibleParticipants = request.IncludePublicParticipants
             ? participants.Where(x => !x.IsHidden || string.Equals(x.Id, myParticipant.Id, StringComparison.Ordinal))
-                .OrderByDescending(x => string.Equals(x.Id, encounter.ActiveParticipantId, StringComparison.Ordinal))
-                .ThenBy(x => x.TeamId, StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(x => x.Initiative)
                 .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
                 .Select(x => CombatPlayerParticipantFromState(x, encounter, IsCombatPlayerKnownConditionsEnabled()))
                 .ToList()
             : new List<CombatPlayerParticipantSummary>();
+        for (var index = 0; index < visibleParticipants.Count; index++)
+            visibleParticipants[index].InitiativeOrderIndex = index + 1;
 
         var response = new CombatPlayerSnapshotResponse
         {
@@ -109,16 +121,44 @@ public partial class ServiceHub
 
         if (request.IncludePublicLog)
         {
+            var hiddenParticipants = participants.Where(x => x.IsHidden).ToList();
             response.PublicLog = _repositories.CombatRuntimeLogs.ListByEncounterAsync(request.EncounterId, Math.Max(1, Math.Min(request.LimitLog, 200))).GetAwaiter().GetResult()
-                .Where(IsPublicCombatLog)
+                .Where(x => IsPlayerVisibleCombatLog(x, hiddenParticipants))
                 .OrderByDescending(x => x.CreatedAtUtc)
                 .Take(Math.Max(1, Math.Min(request.LimitLog, 100)))
-                .OrderBy(x => x.CreatedAtUtc)
-                .Select(CombatPlayerLogItemFromLog)
+                .Select(x => CombatPlayerLogItemFromLog(x, participants))
                 .ToList();
         }
 
         return response;
+    }
+
+    private CombatEncounterState? ResolvePlayerEncounter(CombatPlayerSnapshotRequest request, UserAccount actor)
+    {
+        if (!string.IsNullOrWhiteSpace(request.EncounterId))
+            return _repositories.CombatEncounters.GetByIdAsync(request.EncounterId).GetAwaiter().GetResult();
+
+        IReadOnlyCollection<CombatEncounterState> candidates;
+        if (!string.IsNullOrWhiteSpace(request.SessionId))
+            candidates = _repositories.CombatEncounters.ListBySessionAsync(request.SessionId, 100).GetAwaiter().GetResult();
+        else if (!string.IsNullOrWhiteSpace(request.CampaignId))
+            candidates = _repositories.CombatEncounters.ListByCampaignAsync(request.CampaignId, 100).GetAwaiter().GetResult();
+        else
+            return null;
+
+        foreach (var candidate in candidates.Where(x => string.Equals(x.Status, CombatRuntimeStatuses.Active, StringComparison.OrdinalIgnoreCase)
+                                                      || string.Equals(x.Status, CombatRuntimeStatuses.Paused, StringComparison.OrdinalIgnoreCase)))
+        {
+            var participants = _repositories.CombatParticipants.ListByEncounterAsync(candidate.Id, 500).GetAwaiter().GetResult().ToList();
+            var probe = new CombatPlayerSnapshotRequest
+            {
+                EncounterId = candidate.Id,
+                CharacterId = request.CharacterId,
+                ParticipantId = request.ParticipantId
+            };
+            if (ResolvePlayerParticipant(actor, probe, participants) != null) return candidate;
+        }
+        return null;
     }
 
     private CombatParticipantState? ResolvePlayerParticipant(UserAccount actor, CombatPlayerSnapshotRequest request, List<CombatParticipantState> participants)
@@ -134,6 +174,14 @@ public partial class ServiceHub
         if (participant == null && !string.IsNullOrWhiteSpace(characterId))
         {
             participant = participants.FirstOrDefault(x => string.Equals(x.CharacterId, characterId, StringComparison.Ordinal));
+        }
+        if (participant == null && !isAdmin)
+        {
+            var controlled = participants
+                .Where(x => string.Equals(x.ControllerUserId, actor.Id, StringComparison.Ordinal))
+                .Take(2)
+                .ToList();
+            if (controlled.Count == 1) participant = controlled[0];
         }
         if (participant == null) return null;
         if (isAdmin) return participant;
@@ -187,7 +235,27 @@ public partial class ServiceHub
             || string.Equals(entry.Visibility, CombatVisibilityIds.Public, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static CombatPlayerParticipantSummary CombatPlayerParticipantFromState(CombatParticipantState participant, CombatEncounterState encounter, bool includeConditions)
+    private static bool IsPlayerVisibleCombatLog(
+        CombatRuntimeLogEntry entry,
+        IReadOnlyCollection<CombatParticipantState> hiddenParticipants)
+    {
+        if (!IsPublicCombatLog(entry)) return false;
+
+        foreach (var participant in hiddenParticipants)
+        {
+            if (!string.IsNullOrWhiteSpace(participant.Id)
+                && string.Equals(entry.ActorParticipantId, participant.Id, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (!string.IsNullOrWhiteSpace(participant.DisplayName)
+                && (entry.Message ?? string.Empty).IndexOf(participant.DisplayName, StringComparison.OrdinalIgnoreCase) >= 0)
+                return false;
+        }
+
+        return true;
+    }
+
+    private CombatPlayerParticipantSummary CombatPlayerParticipantFromState(CombatParticipantState participant, CombatEncounterState encounter, bool includeConditions)
     {
         return new CombatPlayerParticipantSummary
         {
@@ -196,6 +264,7 @@ public partial class ServiceHub
             DisplayName = participant.DisplayName,
             TeamId = participant.TeamId,
             ParticipantType = participant.ParticipantType,
+            Initiative = participant.Initiative,
             IsCurrentTurn = string.Equals(encounter.ActiveParticipantId, participant.Id, StringComparison.Ordinal),
             IsActive = participant.IsActive,
             IsDefeated = participant.IsDefeated,
@@ -205,13 +274,20 @@ public partial class ServiceHub
             CurrentMorale = participant.CurrentMorale,
             MaxMorale = participant.MaxMorale,
             VisibilityState = participant.VisibilityState,
+            MapTokenDisplayName = string.Equals(participant.MapTokenVisibility, "player_visible", StringComparison.OrdinalIgnoreCase)
+                ? participant.MapTokenDisplayName
+                : string.Empty,
+            HalfActionsRemaining = participant.ActionPoints,
+            ReactionsUsed = participant.ReactionCount,
+            ReactionLimit = participant.ReactionLimit,
+            RacialMovementState = CombatPlayerRacialMovementState022Gate2(participant),
             KnownConditions = includeConditions
                 ? participant.Conditions
                     .Where(x => string.Equals(x.Status, CombatConditionStatuses.Active, StringComparison.OrdinalIgnoreCase) && !x.IsHiddenFromPlayer)
                     .Select(x => new CombatPlayerConditionSummary
                     {
                         ConditionDefinitionId = x.ConditionDefinitionId,
-                        DisplayName = FirstNonEmpty(x.DisplayName, x.ConditionDefinitionId),
+                        DisplayName = ResolvePlayerConditionDisplayName(x.ConditionDefinitionId, x.DisplayName),
                         Severity = x.Severity,
                         StackCount = x.StackCount,
                         RemainingRounds = x.RemainingRounds,
@@ -223,7 +299,37 @@ public partial class ServiceHub
         };
     }
 
-    private static CombatPlayerLogItem CombatPlayerLogItemFromLog(CombatRuntimeLogEntry entry)
+    private string CombatPlayerRacialMovementState022Gate2(CombatParticipantState participant)
+    {
+        if (string.IsNullOrWhiteSpace(participant.CharacterId)) return string.Empty;
+        var body = _mongo.CharacterBodyProfiles.Find(x => x.CharacterId == participant.CharacterId).FirstOrDefault()?.Profile;
+        if (body == null || body.MovementAbilities.Count == 0) return string.Empty;
+        var activeConditionIds = participant.Conditions
+            .Where(x => string.Equals(x.Status, CombatConditionStatuses.Active, StringComparison.OrdinalIgnoreCase))
+            .Select(x => (x.ConditionDefinitionId ?? string.Empty).Trim().ToLowerInvariant())
+            .ToList();
+        var wingDisabled = activeConditionIds.Any(x => x == "wing_disabled" || x == "left_wing_disabled" || x == "right_wing_disabled");
+        var wingSevere = activeConditionIds.Any(x => x == "wing_severely_impaired" || x == "left_wing_severely_impaired" || x == "right_wing_severely_impaired");
+        var wingImpaired = activeConditionIds.Any(x => x == "wing_impaired" || x == "left_wing_impaired" || x == "right_wing_impaired");
+        var powered = body.MovementAbilities.FirstOrDefault(x => string.Equals(x.MovementMode, RacialMovementModeIds.PoweredFlight, StringComparison.Ordinal));
+        var glide = body.MovementAbilities.FirstOrDefault(x => string.Equals(x.MovementMode, RacialMovementModeIds.Glide, StringComparison.Ordinal));
+        if (powered != null)
+        {
+            if (wingDisabled) return "Полёт и планирование недоступны: крыло выведено из строя.";
+            if (wingSevere) return "Полёт недоступен; возможно только аварийное планирование.";
+            var speed = wingImpaired ? powered.SpeedMeters * .75m : powered.SpeedMeters;
+            return wingImpaired ? $"Полёт ограничен: {speed:0.##} м, повреждено крыло." : $"Полёт доступен: {speed:0.##} м.";
+        }
+        if (glide != null)
+        {
+            if (wingDisabled) return "Планирование недоступно: крыло выведено из строя.";
+            if (wingSevere) return "Планирование доступно только для аварийного снижения.";
+            return wingImpaired ? "Планирование ограничено: повреждено крыло." : $"Планирование доступно: коэффициент {glide.GlideRatio:0.##}.";
+        }
+        return string.Empty;
+    }
+
+    private CombatPlayerLogItem CombatPlayerLogItemFromLog(CombatRuntimeLogEntry entry, IReadOnlyCollection<CombatParticipantState> participants)
     {
         return new CombatPlayerLogItem
         {
@@ -231,15 +337,43 @@ public partial class ServiceHub
             RoundNumber = entry.RoundNumber,
             TurnIndex = entry.TurnIndex,
             EventType = entry.EventType,
-            Message = entry.Message
+            Message = BuildPlayerSafeCombatLogMessage(entry, participants)
         };
     }
+
+    private string ResolvePlayerConditionDisplayName(string conditionDefinitionId, string persistedDisplayName)
+        => _combatConditionPresentationResolver?.ResolveDisplayName(conditionDefinitionId, persistedDisplayName)
+           ?? CombatConditionPresentationRules.ReadableOrGeneric(conditionDefinitionId, persistedDisplayName);
+
+    private string BuildPlayerSafeCombatLogMessage(CombatRuntimeLogEntry entry, IReadOnlyCollection<CombatParticipantState> participants)
+    {
+        if (!string.Equals(entry.EventType, CombatEventTypes.ConditionApplied, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(entry.EventType, CombatEventTypes.ConditionRemoved, StringComparison.OrdinalIgnoreCase))
+            return entry.Message ?? string.Empty;
+
+        var conditionId = PayloadText(entry.PayloadSummary, "conditionDefinitionId");
+        var targetId = PayloadText(entry.PayloadSummary, "targetParticipantId");
+        var target = participants.FirstOrDefault(x => string.Equals(x.Id, targetId, StringComparison.OrdinalIgnoreCase));
+        if (_combatConditionPresentationResolver != null)
+            return _combatConditionPresentationResolver.BuildPlayerLogMessage(entry.EventType, target?.DisplayName ?? string.Empty, conditionId);
+
+        var displayName = ResolvePlayerConditionDisplayName(conditionId, string.Empty);
+        var targetName = string.IsNullOrWhiteSpace(target?.DisplayName) ? "Участник" : target.DisplayName;
+        return string.Equals(entry.EventType, CombatEventTypes.ConditionRemoved, StringComparison.OrdinalIgnoreCase)
+            ? $"{targetName}: состояние «{displayName}» снято."
+            : $"{targetName} получает состояние «{displayName}».";
+    }
+
+    private static string PayloadText(IDictionary<string, object> payload, string key)
+        => payload != null && payload.TryGetValue(key, out var value) ? Convert.ToString(value) ?? string.Empty : string.Empty;
 
     private static CombatPlayerSnapshotRequest ParseCombatPlayerSnapshotRequest(IDictionary<string, object> payload)
     {
         return new CombatPlayerSnapshotRequest
         {
             EncounterId = PayloadReader.GetString(payload, "encounterId") ?? string.Empty,
+            CampaignId = PayloadReader.GetString(payload, "campaignId") ?? string.Empty,
+            SessionId = PayloadReader.GetString(payload, "sessionId") ?? string.Empty,
             CharacterId = PayloadReader.GetString(payload, "characterId") ?? string.Empty,
             ParticipantId = PayloadReader.GetString(payload, "participantId") ?? string.Empty,
             IncludePublicParticipants = !payload.ContainsKey("includePublicParticipants") || PayloadReader.GetBool(payload, "includePublicParticipants"),
@@ -268,6 +402,7 @@ public partial class ServiceHub
     {
         return new Dictionary<string, object>
         {
+            { "hasActiveCombat", response.HasActiveCombat },
             { "encounter", CombatPlayerEncounterPayload(response.Encounter) },
             { "myParticipant", CombatPlayerParticipantPayload(response.MyParticipant) },
             { "participants", response.Participants.Select(CombatPlayerParticipantPayload).Cast<object>().ToArray() },
@@ -300,6 +435,8 @@ public partial class ServiceHub
             { "displayName", participant.DisplayName },
             { "teamId", participant.TeamId },
             { "participantType", participant.ParticipantType },
+            { "initiative", participant.Initiative },
+            { "initiativeOrderIndex", participant.InitiativeOrderIndex },
             { "isCurrentTurn", participant.IsCurrentTurn },
             { "isActive", participant.IsActive },
             { "isDefeated", participant.IsDefeated },
@@ -310,6 +447,12 @@ public partial class ServiceHub
             { "maxMorale", participant.MaxMorale ?? 0 },
             { "knownConditions", participant.KnownConditions.Select(CombatPlayerConditionPayload).Cast<object>().ToArray() },
             { "visibilityState", participant.VisibilityState }
+            ,{ "mapTokenDisplayName", participant.MapTokenDisplayName }
+            ,{ "halfActionsRemaining", participant.HalfActionsRemaining }
+            ,{ "reactionsUsed", participant.ReactionsUsed }
+            ,{ "reactionLimit", participant.ReactionLimit }
+            ,{ "reactionAvailable", participant.ReactionAvailable }
+            ,{ "racialMovementState", participant.RacialMovementState }
         };
     }
 

@@ -24,34 +24,36 @@ public sealed class PlayerEventJournalViewModel : ViewModelBase
     private string _errorMessage = string.Empty;
     private bool _isEnabled;
     private EventJournalPlayerRow? _selectedEntry;
+    private EventJournalCategoryOption? _selectedCategoryOption;
 
     public PlayerEventJournalViewModel(CommandApi api, Func<string> activeCharacterIdAccessor)
     {
         _api = api;
         _activeCharacterIdAccessor = activeCharacterIdAccessor;
         RefreshFlagsCommand = new RelayCommand(RefreshFlags);
-        RefreshCommand = new RelayCommand(Load);
+        RefreshCommand = new RelayCommand(Refresh);
         SearchCommand = new RelayCommand(Search);
         ClearErrorCommand = new RelayCommand(() => ErrorMessage = string.Empty);
+        SelectedCategoryOption = CategoryOptions[0];
     }
 
     public ObservableCollection<EventJournalPlayerRow> Entries { get; } = new();
     public ObservableCollection<EventJournalPlayerLinkRow> Links { get; } = new();
     public ObservableCollection<EventJournalPlayerAnnotationRow> Annotations { get; } = new();
-    public ObservableCollection<string> CategoryOptions { get; } = new()
+    public ObservableCollection<EventJournalCategoryOption> CategoryOptions { get; } = new()
     {
-        string.Empty,
-        EventJournalCategoryIds.Session,
-        EventJournalCategoryIds.Character,
-        EventJournalCategoryIds.Group,
-        EventJournalCategoryIds.Request,
-        EventJournalCategoryIds.Combat,
-        EventJournalCategoryIds.Map,
-        EventJournalCategoryIds.WorldCalendar,
-        EventJournalCategoryIds.RealSchedule,
-        EventJournalCategoryIds.Inventory,
-        EventJournalCategoryIds.System,
-        EventJournalCategoryIds.Custom
+        new EventJournalCategoryOption(string.Empty, "Все события"),
+        new EventJournalCategoryOption(EventJournalCategoryIds.Session, "Сессия"),
+        new EventJournalCategoryOption(EventJournalCategoryIds.Character, "Персонаж"),
+        new EventJournalCategoryOption(EventJournalCategoryIds.Group, "Группа"),
+        new EventJournalCategoryOption(EventJournalCategoryIds.Request, "Заявки"),
+        new EventJournalCategoryOption(EventJournalCategoryIds.Combat, "Бой"),
+        new EventJournalCategoryOption(EventJournalCategoryIds.Map, "Карты"),
+        new EventJournalCategoryOption(EventJournalCategoryIds.WorldCalendar, "Календарь мира"),
+        new EventJournalCategoryOption(EventJournalCategoryIds.RealSchedule, "Расписание"),
+        new EventJournalCategoryOption(EventJournalCategoryIds.Inventory, "Инвентарь"),
+        new EventJournalCategoryOption(EventJournalCategoryIds.System, "Система"),
+        new EventJournalCategoryOption(EventJournalCategoryIds.Custom, "Другое")
     };
 
     public ICommand RefreshFlagsCommand { get; }
@@ -62,6 +64,17 @@ public sealed class PlayerEventJournalViewModel : ViewModelBase
     public string CampaignId { get => _campaignId; set { if (_campaignId != value) { _campaignId = value ?? string.Empty; Notify(); } } }
     public string SessionId { get => _sessionId; set { if (_sessionId != value) { _sessionId = value ?? string.Empty; Notify(); } } }
     public string Category { get => _category; set { if (_category != value) { _category = value ?? string.Empty; Notify(); } } }
+    public EventJournalCategoryOption? SelectedCategoryOption
+    {
+        get => _selectedCategoryOption;
+        set
+        {
+            if (_selectedCategoryOption == value) return;
+            _selectedCategoryOption = value;
+            Category = value?.Value ?? string.Empty;
+            Notify();
+        }
+    }
     public string SearchText { get => _searchText; set { if (_searchText != value) { _searchText = value ?? string.Empty; Notify(); } } }
     public string StatusMessage { get => _statusMessage; set { if (_statusMessage != value) { _statusMessage = value ?? string.Empty; Notify(); } } }
     public string ErrorMessage { get => _errorMessage; set { if (_errorMessage != value) { _errorMessage = value ?? string.Empty; Notify(); Notify(nameof(HasError)); } } }
@@ -99,6 +112,12 @@ public sealed class PlayerEventJournalViewModel : ViewModelBase
             IsEnabled = false;
             StatusMessage = PlayerFacingMessage(response.Message, "Журнал событий пока недоступен.");
         });
+    }
+
+    public void Refresh()
+    {
+        if (IsEnabled) Load();
+        else RefreshFlags();
     }
 
     public void Load()
@@ -310,6 +329,19 @@ public sealed class PlayerEventJournalViewModel : ViewModelBase
         => map.TryGetValue(key, out var value) && bool.TryParse(Convert.ToString(value), out var parsed) && parsed;
 }
 
+public sealed class EventJournalCategoryOption
+{
+    public EventJournalCategoryOption(string value, string label)
+    {
+        Value = value;
+        Label = label;
+    }
+
+    public string Value { get; }
+    public string Label { get; }
+    public override string ToString() => Label;
+}
+
 public sealed class EventJournalPlayerRow
 {
     public string EntryId { get; set; } = string.Empty;
@@ -321,6 +353,8 @@ public sealed class EventJournalPlayerRow
     public string SubjectDisplayName { get; set; } = string.Empty;
     public string WorldDateTimeSnapshot { get; set; } = string.Empty;
     public DateTime OccurredAtUtc { get; set; }
+    public string CategoryLabel => ReadableCategory(Category);
+    public string SeverityLabel => ReadableSeverity(Severity);
     public string OccurredText => OccurredAtUtc == default ? "—" : OccurredAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
     public string ContextText => string.Join(" • ", new[] { ActorDisplayName, SubjectDisplayName, WorldDateTimeSnapshot }.Where(x => !string.IsNullOrWhiteSpace(x)));
 
@@ -339,6 +373,32 @@ public sealed class EventJournalPlayerRow
 
     private static string Str(IDictionary<string, object> map, string key) => map.TryGetValue(key, out var value) && value != null ? Convert.ToString(value) ?? string.Empty : string.Empty;
     private static DateTime Date(IDictionary<string, object> map, string key) => DateTime.TryParse(Str(map, key), out var parsed) ? parsed : default;
+
+    private static string ReadableCategory(string value) => (value ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "session" => "Сессия",
+        "character" => "Персонаж",
+        "group" => "Группа",
+        "request" => "Заявка",
+        "combat" => "Бой",
+        "map" => "Карта",
+        "world_calendar" => "Календарь мира",
+        "real_schedule" => "Расписание",
+        "inventory" => "Инвентарь",
+        "system" => "Система",
+        "custom" => "Другое",
+        _ => string.IsNullOrWhiteSpace(value) ? "Без категории" : PlayerDevelopmentGraphDisplay.ToReadableText(value)
+    };
+
+    private static string ReadableSeverity(string value) => (value ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "information" => "Информация",
+        "notice" => "Уведомление",
+        "important" => "Важно",
+        "warning" => "Предупреждение",
+        "critical" => "Критично",
+        _ => string.IsNullOrWhiteSpace(value) ? "Обычная" : PlayerDevelopmentGraphDisplay.ToReadableText(value)
+    };
 }
 
 public sealed class EventJournalPlayerLinkRow
@@ -346,7 +406,9 @@ public sealed class EventJournalPlayerLinkRow
     public string DisplayName { get; set; } = string.Empty;
     public string EntityType { get; set; } = string.Empty;
     public string LinkRole { get; set; } = string.Empty;
-    public string Display => string.IsNullOrWhiteSpace(DisplayName) ? EntityType : $"{DisplayName} ({EntityType})";
+    public string EntityTypeLabel => PlayerDevelopmentGraphDisplay.ToReadableText(EntityType);
+    public string LinkRoleLabel => PlayerDevelopmentGraphDisplay.ToReadableText(LinkRole);
+    public string Display => string.IsNullOrWhiteSpace(DisplayName) ? EntityTypeLabel : $"{DisplayName} ({EntityTypeLabel})";
 
     public static EventJournalPlayerLinkRow FromMap(IDictionary<string, object> map) => new()
     {

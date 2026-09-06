@@ -1,0 +1,36 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Brushes.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+    <FontFamily x:Key="NriFontFamily">Segoe UI</FontFamily>
+    <Style x:Key="NriPageTitleTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource NriFontFamily}"/>
+        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource NriPrimaryTextBrush}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style x:Key="NriSectionTitleTextStyle" TargetType="TextBlock" BasedOn="{StaticResource NriPageTitleTextStyle}">
+        <Setter Property="FontSize" Value="18"/>
+    </Style>
+    <Style x:Key="NriCardTitleTextStyle" TargetType="TextBlock" BasedOn="{StaticResource NriPageTitleTextStyle}">
+        <Setter Property="FontSize" Value="16"/>
+    </Style>
+    <Style x:Key="NriBodyTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource NriFontFamily}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Foreground" Value="{StaticResource NriSecondaryTextBrush}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style x:Key="NriSecondaryTextStyle" TargetType="TextBlock" BasedOn="{StaticResource NriBodyTextStyle}">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource NriMutedTextBrush}"/>
+    </Style>
+    <Style x:Key="NriMetadataTextStyle" TargetType="TextBlock" BasedOn="{StaticResource NriSecondaryTextStyle}">
+        <Setter Property="FontSize" Value="12"/>
+    </Style>
+    <Style x:Key="NriTechnicalTextStyle" TargetType="TextBlock" BasedOn="{StaticResource NriMetadataTextStyle}">
+        <Setter Property="FontFamily" Value="Consolas"/>
+    </Style>
+</ResourceDictionary>

@@ -30,6 +30,8 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
     private readonly ICombatParticipantRepository _participants;
     private readonly ICombatTurnRepository _turns;
     private readonly ICombatRoundRepository _rounds;
+    private readonly ICombatActionRepository _actions;
+    private readonly ICombatReplayEventRepository _replayEvents;
     private readonly ICombatLogWriter _logWriter;
     private readonly IServerLogger _logger;
 
@@ -38,6 +40,8 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
         ICombatParticipantRepository participants,
         ICombatTurnRepository turns,
         ICombatRoundRepository rounds,
+        ICombatActionRepository actions,
+        ICombatReplayEventRepository replayEvents,
         ICombatLogWriter logWriter,
         IServerLogger logger)
     {
@@ -45,6 +49,8 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
         _participants = participants;
         _turns = turns;
         _rounds = rounds;
+        _actions = actions;
+        _replayEvents = replayEvents;
         _logWriter = logWriter;
         _logger = logger;
     }
@@ -56,6 +62,17 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
         EnsureMutableEncounter(encounter);
         var previous = encounter.ActiveParticipantId;
         var participants = await LoadParticipantsAsync(encounter.Id);
+        foreach (var participant in participants.Values)
+        {
+            participant.Natural20BonusTurn = participant.Initiative == 20;
+            participant.Natural1FirstTurnPenalty = participant.Initiative == 1;
+            if (encounter.RoundNumber == 0)
+            {
+                participant.Natural20BonusTurnUsed = false;
+                participant.Natural1PenaltyConsumed = false;
+            }
+            await _participants.UpsertAsync(participant);
+        }
         var activeIds = ActiveParticipants(participants.Values).Select(x => x.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var entries = EnsureInitiativeEntries(encounter, participants.Values)
             .Where(x => activeIds.Contains(x.ParticipantId))
@@ -97,7 +114,7 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
         encounter.LastUpdatedAtUtc = DateTime.UtcNow;
         ValidateOrThrow(CombatRuntimeValidator.ValidateInitiativeOrder(encounter, participants.Values));
         await _encounters.UpsertAsync(encounter);
-        await WriteTransitionLogAsync(encounter, CombatEventTypes.InitiativeSorted, "Initiative order sorted.", actor, request.RequestId, encounter.ActiveParticipantId);
+        await WriteTransitionLogAsync(encounter, CombatEventTypes.InitiativeSorted, "Инициатива определена.", actor, request.RequestId, encounter.ActiveParticipantId);
         _logger.Admin($"combat.v1.initiative.sort.done encounterId={encounter.Id} count={entries.Count}");
         return await BuildResponseAsync(encounter, previous, true, "Initiative order sorted.");
     }
@@ -108,8 +125,15 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
         var encounter = await RequireEncounterAsync(request.EncounterId);
         EnsureMutableEncounter(encounter);
         var previous = encounter.ActiveParticipantId;
-        var targetRound = request.RoundNumber > 0 ? request.RoundNumber : (encounter.RoundNumber > 0 ? encounter.RoundNumber : 1);
         var participants = await LoadParticipantsAsync(encounter.Id);
+        var targetRound = request.RoundNumber > 0 ? request.RoundNumber : (encounter.RoundNumber > 0 ? encounter.RoundNumber : 1);
+        if (encounter.RoundNumber == 0 && targetRound == 1
+            && participants.Values.Any(x => x.IsActive && !x.IsDefeated
+                && (x.Natural20BonusTurn || x.Initiative == 20)
+                && !x.Natural20BonusTurnUsed))
+        {
+            targetRound = 0;
+        }
         await StartRoundInternalAsync(encounter, participants, targetRound, actor, request.RequestId, startFirstTurn: false, endPreviousRound: false);
         _logger.Admin($"combat.v1.round.start.done encounterId={encounter.Id} round={encounter.RoundNumber}");
         return await BuildResponseAsync(encounter, previous, true, "Round started.");
@@ -160,12 +184,14 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
         await AddTurnToRoundAsync(encounter, turn, participant.Id, completed: true);
 
         participant.HasActedThisRound = true;
+        if (encounter.RoundNumber == 0 && (participant.Natural20BonusTurn || participant.Initiative == 20))
+            participant.Natural20BonusTurnUsed = true;
         participant.ActionPoints = 0;
         participant.MinorActionPoints = 0;
         await _participants.UpsertAsync(participant);
         encounter.LastUpdatedAtUtc = DateTime.UtcNow;
         await _encounters.UpsertAsync(encounter);
-        await WriteTransitionLogAsync(encounter, CombatEventTypes.TurnEnded, SafeReason("Turn ended.", request.Reason), actor, request.RequestId, participant.Id);
+        await WriteTransitionLogAsync(encounter, CombatEventTypes.TurnEnded, SafeReason("Ход завершён.", request.Reason), actor, request.RequestId, participant.Id);
         _logger.Admin($"combat.v1.turn.end.done encounterId={encounter.Id} participantId={participant.Id}");
         return await BuildResponseAsync(encounter, previous, true, "Turn ended.", warnings);
     }
@@ -173,9 +199,12 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
     public async Task<CombatTurnEngineResponse> MoveToNextTurnAsync(CombatNextTurnRequest request, UserAccount actor)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
+        if (string.IsNullOrWhiteSpace(request.RequestId)) throw new ArgumentException("operation_id_required", nameof(request));
         var encounter = await RequireEncounterAsync(request.EncounterId);
         EnsureMutableEncounter(encounter);
         var previous = encounter.ActiveParticipantId;
+        if (await _replayEvents.GetByRequestIdAsync(encounter.Id, request.RequestId) != null)
+            return await BuildResponseAsync(encounter, previous, false, "Переход хода уже был выполнен.", new[] { "turn_transition_idempotent_replay" });
         var participants = await LoadParticipantsAsync(encounter.Id);
         var activeEntries = ActiveOrderedEntries(encounter, participants.Values).ToList();
         if (activeEntries.Count == 0)
@@ -185,6 +214,15 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
             encounter.LastUpdatedAtUtc = DateTime.UtcNow;
             await _encounters.UpsertAsync(encounter);
             return await BuildResponseAsync(encounter, previous, false, "No active participants available.", new[] { "no active participants available" });
+        }
+
+        if (!string.IsNullOrWhiteSpace(encounter.ActiveParticipantId)
+            && participants.TryGetValue(encounter.ActiveParticipantId, out var currentParticipant))
+        {
+            currentParticipant.HasActedThisRound = true;
+            if (encounter.RoundNumber == 0 && (currentParticipant.Natural20BonusTurn || currentParticipant.Initiative == 20))
+                currentParticipant.Natural20BonusTurnUsed = true;
+            await _participants.UpsertAsync(currentParticipant);
         }
 
         var nextEntry = FindNextEntry(encounter, activeEntries, participants);
@@ -240,7 +278,7 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
         encounter.ActiveParticipantId = participant.Id;
         encounter.LastUpdatedAtUtc = DateTime.UtcNow;
         await _encounters.UpsertAsync(encounter);
-        await WriteTransitionLogAsync(encounter, CombatEventTypes.TurnSkipped, SafeReason("Turn skipped.", request.Reason), actor, request.RequestId, participant.Id);
+        await WriteTransitionLogAsync(encounter, CombatEventTypes.TurnSkipped, SafeReason("Ход пропущен.", request.Reason), actor, request.RequestId, participant.Id);
         _logger.Admin($"combat.v1.turn.skip.done encounterId={encounter.Id} participantId={participant.Id}");
         return await BuildResponseAsync(encounter, previous, true, "Turn skipped.");
     }
@@ -281,23 +319,41 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
         await _participants.UpsertAsync(participant);
         ValidateOrThrow(CombatRuntimeValidator.ValidateInitiativeOrder(encounter, participants.Values));
         await _encounters.UpsertAsync(encounter);
-        await WriteTransitionLogAsync(encounter, CombatEventTypes.TurnDelayed, SafeReason("Turn delayed.", request.Reason), actor, request.RequestId, participant.Id);
+        await WriteTransitionLogAsync(encounter, CombatEventTypes.TurnDelayed, SafeReason("Ход отложен.", request.Reason), actor, request.RequestId, participant.Id);
         _logger.Admin($"combat.v1.turn.delay.done encounterId={encounter.Id} participantId={participant.Id}");
         return await BuildResponseAsync(encounter, previous, true, "Turn delayed.");
     }
 
     private async Task StartNextRoundInternalAsync(CombatEncounterState encounter, Dictionary<string, CombatParticipantState> participants, UserAccount actor, string requestId, bool startFirstTurn)
     {
+        await ExpirePreparedActionsAsync(encounter, actor, requestId);
         var currentRound = await _rounds.GetByEncounterRoundAsync(encounter.Id, encounter.RoundNumber);
         if (currentRound != null && currentRound.EndedAtUtc == null)
         {
             currentRound.EndedAtUtc = DateTime.UtcNow;
             await _rounds.UpsertAsync(currentRound);
-            await WriteTransitionLogAsync(encounter, CombatEventTypes.RoundEnded, "Round ended.", actor, requestId, encounter.ActiveParticipantId);
+        await WriteTransitionLogAsync(encounter, CombatEventTypes.RoundEnded, "Раунд завершён.", actor, requestId, encounter.ActiveParticipantId);
         }
 
         var nextRound = encounter.RoundNumber > 0 ? encounter.RoundNumber + 1 : 1;
         await StartRoundInternalAsync(encounter, participants, nextRound, actor, requestId, startFirstTurn, endPreviousRound: false);
+    }
+
+    private async Task ExpirePreparedActionsAsync(CombatEncounterState encounter, UserAccount actor, string requestId)
+    {
+        var actions = await _actions.ListByEncounterAsync(encounter.Id, 500);
+        var expired = actions.Where(x => x.RoundNumber == encounter.RoundNumber
+            && string.Equals(x.ActionType, CombatActionTypes.Prepare, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.Status, CombatActionStatuses.Declared, StringComparison.OrdinalIgnoreCase)).ToList();
+        foreach (var action in expired)
+        {
+            action.Status = CombatActionStatuses.Cancelled;
+            action.PayloadSummary["expiredAtUtc"] = DateTime.UtcNow;
+            await _actions.UpsertAsync(action);
+        }
+        if (expired.Count > 0)
+            await WriteTransitionLogAsync(encounter, CombatEventTypes.PreparedActionExpired,
+                $"Истекло подготовленных действий: {expired.Count}.", actor, requestId, encounter.ActiveParticipantId);
     }
 
     private async Task StartRoundInternalAsync(CombatEncounterState encounter, Dictionary<string, CombatParticipantState> participants, int roundNumber, UserAccount actor, string requestId, bool startFirstTurn, bool endPreviousRound)
@@ -309,23 +365,27 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
             {
                 currentRound.EndedAtUtc = DateTime.UtcNow;
                 await _rounds.UpsertAsync(currentRound);
-                await WriteTransitionLogAsync(encounter, CombatEventTypes.RoundEnded, "Round ended.", actor, requestId, encounter.ActiveParticipantId);
+        await WriteTransitionLogAsync(encounter, CombatEventTypes.RoundEnded, "Раунд завершён.", actor, requestId, encounter.ActiveParticipantId);
             }
         }
 
         encounter.InitiativeOrder = EnsureInitiativeEntries(encounter, participants.Values).OrderBy(x => x.OrderIndex).ToList();
         Reindex(encounter.InitiativeOrder);
+        var preRound = roundNumber == 0;
         foreach (var roundParticipant in ActiveParticipants(participants.Values))
         {
             roundParticipant.HasActedThisRound = false;
             roundParticipant.ReactionCount = 0;
-            if (roundParticipant.ActionPoints <= 0) roundParticipant.ActionPoints = 1;
-            if (roundParticipant.MinorActionPoints <= 0) roundParticipant.MinorActionPoints = 1;
+            roundParticipant.ActionPoints = preRound && !(roundParticipant.Natural20BonusTurn || roundParticipant.Initiative == 20)
+                ? 0
+                : CombatActionEconomyPolicy0219.HalfActionsPerTurn;
+            roundParticipant.MinorActionPoints = 0;
+            roundParticipant.ReactionLimit = CombatActionEconomyPolicy0219.ReactionsPerRound;
             await _participants.UpsertAsync(roundParticipant);
         }
 
-        var firstEntry = ActiveOrderedEntries(encounter, participants.Values).FirstOrDefault();
         encounter.RoundNumber = roundNumber;
+        var firstEntry = ActiveOrderedEntries(encounter, participants.Values).FirstOrDefault();
         encounter.ActiveTurnIndex = firstEntry?.OrderIndex ?? 0;
         encounter.ActiveParticipantId = firstEntry?.ParticipantId ?? string.Empty;
         encounter.Status = CombatRuntimeStatuses.Active;
@@ -343,7 +403,7 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
         await _rounds.UpsertAsync(round);
         ValidateOrThrow(CombatRuntimeValidator.ValidateInitiativeOrder(encounter, participants.Values));
         await _encounters.UpsertAsync(encounter);
-        await WriteTransitionLogAsync(encounter, CombatEventTypes.RoundStarted, "Round started.", actor, requestId, encounter.ActiveParticipantId);
+        await WriteTransitionLogAsync(encounter, CombatEventTypes.RoundStarted, "Раунд начат.", actor, requestId, encounter.ActiveParticipantId);
 
         if (startFirstTurn && firstEntry != null && participants.TryGetValue(firstEntry.ParticipantId, out var participant))
         {
@@ -354,13 +414,24 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
     private async Task StartTurnInternalAsync(CombatEncounterState encounter, CombatParticipantState participant, int turnIndex, UserAccount actor, string requestId, List<string> warnings)
     {
         EnsureParticipantCanAct(participant);
+        if (encounter.RoundNumber == 0 && !(participant.Natural20BonusTurn || participant.Initiative == 20))
+            throw new InvalidOperationException("Only a natural 20 participant can act during the pre-round.");
         encounter.ActiveTurnIndex = Math.Max(0, turnIndex);
         encounter.ActiveParticipantId = participant.Id;
         encounter.Status = CombatRuntimeStatuses.Active;
         encounter.LastUpdatedAtUtc = DateTime.UtcNow;
         participant.HasActedThisRound = false;
-        if (participant.ActionPoints <= 0) participant.ActionPoints = 1;
-        if (participant.MinorActionPoints <= 0) participant.MinorActionPoints = 1;
+        var naturalOnePenalty = encounter.RoundNumber >= 1
+            && (participant.Natural1FirstTurnPenalty || participant.Initiative == 1)
+            && !participant.Natural1PenaltyConsumed;
+        participant.ActionPoints = naturalOnePenalty ? 0 : CombatActionEconomyPolicy0219.HalfActionsPerTurn;
+        participant.MinorActionPoints = 0;
+        if (naturalOnePenalty)
+        {
+            participant.Natural1FirstTurnPenalty = true;
+            participant.Natural1PenaltyConsumed = true;
+            warnings.Add("Натуральная 1: первое обычное полное действие потеряно; реакция сохранена.");
+        }
         await _participants.UpsertAsync(participant);
 
         var turn = CreateTurn(encounter, participant, encounter.ActiveTurnIndex, CombatTurnStatuses.Active);
@@ -368,7 +439,7 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
         await _turns.UpsertAsync(turn);
         await AddTurnToRoundAsync(encounter, turn, participant.Id, completed: false);
         await _encounters.UpsertAsync(encounter);
-        await WriteTransitionLogAsync(encounter, CombatEventTypes.TurnStarted, "Turn started.", actor, requestId, participant.Id);
+        await WriteTransitionLogAsync(encounter, CombatEventTypes.TurnStarted, "Ход начат.", actor, requestId, participant.Id);
     }
 
     private CombatTurnState CreateTurn(CombatEncounterState encounter, CombatParticipantState participant, int turnIndex, string status)
@@ -458,7 +529,10 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
 
     private static IEnumerable<CombatInitiativeEntry> ActiveOrderedEntries(CombatEncounterState encounter, IEnumerable<CombatParticipantState> participants)
     {
-        var activeIds = ActiveParticipants(participants).Select(x => x.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var eligible = ActiveParticipants(participants);
+        if (encounter.RoundNumber == 0)
+            eligible = eligible.Where(x => (x.Natural20BonusTurn || x.Initiative == 20) && !x.Natural20BonusTurnUsed);
+        var activeIds = eligible.Select(x => x.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         return (encounter.InitiativeOrder ?? new List<CombatInitiativeEntry>())
             .Where(x => activeIds.Contains(x.ParticipantId) && !x.IsSkipped)
             .OrderBy(x => x.OrderIndex);
@@ -624,6 +698,6 @@ public sealed class CombatTurnEngineService : ICombatTurnEngineService
 
     private static string SafeReason(string baseMessage, string reason)
     {
-        return string.IsNullOrWhiteSpace(reason) ? baseMessage ?? string.Empty : $"{baseMessage} Reason: {reason.Trim()}";
+        return string.IsNullOrWhiteSpace(reason) ? baseMessage ?? string.Empty : $"{baseMessage} Причина: {reason.Trim()}";
     }
 }

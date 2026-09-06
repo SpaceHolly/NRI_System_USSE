@@ -155,6 +155,7 @@ public class ClassDefinitionDto
     public List<string> RequiredSkillCodes { get; set; } = new List<string>();
     public int RequiredCharacterLevel { get; set; }
     public int XpCoinCost { get; set; }
+    public RequirementExpression? RequirementExpression { get; set; }
     public bool IsActive { get; set; } = true;
     public DefinitionStatus Status { get; set; } = DefinitionStatus.Draft;
     public DateTime CreatedUtc { get; set; }
@@ -187,6 +188,9 @@ public class SkillDefinitionDto
     public int RequiredCharacterLevel { get; set; }
     public int XpCoinCost { get; set; }
     public List<SkillLevelDefinition> Levels { get; set; } = new List<SkillLevelDefinition>();
+    public RequirementExpression? RequirementExpression { get; set; }
+    public List<SkillRankMilestoneDefinition> RankMilestones { get; set; } = new List<SkillRankMilestoneDefinition>();
+    public List<SkillTechniqueDefinition> Techniques { get; set; } = new List<SkillTechniqueDefinition>();
     public bool IsActive { get; set; } = true;
     public DefinitionStatus Status { get; set; } = DefinitionStatus.Draft;
     public DateTime CreatedUtc { get; set; }

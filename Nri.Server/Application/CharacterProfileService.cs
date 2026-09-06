@@ -10,6 +10,7 @@ namespace Nri.Server.Application;
 public interface ICharacterProfileService
 {
     AttributeProfile GetAttributeProfile(string characterId);
+    SubAttributeProfile GetSubAttributeProfile(string characterId);
     SkillProfile GetSkillProfile(string characterId);
     DevelopmentProfile GetDevelopmentProfile(string characterId);
     WalletProfile GetWalletProfile(string characterId);
@@ -142,6 +143,12 @@ public sealed class CharacterProfileService : ICharacterProfileService
     {
         var doc = _mongo.CharacterAttributeProfiles.Find(Builders<CharacterAttributeProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).FirstOrDefault();
         return doc?.Profile ?? CharacterProfileDefaults.EmptyAttributeProfile();
+    }
+
+    public SubAttributeProfile GetSubAttributeProfile(string characterId)
+    {
+        var doc = _mongo.CharacterSubAttributeProfiles.Find(Builders<CharacterSubAttributeProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).FirstOrDefault();
+        return doc?.Profile ?? new SubAttributeProfile { CharacterId = characterId ?? string.Empty };
     }
 
     public SkillProfile GetSkillProfile(string characterId)

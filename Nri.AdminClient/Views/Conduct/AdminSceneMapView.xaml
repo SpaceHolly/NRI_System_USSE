@@ -1,8 +1,12 @@
 <UserControl x:Class="Nri.AdminClient.Views.Conduct.AdminSceneMapView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:Nri.AdminClient.ViewModels">
-    <Grid Margin="8">
+             xmlns:vm="clr-namespace:Nri.AdminClient.ViewModels"
+             xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminLocationMapEditor_Route">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminSceneMap_OperationalHost">
+    <Grid Margin="8" AutomationProperties.AutomationId="AdminSceneMap_Route">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -13,30 +17,35 @@
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="0"/>
+                    <ColumnDefinition Width="0"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Карта сцены" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                <TextBlock Text="Карта сцены" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"
+                           AutomationProperties.AutomationId="AdminSceneMap_Route"/>
                 <TextBox Grid.Column="1"
+                         Visibility="Collapsed"
                          Margin="8,0,0,0"
                          Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}"
-                         ToolTip="CampaignId"/>
+                         ToolTip="Кампания (технический контекст)"/>
                 <TextBox Grid.Column="2"
+                         Visibility="Collapsed"
                          Margin="8,0,0,0"
                          Text="{Binding RuleSetId, UpdateSourceTrigger=PropertyChanged}"
-                         ToolTip="RuleSetId"/>
-                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="8,0,0,0">
-                    <Button Content="Обновить" Command="{Binding RefreshMapsCommand}" IsEnabled="{Binding CanLoadMaps}"/>
-                    <Button Content="Создать карту" Margin="8,0,0,0" Command="{Binding CreateMapCommand}" IsEnabled="{Binding CanCreateMap}"/>
+                         ToolTip="Система правил (технический контекст)"/>
+                <WrapPanel Grid.Column="3" Margin="8,0,0,0">
+                    <Button Content="Обновить" Command="{Binding RefreshMapsCommand}" IsEnabled="{Binding IsIdle}" AutomationProperties.AutomationId="AdminSceneMap_RefreshMaps"/>
+                    <Button Content="Создать карту" Margin="8,0,0,0" Command="{Binding CreateMapCommand}" IsEnabled="{Binding CanCreateMap}"
+                            AutomationProperties.AutomationId="AdminLocationMapEditor_CreateMap"/>
                     <Button Content="Настройки карты" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveMapSettingsCommand}" IsEnabled="{Binding CanWorkWithSelectedMap}"/>
                     <Button Content="Архивировать" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding ArchiveMapCommand}" IsEnabled="{Binding CanWorkWithSelectedMap}"/>
-                    <Button Content="Сделать активной" Margin="8,0,0,0" Command="{Binding SetActiveMapCommand}" IsEnabled="{Binding CanManageActiveMap}"/>
+                    <Button Content="Сделать активной" Margin="8,0,0,0" Command="{Binding SetActiveMapCommand}" IsEnabled="{Binding CanManageActiveMap}"
+                            AutomationProperties.AutomationId="AdminLocationMapEditor_SetSessionActive"/>
                     <Button Content="Снять активную" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding ClearActiveMapCommand}" IsEnabled="{Binding IsSceneSessionLinkEnabled}"/>
                     <Button Content="Обновить активную" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding RefreshActiveMapCommand}" IsEnabled="{Binding IsSceneSessionLinkEnabled}"/>
                     <TextBlock Text="{Binding ActiveMapSummary}" Margin="10,4,0,0" Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
-                </StackPanel>
+                </WrapPanel>
                 <StackPanel Grid.Column="4" HorizontalAlignment="Right">
                     <TextBlock Text="{Binding LastRefreshText}" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right"/>
                     <TextBlock Text="{Binding CanvasScaleLabel}" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right"/>
@@ -46,12 +55,13 @@
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.8*"/>
+                <ColumnDefinition Width="3.2*"/>
                 <ColumnDefinition Width="1.2*"/>
-                <ColumnDefinition Width="2.3*"/>
-                <ColumnDefinition Width="1.5*"/>
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0"
+                    AutomationProperties.AutomationId="AdminLocationMapEditor_MapSelector">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -63,8 +73,23 @@
                              Margin="0,8,0,8"
                              ItemsSource="{Binding Maps}"
                              SelectedItem="{Binding SelectedMap, Mode=TwoWay}"
-                             DisplayMemberPath="Label"/>
-                    <TextBlock Grid.Row="2" Text="{Binding SelectedMapSummary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                             DisplayMemberPath="Label"
+                             AutomationProperties.AutomationId="AdminSceneMap_MapSelector">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                <Setter Property="AutomationProperties.Name" Value="{Binding Label}"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                    <StackPanel Grid.Row="2">
+                        <TextBlock Text="{Binding SelectedMapSummary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                        <Button Content="Открыть выбранную карту"
+                                Margin="0,6,0,0"
+                                HorizontalAlignment="Left"
+                                Command="{Binding LoadSelectedMapCommand}"
+                                IsEnabled="{Binding CanWorkWithSelectedMap}"
+                                AutomationProperties.AutomationId="AdminSceneMap_OpenSelectedMap"/>
+                    </StackPanel>
                 </Grid>
             </Border>
 
@@ -79,9 +104,84 @@
                     <StackPanel Grid.Row="1" Margin="0,6,0,8">
                         <WrapPanel>
                             <TextBlock Text="{Binding SelectedMapSummary}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,12,0"/>
-                            <CheckBox Content="Сетка" IsChecked="{Binding ShowGrid}" IsEnabled="{Binding CanWorkWithSelectedMap}"/>
+                            <CheckBox Content="Сетка" IsChecked="{Binding ShowGrid}" IsEnabled="{Binding CanWorkWithSelectedMap}"
+                                      AutomationProperties.AutomationId="MapViewport_GridToggle" AutomationProperties.Name="Показать сетку карты"/>
                             <CheckBox Content="Координаты" Margin="8,0,0,0" IsChecked="{Binding ShowCoordinates}" IsEnabled="{Binding CanWorkWithSelectedMap}"/>
+                            <Button Content="+" Margin="8,0,0,0" Command="{Binding ZoomInCommand}" IsEnabled="{Binding CanZoomIn}" AutomationProperties.AutomationId="MapViewport_ZoomIn" AutomationProperties.Name="Увеличить карту"/>
+                            <Button Content="?" Margin="6,0,0,0" Command="{Binding ZoomOutCommand}" IsEnabled="{Binding CanZoomOut}" AutomationProperties.AutomationId="MapViewport_ZoomOut" AutomationProperties.Name="Уменьшить карту"/>
+                            <Button Content="По размеру карты" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding FitToMapCommand}" AutomationProperties.AutomationId="MapViewport_Fit" AutomationProperties.Name="Показать карту целиком"/>
+                            <Button Content="100%" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SetOneHundredPercentCommand}" AutomationProperties.Name="Масштаб сто процентов"/>
+                            <Button Content="Сбросить вид" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding ResetViewCommand}" AutomationProperties.AutomationId="MapViewport_Reset" AutomationProperties.Name="Сбросить положение карты"/>
+                            <TextBlock Text="{Binding ZoomIndicator}" Margin="10,4,0,0" Foreground="{StaticResource TextSecondaryBrush}" AutomationProperties.AutomationId="MapViewport_ZoomIndicator" AutomationProperties.Name="Текущий масштаб карты"/>
+                            <TextBlock Text="{Binding CoordinateIndicator}" Margin="10,4,0,0" Foreground="{StaticResource TextSecondaryBrush}" AutomationProperties.AutomationId="MapViewport_CoordinateIndicator" AutomationProperties.Name="Координаты курсора на карте"/>
+                            <TextBlock Text="{Binding GridStepLabel}" Margin="10,4,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <CheckBox Content="Токены" Margin="12,2,0,0" IsChecked="{Binding ShowTokenLayer}"
+                                      AutomationProperties.AutomationId="AdminSceneMap_TokenLayerToggle"/>
+                            <CheckBox Content="GM-only" Margin="8,2,0,0" IsChecked="{Binding ShowGmOnlyLayer}"
+                                      AutomationProperties.AutomationId="AdminSceneMap_GmOnlyLayerToggle"/>
+                            <CheckBox Content="Скрытые" Margin="8,2,0,0" IsChecked="{Binding ShowHiddenLayer}"
+                                      AutomationProperties.AutomationId="AdminSceneMap_HiddenLayerToggle"/>
                         </WrapPanel>
+                        <Expander Header="Предпросмотр как игрок" Margin="0,6,0,0" AutomationProperties.AutomationId="AdminSceneMap_PlayerPreviewPanel">
+                            <Grid Margin="0,6,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="280"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Тестовый персонаж" FontWeight="SemiBold"/>
+                                    <ComboBox ItemsSource="{Binding PlayerPreviewCharacterOptions}"
+                                              SelectedItem="{Binding SelectedPlayerPreviewCharacterOption, Mode=TwoWay}"
+                                              DisplayMemberPath="DisplayName"
+                                              TextSearch.TextPath="DisplayName"
+                                              IsTextSearchEnabled="True"
+                                              Width="280"
+                                              Height="34"
+                                              MaxDropDownHeight="320"
+                                              HorizontalAlignment="Left"
+                                              ToolTip="Персонаж для безопасного предпросмотра"
+                                              AutomationProperties.Name="Персонаж для безопасного предпросмотра"
+                                              AutomationProperties.AutomationId="AdminSceneMap_PlayerPreviewCharacter"/>
+                                    <Button Content="Загрузить безопасный вид" Margin="0,6,0,0" HorizontalAlignment="Left"
+                                            Command="{Binding LoadPlayerPreviewCommand}"
+                                            AutomationProperties.AutomationId="AdminSceneMap_LoadServerPlayerPreview"/>
+                                    <TextBlock Text="{Binding PlayerPreviewSummary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <Border Grid.Column="1" Width="260" Height="140" Margin="12,0" Background="#111827" BorderBrush="#475569" BorderThickness="1" CornerRadius="4">
+                                    <Canvas Width="260" Height="140" ClipToBounds="True" AutomationProperties.AutomationId="AdminSceneMap_ServerPlayerPreviewCanvas">
+                                        <ItemsControl ItemsSource="{Binding PlayerPreviewObjects}">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle>
+                                                <Style TargetType="ContentPresenter">
+                                                    <Setter Property="Canvas.Left" Value="{Binding PixelX}"/>
+                                                    <Setter Property="Canvas.Top" Value="{Binding PixelY}"/>
+                                                </Style>
+                                            </ItemsControl.ItemContainerStyle>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:AdminPlayerMapPreviewObjectUiItem0204}">
+                                                    <Ellipse Width="9" Height="9" Fill="{Binding Fill}" Stroke="#F8FAFC" StrokeThickness="1"
+                                                             ToolTip="{Binding DisplayName}"
+                                                             AutomationProperties.Name="{Binding DisplayName}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Canvas>
+                                </Border>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Проекция сформирована сервером" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Внутри этого поля нет инструментов редактирования и GM-данных." Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    <ItemsControl ItemsSource="{Binding PlayerPreviewObjects}" Margin="0,6,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:AdminPlayerMapPreviewObjectUiItem0204}">
+                                                <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"
+                                                           AutomationProperties.Name="{Binding DisplayName}"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Grid>
+                        </Expander>
                         <WrapPanel Margin="0,6,0,0">
                             <TextBlock Text="Туман:" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,6,0"/>
                             <TextBlock Text="{Binding FogSummary}" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,10,0"/>
@@ -106,15 +206,78 @@
                         </WrapPanel>
                     </StackPanel>
                     <Border Grid.Row="2" BorderThickness="1" BorderBrush="#334155" Background="#0F172A" CornerRadius="4">
-                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <Canvas Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}" Background="#111827" MouseLeftButtonDown="MapCanvas_OnMouseLeftButtonDown">
-                                <ItemsControl ItemsSource="{Binding GridLines}">
+                        <controls:NriAutomationAnchor x:Name="MapViewportHost" ClipToBounds="True" SizeChanged="MapViewportHost_OnSizeChanged"
+                                                      AutomationProperties.AutomationId="AdminSceneMap_Viewport" AutomationProperties.Name="Область навигации по карте сцены">
+                            <Canvas x:Name="MapCanvas" Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}" Background="#111827" ClipToBounds="True"
+                                    PreviewMouseLeftButtonDown="MapCanvas_OnPreviewMouseLeftButtonDown"
+                                    MouseLeftButtonDown="MapCanvas_OnMouseLeftButtonDown" MouseDown="MapCanvas_OnMouseDown" MouseUp="MapCanvas_OnMouseUp"
+                                    MouseMove="MapCanvas_OnMouseMove" MouseWheel="MapCanvas_OnMouseWheel" MouseLeave="MapCanvas_OnMouseLeave"
+                                    AutomationProperties.AutomationId="AdminMapEditor_Viewport" AutomationProperties.Name="Полотно редактора карты">
+                                <TextBlock Canvas.Left="8" Canvas.Top="28"
+                                           Text="Полотно карты"
+                                           Foreground="#94A3B8"
+                                           Background="#4C0F172A"
+                                           Padding="4,2"
+                                           Panel.ZIndex="901"
+                                           AutomationProperties.AutomationId="AdminSceneMap_Canvas"/>
+                                <TextBlock Canvas.Left="8" Canvas.Top="52"
+                                           Text="Tile layer"
+                                           Foreground="#CBD5E1"
+                                           Background="#4C0F172A"
+                                           Padding="4,2"
+                                           Panel.ZIndex="902"
+                                           AutomationProperties.AutomationId="AdminLocationMapEditor_TileLayer"/>
+                                <TextBlock Canvas.Left="8" Canvas.Top="76"
+                                           Text="Asset layer"
+                                           Foreground="#CBD5E1"
+                                           Background="#4C0F172A"
+                                           Padding="4,2"
+                                           Panel.ZIndex="902"
+                                           AutomationProperties.AutomationId="AdminLocationMapEditor_AssetInstanceLayer"/>
+                                <ItemsControl ItemsSource="{Binding GridLines}" Opacity="{Binding GridOpacity}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:MapGridLineUiItem}">
-                                            <Line X1="{Binding X1}" Y1="{Binding Y1}" X2="{Binding X2}" Y2="{Binding Y2}" Stroke="#233A5A" StrokeThickness="1"/>
+                                            <Line X1="{Binding X1}" Y1="{Binding Y1}" X2="{Binding X2}" Y2="{Binding Y2}" Stroke="#4E789E" StrokeThickness="{Binding Thickness}" Opacity="{Binding Opacity}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding VisibleTilePatches}"
+                                              AutomationProperties.AutomationId="AdminLocationMapEditor_TileLayer">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}"/>
+                                            <Setter Property="Canvas.Top" Value="{Binding PixelY}"/>
+                                            <Setter Property="Panel.ZIndex" Value="{Binding VisualZIndex}"/>
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:SceneMapTilePatchUiItem}">
+                                            <Button Background="Transparent" BorderThickness="0" Padding="0" Tag="{Binding}" Click="TilePatchCanvasButton_OnClick"
+                                                    AutomationProperties.Name="{Binding Label}">
+                                                <Grid Width="{Binding PixelWidth}" Height="{Binding PixelHeight}">
+                                                    <Rectangle Fill="{Binding FillBrush}"
+                                                               Stroke="{Binding StrokeBrush}"
+                                                               StrokeThickness="0.7"
+                                                               Opacity="{Binding Opacity}"/>
+                                                    <Border BorderBrush="#FDE68A" BorderThickness="0">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                        <Setter Property="BorderThickness" Value="2"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                    </Border>
+                                                </Grid>
+                                            </Button>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -134,6 +297,116 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding VisibleLocationShapes}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}"/>
+                                            <Setter Property="Canvas.Top" Value="{Binding PixelY}"/>
+                                            <Setter Property="Panel.ZIndex" Value="{Binding VisualZIndex}"/>
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:SceneMapShapeUiItem}">
+                                            <Button Background="Transparent" BorderThickness="0" Padding="0" Tag="{Binding}" Click="ShapeCanvasButton_OnClick"
+                                                    AutomationProperties.Name="{Binding DisplayName}">
+                                                <Grid Width="{Binding PixelWidth}" Height="{Binding PixelHeight}" ClipToBounds="False">
+                                                    <Border Visibility="{Binding SchematicVisibility}"
+                                                            Background="{Binding SchematicFillBrush}"
+                                                            BorderBrush="#CBD5E1"
+                                                            BorderThickness="1"
+                                                            CornerRadius="3"
+                                                            Opacity="{Binding Opacity}">
+                                                        <TextBlock Text="{Binding DisplayName}" Foreground="#F8FAFC" FontSize="11" TextWrapping="Wrap" Margin="4" TextTrimming="CharacterEllipsis"/>
+                                                    </Border>
+                                                    <Grid Visibility="{Binding MapVisualVisibility}">
+                                                        <Border Visibility="{Binding AreaVisibility}"
+                                                                Background="{Binding VisualFillBrush}"
+                                                                BorderBrush="{Binding VisualStrokeBrush}"
+                                                                BorderThickness="{Binding EffectiveStrokeThickness}"
+                                                                CornerRadius="5"
+                                                                Opacity="{Binding EffectiveVisualOpacity}"/>
+                                                        <Path Visibility="{Binding PathVisibility}"
+                                                              Data="{Binding PathGeometry}"
+                                                              Stroke="{Binding VisualStrokeBrush}"
+                                                              StrokeThickness="{Binding EffectiveStrokeThickness}"
+                                                              StrokeStartLineCap="Round"
+                                                              StrokeEndLineCap="Round"
+                                                              StrokeLineJoin="Round"
+                                                              Opacity="{Binding EffectiveVisualOpacity}"/>
+                                                        <Border BorderBrush="#F8FAFC" BorderThickness="0" Background="Transparent">
+                                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="3">
+                                                                <TextBlock Text="{Binding AssetGlyph}" Foreground="{Binding AssetGlyphBrush}" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="{Binding VisualLabel}" Foreground="#F8FAFC" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                    <Border BorderBrush="#FDE68A" BorderThickness="0" CornerRadius="5">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                        <Setter Property="BorderThickness" Value="2"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                    </Border>
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding VisibleAssetInstances}"
+                                              AutomationProperties.AutomationId="AdminLocationMapEditor_AssetInstanceLayer">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}"/>
+                                            <Setter Property="Canvas.Top" Value="{Binding PixelY}"/>
+                                            <Setter Property="Panel.ZIndex" Value="{Binding VisualZIndex}"/>
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:SceneMapAssetInstanceUiItem}">
+                                            <Button Background="Transparent" BorderThickness="0" Padding="0" Tag="{Binding}" Click="AssetInstanceCanvasButton_OnClick"
+                                                    AutomationProperties.Name="{Binding DisplayName}">
+                                                <Grid Width="{Binding PixelWidth}" Height="{Binding PixelHeight}" ClipToBounds="False">
+                                                    <Border Background="{Binding FillBrush}"
+                                                            BorderBrush="{Binding StrokeBrush}"
+                                                            BorderThickness="1.2"
+                                                            CornerRadius="3"/>
+                                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2">
+                                                        <TextBlock Text="{Binding AssetGlyph}" Foreground="{Binding GlyphBrush}" FontWeight="Bold" FontSize="12" TextAlignment="Center"/>
+                                                        <TextBlock Text="{Binding DisplayName}" Foreground="#F8FAFC" FontSize="9" TextWrapping="Wrap" TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                    <Border BorderBrush="#FDE68A" BorderThickness="0" CornerRadius="3">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                        <Setter Property="BorderThickness" Value="2"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                    </Border>
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Border Canvas.Left="{Binding PlacementGhostX}" Canvas.Top="{Binding PlacementGhostY}"
+                                        Width="{Binding PlacementGhostWidth}" Height="{Binding PlacementGhostHeight}"
+                                        Visibility="{Binding PlacementGhostVisibility}" Background="#3347A36B" BorderBrush="#86EFAC"
+                                        BorderThickness="2" CornerRadius="3" IsHitTestVisible="False" Panel.ZIndex="880">
+                                    <TextBlock Text="{Binding PlacementGhostLabel}" Foreground="#F0FDF4" FontSize="10"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+                                </Border>
                                 <ItemsControl ItemsSource="{Binding Markers}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
@@ -146,7 +419,8 @@
                                     </ItemsControl.ItemContainerStyle>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type vm:SceneMarkerUiItem}">
-                                            <Button Background="Transparent" BorderThickness="0" Padding="0" Tag="{Binding}" Click="MarkerCanvasButton_OnClick">
+                                            <Button Background="Transparent" BorderThickness="0" Padding="0" Tag="{Binding}" Click="MarkerCanvasButton_OnClick"
+                                                    AutomationProperties.Name="{Binding Name}">
                                                 <Grid>
                                                     <Ellipse Width="12" Height="12" Stroke="#93C5FD" StrokeThickness="1">
                                                         <Ellipse.Style>
@@ -166,8 +440,30 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding VisibleTokens}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}"/>
+                                            <Setter Property="Canvas.Top" Value="{Binding PixelY}"/>
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:SceneTokenUiItem}">
+                                            <Button Background="Transparent" BorderThickness="0" Padding="0" Tag="{Binding}" Click="TokenCanvasButton_OnClick"
+                                                    AutomationProperties.Name="{Binding DisplayName}">
+                                                <Grid>
+                                                    <Ellipse Width="16" Height="16" Fill="#22C55E" Stroke="#DCFCE7" StrokeThickness="1"/>
+                                                    <TextBlock Margin="14,-4,0,0" Text="{Binding DisplayName}" FontSize="11" Foreground="#F8FAFC" TextTrimming="CharacterEllipsis"/>
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </Canvas>
-                        </ScrollViewer>
+                        </controls:NriAutomationAnchor>
                     </Border>
                 </Grid>
             </Border>
@@ -185,7 +481,7 @@
                             <RowDefinition Height="2*"/>
                             <RowDefinition Height="3*"/>
                         </Grid.RowDefinitions>
-                        <DataGrid ItemsSource="{Binding Markers}" SelectedItem="{Binding SelectedMarker, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="140">
+                        <DataGrid ItemsSource="{Binding Markers}" SelectedItem="{Binding SelectedMarker, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="140" AutomationProperties.AutomationId="AdminSceneMap_MarkerList">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Маркер" Binding="{Binding Name}" Width="1.2*"/>
                                 <DataGridTextColumn Header="Тип" Binding="{Binding MarkerTypeDisplay}" Width="1*"/>
@@ -193,37 +489,347 @@
                                 <DataGridTextColumn Header="Y" Binding="{Binding Y}" Width="0.7*"/>
                             </DataGrid.Columns>
                         </DataGrid>
-                        <ScrollViewer Grid.Row="1" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer Grid.Row="1" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto" AutomationProperties.AutomationId="AdminSceneMap_SelectedMarkerCard">
                             <StackPanel>
                                 <TextBlock Text="{Binding SelectedMarkerSummary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
                                 <TextBlock Text="{Binding SelectedMarkerBindingText}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                 <WrapPanel Margin="0,8,0,0">
                                     <TextBox Width="130" Text="{Binding MarkerName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название"/>
                                     <TextBox Width="110" Margin="6,0,0,0" Text="{Binding MarkerType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип"/>
-                                    <TextBox Width="72" Margin="6,0,0,0" Text="{Binding MarkerX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X"/>
-                                    <TextBox Width="72" Margin="6,0,0,0" Text="{Binding MarkerY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y"/>
+                                    <TextBox Width="72" Margin="6,0,0,0" Text="{Binding MarkerX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X" AutomationProperties.AutomationId="AdminSceneMap_MarkerX"/>
+                                    <TextBox Width="72" Margin="6,0,0,0" Text="{Binding MarkerY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y" AutomationProperties.AutomationId="AdminSceneMap_MarkerY"/>
                                 </WrapPanel>
                                 <WrapPanel Margin="0,6,0,0">
-                                    <TextBox Width="130" Text="{Binding MarkerIconKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="IconKey"/>
-                                    <TextBox Width="120" Margin="6,0,0,0" Text="{Binding MarkerColorKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="ColorKey"/>
-                                    <CheckBox Content="Виден игрокам" Margin="8,4,0,0" IsChecked="{Binding MarkerPlayerVisible}"/>
+                                    <TextBox Width="130" Text="{Binding MarkerIconKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Значок"/>
+                                    <TextBox Width="120" Margin="6,0,0,0" Text="{Binding MarkerColorKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Цвет"/>
+                                    <ComboBox Width="140" Margin="8,0,0,0"
+                                              SelectedValue="{Binding MarkerVisibility, Mode=TwoWay}"
+                                              SelectedValuePath="Tag"
+                                              AutomationProperties.AutomationId="AdminSceneMap_MarkerVisibilitySelector">
+                                        <ComboBoxItem Content="Виден игрокам" Tag="PlayerVisible"/>
+                                        <ComboBoxItem Content="Только GM" Tag="GmOnly"/>
+                                        <ComboBoxItem Content="Скрыт" Tag="Hidden"/>
+                                    </ComboBox>
+                                </WrapPanel>
+                                <Expander Header="Техническая привязка маркера" IsExpanded="False" Margin="0,6,0,0">
+                                    <WrapPanel>
+                                        <TextBox Width="130" Text="{Binding MarkerLinkedEntityType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип привязки"/>
+                                        <TextBox Width="170"
+                                                 Margin="6,0,0,0"
+                                                 Text="{Binding MarkerLinkedEntityId, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="Связанный объект"
+                                                 AutomationProperties.AutomationId="AdminSceneMap_AdvancedLinkedEntityId"/>
+                                    </WrapPanel>
+                                </Expander>
+                                <TextBox Margin="0,6,0,0" Text="{Binding MarkerCardTitle, UpdateSourceTrigger=PropertyChanged}" ToolTip="Заголовок карточки"/>
+                                <TextBox Margin="0,6,0,0" Text="{Binding MarkerCardDescription, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="58" ToolTip="Описание карточки"/>
+                                <TextBox Margin="0,6,0,0" Text="{Binding MarkerPublicNotes, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="44" ToolTip="Описание для игроков"/>
+                                <TextBox Margin="0,6,0,0" Text="{Binding MarkerGmNotes, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="44" ToolTip="Заметки мастера"/>
+                                <TextBlock Text="Токены" Style="{StaticResource SectionTitleTextStyle}" Margin="0,12,0,0"/>
+                                <TextBlock Text="{Binding TokenSummaryText}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                <DataGrid ItemsSource="{Binding VisibleTokens}" SelectedItem="{Binding SelectedToken, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" Height="120"
+                                          AutomationProperties.AutomationId="AdminSceneMap_TokenList">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Токен" Binding="{Binding DisplayName}" Width="1.2*"/>
+                                        <DataGridTextColumn Header="Тип" Binding="{Binding TokenTypeDisplay}" Width="1*"/>
+                                        <DataGridTextColumn Header="Видимость" Binding="{Binding VisibilityDisplay}" Width="1*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <Border Margin="0,8,0,0" Padding="8" Background="{StaticResource PanelAltBrush}"
+                                        AutomationProperties.AutomationId="AdminSceneMap_SelectedTokenCard">
+                                    <StackPanel>
+                                        <TextBlock FontWeight="SemiBold" TextWrapping="Wrap">
+                                            <TextBlock.Text>
+                                                <Binding Path="SelectedTokenSummary"/>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap">
+                                            <TextBlock.Text>
+                                                <Binding Path="SelectedTokenCardText"/>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                        <WrapPanel Margin="0,6,0,0">
+                                            <TextBox Width="130" Text="{Binding TokenName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название токена"/>
+                                            <ComboBox Width="125" Margin="6,0,0,0" ItemsSource="{Binding TokenTypeOptions}" SelectedItem="{Binding TokenType}" ToolTip="Тип токена"/>
+                                        </WrapPanel>
+                                        <WrapPanel Margin="0,6,0,0">
+                                            <TextBox Width="72" Text="{Binding TokenX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X"
+                                                     AutomationProperties.AutomationId="AdminSceneMap_TokenX"/>
+                                            <TextBox Width="72" Margin="6,0,0,0" Text="{Binding TokenY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y"
+                                                     AutomationProperties.AutomationId="AdminSceneMap_TokenY"/>
+                                            <ComboBox Width="140" Margin="6,0,0,0" ItemsSource="{Binding TokenVisibilityOptions}"
+                                                      DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectedValue="{Binding TokenVisibility}"
+                                                      AutomationProperties.AutomationId="AdminSceneMap_TokenVisibilitySelector"/>
+                                        </WrapPanel>
+                                        <WrapPanel Margin="0,6,0,0">
+                                            <TextBox Width="130" Text="{Binding TokenLinkedEntityType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип привязки"/>
+                                            <TextBox Width="170" Margin="6,0,0,0" Text="{Binding TokenLinkedEntityId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ID привязки"/>
+                                        </WrapPanel>
+                                        <TextBox Margin="0,6,0,0" Text="{Binding TokenDescriptionPlayer, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="44" ToolTip="Описание игрокам"/>
+                                        <TextBox Margin="0,6,0,0" Text="{Binding TokenDescriptionGm, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="44" ToolTip="GM notes"/>
+                                        <CheckBox Margin="0,6,0,0" Content="Может участвовать в бою позднее" IsChecked="{Binding TokenCanJoinCombat}"/>
+                                        <WrapPanel Margin="0,8,0,0">
+                                            <Button Content="Добавить токен" Command="{Binding AddTokenCommand}" IsEnabled="{Binding CanWorkWithTokens}"
+                                                    AutomationProperties.AutomationId="AdminSceneMap_AddToken"/>
+                                            <Button Content="Переместить" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding MoveTokenCommand}" IsEnabled="{Binding CanWorkWithTokens}"
+                                                    AutomationProperties.AutomationId="AdminSceneMap_MoveToken"/>
+                                            <Button Content="Сохранить" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveTokenCommand}" IsEnabled="{Binding CanWorkWithTokens}"
+                                                    AutomationProperties.AutomationId="AdminSceneMap_SaveToken"/>
+                                            <Button Content="Архивировать" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding ArchiveTokenCommand}" IsEnabled="{Binding CanWorkWithTokens}"
+                                                    AutomationProperties.AutomationId="AdminSceneMap_ArchiveToken"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="Редактор локации" Style="{StaticResource SectionTitleTextStyle}" Margin="0,12,0,0"/>
+                                <Border Margin="0,6,0,0" Padding="8" Background="{StaticResource PanelAltBrush}"
+                                        AutomationProperties.AutomationId="AdminMapEditor_Inspector" AutomationProperties.Name="Инструменты и инспектор выбранного объекта">
+                                    <StackPanel>
+                                        <WrapPanel>
+                                            <Button Content="?" ToolTip="Отменить последнее изменение" Command="{Binding UndoEditorCommand}" IsEnabled="{Binding CanUndoEditor}"
+                                                    AutomationProperties.AutomationId="AdminMapEditor_Undo" AutomationProperties.Name="Отменить"/>
+                                            <Button Content="?" Margin="6,0,0,0" ToolTip="Повторить изменение" Command="{Binding RedoEditorCommand}" IsEnabled="{Binding CanRedoEditor}"
+                                                    AutomationProperties.AutomationId="AdminMapEditor_Redo" AutomationProperties.Name="Повторить"/>
+                                            <CheckBox Content="Привязка" Margin="12,4,0,0" IsChecked="{Binding SnapToGrid}"
+                                                      AutomationProperties.AutomationId="AdminMapEditor_SnapToggle" AutomationProperties.Name="Привязка к шагу"/>
+                                            <ComboBox Width="76" Margin="6,0,0,0" ItemsSource="{Binding SnapStepOptions}" SelectedItem="{Binding SnapStepMeters}"
+                                                      AutomationProperties.AutomationId="AdminMapEditor_SnapStep" AutomationProperties.Name="Шаг привязки в метрах"/>
+                                            <TextBlock Text="{Binding SnapSummary}" Margin="8,4,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <Button Content="Удалить" Margin="12,0,0,0" Style="{StaticResource GhostButtonStyle}" Click="DeleteSelectedEditorObject_OnClick"
+                                                    AutomationProperties.AutomationId="AdminMapEditor_Delete" AutomationProperties.Name="Удалить выбранный объект"/>
+                                        </WrapPanel>
+                                        <TextBlock Text="{Binding EditorSelectionSummary}" Margin="0,6,0,0" TextWrapping="Wrap"
+                                                   AutomationProperties.AutomationId="AdminMapEditor_Selection" AutomationProperties.Name="Текущий выбор"/>
+                                    </StackPanel>
+                                </Border>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <ComboBox Width="120" ItemsSource="{Binding LocationToolOptions}" SelectedItem="{Binding LocationTool}"
+                                              AutomationProperties.AutomationId="AdminLocationMapEditor_ToolSelector"/>
+                                    <ComboBox Width="170" Margin="6,0,0,0" ItemsSource="{Binding LocationObjectKindOptions}" SelectedItem="{Binding ObjectKind}"
+                                              AutomationProperties.AutomationId="AdminLocationMapEditor_ObjectKindSelector"/>
+                                    <ComboBox Width="118" Margin="6,0,0,0" ItemsSource="{Binding VisualModeOptions}" SelectedItem="{Binding VisualMode}"
+                                              AutomationProperties.AutomationId="AdminLocationMapEditor_VisualModeSelector"/>
+                                    <Button Content="Карта" Margin="6,0,0,0" Command="{Binding SetMapVisualModeCommand}"
+                                            AutomationProperties.AutomationId="AdminLocationMapEditor_MapVisualMode"/>
+                                    <Button Content="Схема" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SetSchematicVisualModeCommand}"
+                                            AutomationProperties.AutomationId="AdminLocationMapEditor_SchematicVisualMode"/>
                                 </WrapPanel>
                                 <WrapPanel Margin="0,6,0,0">
-                                    <TextBox Width="130" Text="{Binding MarkerLinkedEntityType, UpdateSourceTrigger=PropertyChanged}" ToolTip="LinkedEntityType"/>
-                                    <TextBox Width="170" Margin="6,0,0,0" Text="{Binding MarkerLinkedEntityId, UpdateSourceTrigger=PropertyChanged}" ToolTip="LinkedEntityId"/>
+                                    <Button Content="Кисть тайлов" Command="{Binding SetPaintTileToolCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                            AutomationProperties.AutomationId="AdminLocationMapEditor_PaintTileTool"/>
+                                    <Button Content="Стереть тайл" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SetEraseTileToolCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                            AutomationProperties.AutomationId="AdminLocationMapEditor_EraseTileTool"/>
+                                    <Button Content="Поставить ассет" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SetStampAssetToolCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                            AutomationProperties.AutomationId="AdminLocationMapEditor_StampAssetTool"/>
+                                    <Button Content="Стена" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SetWallToolCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                            AutomationProperties.AutomationId="AdminLocationMapEditor_WallTool"/>
+                                    <Button Content="Дверь" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SetDoorToolCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                            AutomationProperties.AutomationId="AdminLocationMapEditor_DoorTool"/>
+                                    <Button Content="Комната" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SetRoomToolCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                            AutomationProperties.AutomationId="AdminLocationMapEditor_RoomTool"/>
+                                    <Button Content="Дорога" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SetRoadToolCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                            AutomationProperties.AutomationId="AdminLocationMapEditor_RoadTool"/>
+                                    <Button Content="Зона" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SetZoneToolCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                            AutomationProperties.AutomationId="AdminLocationMapEditor_ZoneTool"/>
                                 </WrapPanel>
-                                <TextBox Margin="0,6,0,0" Text="{Binding MarkerCardTitle, UpdateSourceTrigger=PropertyChanged}" ToolTip="CardTitle"/>
-                                <TextBox Margin="0,6,0,0" Text="{Binding MarkerCardDescription, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="58" ToolTip="CardDescription"/>
-                                <TextBox Margin="0,6,0,0" Text="{Binding MarkerPublicNotes, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="44" ToolTip="PublicNotes"/>
-                                <TextBox Margin="0,6,0,0" Text="{Binding MarkerGmNotes, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="44" ToolTip="GMNotes"/>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <TextBlock Text="Кисть, м" Margin="0,4,4,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBox Width="58" Text="{Binding BrushSizeMeters, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.AutomationId="AdminLocationMapEditor_BrushSize"/>
+                                    <TextBlock Text="Тайл, м" Margin="8,4,4,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBox Width="58" Text="{Binding TileSizeMeters, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.AutomationId="AdminLocationMapEditor_TileSize"/>
+                                    <CheckBox Content="Привязка к сетке" Margin="10,4,0,0" IsChecked="{Binding SnapToGrid}"
+                                              AutomationProperties.AutomationId="AdminLocationMapEditor_SnapToGrid"/>
+                                    <Button Content="Нанести" Margin="10,0,0,0" Command="{Binding PaintTileCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"/>
+                                    <Button Content="Штамп" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding StampAssetCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"/>
+                                    <Button Content="Удалить патч" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding EraseTileCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"/>
+                                </WrapPanel>
+                                <GroupBox Header="Палитра карты" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminMapEditor_Palette" AutomationProperties.Name="Палитра материалов, фигур и объектов">
+                                    <StackPanel>
+                                        <TextBox Margin="0,0,0,6" Text="{Binding PaletteSearch, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по названию или категории"
+                                                 AutomationProperties.AutomationId="AdminMapEditor_PaletteSearch" AutomationProperties.Name="Поиск в палитре"/>
+                                        <WrapPanel>
+                                            <ComboBox Width="160" ItemsSource="{Binding AssetCategoryOptions}" SelectedItem="{Binding SelectedAssetCategory}"
+                                                      AutomationProperties.AutomationId="AdminLocationMapEditor_AssetCategorySelector"/>
+                                            <ComboBox Width="150" Margin="6,0,0,0" ItemsSource="{Binding MaterialOptions}" DisplayMemberPath="DisplayName" TextSearch.TextPath="DisplayName" SelectedValuePath="Key" SelectedValue="{Binding ShapeMaterialKey, Mode=TwoWay}"
+                                                      AutomationProperties.AutomationId="AdminLocationMapEditor_TileMaterialPalette"/>
+                                            <ComboBox Width="150" Margin="6,0,0,0" ItemsSource="{Binding TextureOptions}" DisplayMemberPath="DisplayName" TextSearch.TextPath="DisplayName" SelectedValuePath="Key" SelectedValue="{Binding ShapeTextureKey, Mode=TwoWay}"
+                                                      AutomationProperties.AutomationId="AdminLocationMapEditor_TextureSelector"/>
+                                            <TextBox Width="74" Margin="6,0,0,0" Text="{Binding GridOpacity, UpdateSourceTrigger=PropertyChanged}"
+                                                     ToolTip="Прозрачность сетки"
+                                                     AutomationProperties.AutomationId="AdminLocationMapEditor_GridOpacity"/>
+                                        </WrapPanel>
+                                        <ListBox ItemsSource="{Binding FilteredPaletteAssets}"
+                                                 SelectedItem="{Binding SelectedAsset, Mode=TwoWay}"
+                                                 Height="96"
+                                                 Margin="0,6,0,0"
+                                                 AutomationProperties.AutomationId="AdminLocationMapEditor_AssetPalette">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:LocationMapAssetUiItem}">
+                                                    <Grid Margin="2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="36"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Width="28" Height="24" Background="#1E293B" BorderBrush="#64748B" BorderThickness="1" CornerRadius="4">
+                                                            <TextBlock Text="{Binding AssetKindDisplay}" Foreground="#E2E8F0" FontSize="7" TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1">
+                                                            <TextBlock Text="{Binding DisplayName}" Foreground="#F8FAFC" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding Category}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                        <Border Margin="0,6,0,0" Padding="6" Background="{StaticResource PanelAltBrush}">
+                                            <TextBlock Text="{Binding SelectedAssetCardText}" TextWrapping="Wrap"
+                                                       AutomationProperties.AutomationId="AdminLocationMapEditor_SelectedAssetCard"/>
+                                        </Border>
+                                        <Border Margin="0,6,0,0" Padding="6" Background="{StaticResource PanelAltBrush}">
+                                            <TextBlock Text="{Binding SelectedTilePatchPropertiesText}" TextWrapping="Wrap"
+                                                       AutomationProperties.AutomationId="AdminLocationMapEditor_SelectedTilePatchProperties"/>
+                                        </Border>
+                                        <Border Margin="0,6,0,0" Padding="6" Background="{StaticResource PanelAltBrush}">
+                                            <TextBlock Text="{Binding SelectedAssetPropertiesText}" TextWrapping="Wrap"
+                                                       AutomationProperties.AutomationId="AdminLocationMapEditor_SelectedAssetProperties"/>
+                                        </Border>
+                                        <WrapPanel Margin="0,6,0,0">
+                                            <Button Content="Поставить ассет" Command="{Binding AddShapeCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                                    AutomationProperties.AutomationId="AdminLocationMapEditor_StampTool"/>
+                                            <Button Content="Создать asset instance" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding StampAssetCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                                    AutomationProperties.AutomationId="AdminLocationMapEditor_StampAssetAction"/>
+                                            <Button Content="Сохранить asset" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveAssetInstanceCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                                    AutomationProperties.AutomationId="AdminLocationMapEditor_SaveAssetInstance"/>
+                                            <Button Content="Удалить asset" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding ArchiveAssetInstanceCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                                    AutomationProperties.AutomationId="AdminLocationMapEditor_ArchiveAssetInstance"/>
+                                            <TextBlock Text=" Z" Margin="8,4,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBox Width="54" Margin="4,0,0,0" Text="{Binding ShapeZIndex, UpdateSourceTrigger=PropertyChanged}"
+                                                     AutomationProperties.AutomationId="AdminLocationMapEditor_ZIndex"/>
+                                            <TextBlock Text=" Opacity" Margin="8,4,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBox Width="54" Margin="4,0,0,0" Text="{Binding ShapeVisualOpacity, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <TextBlock Text=" Stroke" Margin="8,4,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBox Width="54" Margin="4,0,0,0" Text="{Binding ShapeStrokeThickness, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </GroupBox>
+                                <GroupBox Header="Слои" Margin="0,8,0,0">
+                                    <StackPanel>
+                                        <DataGrid ItemsSource="{Binding LocationLayers}" SelectedItem="{Binding SelectedLayer, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" Height="110"
+                                                  AutomationProperties.AutomationId="AdminMapEditor_LayerList" AutomationProperties.Name="Список слоёв карты">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Слой" Binding="{Binding DisplayName}" Width="1.4*"/>
+                                                <DataGridTextColumn Header="Тип" Binding="{Binding LayerKindDisplay}" Width="1*"/>
+                                                <DataGridTextColumn Header="Видимость" Binding="{Binding VisibilityDisplay}" Width="1*"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <WrapPanel Margin="0,6,0,0">
+                                            <TextBox Width="130" Text="{Binding LayerName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название слоя"/>
+                                            <ComboBox Width="120" Margin="6,0,0,0" ItemsSource="{Binding LocationLayerKindOptions}" SelectedItem="{Binding LayerKind}"/>
+                                            <TextBox Width="48" Margin="6,0,0,0" Text="{Binding LayerSortOrder, UpdateSourceTrigger=PropertyChanged}" ToolTip="Порядок"/>
+                                            <ComboBox Width="125" Margin="6,0,0,0" ItemsSource="{Binding LocationVisibilityOptions}"
+                                                      DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectedValue="{Binding LayerVisibility}"
+                                                      AutomationProperties.AutomationId="AdminLocationMapEditor_LayerVisibilitySelector"/>
+                                        </WrapPanel>
+                                        <CheckBox Content="Виден по умолчанию" IsChecked="{Binding LayerVisibleByDefault}" Margin="0,6,0,0"/>
+                                        <WrapPanel Margin="0,6,0,0">
+                                            <Button Content="^" ToolTip="Поднять слой" Command="{Binding MoveLayerUpCommand}"
+                                                    AutomationProperties.AutomationId="AdminMapEditor_LayerUp" AutomationProperties.Name="Поднять слой"/>
+                                            <Button Content="v" Margin="6,0,0,0" ToolTip="Опустить слой" Command="{Binding MoveLayerDownCommand}"
+                                                    AutomationProperties.AutomationId="AdminMapEditor_LayerDown" AutomationProperties.Name="Опустить слой"/>
+                                            <Button Content="{Binding SelectedLayerLockText}" Margin="6,0,0,0" Command="{Binding ToggleLayerLockCommand}"
+                                                    AutomationProperties.AutomationId="AdminMapEditor_LayerLock" AutomationProperties.Name="Изменить блокировку слоя"/>
+                                            <Button Content="Создать слой" Command="{Binding CreateLayerCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                                    AutomationProperties.AutomationId="AdminLocationMapEditor_CreateLayer"/>
+                                            <Button Content="Сохранить слой" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveLayerCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                                    AutomationProperties.AutomationId="AdminLocationMapEditor_SaveLayer"/>
+                                            <Button Content="Архивировать слой" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding ArchiveLayerCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                                    AutomationProperties.AutomationId="AdminLocationMapEditor_ArchiveLayer"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </GroupBox>
+                                <GroupBox Header="Объекты локации" Margin="0,8,0,0">
+                                    <StackPanel>
+                                        <DataGrid ItemsSource="{Binding LocationShapes}" SelectedItem="{Binding SelectedShape, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" Height="130"
+                                                  AutomationProperties.AutomationId="AdminLocationMapEditor_ShapeList">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Объект" Binding="{Binding DisplayName}" Width="1.4*"/>
+                                                <DataGridTextColumn Header="Тип" Binding="{Binding ObjectKindDisplay}" Width="1*"/>
+                                                <DataGridTextColumn Header="X" Binding="{Binding X}" Width="0.6*"/>
+                                                <DataGridTextColumn Header="Y" Binding="{Binding Y}" Width="0.6*"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <Border Margin="0,8,0,0" Padding="8" Background="{StaticResource PanelAltBrush}">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding SelectedShapeSummary}" FontWeight="SemiBold" TextWrapping="Wrap"
+                                                           AutomationProperties.AutomationId="AdminLocationMapEditor_SelectedShapeCard"/>
+                                                <TextBlock Text="{Binding SelectedShapeCardText}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                                <WrapPanel Margin="0,6,0,0">
+                                                    <TextBox Width="150" Text="{Binding ShapeName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название"/>
+                                                    <ComboBox Width="125" Margin="6,0,0,0" ItemsSource="{Binding LocationToolOptions}" SelectedItem="{Binding ShapeKind}"/>
+                                                    <ComboBox Width="130" Margin="6,0,0,0" ItemsSource="{Binding LocationVisibilityOptions}"
+                                                              DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectedValue="{Binding ShapeVisibility}"
+                                                              AutomationProperties.AutomationId="AdminLocationMapEditor_ShapeVisibilitySelector"/>
+                                                </WrapPanel>
+                                                <WrapPanel Margin="0,6,0,0">
+                                                    <TextBox Width="64" Text="{Binding ShapeX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X"
+                                                             AutomationProperties.AutomationId="AdminLocationMapEditor_ShapeX"/>
+                                                    <TextBox Width="64" Margin="6,0,0,0" Text="{Binding ShapeY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y"
+                                                             AutomationProperties.AutomationId="AdminLocationMapEditor_ShapeY"/>
+                                                    <TextBox Width="64" Margin="6,0,0,0" Text="{Binding ShapeWidth, UpdateSourceTrigger=PropertyChanged}" ToolTip="Ширина"
+                                                             AutomationProperties.AutomationId="AdminLocationMapEditor_ShapeWidth"/>
+                                                    <TextBox Width="64" Margin="6,0,0,0" Text="{Binding ShapeHeight, UpdateSourceTrigger=PropertyChanged}" ToolTip="Высота"
+                                                             AutomationProperties.AutomationId="AdminLocationMapEditor_ShapeHeight"/>
+                                                    <TextBox Width="64" Margin="6,0,0,0" Text="{Binding ShapeRadius, UpdateSourceTrigger=PropertyChanged}" ToolTip="Радиус"/>
+                                                </WrapPanel>
+                                                <TextBox Margin="0,6,0,0" Text="{Binding ShapePoints, UpdateSourceTrigger=PropertyChanged}" ToolTip="Точки x,y;x,y"
+                                                         AutomationProperties.AutomationId="AdminLocationMapEditor_ShapePoints"/>
+                                                <WrapPanel Margin="0,6,0,0">
+                                                    <TextBox Width="100" Text="{Binding ShapeRenderMode, UpdateSourceTrigger=PropertyChanged}" ToolTip="Режим отображения"/>
+                                                    <TextBox Width="110" Margin="6,0,0,0" Text="{Binding ShapeAssetKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Ресурс оформления"/>
+                                                    <TextBox Width="110" Margin="6,0,0,0" Text="{Binding ShapeVisualStyleKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Стиль оформления"/>
+                                                    <TextBox Width="76" Margin="6,0,0,0" Text="{Binding ShapeZIndex, UpdateSourceTrigger=PropertyChanged}" ToolTip="Порядок наложения"/>
+                                                </WrapPanel>
+                                                <TextBox Margin="0,6,0,0" Text="{Binding ShapeDescriptionPlayer, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="44" ToolTip="Описание игрокам"/>
+                                                <TextBox Margin="0,6,0,0" Text="{Binding ShapeDescriptionGm, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="44" ToolTip="GM notes"/>
+                                                <WrapPanel Margin="0,6,0,0">
+                                                    <CheckBox Content="Блокирует движение" IsChecked="{Binding ShapeBlocksMovement}"/>
+                                                    <CheckBox Content="Блокирует обзор" Margin="8,0,0,0" IsChecked="{Binding ShapeBlocksVision}"/>
+                                                    <CheckBox Content="Укрытие" Margin="8,0,0,0" IsChecked="{Binding ShapeProvidesCover}"/>
+                                                    <CheckBox Content="Интерактивно" Margin="8,0,0,0" IsChecked="{Binding ShapeIsInteractable}"/>
+                                                </WrapPanel>
+                                                <Expander Header="Дополнительная привязка" Margin="0,6,0,0" IsExpanded="False">
+                                                    <WrapPanel Margin="0,6,0,0">
+                                                        <ComboBox Width="150" ItemsSource="{Binding LocationLinkedEntityTypeOptions}" SelectedItem="{Binding ShapeLinkedEntityType}"
+                                                                  ToolTip="Тип объекта, связанного с элементом карты"/>
+                                                        <TextBox Width="170" Margin="6,0,0,0" Text="{Binding ShapeLinkedEntityId, UpdateSourceTrigger=PropertyChanged}"
+                                                                 ToolTip="Технический идентификатор; используйте только для диагностики"/>
+                                                    </WrapPanel>
+                                                </Expander>
+                                                <WrapPanel Margin="0,8,0,0">
+                                                    <Button Content="Добавить объект" Command="{Binding AddShapeCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                                            AutomationProperties.AutomationId="AdminLocationMapEditor_AddShape"/>
+                                                    <Button Content="Переместить" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding MoveShapeCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"/>
+                                                    <Button Content="Размер" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding ResizeShapeCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"/>
+                                                    <Button Content="Сохранить" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveShapeCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                                            AutomationProperties.AutomationId="AdminLocationMapEditor_SaveShape"/>
+                                                    <Button Content="Дублировать" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding DuplicateShapeCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                                            AutomationProperties.AutomationId="AdminLocationMapEditor_DuplicateShape"/>
+                                                    <Button Content="Архивировать" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding ArchiveShapeCommand}" IsEnabled="{Binding CanWorkWithLocationEditor}"
+                                                            AutomationProperties.AutomationId="AdminLocationMapEditor_ArchiveShape"/>
+                                                </WrapPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </GroupBox>
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>
                     <WrapPanel Grid.Row="2" Margin="0,8,0,0">
-                        <Button Content="Добавить маркер" Command="{Binding AddMarkerCommand}" IsEnabled="{Binding CanWorkWithMarkers}"/>
+                        <Button Content="Добавить маркер" Command="{Binding AddMarkerCommand}" IsEnabled="{Binding CanWorkWithMarkers}" AutomationProperties.AutomationId="AdminSceneMap_AddMarker"/>
                         <Button Content="Переместить" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding MoveMarkerCommand}" IsEnabled="{Binding CanWorkWithMarkers}"/>
-                        <Button Content="Сохранить" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveMarkerCommand}" IsEnabled="{Binding CanWorkWithMarkers}"/>
-                        <Button Content="Удалить" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding RemoveMarkerCommand}" IsEnabled="{Binding CanWorkWithMarkers}"/>
+                        <Button Content="Сохранить" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding SaveMarkerCommand}" IsEnabled="{Binding CanWorkWithMarkers}" AutomationProperties.AutomationId="AdminSceneMap_SaveMarker"/>
+                        <Button Content="Архивировать" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding RemoveMarkerCommand}" IsEnabled="{Binding CanWorkWithMarkers}" AutomationProperties.AutomationId="AdminSceneMap_ArchiveMarker"/>
                     </WrapPanel>
                 </Grid>
             </Border>
@@ -231,7 +837,8 @@
 
         <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="10" Margin="0,8,0,0">
             <StackPanel>
-                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"
+                           AutomationProperties.AutomationId="AdminMapEditor_Status" AutomationProperties.Name="Состояние редактора карты"/>
                 <TextBlock Text="{Binding WarningMessage}" TextWrapping="Wrap" Foreground="#F59E0B" Margin="0,4,0,0">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
@@ -256,7 +863,7 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                <ItemsControl ItemsSource="{Binding CanvasCoordinateHints}" Margin="0,6,0,0">
+                <ItemsControl ItemsSource="{Binding CanvasCoordinateHints}" Margin="0,6,0,0" AutomationProperties.AutomationId="AdminLocationMapEditor_CoordinatesText">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding}" Foreground="{StaticResource TextSecondaryBrush}"/>
@@ -266,4 +873,5 @@
             </StackPanel>
         </Border>
     </Grid>
+    </patterns:NriOperationalWorkspaceHost>
 </UserControl>

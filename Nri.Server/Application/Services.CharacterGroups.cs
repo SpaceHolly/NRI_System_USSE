@@ -12,7 +12,7 @@ public partial class ServiceHub
 {
     public ResponseEnvelope GroupCharacterList(CommandContext context)
     {
-        RequireAdmin(context);
+        GetCurrentAccount(context);
         if (!CharacterGroupsReadEnabled())
             return CharacterGroupsDisabled(context.Request.Command);
 
@@ -42,7 +42,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GroupCharacterCreate(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CharacterGroupsWriteEnabled())
             return CharacterGroupsDisabled(context.Request.Command);
 
@@ -74,7 +74,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GroupCharacterGet(CommandContext context)
     {
-        RequireAdmin(context);
+        GetCurrentAccount(context);
         if (!CharacterGroupsReadEnabled())
             return CharacterGroupsDisabled(context.Request.Command);
 
@@ -84,7 +84,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GroupCharacterUpdate(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CharacterGroupsWriteEnabled())
             return CharacterGroupsDisabled(context.Request.Command);
 
@@ -117,7 +117,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GroupCharacterArchive(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CharacterGroupsWriteEnabled())
             return CharacterGroupsDisabled(context.Request.Command);
 
@@ -134,7 +134,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GroupCharacterMemberAdd(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CharacterGroupMembershipEnabled())
             return CharacterGroupsDisabled(context.Request.Command);
 
@@ -182,7 +182,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GroupCharacterMemberRemove(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CharacterGroupMembershipEnabled())
             return CharacterGroupsDisabled(context.Request.Command);
 
@@ -208,7 +208,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GroupCharacterMemberUpdate(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CharacterGroupMembershipEnabled())
             return CharacterGroupsDisabled(context.Request.Command);
 
@@ -252,7 +252,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GroupCharacterMemberMove(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CharacterGroupMembershipEnabled())
             return CharacterGroupsDisabled(context.Request.Command);
 
@@ -278,7 +278,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GroupCharacterSetActive(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CharacterGroupSessionLinkEnabled())
             return CharacterGroupsDisabled(context.Request.Command);
 
@@ -311,7 +311,7 @@ public partial class ServiceHub
 
     public ResponseEnvelope GroupCharacterClearActive(CommandContext context)
     {
-        var actor = RequireAdmin(context);
+        var actor = GetCurrentAccount(context);
         if (!CharacterGroupSessionLinkEnabled())
             return CharacterGroupsDisabled(context.Request.Command);
 

@@ -12,6 +12,8 @@ public sealed class SyncEvent : EntityBase
     public string EntityId { get; set; } = string.Empty;
     public string Operation { get; set; } = string.Empty;
     public string ActorUserId { get; set; } = string.Empty;
+    public string CampaignId { get; set; } = string.Empty;
+    public string SessionId { get; set; } = string.Empty;
     public Dictionary<string, object> Payload { get; set; } = new Dictionary<string, object>();
 }
 
@@ -42,4 +44,6 @@ public static class SyncScopes
     public static string Chat(string sessionId) => $"chat:{sessionId}";
     public static string Character(string characterId) => $"character:{characterId}";
     public static string Combat(string combatId) => $"combat:{combatId}";
+    public static string Campaign(string campaignId) => $"campaign:{campaignId}";
+    public static string Session(string sessionId) => $"session:{sessionId}";
 }

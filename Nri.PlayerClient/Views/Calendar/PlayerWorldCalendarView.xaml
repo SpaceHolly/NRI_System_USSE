@@ -18,8 +18,6 @@
                     <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                 </StackPanel>
                 <WrapPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
-                    <TextBox Width="120" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" ToolTip="CampaignId" AutomationProperties.AutomationId="PlayerWorldCalendar_CampaignId"/>
-                    <Button Content="Flags" Style="{StaticResource GhostButtonStyle}" Command="{Binding RefreshFlagsCommand}"/>
                     <Button Content="Обновить" Command="{Binding RefreshCommand}" AutomationProperties.AutomationId="PlayerWorldCalendar_Refresh_Button"/>
                 </WrapPanel>
             </DockPanel>
@@ -70,7 +68,7 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    <TextBlock Grid.Row="2" Text="Показываются только события, раскрытые игрокам. GM-only версии и скрытая истина сюда не попадают." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                    <TextBlock Grid.Row="2" Text="Показана хроника, известная активному персонажу." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
                 </Grid>
             </Border>
 

@@ -1,0 +1,119 @@
+<UserControl x:Class="Nri.AdminClient.Views.Conduct.AdminShopView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:AutomationProperties="clr-namespace:System.Windows.Automation;assembly=UIAutomationTypes"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminShop_Route">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminShop_OperationalHost">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,8">
+            <TextBlock Text="Магазины" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Button Content="Обновить" Command="{Binding RefreshCommand}" Margin="16,0,0,0"/>
+            <TextBlock Text="{Binding StatusMessage}" Margin="16,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </DockPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0" Margin="0,0,10,0">
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock Text="Витрины" FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding NewShopName, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0"/>
+                    <TextBox Text="{Binding NewShopDescription, UpdateSourceTrigger=PropertyChanged}" MinHeight="56" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,0"/>
+                    <ComboBox ItemsSource="{Binding MarketTypes}" SelectedItem="{Binding MarketType}" Margin="0,6,0,0"/>
+                    <CheckBox Content="Видна игрокам" IsChecked="{Binding ShopPlayerVisible}" Margin="0,6,0,0"/>
+                    <WrapPanel Margin="0,6,0,8">
+                        <Button Content="Создать" Command="{Binding CreateShopCommand}" AutomationProperties.AutomationId="AdminShop_CreateShop" Margin="0,0,6,0"/>
+                        <Button Content="Сохранить" Command="{Binding SaveShopCommand}" AutomationProperties.AutomationId="AdminShop_Details"/>
+                    </WrapPanel>
+                </StackPanel>
+                <ListBox ItemsSource="{Binding Shops}" SelectedItem="{Binding SelectedShop}" DisplayMemberPath="Summary" AutomationProperties.AutomationId="AdminShop_List"/>
+            </DockPanel>
+
+            <Grid Grid.Column="1" Margin="0,0,10,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Предложения" FontWeight="SemiBold"/>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding Offers}" SelectedItem="{Binding SelectedOffer}" AutoGenerateColumns="False" IsReadOnly="True" AutomationProperties.AutomationId="AdminShop_OfferList">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Название" Binding="{Binding DisplayName}" Width="*"/>
+                        <DataGridTextColumn Header="Цена" Binding="{Binding FinalUnitPrice}" Width="70"/>
+                        <DataGridTextColumn Header="Наличие" Binding="{Binding Availability}" Width="100"/>
+                        <DataGridTextColumn Header="Остаток" Binding="{Binding Stock}" Width="70"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock Grid.Row="2" Text="Карточка предложения" FontWeight="SemiBold" Margin="0,8,0,4"/>
+                <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+                    <StackPanel AutomationProperties.AutomationId="AdminShop_EditOffer">
+                        <TextBox Text="{Binding OfferName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4"/>
+                        <TextBox Text="{Binding OfferDescription, UpdateSourceTrigger=PropertyChanged}" MinHeight="52" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,4"/>
+                        <UniformGrid Columns="2">
+                            <ComboBox ItemsSource="{Binding OfferTypes}" SelectedItem="{Binding OfferType}" Margin="0,0,4,4"/>
+                            <ComboBox ItemsSource="{Binding Rarities}" SelectedItem="{Binding Rarity}" Margin="4,0,0,4"/>
+                            <TextBox Text="{Binding BasePrice, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"/>
+                            <TextBox Text="{Binding CurrencyCode, UpdateSourceTrigger=PropertyChanged}" Margin="4,0,0,4"/>
+                            <ComboBox ItemsSource="{Binding Availabilities}" SelectedItem="{Binding Availability}" Margin="0,0,4,4"/>
+                            <ComboBox ItemsSource="{Binding LegalStatuses}" SelectedItem="{Binding LegalStatus}" Margin="4,0,0,4"/>
+                            <TextBox Text="{Binding Stock, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"/>
+                            <TextBox Text="{Binding ControlLevel, UpdateSourceTrigger=PropertyChanged}" Margin="4,0,0,4"/>
+                        </UniformGrid>
+                        <CheckBox Content="Требует одобрения GM" IsChecked="{Binding RequiresGmApproval}"/>
+                        <CheckBox Content="Видно игрокам" IsChecked="{Binding OfferPlayerVisible}"/>
+                        <TextBlock Text="{Binding SelectedOffer.PriceSummary}" AutomationProperties.AutomationId="AdminShop_PriceBreakdown" TextWrapping="Wrap" Margin="0,6,0,6"/>
+                        <WrapPanel>
+                            <Button Content="Добавить" Command="{Binding CreateOfferCommand}" AutomationProperties.AutomationId="AdminShop_CreateOffer" Margin="0,0,6,0"/>
+                            <Button Content="Сохранить" Command="{Binding SaveOfferCommand}" Margin="0,0,6,0"/>
+                            <Button Content="Остаток" Command="{Binding AdjustStockCommand}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <DataGrid Grid.Row="0" ItemsSource="{Binding PurchaseRequests}" SelectedItem="{Binding SelectedPurchaseRequest}" AutoGenerateColumns="False" IsReadOnly="True" AutomationProperties.AutomationId="AdminShop_PurchaseRequestList">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="110"/>
+                        <DataGridTextColumn Header="Игрок" Binding="{Binding BuyerLogin}" Width="110"/>
+                        <DataGridTextColumn Header="Сумма" Binding="{Binding FinalTotalPrice}" Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <StackPanel Grid.Row="1" Margin="0,8" AutomationProperties.AutomationId="AdminShop_PurchaseRequestDetails">
+                    <TextBlock Text="{Binding SelectedPurchaseRequest.Summary}" TextWrapping="Wrap"/>
+                    <TextBox Text="{Binding GmComment, UpdateSourceTrigger=PropertyChanged}" MinHeight="44" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,6"/>
+                    <WrapPanel>
+                        <Button Content="Одобрить" Command="{Binding ApprovePurchaseCommand}" AutomationProperties.AutomationId="AdminShop_ApprovePurchase" Margin="0,0,6,0"/>
+                        <Button Content="Отклонить" Command="{Binding RejectPurchaseCommand}" AutomationProperties.AutomationId="AdminShop_RejectPurchase" Margin="0,0,6,0"/>
+                        <Button Content="Завершить" Command="{Binding CompletePurchaseCommand}" AutomationProperties.AutomationId="AdminShop_CompletePurchase" Margin="0,0,6,0"/>
+                        <Button Content="Проект/лицензия" Command="{Binding MarkRequiresProjectCommand}"/>
+                    </WrapPanel>
+                    <TextBlock Text="Чек и выдача фиксируются сервером после завершения покупки." AutomationProperties.AutomationId="AdminShop_Receipt" Margin="0,6,0,0"/>
+                    <TextBlock Text="Grant создаётся в статусе PendingGmApply." AutomationProperties.AutomationId="AdminShop_Grant"/>
+                </StackPanel>
+                <ListBox Grid.Row="2" ItemsSource="{Binding AuditRows}" AutomationProperties.AutomationId="AdminShop_Audit"/>
+            </Grid>
+        </Grid>
+
+        <TextBlock Grid.Row="2" Text="MVP: без производственной экономики, без craft/rest flows, без прямой записи в инвентарь." Margin="0,8,0,0"/>
+    </Grid>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

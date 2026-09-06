@@ -57,6 +57,7 @@ public partial class ServiceHub
         worldTime.LastAdvanceReason = RequireLength(PayloadReader.GetString(context.Request.Payload, "reason"), 0, 512, "reason");
         TouchWorldTime(worldTime);
         _repositories.CampaignWorldTimes.Replace(worldTime);
+        Weather0217ReconcileCampaign(calendar.CampaignId, "world_time_set", actor.Id, context.Request.RequestId ?? string.Empty);
         SyncCurrentSessionWorldDate(calendar.CampaignId, WorldCalendarMath.Format(worldTime.CurrentDateTime, calendar));
         WriteAudit("world_calendar", actor.Id, "calendar.date.changed", worldTime.Id);
         _logger.Admin($"world.calendar.current.set.done campaignId={calendar.CampaignId} date={worldTime.CurrentDateTime.AbsoluteDayIndex}");
@@ -85,6 +86,7 @@ public partial class ServiceHub
         worldTime.LastAdvanceReason = RequireLength(PayloadReader.GetString(payload, "reason"), 0, 512, "reason");
         TouchWorldTime(worldTime);
         _repositories.CampaignWorldTimes.Replace(worldTime);
+        Weather0217ReconcileCampaign(calendar.CampaignId, "world_time_advance", actor.Id, context.Request.RequestId ?? string.Empty);
         SyncCurrentSessionWorldDate(calendar.CampaignId, WorldCalendarMath.Format(worldTime.CurrentDateTime, calendar));
         WriteAudit("world_calendar", actor.Id, "calendar.time.advanced", worldTime.Id);
         _logger.Admin($"world.calendar.current.advance.done campaignId={calendar.CampaignId} deltaSeconds={delta}");

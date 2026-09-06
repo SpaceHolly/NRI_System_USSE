@@ -59,6 +59,7 @@ public interface ICharacterProfileCreationService
 {
     Task<ProfileFirstCharacterCreationResult> CreateProfileBundleForNewCharacterAsync(Character character, string actorUserId, string requestId);
     Task<ProfileFirstCharacterCreationResult> ValidateCreatedProfilesAsync(string characterId);
+    Task<ProfileFirstCharacterCreationResult> MigrateMissingProfilesAsync(Character character, string actorUserId, string requestId);
     Task<ProfileFirstCreationReadinessReport> BuildProfileFirstCreationReadinessReportAsync();
     ProfileFirstCharacterCreationResult BuildCreationResult(string characterId, bool success, List<string> createdProfiles, List<string> missingProfiles, string errorMessage);
 }
@@ -223,6 +224,43 @@ public sealed class CharacterProfileCreationService : ICharacterProfileCreationS
         }
 
         return Task.FromResult(BuildCreationResult(characterId, valid, RequiredProfiles.Except(missing).ToList(), missing, valid ? string.Empty : "missing_or_invalid_created_profiles"));
+    }
+
+    public Task<ProfileFirstCharacterCreationResult> MigrateMissingProfilesAsync(Character character, string actorUserId, string requestId)
+    {
+        if (character == null || string.IsNullOrWhiteSpace(character.Id))
+            return Task.FromResult(BuildCreationResult(string.Empty, false, new List<string>(), RequiredProfiles.ToList(), "character_missing"));
+
+        var created = new List<string>();
+        var characterId = character.Id;
+        _logger.Admin($"profile.migration.start characterId={characterId} actor={actorUserId}");
+
+        WriteMissing("attributes", _mongo.CharacterAttributeProfiles.Find(Builders<CharacterAttributeProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).Any(), () =>
+            _mongo.CharacterAttributeProfiles.InsertOne(new CharacterAttributeProfileDocument { CharacterId = characterId, Profile = _attributeFactory.BuildFromLegacyCharacter(character) }), created);
+        WriteMissing("wallet", _mongo.CharacterWalletProfiles.Find(Builders<CharacterWalletProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).Any(), () =>
+            _mongo.CharacterWalletProfiles.InsertOne(new CharacterWalletProfileDocument { CharacterId = characterId, Profile = _walletFactory.BuildFromLegacyCharacter(character) }), created);
+        WriteMissing("skills", _mongo.CharacterSkillProfiles.Find(Builders<CharacterSkillProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).Any(), () =>
+            _mongo.CharacterSkillProfiles.InsertOne(new CharacterSkillProfileDocument { CharacterId = characterId, Profile = _skillFactory.BuildFromLegacyCharacter(character) }), created);
+        WriteMissing("development", _mongo.CharacterDevelopmentProfiles.Find(Builders<CharacterDevelopmentProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).Any(), () =>
+            _mongo.CharacterDevelopmentProfiles.InsertOne(new CharacterDevelopmentProfileDocument { CharacterId = characterId, Profile = _developmentFactory.BuildFromLegacyCharacter(character) }), created);
+        WriteMissing("inventory", _mongo.CharacterInventoryProfiles.Find(Builders<CharacterInventoryProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).Any(), () =>
+            _mongo.CharacterInventoryProfiles.InsertOne(new CharacterInventoryProfileDocument { CharacterId = characterId, Profile = _inventoryFactory.BuildFromLegacyCharacter(character) }), created);
+        WriteMissing("raceOrSpecies", _mongo.CharacterRaceOrSpeciesProfiles.Find(Builders<CharacterRaceOrSpeciesProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).Any(), () =>
+            _mongo.CharacterRaceOrSpeciesProfiles.InsertOne(new CharacterRaceOrSpeciesProfileDocument { CharacterId = characterId, Profile = _raceOrSpeciesBuilder.BuildFromLegacyCharacter(character) }), created);
+        WriteMissing("body", _mongo.CharacterBodyProfiles.Find(Builders<CharacterBodyProfileDocument>.Filter.Eq(x => x.CharacterId, characterId)).Any(), () =>
+            _mongo.CharacterBodyProfiles.InsertOne(new CharacterBodyProfileDocument { CharacterId = characterId, Profile = _bodyBuilder.BuildFromLegacyCharacter(character) }), created);
+
+        var validation = ValidateCreatedProfilesAsync(characterId).GetAwaiter().GetResult();
+        validation.CreatedProfiles = created;
+        _logger.Admin($"profile.migration.done characterId={characterId} actor={actorUserId} created={string.Join(",", created)} success={validation.Success}");
+        return Task.FromResult(validation);
+    }
+
+    private static void WriteMissing(string section, bool exists, Action write, List<string> created)
+    {
+        if (exists) return;
+        write();
+        created.Add(section);
     }
 
     public Task<ProfileFirstCreationReadinessReport> BuildProfileFirstCreationReadinessReportAsync()

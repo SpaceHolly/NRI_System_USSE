@@ -22,7 +22,7 @@ public partial class ServiceHub
         var actor = RequireAdmin(context);
         if (!GlobalSearchAdminEnabled()) return GlobalSearchDisabled(context.Request.Command);
         if (!TryReadGlobalSearchRequest(context, admin: true, out var request, out var error)) return error;
-        var results = ExecuteGlobalSearch(request, actor, admin: true);
+        var results = ExecuteGlobalSearch(request, actor, admin: true, context.Session?.GameContext.CampaignId ?? string.Empty);
         _logger.Admin($"search.admin.query actor={actor.Login} queryLength={request.Query.Length} total={results.Total}");
         return Ok("Global search completed.", results.ToPayload());
     }
@@ -32,7 +32,7 @@ public partial class ServiceHub
         var actor = GetCurrentAccount(context);
         if (!GlobalSearchPlayerEnabled()) return GlobalSearchDisabled(context.Request.Command);
         if (!TryReadGlobalSearchRequest(context, admin: false, out var request, out var error)) return error;
-        var results = ExecuteGlobalSearch(request, actor, admin: false);
+        var results = ExecuteGlobalSearch(request, actor, admin: false, context.Session?.GameContext.CampaignId ?? string.Empty);
         _logger.Admin($"search.player.query actor={actor.Login} queryLength={request.Query.Length} total={results.Total}");
         return Ok("Player global search completed.", results.ToPayload(includeQuery: false));
     }
@@ -74,7 +74,7 @@ public partial class ServiceHub
         return Ok("Global search diagnostics loaded.", new Dictionary<string, object> { ["sources"] = sources });
     }
 
-    private GlobalSearchResultSet ExecuteGlobalSearch(GlobalSearchRequest request, UserAccount actor, bool admin)
+    private GlobalSearchResultSet ExecuteGlobalSearch(GlobalSearchRequest request, UserAccount actor, bool admin, string campaignId)
     {
         if (request.Query.Length < 2)
             return GlobalSearchResultSet.Validation("Запрос должен содержать минимум 2 символа.", request);
@@ -90,6 +90,7 @@ public partial class ServiceHub
             {
                 try
                 {
+                    if (!CanSearchDocumentInCampaign(source, doc, campaignId)) continue;
                     if (admin)
                         TryAddAdminSearchCandidate(candidates, request, source, doc, actor);
                     else
@@ -125,6 +126,45 @@ public partial class ServiceHub
             Items = items,
             Warnings = Array.Empty<object>()
         };
+    }
+
+    private bool CanSearchDocumentInCampaign(GlobalSearchSource source, BsonDocument doc, string campaignId)
+    {
+        if (string.IsNullOrWhiteSpace(campaignId)) return false;
+        if (source.Collection is "unified_definitions" or "skill_definitions" or "class_definitions" or "class_tree_definitions"
+            or "audio_tracks" or "fate_engine_profiles" or "fate_modifier_rules") return true;
+        if (source.Collection == "backup_records") return false;
+
+        var documentCampaignId = ReadBsonString(doc, "CampaignId");
+        if (string.IsNullOrWhiteSpace(documentCampaignId))
+        {
+            var sessionId = ReadBsonString(doc, "SessionId");
+            if (!string.IsNullOrWhiteSpace(sessionId))
+            {
+                var session = _repositories.CurrentSessions.Find(Builders<CurrentSessionState>.Filter.Eq(x => x.SessionId, sessionId)).FirstOrDefault();
+                documentCampaignId = session?.CampaignId ?? string.Empty;
+            }
+        }
+        if (string.IsNullOrWhiteSpace(documentCampaignId))
+        {
+            var characterId = FirstNonEmpty(ReadBsonString(doc, "CharacterId"), ReadBsonString(doc, "LinkedCharacterId"));
+            if (!string.IsNullOrWhiteSpace(characterId))
+            {
+                var character = _repositories.Characters.GetById(characterId);
+                if (character != null)
+                {
+                    var session = _repositories.CurrentSessions.Find(Builders<CurrentSessionState>.Filter.Eq(x => x.SessionId, character.SessionId)).FirstOrDefault();
+                    documentCampaignId = session?.CampaignId ?? character.SessionId;
+                }
+            }
+        }
+        if (string.IsNullOrWhiteSpace(documentCampaignId) && source.Collection == "characters")
+        {
+            var sessionOrCampaignId = ReadBsonString(doc, "SessionId");
+            var session = _repositories.CurrentSessions.Find(Builders<CurrentSessionState>.Filter.Eq(x => x.SessionId, sessionOrCampaignId)).FirstOrDefault();
+            documentCampaignId = session?.CampaignId ?? sessionOrCampaignId;
+        }
+        return string.Equals(documentCampaignId, campaignId, StringComparison.Ordinal);
     }
 
     private void TryAddAdminSearchCandidate(List<GlobalSearchCandidate> candidates, GlobalSearchRequest request, GlobalSearchSource source, BsonDocument doc, UserAccount actor)

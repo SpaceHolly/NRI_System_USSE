@@ -15,7 +15,8 @@ public sealed class AdminFunctionalDashboardViewModel : ViewModelBase
     private readonly CommandApi _api;
     private bool _isEnabled;
     private string _statusText = "Функциональный GM-пульт не загружен.";
-    private string _lastRefreshText = "—";
+    private string _lastRefreshText = "-";
+    private bool _isLoading;
 
     public AdminFunctionalDashboardViewModel(CommandApi api)
     {
@@ -30,11 +31,14 @@ public sealed class AdminFunctionalDashboardViewModel : ViewModelBase
     public ICommand RefreshCommand { get; }
 
     public bool IsEnabled { get => _isEnabled; private set { if (_isEnabled != value) { _isEnabled = value; Notify(); } } }
+    public bool IsLoading { get => _isLoading; private set { if (_isLoading != value) { _isLoading = value; Notify(); } } }
     public string StatusText { get => _statusText; private set { if (_statusText != value) { _statusText = value; Notify(); } } }
     public string LastRefreshText { get => _lastRefreshText; private set { if (_lastRefreshText != value) { _lastRefreshText = value; Notify(); } } }
 
     public void Refresh()
     {
+        if (IsLoading) return;
+        IsLoading = true;
         try
         {
             ClientLogService.Instance.Info("admin.functional.dashboard.load.start");
@@ -49,6 +53,7 @@ public sealed class AdminFunctionalDashboardViewModel : ViewModelBase
             Warnings.Add(ex.Message);
             ClientLogService.Instance.Error("admin.functional.dashboard.load.error " + ex.Message);
         }
+        finally { IsLoading = false; }
     }
 
     private void ApplyPayload(ResponseEnvelope response)
@@ -61,13 +66,15 @@ public sealed class AdminFunctionalDashboardViewModel : ViewModelBase
         if (response.Status != ResponseStatus.Ok)
         {
             IsEnabled = false;
-            StatusText = string.IsNullOrWhiteSpace(response.Message) ? "Пульт временно недоступен." : response.Message;
+            StatusText = response.Status == ResponseStatus.Unauthorized
+                ? "Войдите в учётную запись, чтобы загрузить функциональный GM-пульт."
+                : "Пульт временно недоступен.";
             return;
         }
 
         var payload = response.Payload ?? new Dictionary<string, object>();
         IsEnabled = Bool(payload, "isEnabled");
-        StatusText = String(payload, "message", IsEnabled ? "Функциональный GM-пульт активен." : response.Message);
+        StatusText = String(payload, "message", IsEnabled ? "Функциональный GM-пульт активен." : "Пульт временно недоступен.");
         LastRefreshText = DateTime.Now.ToString("HH:mm:ss");
 
         foreach (var item in Items(payload, "metrics"))
@@ -88,8 +95,8 @@ public sealed class AdminFunctionalDashboardViewModel : ViewModelBase
             {
                 Type = String(map, "type", "Процесс"),
                 Title = String(map, "title", "Без названия"),
-                Status = String(map, "status", "—"),
-                Progress = String(map, "progress", "—"),
+                Status = String(map, "status", "-"),
+                Progress = String(map, "progress", "-"),
                 Summary = String(map, "summary", string.Empty),
                 Target = String(map, "target", string.Empty)
             });

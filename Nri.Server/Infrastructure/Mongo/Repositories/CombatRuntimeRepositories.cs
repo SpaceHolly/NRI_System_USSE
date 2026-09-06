@@ -41,6 +41,7 @@ public interface ICombatRoundRepository
 public interface ICombatActionRepository
 {
     Task<CombatActionState?> GetByIdAsync(string id);
+    Task<CombatActionState?> GetByRequestIdAsync(string encounterId, string requestId, string actorParticipantId);
     Task<IReadOnlyCollection<CombatActionState>> ListByEncounterAsync(string encounterId, int limit = 200);
     Task<CombatActionState> AppendAsync(CombatActionState action);
     Task<CombatActionState> UpsertAsync(CombatActionState action);
@@ -56,6 +57,7 @@ public interface ICombatLogRepository
 public interface ICombatReplayEventRepository
 {
     Task<CombatReplayEvent?> GetByIdAsync(string id);
+    Task<CombatReplayEvent?> GetByRequestIdAsync(string encounterId, string requestId);
     Task<IReadOnlyCollection<CombatReplayEvent>> ListByEncounterAsync(string encounterId, int limit = 200);
     Task<CombatReplayEvent> AppendAsync(CombatReplayEvent replayEvent);
 }
@@ -229,7 +231,7 @@ public sealed class CombatLogRepository : CombatEntityRepository<CombatRuntimeLo
         var safeLimit = CombatRuntimeRepositoryLimits.Clamp(limit);
         LogList(encounterId ?? string.Empty, safeLimit);
         return await Collection.Find(x => x.EncounterId == (encounterId ?? string.Empty) && !x.Deleted && !x.Archived)
-            .SortBy(x => x.CreatedAtUtc)
+            .SortByDescending(x => x.CreatedAtUtc)
             .Limit(safeLimit)
             .ToListAsync();
     }
@@ -300,6 +302,12 @@ public sealed class CombatActionRepository : ICombatActionRepository
         return await _collection.Find(x => x.Id == id).FirstOrDefaultAsync();
     }
 
+    public async Task<CombatActionState?> GetByRequestIdAsync(string encounterId, string requestId, string actorParticipantId)
+    {
+        if (string.IsNullOrWhiteSpace(encounterId) || string.IsNullOrWhiteSpace(requestId)) return null;
+        return await _collection.Find(x => x.EncounterId == encounterId && x.RequestId == requestId && x.ActorParticipantId == (actorParticipantId ?? string.Empty)).FirstOrDefaultAsync();
+    }
+
     public async Task<IReadOnlyCollection<CombatActionState>> ListByEncounterAsync(string encounterId, int limit = 200)
     {
         var safeLimit = CombatRuntimeRepositoryLimits.Clamp(limit);
@@ -345,6 +353,12 @@ public sealed class CombatReplayEventRepository : ICombatReplayEventRepository
     {
         if (string.IsNullOrWhiteSpace(id)) return null;
         return await _collection.Find(x => x.Id == id).FirstOrDefaultAsync();
+    }
+
+    public async Task<CombatReplayEvent?> GetByRequestIdAsync(string encounterId, string requestId)
+    {
+        if (string.IsNullOrWhiteSpace(encounterId) || string.IsNullOrWhiteSpace(requestId)) return null;
+        return await _collection.Find(x => x.EncounterId == encounterId && x.RequestId == requestId).FirstOrDefaultAsync();
     }
 
     public async Task<IReadOnlyCollection<CombatReplayEvent>> ListByEncounterAsync(string encounterId, int limit = 200)

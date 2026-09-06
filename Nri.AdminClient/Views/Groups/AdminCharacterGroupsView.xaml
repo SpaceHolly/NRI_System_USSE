@@ -1,10 +1,13 @@
 ﻿<UserControl x:Class="Nri.AdminClient.Views.Groups.AdminCharacterGroupsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
     </UserControl.Resources>
 
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminCharacterGroups_OperationalHost">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -15,14 +18,12 @@
         <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,8">
             <DockPanel LastChildFill="False">
                 <StackPanel DockPanel.Dock="Left">
-                    <TextBlock Text="Активная группа" FontSize="18" FontWeight="SemiBold"/>
+                    <TextBlock Text="Активная группа" Style="{StaticResource TitleTextStyle}"/>
                     <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0"/>
                     <TextBlock Text="{Binding FeatureSummary}" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,2,0,0"/>
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <TextBox Width="120" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" ToolTip="CampaignId"/>
-                    <TextBox Width="140" Margin="8,0,0,0" Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}" ToolTip="SessionId, optional"/>
-                    <Button Content="Проверить flags" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding RefreshFlagsCommand}"/>
+                    <Button Content="Проверить доступность" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding RefreshFlagsCommand}"/>
                     <Button Content="Обновить" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding RefreshGroupsCommand}" IsEnabled="{Binding CanUseGroups}"/>
                 </StackPanel>
             </DockPanel>
@@ -128,13 +129,16 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <TextBlock Text="Участник" FontWeight="SemiBold"/>
-                        <TextBlock Text="MVP использует ручной ID сущности. Выбор из справочников будет добавлен позже." Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                        <TextBlock Text="Выберите персонажа по имени. Технический идентификатор подставится автоматически." Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,8"/>
                         <TextBlock Text="Тип сущности"/>
                         <ComboBox ItemsSource="{Binding EntityTypeOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding NewMemberEntityType}"/>
-                        <TextBlock Text="ID сущности" Margin="0,8,0,0"/>
-                        <TextBox Text="{Binding NewMemberEntityId, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBlock Text="Отображаемое имя" Margin="0,8,0,0"/>
-                        <TextBox Text="{Binding NewMemberDisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Персонаж" Margin="0,8,0,0"/>
+                        <controls:NriReferencePicker Options="{Binding MemberReferenceOptions}"
+                                                     SelectedId="{Binding NewMemberEntityId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     DisplayName="{Binding NewMemberDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     AutomationIdPrefix="AdminCharacterGroups_Member"
+                                                     AutomationProperties.Name="Выберите участника группы"
+                                                     ToolTip="Поиск доступных персонажей по имени"/>
                         <TextBlock Text="Роль в группе" Margin="0,8,0,0"/>
                         <ComboBox ItemsSource="{Binding RoleInGroupOptions}" DisplayMemberPath="Title" SelectedValuePath="Id" SelectedValue="{Binding NewMemberRoleInGroup}"/>
                         <TextBlock Text="Быстрые метки" Margin="0,8,0,0"/>
@@ -174,6 +178,14 @@
                             <Button Content="↑" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding MoveMemberUpCommand}" IsEnabled="{Binding CanEditMembers}"/>
                             <Button Content="↓" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0" Command="{Binding MoveMemberDownCommand}" IsEnabled="{Binding CanEditMembers}"/>
                         </WrapPanel>
+                        <Expander Header="Дополнительно: контекст кампании и сессии" Margin="0,12,0,0">
+                            <StackPanel Margin="0,8,0,0">
+                                <TextBlock Text="Кампания" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBox AutomationProperties.AutomationId="AdminCharacterGroups_Advanced_CampaignId" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" ToolTip="Технический ключ кампании"/>
+                                <TextBlock Text="Сессия" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/>
+                                <TextBox AutomationProperties.AutomationId="AdminCharacterGroups_Advanced_SessionId" Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}" ToolTip="Необязательный технический ключ сессии"/>
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
@@ -188,5 +200,6 @@
             </DockPanel>
         </Border>
     </Grid>
+    </patterns:NriOperationalWorkspaceHost>
 </UserControl>
 

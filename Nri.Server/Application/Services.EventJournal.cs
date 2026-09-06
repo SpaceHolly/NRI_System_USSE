@@ -454,8 +454,6 @@ public partial class ServiceHub
     private Dictionary<string, object> EventJournalPlayerPayload(EventJournalEntryState entry, bool includeDetails) => new Dictionary<string, object>
     {
         { "entryId", entry.Id },
-        { "campaignId", entry.CampaignId },
-        { "sessionId", entry.SessionId },
         { "category", entry.Category },
         { "severity", entry.Severity },
         { "title", entry.Title },
@@ -467,28 +465,42 @@ public partial class ServiceHub
         { "tags", entry.Tags.Cast<object>().ToArray() }
     };
 
-    private Dictionary<string, object> EventJournalLinkPayload(EventJournalEntityLinkState link, bool playerSafe) => new Dictionary<string, object>
+    private Dictionary<string, object> EventJournalLinkPayload(EventJournalEntityLinkState link, bool playerSafe)
     {
-        { "linkId", link.Id },
-        { "entryId", link.EntryId },
-        { "entityType", link.EntityType },
-        { "entityId", playerSafe ? string.Empty : link.EntityId },
-        { "displayName", link.DisplayName },
-        { "linkRole", link.LinkRole },
-        { "isPlayerVisible", link.IsPlayerVisible },
-        { "createdAtUtc", link.CreatedAtUtc }
-    };
+        var payload = new Dictionary<string, object>
+        {
+            { "entityType", link.EntityType },
+            { "displayName", link.DisplayName },
+            { "linkRole", link.LinkRole },
+            { "isPlayerVisible", link.IsPlayerVisible },
+            { "createdAtUtc", link.CreatedAtUtc }
+        };
+        if (!playerSafe)
+        {
+            payload["linkId"] = link.Id;
+            payload["entryId"] = link.EntryId;
+            payload["entityId"] = link.EntityId;
+        }
+        return payload;
+    }
 
-    private Dictionary<string, object> EventJournalAnnotationPayload(EventJournalAnnotationState annotation, bool playerSafe) => new Dictionary<string, object>
+    private Dictionary<string, object> EventJournalAnnotationPayload(EventJournalAnnotationState annotation, bool playerSafe)
     {
-        { "annotationId", annotation.Id },
-        { "entryId", annotation.EntryId },
-        { "authorDisplayName", annotation.AuthorDisplayName },
-        { "text", annotation.Text },
-        { "isPlayerVisible", annotation.IsPlayerVisible },
-        { "createdAtUtc", annotation.CreatedAtUtc },
-        { "updatedAtUtc", annotation.UpdatedAtUtc.HasValue ? (object)annotation.UpdatedAtUtc.Value : string.Empty }
-    };
+        var payload = new Dictionary<string, object>
+        {
+            { "authorDisplayName", annotation.AuthorDisplayName },
+            { "text", annotation.Text },
+            { "isPlayerVisible", annotation.IsPlayerVisible },
+            { "createdAtUtc", annotation.CreatedAtUtc },
+            { "updatedAtUtc", annotation.UpdatedAtUtc.HasValue ? (object)annotation.UpdatedAtUtc.Value : string.Empty }
+        };
+        if (!playerSafe)
+        {
+            payload["annotationId"] = annotation.Id;
+            payload["entryId"] = annotation.EntryId;
+        }
+        return payload;
+    }
 
     private List<EventJournalEntityLinkState> VisibleLinksForEntry(EventJournalEntryState entry, bool playerSafe)
     {

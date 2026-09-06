@@ -15,38 +15,29 @@ public partial class AdminWorldMapView : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (DataContext is AdminWorldMapViewModel existing)
+        if (DataContext is AdminMultiscaleMapViewModel0218 existing)
         {
-            existing.RefreshFlags();
-            if (existing.IsWorldMapEnabled)
-                existing.RefreshMaps();
+            existing.Initialize();
             return;
         }
 
         if (Window.GetWindow(this)?.DataContext is AdminMainViewModel shell && shell.WorldMap != null)
         {
             DataContext = shell.WorldMap;
-            shell.WorldMap.RefreshFlags();
-            if (shell.WorldMap.IsWorldMapEnabled)
-                shell.WorldMap.RefreshMaps();
+            shell.WorldMap.Initialize();
         }
     }
 
     private void MapCanvas_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is not AdminWorldMapViewModel vm) return;
-        if (sender is not Canvas canvas) return;
-        if (e.OriginalSource is FrameworkElement { DataContext: WorldMapMarkerUiItem })
-            return;
-
-        var point = e.GetPosition(canvas);
-        vm.PaintAtPixel(point.X, point.Y);
+        // Semantic edits are explicit inspector actions in the 0.21.8 workspace.
     }
 
     private void MarkerCanvasButton_OnClick(object sender, RoutedEventArgs e)
     {
-        if (DataContext is not AdminWorldMapViewModel vm) return;
-        if (sender is not FrameworkElement { Tag: WorldMapMarkerUiItem marker }) return;
-        vm.SelectMarkerFromUi(marker);
+    }
+
+    private void TokenCanvasButton_OnClick(object sender, RoutedEventArgs e)
+    {
     }
 }

@@ -2,7 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:Nri.AdminClient.ViewModels"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
              AutomationProperties.AutomationId="AdminGmNotes_Tab">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminGmNotes_OperationalHost">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -18,9 +20,14 @@
                     <TextBlock Text="Закрытое рабочее пространство ведущего. Игроки не получают эти данные." TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
                 </StackPanel>
                 <WrapPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
-                    <TextBlock Text="Кампания" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <TextBox Width="120" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
-                    <Button Style="{StaticResource GhostButtonStyle}" Content="Проверить flags" Command="{Binding RefreshFlagsCommand}"/>
+                    <Expander Header="Дополнительно" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="Технический контекст кампании" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBox Width="150" AutomationProperties.AutomationId="AdminGmNotes_Advanced_CampaignId" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Технический ключ кампании"/>
+                        </StackPanel>
+                    </Expander>
+                    <Button Style="{StaticResource GhostButtonStyle}" Content="Проверить доступность" Command="{Binding RefreshFlagsCommand}"/>
                     <Button AutomationProperties.AutomationId="AdminGmNotes_Refresh_Button" Content="Обновить" Command="{Binding RefreshCommand}" Margin="6,0,0,0"/>
                 </WrapPanel>
             </DockPanel>
@@ -86,44 +93,54 @@
                                 <TextBlock Text="Видимость"/>
                                 <ComboBox AutomationProperties.AutomationId="AdminGmNotes_Filter_Scope" ItemsSource="{Binding VisibilityOptions}" SelectedItem="{Binding VisibilityMode}"/>
                             </StackPanel>
-                            <StackPanel Grid.Column="2" Margin="8,0,0,0">
-                                <TextBlock Text="SessionId"/>
-                                <TextBox Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
                         </Grid>
+                        <TextBlock Text="Приоритет" Margin="0,8,0,2"/>
+                        <ComboBox AutomationProperties.AutomationId="AdminGmNotes_Priority"
+                                  ItemsSource="{Binding PriorityOptions}"
+                                  SelectedItem="{Binding Priority}"
+                                  Text="{Binding Priority, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="True"/>
+                        <Expander Header="Дополнительно: технический контекст" Margin="0,8,0,0">
+                            <Grid Margin="0,6,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Сессия"/>
+                                    <TextBox AutomationProperties.AutomationId="AdminGmNotes_Advanced_SessionId" Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="Технический ключ сессии"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock Text="Область"/>
+                                    <ComboBox AutomationProperties.AutomationId="AdminGmNotes_ScopeType"
+                                              ItemsSource="{Binding EntityTypeOptions}"
+                                              SelectedItem="{Binding ScopeType}"
+                                              Text="{Binding ScopeType, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEditable="True"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                                    <TextBlock Text="Технический ключ объекта"/>
+                                    <TextBox AutomationProperties.AutomationId="AdminGmNotes_ScopeId"
+                                             Text="{Binding ScopeEntityId, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" Margin="8,0,0,0">
+                                    <TextBlock Text="Понятное имя объекта"/>
+                                    <TextBox Text="{Binding ScopeDisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Expander>
                         <Grid Margin="0,8,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Text="Приоритет"/>
-                                <ComboBox AutomationProperties.AutomationId="AdminGmNotes_Priority" ItemsSource="{Binding PriorityOptions}" SelectedItem="{Binding Priority}" Text="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" IsEditable="True"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                <TextBlock Text="Scope"/>
-                                <ComboBox AutomationProperties.AutomationId="AdminGmNotes_ScopeType" ItemsSource="{Binding EntityTypeOptions}" SelectedItem="{Binding ScopeType}" Text="{Binding ScopeType, UpdateSourceTrigger=PropertyChanged}" IsEditable="True"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2" Margin="8,0,0,0">
-                                <TextBlock Text="Scope ID"/>
-                                <TextBox AutomationProperties.AutomationId="AdminGmNotes_ScopeId" Text="{Binding ScopeEntityId, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="3" Margin="8,0,0,0">
-                                <TextBlock Text="Scope name"/>
-                                <TextBox Text="{Binding ScopeDisplayName, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-                        </Grid>
-                        <Grid Margin="0,8,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Text="FolderId"/>
-                                <TextBox Text="{Binding FolderId, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
+                            <Expander Header="Техническая папка">
+                                <TextBox AutomationProperties.AutomationId="AdminGmNotes_Advanced_FolderId" Text="{Binding FolderId, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Технический ключ папки" Margin="0,4,0,0"/>
+                            </Expander>
                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                 <TextBlock Text="Теги"/>
                                 <TextBox AutomationProperties.AutomationId="AdminGmNotes_Tags" Text="{Binding TagsText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Через запятую"/>
@@ -153,24 +170,31 @@
                         <TextBlock Text="Папка" FontWeight="SemiBold" Margin="0,8,0,2"/>
                         <TextBox Text="{Binding FolderName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название папки" IsEnabled="{Binding FoldersEnabled}"/>
                         <TextBox Text="{Binding FolderDescription, UpdateSourceTrigger=PropertyChanged}" ToolTip="Описание папки" Margin="0,4,0,0" IsEnabled="{Binding FoldersEnabled}"/>
-                        <TextBox Text="{Binding FolderParentId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ParentFolderId" Margin="0,4,0,0" IsEnabled="{Binding FoldersEnabled}"/>
+                        <Expander Header="Дополнительно: родительская папка" Margin="0,4,0,0">
+                            <TextBox AutomationProperties.AutomationId="AdminGmNotes_Advanced_ParentFolderId" Text="{Binding FolderParentId, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Технический ключ родительской папки"
+                                     Margin="0,4,0,0"
+                                     IsEnabled="{Binding FoldersEnabled}"/>
+                        </Expander>
                         <WrapPanel Margin="0,6,0,0">
                             <Button Style="{StaticResource GhostButtonStyle}" Content="Создать папку" Command="{Binding FolderCreateCommand}" IsEnabled="{Binding FoldersEnabled}"/>
                             <Button Style="{StaticResource GhostButtonStyle}" Content="Сохранить папку" Command="{Binding FolderUpdateCommand}" Margin="6,0,0,0" IsEnabled="{Binding FoldersEnabled}"/>
                             <Button Style="{StaticResource GhostButtonStyle}" Content="Архив папки" Command="{Binding FolderArchiveCommand}" Margin="6,0,0,0" IsEnabled="{Binding FoldersEnabled}"/>
                         </WrapPanel>
 
-                        <Separator Margin="0,12,0,8"/>
-                        <TextBlock Text="Привязки" FontWeight="SemiBold"/>
-                        <ComboBox ItemsSource="{Binding EntityTypeOptions}" SelectedItem="{Binding LinkEntityType}" Margin="0,6,0,0" IsEnabled="{Binding LinksEnabled}"/>
-                        <TextBox Text="{Binding LinkEntityId, UpdateSourceTrigger=PropertyChanged}" ToolTip="EntityId" Margin="0,4,0,0" IsEnabled="{Binding LinksEnabled}"/>
-                        <TextBox Text="{Binding LinkDisplayName, UpdateSourceTrigger=PropertyChanged}" ToolTip="DisplayName" Margin="0,4,0,0" IsEnabled="{Binding LinksEnabled}"/>
-                        <ComboBox ItemsSource="{Binding LinkRoleOptions}" SelectedItem="{Binding LinkRole}" Margin="0,4,0,0" IsEnabled="{Binding LinksEnabled}"/>
-                        <WrapPanel Margin="0,6,0,0">
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Добавить привязку" Command="{Binding LinkAddCommand}" IsEnabled="{Binding LinksEnabled}"/>
-                            <Button Style="{StaticResource GhostButtonStyle}" Content="Убрать" Command="{Binding LinkRemoveCommand}" Margin="6,0,0,0" IsEnabled="{Binding LinksEnabled}"/>
-                        </WrapPanel>
-                        <ListBox ItemsSource="{Binding Links}" SelectedItem="{Binding SelectedLink}" DisplayMemberPath="Preview" MinHeight="100" Margin="0,6,0,0" IsEnabled="{Binding LinksEnabled}"/>
+                        <Expander Header="Дополнительно: ручные привязки" Margin="0,12,0,0">
+                            <StackPanel Margin="0,6,0,0">
+                                <ComboBox ItemsSource="{Binding EntityTypeOptions}" SelectedItem="{Binding LinkEntityType}" IsEnabled="{Binding LinksEnabled}"/>
+                                <TextBox AutomationProperties.AutomationId="AdminGmNotes_Advanced_LinkEntityId" Text="{Binding LinkEntityId, UpdateSourceTrigger=PropertyChanged}" ToolTip="Технический ключ объекта" Margin="0,4,0,0" IsEnabled="{Binding LinksEnabled}"/>
+                                <TextBox Text="{Binding LinkDisplayName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Понятное имя объекта" Margin="0,4,0,0" IsEnabled="{Binding LinksEnabled}"/>
+                                <ComboBox ItemsSource="{Binding LinkRoleOptions}" SelectedItem="{Binding LinkRole}" Margin="0,4,0,0" IsEnabled="{Binding LinksEnabled}"/>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Добавить привязку" Command="{Binding LinkAddCommand}" IsEnabled="{Binding LinksEnabled}"/>
+                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Убрать" Command="{Binding LinkRemoveCommand}" Margin="6,0,0,0" IsEnabled="{Binding LinksEnabled}"/>
+                                </WrapPanel>
+                                <ListBox ItemsSource="{Binding Links}" SelectedItem="{Binding SelectedLink}" DisplayMemberPath="Preview" MinHeight="100" Margin="0,6,0,0" IsEnabled="{Binding LinksEnabled}"/>
+                            </StackPanel>
+                        </Expander>
 
                         <Separator Margin="0,12,0,8"/>
                         <DockPanel>
@@ -185,4 +209,5 @@
 
         <TextBlock Grid.Row="3" Text="Player Notes остаются локальными в карточке персонажа. GM Notes не отправляются в PlayerClient." Margin="12,0,12,8" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
     </Grid>
+    </patterns:NriOperationalWorkspaceHost>
 </UserControl>

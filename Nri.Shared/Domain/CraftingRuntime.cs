@@ -166,6 +166,8 @@ public sealed class CraftingResourceReservationState : EntityBase
     public string UpdatedByUserId { get; set; } = string.Empty;
     public string PublicNotes { get; set; } = string.Empty;
     public string GMNotes { get; set; } = string.Empty;
+    public string OperationId { get; set; } = string.Empty;
+    public int ProjectRevision { get; set; }
     public Dictionary<string, object> ExtraData { get; set; } = new Dictionary<string, object>();
     public Dictionary<string, object> ServerOnlyData { get; set; } = new Dictionary<string, object>();
 }
@@ -191,6 +193,7 @@ public sealed class CraftingProjectItemResult : EntityBase
     public string AcceptedByUserId { get; set; } = string.Empty;
     public string PublicNotes { get; set; } = string.Empty;
     public string GMNotes { get; set; } = string.Empty;
+    public string CompletionOperationId { get; set; } = string.Empty;
     public Dictionary<string, object> ExtraData { get; set; } = new Dictionary<string, object>();
     public Dictionary<string, object> ServerOnlyData { get; set; } = new Dictionary<string, object>();
 }

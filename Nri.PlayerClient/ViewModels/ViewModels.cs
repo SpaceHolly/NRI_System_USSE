@@ -3,6 +3,11 @@ using Nri.PlayerClient.Networking;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
 using Nri.Shared.Domain;
+using Nri.Shared.Diagnostics;
+using Nri.Shared.Utilities;
+using Nri.Ui.Wpf;
+using Nri.Ui.Wpf.Controls;
+using Nri.Ui.Wpf.Patterns;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -21,6 +26,14 @@ using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace Nri.PlayerClient.ViewModels;
+
+public sealed class PlayerCharacterTitleVm
+{
+    public string Id { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public override string ToString() => DisplayName;
+}
 
 public abstract class ViewModelBase : INotifyPropertyChanged
 {
@@ -96,6 +109,7 @@ public static class PlayerDevelopmentLayoutVisualRules
 public class CharacterListItemVm : ViewModelBase
 {
     public string Id { get; set; } = string.Empty;
+    public string CampaignId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Race { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
@@ -109,10 +123,26 @@ public class CharacterListItemVm : ViewModelBase
     public string GroupDisplay { get; set; } = "—";
     public string CharacterKindDisplay { get; set; } = "—";
     public string CharacterStatusDisplay { get; set; } = "—";
+    public string SelectedTitleDisplay { get; set; } = "Без титула";
     public bool Archived { get; set; }
     public bool IsActive { get; set; }
-    public string ActivityText => IsActive ? "Активен" : "Не активен";
+    public bool IsSelectable { get; set; } = true;
+    public string PublicSummary => string.IsNullOrWhiteSpace(Description)
+        ? "Публичное описание пока не указано."
+        : Description;
+    public string AvailabilityText => Archived
+        ? "Персонаж находится в архиве"
+        : IsSelectable
+            ? "Готов к выбору"
+            : "Карточка временно недоступна";
+    public string ActivityText => IsActive ? "Активен" : "Доступен";
+    public NriStatusKind ActivityStatusKind => Archived
+        ? NriStatusKind.Archived
+        : IsActive
+            ? NriStatusKind.Success
+            : NriStatusKind.Neutral;
     public string ArchiveText => Archived ? "В архиве" : string.Empty;
+    public string AccessibleSummary => $"{Name}. {CharacterKindDisplay}. {CharacterStatusDisplay}. {AvailabilityText}.";
 }
 
 public sealed class GlobalSearchResultVm : ViewModelBase
@@ -198,7 +228,75 @@ public class SkillDisplayRowVm : ViewModelBase
     public int TotalBonus { get; set; }
     public string Breakdown { get; set; } = string.Empty;
     public string TrainingState { get; set; } = string.Empty;
-    public string Summary => $"{DisplayName} ({SkillCode})";
+    public string CategoryDisplay => FormatCategory(Category);
+    public string AttributeDisplay => FormatAttribute(Attribute);
+    public string TrainingStateDisplay => FormatTrainingState(TrainingState);
+    public string Summary => $"{DisplayName}: ранг {Rank}, бонус {TotalBonus}";
+
+    private static string FormatCategory(string value)
+    {
+        if (Regex.IsMatch(value ?? string.Empty, "[А-Яа-яЁё]")) return value;
+        return (value ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "combat" => "Боевые",
+            "social" => "Социальные",
+            "knowledge" => "Знания",
+            "craft" or "crafting" => "Ремесло",
+            "survival" => "Выживание",
+            "magic" => "Магия",
+            "physical" => "Физические",
+            "technical" => "Технические",
+            _ => "Другие"
+        };
+    }
+
+    private static string FormatAttribute(string value)
+    {
+        if (Regex.IsMatch(value ?? string.Empty, "[А-Яа-яЁё]")) return value;
+        return (value ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "strength" => "Сила",
+            "dexterity" or "agility" => "Ловкость",
+            "constitution" or "endurance" => "Выносливость",
+            "intelligence" or "intellect" => "Интеллект",
+            "wisdom" => "Мудрость",
+            "charisma" => "Харизма",
+            _ => "Не указана"
+        };
+    }
+
+    private static string FormatTrainingState(string value)
+    {
+        if (Regex.IsMatch(value ?? string.Empty, "[А-Яа-яЁё]")) return value;
+        return (value ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "trained" => "Изучен",
+            "untrained" => "Не изучен",
+            "expert" => "Эксперт",
+            "master" => "Мастер",
+            _ => "Состояние не указано"
+        };
+    }
+}
+
+public sealed class DevelopmentSkillTrackVm
+{
+    public string SkillCode { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string SourcePathName { get; set; } = string.Empty;
+    public string DefaultAttribute { get; set; } = string.Empty;
+    public string DefaultSubAttribute { get; set; } = string.Empty;
+    public int Rank { get; set; }
+    public int RankMax { get; set; } = 20;
+    public string MasteryBand { get; set; } = string.Empty;
+    public int ProficiencyBonus { get; set; }
+    public string NextMilestone { get; set; } = "Следующая веха не задана.";
+    public string Techniques { get; set; } = "Приёмы пока не открыты.";
+    public string Requirement { get; set; } = string.Empty;
+    public string RankText => $"Ранг {Rank} из {RankMax}";
+    public string SourcePathText => string.IsNullOrWhiteSpace(SourcePathName) ? "Путь не указан" : $"Путь / класс: {SourcePathName}";
+    public string MasteryText => $"{MasteryBand} · владение {ProficiencyBonus:+0;-0;0}";
+    public override string ToString() => Name;
 }
 
 public class InventoryDisplayItemVm : ViewModelBase
@@ -217,6 +315,8 @@ public class InventoryDisplayItemVm : ViewModelBase
     public string ItemAutomationId => $"PlayerCharacter_Inventory_Item_{AutomationKey}";
     public string QuantityAutomationId => $"PlayerCharacter_Inventory_Item_{AutomationKey}_Quantity";
     public string EquippedAutomationId => $"PlayerCharacter_Inventory_Item_{AutomationKey}_Equipped";
+
+    public override string ToString() => string.IsNullOrWhiteSpace(Name) ? "Предмет без названия" : Name;
 
     private static string NormalizeAutomationCode(string code)
     {
@@ -362,6 +462,7 @@ public class DevelopmentHexagonVm
     public string CenterNodeId { get; set; } = string.Empty;
     public int SortOrder { get; set; }
     public string Summary { get; set; } = string.Empty;
+    public string ProductShortName => string.Equals(HexagonId, DevelopmentHexagonIds.Magic, StringComparison.OrdinalIgnoreCase) ? "Магия" : "Основной";
     public string AutomationId => string.IsNullOrWhiteSpace(HexagonId) ? "PlayerDevelopment_Hexagon_Empty" : "PlayerDevelopment_Hexagon_" + HexagonId;
 }
 
@@ -378,6 +479,16 @@ public class ClassBranchVm
 
 public static class PlayerDevelopmentGraphDisplay
 {
+    private static readonly Dictionary<string, string> CanonicalNodeTitles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["strength_assault"] = "Натиск",
+        ["dexterity_maneuver"] = "Манёвр",
+        ["endurance_resilience"] = "Стойкость",
+        ["intellect_reason"] = "Разум",
+        ["wisdom_path"] = "Путь",
+        ["charisma_influence"] = "Влияние"
+    };
+
     private static readonly Dictionary<string, string> KnownTokens = new(StringComparer.OrdinalIgnoreCase)
     {
         ["DEV_HEX_NODE_0152_A"] = "служебный узел проверки A",
@@ -408,7 +519,11 @@ public static class PlayerDevelopmentGraphDisplay
 
     public static string ToReadableNodeTitle(string title, string nodeId)
     {
-        var raw = FirstNonEmpty(title, nodeId, "Узел развития");
+        var raw = title;
+        if (string.IsNullOrWhiteSpace(raw) || string.Equals(raw, nodeId, StringComparison.OrdinalIgnoreCase))
+            raw = CanonicalNodeTitles.TryGetValue(nodeId ?? string.Empty, out var canonicalTitle)
+                ? canonicalTitle
+                : "Узел развития";
         var cleaned = ToReadableText(raw);
         return IsTechnicalToken(cleaned) ? "Узел развития" : cleaned;
     }
@@ -433,6 +548,8 @@ public static class PlayerDevelopmentGraphDisplay
         text = Regex.Replace(text, @"large0154_root", "корень большого дерева", RegexOptions.IgnoreCase);
         text = Regex.Replace(text, @"dev_[a-z0-9_]*", "узел развития", RegexOptions.IgnoreCase);
         text = Regex.Replace(text, @"GUI acceptance token", "проверочный узел", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"Foundation\s+\d+(?:\.\d+)+\s+class-gated\s+node\.?", "Узел развития, связанный с классом.", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"\bGM\b", "мастером", RegexOptions.IgnoreCase);
         text = Regex.Replace(text, @"Requires", "Требуется", RegexOptions.IgnoreCase);
         text = Regex.Replace(text, @"development_hexagon[\w\.-]*", "шестиугольник развития", RegexOptions.IgnoreCase);
         text = Regex.Replace(text, @"PLAYER_VISIBLE_AUDIO[\w\.-]*", "музыкальный трек", RegexOptions.IgnoreCase);
@@ -519,6 +636,9 @@ public static class PlayerDevelopmentGraphDisplay
 public class ClassEntryVm
 {
     public string NodeId { get; set; } = string.Empty;
+    public string PresentationKey { get; set; } = string.Empty;
+    public string PresentationKind { get; set; } = "Path";
+    public string CanonicalNodeId { get; set; } = string.Empty;
     public string HexagonId { get; set; } = string.Empty;
     public string HexagonName { get; set; } = string.Empty;
     public string NodeTypeLabel { get; set; } = string.Empty;
@@ -530,18 +650,25 @@ public class ClassEntryVm
     public string RequirementSummary { get; set; } = string.Empty;
     public string RewardSummary { get; set; } = string.Empty;
     public string RequiredNodeIds { get; set; } = string.Empty;
+    public string RequiredCanonicalNodeIds { get; set; } = string.Empty;
     public string LinkedClassId { get; set; } = string.Empty;
     public string CurrencyId { get; set; } = CharacterCurrencyIds.XpCoin;
     public int PositionX { get; set; }
     public int PositionY { get; set; }
     public int Ring { get; set; }
+    public int Tier { get; set; }
+    public int MaxTier { get; set; } = 20;
+    public int VisibleRankMin { get; set; } = 1;
     public int Sector { get; set; }
     public int SortOrder { get; set; }
     public int LayoutVersion { get; set; }
     public int CostExperienceCoins { get; set; }
-    public string CostText { get; set; } = "0 монеты опыта";
+    public string CostText { get; set; } = "Стоимость развития пока не утверждена.";
+    public bool IsCostResolved { get; set; }
+    public string KnownDecisionSummary { get; set; } = string.Empty;
     public bool CanPurchase { get; set; }
     public bool RequiresRequest { get; set; }
+    public bool RequiresGMApproval { get; set; }
     public string PositionText => $"Позиция: X {PositionX}, Y {PositionY}; кольцо {Ring}; сектор {Sector}";
     public string DirectionText => $"Направление: {FormatDirection(DirectionKey)}; ветка: {PlayerDevelopmentGraphDisplay.ToReadableText(BranchKey)}";
     public string RequirementsText => PlayerDevelopmentGraphDisplay.ToReadableRequirementList(
@@ -549,6 +676,7 @@ public class ClassEntryVm
         id => PlayerDevelopmentGraphDisplay.ToReadableNodeTitle(string.Empty, id));
     public string DisplayTitle => PlayerDevelopmentGraphDisplay.ToReadableNodeTitle(Title, NodeId);
     public string DisplayStatus => PlayerDevelopmentGraphDisplay.ToReadableState(Status);
+    public string TierDisplay => Tier <= 0 ? $"Уровень 0 из {MaxTier}" : $"Уровень {Tier} из {MaxTier}";
     public string FriendlyMetaText => $"{PlayerDevelopmentGraphDisplay.ToReadableType(NodeTypeLabel)} / {DisplayStatus} / {CostText}";
     public string FriendlyRequirementsText => string.IsNullOrWhiteSpace(RequirementSummary) ? "Требований нет." : PlayerDevelopmentGraphDisplay.ToReadableText(RequirementSummary);
     public string FriendlyUnlockText => string.IsNullOrWhiteSpace(LinkedClassId)
@@ -591,6 +719,9 @@ public class ClassNodeVisualVm : ViewModelBase
     private bool _isFilteredOut;
 
     public string NodeId { get; set; } = string.Empty;
+    public string PresentationKey { get; set; } = string.Empty;
+    public string PresentationKind { get; set; } = "Path";
+    public string CanonicalNodeId { get; set; } = string.Empty;
     public string HexagonId { get; set; } = string.Empty;
     public string HexagonName { get; set; } = string.Empty;
     public string NodeTypeLabel { get; set; } = string.Empty;
@@ -599,21 +730,28 @@ public class ClassNodeVisualVm : ViewModelBase
     public string Title { get; set; } = string.Empty;
     public string State { get; set; } = "Locked";
     public int CostExperienceCoins { get; set; }
-    public string CostText { get; set; } = "0 монеты опыта";
+    public string CostText { get; set; } = "Стоимость развития пока не утверждена.";
+    public bool IsCostResolved { get; set; }
+    public string KnownDecisionSummary { get; set; } = string.Empty;
     public string Summary { get; set; } = string.Empty;
     public string RequirementSummary { get; set; } = string.Empty;
     public string RewardSummary { get; set; } = string.Empty;
     public string RequiredNodeIds { get; set; } = string.Empty;
+    public string RequiredCanonicalNodeIds { get; set; } = string.Empty;
     public string LinkedClassId { get; set; } = string.Empty;
     public string CurrencyId { get; set; } = CharacterCurrencyIds.XpCoin;
     public int PositionX { get; set; }
     public int PositionY { get; set; }
     public int Ring { get; set; }
+    public int Tier { get; set; }
+    public int MaxTier { get; set; } = 20;
+    public int VisibleRankMin { get; set; } = 1;
     public int Sector { get; set; }
     public int SortOrder { get; set; }
     public int LayoutVersion { get; set; }
     public bool CanPurchase { get; set; }
     public bool RequiresRequest { get; set; }
+    public bool RequiresGMApproval { get; set; }
     public double X { get; set; }
     public double Y { get; set; }
     public double NodeWidth { get; set; } = PlayerDevelopmentLayoutVisualRules.DefaultNodeWidth;
@@ -758,6 +896,18 @@ public class PlayerCombatParticipantVm : ViewModelBase
     public string DisplayName { get; set; } = string.Empty;
     public string TeamId { get; set; } = string.Empty;
     public string ParticipantType { get; set; } = string.Empty;
+    public int InitiativeRoll { get; set; }
+    public int InitiativeOrderIndex { get; set; }
+    public string TurnStatus { get; set; } = string.Empty;
+    public int StandardActions { get; set; }
+    public int MinorActions { get; set; }
+    public bool ReactionAvailable { get; set; }
+    public bool Natural20BonusTurn { get; set; }
+    public bool Natural1FirstTurnPenalty { get; set; }
+    public string PublicStateText { get; set; } = string.Empty;
+    public string PublicNotes { get; set; } = string.Empty;
+    public string MapTokenId { get; set; } = string.Empty;
+    public string MapTokenDisplayName { get; set; } = string.Empty;
     public bool IsCurrentTurn { get; set; }
     public bool IsActive { get; set; }
     public bool IsDefeated { get; set; }
@@ -767,10 +917,100 @@ public class PlayerCombatParticipantVm : ViewModelBase
     public int CurrentMorale { get; set; }
     public int MaxMorale { get; set; }
     public string VisibilityState { get; set; } = string.Empty;
+    public string RacialMovementState { get; set; } = string.Empty;
     public ObservableCollection<PlayerCombatConditionVm> KnownConditions { get; } = new ObservableCollection<PlayerCombatConditionVm>();
     public string HealthText => MaxHealth > 0 ? $"{CurrentHealth}/{MaxHealth} (+{TemporaryHealth})" : "-";
     public string MoraleText => MaxMorale > 0 ? $"{CurrentMorale}/{MaxMorale}" : "-";
     public string TurnText => IsCurrentTurn ? "Текущий ход" : string.Empty;
+    public string InitiativeText => InitiativeRoll <= 0 ? "-" : Natural20BonusTurn ? $"{InitiativeRoll} + доп. ход" : Natural1FirstTurnPenalty ? $"{InitiativeRoll} / ограничен" : InitiativeRoll.ToString(CultureInfo.InvariantCulture);
+    public string ActionText => $"Половины действия: {StandardActions}/2; реакция {(ReactionAvailable ? "доступна" : "потрачена")}";
+    public string TokenText => string.IsNullOrWhiteSpace(MapTokenId) ? "Без токена" : FirstNonEmptyLocal(MapTokenDisplayName, MapTokenId);
+    public override string ToString() => DisplayName;
+
+    private static string FirstNonEmptyLocal(params string[] values)
+    {
+        foreach (var value in values)
+            if (!string.IsNullOrWhiteSpace(value)) return value;
+        return string.Empty;
+    }
+}
+
+public class PlayerCombatMapTokenVm : ViewModelBase
+{
+    public string ParticipantId { get; set; } = string.Empty;
+    public string ParticipantName { get; set; } = string.Empty;
+    public string TokenId { get; set; } = string.Empty;
+    public string TokenName { get; set; } = string.Empty;
+    public string TokenType { get; set; } = string.Empty;
+    public string BadgeText { get; set; } = string.Empty;
+    public string IconKey { get; set; } = string.Empty;
+    public string ColorKey { get; set; } = string.Empty;
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double SizeMeters { get; set; } = 1d;
+    public double RadiusMeters { get; set; }
+    public double PixelX { get; set; }
+    public double PixelY { get; set; }
+    public double PixelLeft { get; set; }
+    public double PixelTop { get; set; }
+    public double PixelDiameter { get; set; } = 20d;
+    public bool IsCurrentTurn { get; set; }
+    public bool IsMine { get; set; }
+    public string PositionText => $"{X:0.##}; {Y:0.##} м";
+    public string HighlightText => IsMine ? "Мой токен" : IsCurrentTurn ? "Текущий ход" : string.Empty;
+    public string Summary => $"{FirstNonEmptyLocal(ParticipantName, TokenName)} | {TokenType} | {PositionText}";
+    public string CanvasLabel => FirstNonEmptyLocal(ParticipantName, TokenName);
+    public string CanvasBadge => FirstNonEmptyLocal(BadgeText, HighlightText, "Виден");
+
+    public void ApplyScale(double scale)
+    {
+        PixelX = MapCanvasProjectionHelper.ToPixel(X, scale);
+        PixelY = MapCanvasProjectionHelper.ToPixel(Y, scale);
+        var meters = RadiusMeters > 0 ? RadiusMeters * 2d : Math.Max(1d, SizeMeters);
+        PixelDiameter = Math.Max(18d, MapCanvasProjectionHelper.ToPixel(meters, scale));
+        PixelLeft = PixelX - (PixelDiameter / 2d);
+        PixelTop = PixelY - (PixelDiameter / 2d);
+        Notify(nameof(PixelX));
+        Notify(nameof(PixelY));
+        Notify(nameof(PixelLeft));
+        Notify(nameof(PixelTop));
+        Notify(nameof(PixelDiameter));
+        Notify(nameof(CanvasLabel));
+        Notify(nameof(CanvasBadge));
+        Notify(nameof(HighlightText));
+    }
+
+    public static PlayerCombatMapTokenVm From(Dictionary<string, object> map)
+    {
+        return new PlayerCombatMapTokenVm
+        {
+            ParticipantId = Str(map, "participantId"),
+            ParticipantName = Str(map, "participantName"),
+            TokenId = Str(map, "mapTokenId"),
+            TokenName = Str(map, "mapTokenDisplayName"),
+            TokenType = Str(map, "tokenType"),
+            BadgeText = Str(map, "mapBadgeText"),
+            IconKey = Str(map, "iconKey"),
+            ColorKey = Str(map, "colorKey"),
+            X = Dbl(map, "x"),
+            Y = Dbl(map, "y"),
+            SizeMeters = Dbl(map, "size", 1d),
+            RadiusMeters = Dbl(map, "radius")
+        };
+    }
+
+    private static string Str(Dictionary<string, object> map, string key)
+        => map.TryGetValue(key, out var raw) ? Convert.ToString(raw, CultureInfo.InvariantCulture) ?? string.Empty : string.Empty;
+
+    private static double Dbl(Dictionary<string, object> map, string key, double fallback = 0d)
+        => map.TryGetValue(key, out var raw) && double.TryParse(Convert.ToString(raw, CultureInfo.InvariantCulture), NumberStyles.Any, CultureInfo.InvariantCulture, out var value) ? value : fallback;
+
+    private static string FirstNonEmptyLocal(params string[] values)
+    {
+        foreach (var value in values)
+            if (!string.IsNullOrWhiteSpace(value)) return value;
+        return string.Empty;
+    }
 }
 
 public class PlayerCombatLogVm : ViewModelBase
@@ -780,28 +1020,126 @@ public class PlayerCombatLogVm : ViewModelBase
     public int TurnIndex { get; set; }
     public string EventType { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
-    public string RoundTurnText => $"R{RoundNumber}/T{TurnIndex}";
+    public string RoundTurnText => $"Раунд {RoundNumber}, ход {TurnIndex}";
+    public string DisplayText => $"{RoundTurnText}: {Message}";
+    public override string ToString() => DisplayText;
 }
 
-public class PlayerMainViewModel : ViewModelBase
+public sealed class PlayerShellArea
+{
+    public PlayerShellArea(string id, string title, string shortTitle, int displayOrder)
+    {
+        Id = id;
+        Title = title;
+        ShortTitle = shortTitle;
+        DisplayOrder = displayOrder;
+    }
+
+    public string Id { get; }
+    public string Title { get; }
+    public string ShortTitle { get; }
+    public int DisplayOrder { get; }
+    public string AutomationId => "PlayerArea_" + Id;
+    public override string ToString() => Title;
+}
+
+public sealed class PlayerShellRoute : ViewModelBase
+{
+    private string _availabilityState = RouteAvailabilityStates.Available;
+    private string _disabledReason = string.Empty;
+    public PlayerShellRoute(string routeKey, string title, string description, string areaId, int displayOrder, string automationId)
+    {
+        RouteKey = routeKey;
+        Title = title;
+        Description = description;
+        AreaId = areaId;
+        DisplayOrder = displayOrder;
+        AutomationId = automationId;
+        Descriptor = new RouteDescriptor
+        {
+            RouteKey = routeKey,
+            DisplayName = title,
+            ClientKind = ApplicationClientKinds.Player,
+            Area = areaId,
+            RequiredRole = "Player,Admin,SuperAdmin",
+            RequiresCharacter = areaId == "character"
+                                && !string.Equals(routeKey, "MyCharacters", StringComparison.OrdinalIgnoreCase)
+                                && !string.Equals(routeKey, "characterCreation", StringComparison.OrdinalIgnoreCase)
+                                && !string.Equals(routeKey, "development", StringComparison.OrdinalIgnoreCase),
+            RequiresSession = routeKey == "combat" || routeKey == "sceneMap" || routeKey == "worldMap",
+            Target = routeKey,
+            AutomationId = automationId,
+            SupportsDeepLink = routeKey == "character" || routeKey == "worldMap" || routeKey == "journal"
+        };
+    }
+
+    public string RouteKey { get; }
+    public string Title { get; }
+    public string ShortTitle => Title;
+    public string Description { get; }
+    public string DisplayDescription => IsEnabled || string.IsNullOrWhiteSpace(_disabledReason) ? Description : _disabledReason;
+    public string AreaId { get; }
+    public string ApplicationArea => "PlayerClient";
+    public string PlayerArea => AreaId;
+    public string NavigationGroup => AreaId;
+    public string IconKey => AreaId;
+    public string RequiredRoles => Descriptor.RequiredRole;
+    public string RequiredFeatureFlags => string.Join(",", Descriptor.RequiredFeatureFlags);
+    public bool IsVisible => true;
+    public bool IsEnabled => string.Equals(_availabilityState, RouteAvailabilityStates.Available, StringComparison.Ordinal);
+    public string DisabledReason => _disabledReason;
+    public bool IsPlaceholder => false;
+    public string ViewKey => RouteKey;
+    public int DisplayOrder { get; }
+    public string AutomationId { get; }
+    public RouteDescriptor Descriptor { get; }
+    public void ApplyAvailability(RouteAvailability availability)
+    {
+        var wasEnabled = IsEnabled;
+        var previousReason = _disabledReason;
+        _availabilityState = availability.State;
+        _disabledReason = availability.Reason;
+        if (wasEnabled != IsEnabled) Notify(nameof(IsEnabled));
+        if (!string.Equals(previousReason, _disabledReason, StringComparison.Ordinal))
+        {
+            Notify(nameof(DisabledReason));
+            Notify(nameof(DisplayDescription));
+        }
+    }
+    public override string ToString() => Title;
+}
+
+public partial class PlayerMainViewModel : ViewModelBase
 {
     private readonly ClientSessionState _session = new ClientSessionState();
     private readonly ClientConfig _clientConfig;
     private readonly JsonTcpClient _client;
     private readonly CommandApi _api;
+    private readonly IApplicationContextProvider _applicationContext = new ApplicationContextProvider0212();
+    private readonly ApplicationRouteRegistry0212 _routeRegistry = new ApplicationRouteRegistry0212();
     private readonly DispatcherTimer _poller;
     private readonly IClientSyncEventDispatcher _syncDispatcher;
     private long _syncRevision;
     private bool _definitionsDirty;
+    private bool _reconnectInProgress;
+    private readonly NonOverlappingOperationGate0214 _pollRefreshGate = new();
 
 
     private string _connectionState = "Оффлайн";
     private bool _isAuthPopupOpen;
-    private bool _isConnectionPopupOpen;
-    private string _selectedMainTab = "MyCharacters";
+    private bool _isConnectionPopupOpen = true;
+    private string _selectedMainTab = "gameCenter";
+    private string _selectedPlayerAreaId = "game";
+    private bool _isNavigationCollapsed;
+    private bool _isActivityDockOpen;
+    private readonly Dictionary<string, string> _lastRouteByArea = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private string _activeCharacterId = string.Empty;
+    private string _activeCharacterCampaignId = string.Empty;
     private string _activeCharacterStatusText = "Активный персонаж не выбран.";
     private CharacterListItemVm? _selectedMyCharacter;
+    private NriContentState _characterSelectionContentState = NriContentState.Loading;
+    private string _characterSelectionStatusText = "Загрузка персонажей...";
+    private string _characterSelectionFeedbackText = string.Empty;
     private CompanionVm? _selectedCompanion;
     private long _experienceCoins;
     private bool _experienceCoinsLoaded;
@@ -809,7 +1147,12 @@ public class PlayerMainViewModel : ViewModelBase
     private string _developmentStatusText = string.Empty;
     private string _selectedDevelopmentHexagonId = DevelopmentHexagonIds.Main;
     private string _developmentViewerFocusedDirectionKey = string.Empty;
-    private double _developmentViewerZoom = 0.62;
+    private string _developmentProductViewMode = "overview";
+    private string _developmentProductPathKey = string.Empty;
+    private int _developmentProfileRevision;
+    private string _developmentOutcomeStatus = string.Empty;
+    private bool _loadingDevelopmentProjection;
+    private double _developmentViewerZoom = 1.0;
     private double _developmentViewerViewportTranslateX;
     private double _developmentViewerViewportTranslateY;
     private readonly Dictionary<string, Dictionary<string, object>> _developmentViewerHexagonPayloads = new Dictionary<string, Dictionary<string, object>>(StringComparer.OrdinalIgnoreCase);
@@ -841,10 +1184,19 @@ public class PlayerMainViewModel : ViewModelBase
     private bool _combatIsMyTurn;
     private string _combatErrorMessage = string.Empty;
     private string _combatWarningMessage = string.Empty;
+    private string _combatResolutionText = "Выберите цель и навык для атаки.";
     private string _combatEncounterName = "Столкновение не выбрано";
     private string _combatEncounterStatus = string.Empty;
     private string _combatCurrentTurnText = string.Empty;
     private string _combatLastRefreshText = string.Empty;
+    private string _combatMapStatusText = "Боевой слой карты не загружен.";
+    private string _combatMapSceneText = "Активная карта сцены не выбрана.";
+    private double _combatMapCanvasWidth = 520d;
+    private double _combatMapCanvasHeight = 300d;
+    private string _combatMapScaleText = "Карта не загружена.";
+    private double _combatMapWidthMeters = 1d;
+    private double _combatMapHeightMeters = 1d;
+    private double _combatMapGridMeters = 5d;
     private string _selectedRequestRow = string.Empty;
     private readonly Dictionary<string, string> _requestRowIds = new Dictionary<string, string>(StringComparer.Ordinal);
     private string _selectedRequestRawTitle = string.Empty;
@@ -854,36 +1206,58 @@ public class PlayerMainViewModel : ViewModelBase
     private string _globalSearchCategoryFilter = "all";
     private string _globalSearchStatusText = "Поиск готов.";
     private GlobalSearchResultVm? _selectedGlobalSearchResult;
+    private string _selectedGameCampaignId = string.Empty;
+    private string _selectedGameSessionId = string.Empty;
     public PlayerSceneMapViewModel SceneMap { get; }
-    public PlayerWorldMapViewModel WorldMap { get; }
+    public PlayerMultiscaleMapViewModel0218 WorldMap { get; }
     public PlayerEngineeringViewModel Engineering { get; }
     public PlayerProductionViewModel Production { get; }
+    public PlayerAssetConfiguratorsViewModel AssetConfigurators { get; }
     public PlayerWorldCalendarViewModel WorldCalendar { get; }
     public PlayerRealScheduleViewModel RealSchedule { get; }
     public PlayerRoomInteriorViewModel RoomInterior { get; }
     public PlayerCurrentSessionViewModel CurrentSession { get; }
     public PlayerActiveGroupViewModel ActiveGroup { get; }
     public PlayerEventJournalViewModel EventJournal { get; }
+    public PlayerQuestJournalViewModel QuestJournal { get; }
+    public PlayerShopViewModel Shops { get; }
+    public PlayerRestViewModel Rest { get; }
+    public PlayerGameplayViewModel Gameplay { get; }
     public PlayerFunctionalDashboardViewModel FunctionalDashboard { get; }
     public PlayerProposalCenterViewModel ProposalCenter { get; }
+    public PlayerDefinitionBrowserViewModel DefinitionBrowser { get; }
+    public PlayerCharacterCreationViewModel CharacterCreation { get; }
+    public PlayerLanguageWorkspaceViewModel LanguageWorkspace { get; }
 
     public PlayerMainViewModel()
     {
         _clientConfig = App.ClientConfig;
         _client = new JsonTcpClient(_clientConfig, _session);
+        _client.Lifecycle.StateChanged += OnConnectionLifecycleChanged;
+        _session.AuthenticationInvalidated += () => HandleUnauthorizedState("transport", "Сеанс входа завершён. Войдите в учётную запись снова.");
         _api = new CommandApi(_client);
+        foreach (var route in PlayerRoutes) _routeRegistry.Register(route.Descriptor);
+        _applicationContext.ContextChanged += OnApplicationContextChanged;
         FunctionalDashboard = new PlayerFunctionalDashboardViewModel(_api);
         CurrentSession = new PlayerCurrentSessionViewModel(_api, () => ActiveCharacterId);
         ActiveGroup = new PlayerActiveGroupViewModel(_api, () => ActiveCharacterId);
         SceneMap = new PlayerSceneMapViewModel(_api, () => ActiveCharacterId);
-        WorldMap = new PlayerWorldMapViewModel(_api, () => ActiveCharacterId);
+        WorldMap = new PlayerMultiscaleMapViewModel0218(_api, () => ActiveCharacterId);
         Engineering = new PlayerEngineeringViewModel(_api, () => ActiveCharacterId);
-        Production = new PlayerProductionViewModel(_api, () => ActiveCharacterId);
+        Production = new PlayerProductionViewModel(_api, () => ActiveCharacterId, ResolveActiveCharacterCampaignId);
+        AssetConfigurators = new PlayerAssetConfiguratorsViewModel(_api, () => ActiveCharacterId);
         WorldCalendar = new PlayerWorldCalendarViewModel(_api, () => ActiveCharacterId);
         RealSchedule = new PlayerRealScheduleViewModel(_api);
         RoomInterior = new PlayerRoomInteriorViewModel(_api, () => ActiveCharacterId);
         EventJournal = new PlayerEventJournalViewModel(_api, () => ActiveCharacterId);
+        QuestJournal = new PlayerQuestJournalViewModel(_api, () => ActiveCharacterId);
+        Shops = new PlayerShopViewModel(_api, () => ActiveCharacterId);
+        Rest = new PlayerRestViewModel(_api, () => ActiveCharacterId);
+        Gameplay = new PlayerGameplayViewModel(_api);
         ProposalCenter = new PlayerProposalCenterViewModel(_api, () => ActiveCharacterId);
+        DefinitionBrowser = new PlayerDefinitionBrowserViewModel(_api);
+        CharacterCreation = new PlayerCharacterCreationViewModel(_api, () => ApplicationContext.Campaign.Id, () => ApplicationContext.Campaign.DisplayName);
+        LanguageWorkspace = new PlayerLanguageWorkspaceViewModel(_api);
         ClientLogService.Instance.Info("PlayerMainViewModel initialized");
 
         ToggleAuthPopupCommand = new RelayCommand(() =>
@@ -895,16 +1269,21 @@ public class PlayerMainViewModel : ViewModelBase
             }
         });
         ToggleConnectionPopupCommand = new RelayCommand(() => IsConnectionPopupOpen = !IsConnectionPopupOpen);
+        ToggleNavigationCommand = new RelayCommand(() => IsNavigationCollapsed = !IsNavigationCollapsed);
+        ToggleActivityDockCommand = new RelayCommand(() => IsActivityDockOpen = !IsActivityDockOpen);
         LoginCommand = new RelayCommand(Login);
         RegisterCommand = new RelayCommand(Register);
         ChangePasswordCommand = new RelayCommand(ChangePassword);
         RefreshCommand = new RelayCommand(RefreshAll);
+        SelectGameCampaignCommand = new RelayCommand(SelectGameCampaign);
+        SelectGameSessionCommand = new RelayCommand(SelectGameSession);
         GlobalSearchCommand = new RelayCommand(RunGlobalSearch);
         GlobalSearchOpenCommand = new RelayCommand(OpenGlobalSearchResult);
 
         LoadCharacterHubCommand = new RelayCommand(LoadSelectedCharacterHub);
+        RefreshCharactersCommand = new RelayCommand(LoadCharacters);
         SetActiveCharacterCommand = new RelayCommand(SetSelectedCharacterActive);
-        CreateCharacterCommand = new RelayCommand(CreateCharacter);
+        OpenSelectedCharacterCommand = new RelayCommand(OpenSelectedCharacter);
         CreateDiceRequestCommand = new RelayCommand(CreateDiceRequest);
         CreatePlayerRequestCommand = new RelayCommand(CreatePlayerRequest);
         CancelRequestCommand = new RelayCommand(CancelRequest);
@@ -912,6 +1291,7 @@ public class PlayerMainViewModel : ViewModelBase
         RefreshRequestsCommand = new RelayCommand(RefreshDiceAndRequests);
 
         ChatSendCommand = new RelayCommand(SendChat);
+        ChatClearDraftCommand = new RelayCommand(ClearChatDraft);
         BottomRefreshCommand = new RelayCommand(RefreshBottomPanel);
 
         AudioRefreshCommand = new RelayCommand(RefreshAudioState);
@@ -920,6 +1300,8 @@ public class PlayerMainViewModel : ViewModelBase
         VisibilityLoadCommand = new RelayCommand(LoadVisibility);
         VisibilitySaveCommand = new RelayCommand(SaveVisibility);
         PublicCharacterLoadCommand = new RelayCommand(LoadPublicCharacter);
+        SelectCharacterTitleCommand = new RelayCommand(SelectCharacterTitle);
+        SaveFinalizedPublicProfileCommand = new RelayCommand(SaveFinalizedPublicProfile);
 
         NotesRefreshCommand = new RelayCommand(RefreshNotes);
         NotesCreateCommand = new RelayCommand(CreateNote);
@@ -940,21 +1322,30 @@ public class PlayerMainViewModel : ViewModelBase
         BuySelectedClassNodeCommand = new RelayCommand(BuySelectedClassNode);
         RequestUnlockNodeCommand = new RelayCommand(RequestUnlockNode);
         FitToViewDevelopmentHexagonCommand = new RelayCommand(FitToViewDevelopmentHexagon);
+        DevelopmentOverviewCommand = new RelayCommand(() => SetDevelopmentProductView("overview"));
+        DevelopmentMyRouteCommand = new RelayCommand(() => SetDevelopmentProductView("my_route"));
+        DevelopmentAvailableNowCommand = new RelayCommand(() => SetDevelopmentProductView("available_now"));
+        DevelopmentFocusSelectedPathCommand = new RelayCommand(() => SetDevelopmentProductView("path", SelectedClassEntry?.DirectionKey ?? string.Empty, SelectedClassEntry?.NodeId ?? string.Empty));
         DevelopmentViewerSearchClearCommand = new RelayCommand(ClearDevelopmentViewerSearch);
         DevelopmentViewerSearchNextCommand = new RelayCommand(() => SelectDevelopmentViewerSearchResult(1));
         DevelopmentViewerSearchPreviousCommand = new RelayCommand(() => SelectDevelopmentViewerSearchResult(-1));
+        InitializeDevelopmentSpatialProduct();
+        InitializeInitialDevelopment02112();
         AcquireSkillCommand = new RelayCommand(AcquireSkill);
         SkillCheckRollCommand = new RelayCommand(RollSelectedSkillCheck);
         ConnectToServerCommand = new RelayCommand(ConnectToServer);
         ApplyConnectionSettingsCommand = new RelayCommand(ApplyConnectionSettings);
         ResetConnectionDefaultsCommand = new RelayCommand(ResetConnectionDefaults);
         UseLastConnectionCommand = new RelayCommand(UseSavedConnectionSettings);
+        CombatExecuteAttackCommand = new RelayCommand(ExecuteCombatAttack);
+        CombatPrepareActionCommand = new RelayCommand(PrepareCombatAction);
 
         _poller = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
         _poller.Tick += (_, _) => PollRefresh();
         _syncDispatcher = new ClientSyncEventDispatcher(this);
 
         LoadConnectionSettings();
+        SelectPlayerRoute("gameCenter");
         InitializeClassVisualLayout();
         InitializeDefaultPublicProfile();
         InitializeDefaultCharacterScaffolding();
@@ -973,17 +1364,128 @@ public class PlayerMainViewModel : ViewModelBase
     public string PlayerDisplayName { get; set; } = "Гость";
     public string SessionSummary { get; set; } = "Сессия не подключена";
 
+    public ObservableCollection<PlayerShellArea> PlayerAreas { get; } = new ObservableCollection<PlayerShellArea>
+    {
+        new PlayerShellArea("game", "Игра", "Игра", 10),
+        new PlayerShellArea("character", "Персонаж", "Герой", 20),
+        new PlayerShellArea("world", "Мир", "Мир", 30),
+        new PlayerShellArea("journal", "Журнал", "Журнал", 40),
+        new PlayerShellArea("communication", "Связь", "Связь", 50)
+    };
+
+    public ObservableCollection<PlayerShellRoute> PlayerRoutes { get; } = new ObservableCollection<PlayerShellRoute>
+    {
+        new PlayerShellRoute("gameCenter", "Игровой центр", "Текущая сессия, активная группа и основные действия.", "game", 10, "PlayerRoute_GameCenter"),
+        new PlayerShellRoute("combat", "Бой", "Текущий бой и ваш ход.", "game", 20, "PlayerRoute_Combat"),
+        new PlayerShellRoute("gameplay", "Игровой цикл", "Доступные игровые действия.", "game", 30, "PlayerRoute_Gameplay"),
+        new PlayerShellRoute("shops", "Магазины", "Покупка доступных предметов.", "game", 40, "PlayerRoute_Shops"),
+        new PlayerShellRoute("rest", "Отдых", "Восстановление персонажа.", "game", 50, "PlayerRoute_Rest"),
+        new PlayerShellRoute("MyCharacters", "Мои персонажи", "Выбор и активация персонажа.", "character", 10, "PlayerRoute_Characters"),
+        new PlayerShellRoute("characterCreation", "Создать персонажа", "Черновик, происхождение и стартовые характеристики.", "character", 15, "PlayerCharacterCreation_Route"),
+        new PlayerShellRoute("character", "Карточка персонажа", "Профиль и характеристики активного персонажа.", "character", 20, "PlayerRoute_CharacterCard"),
+        new PlayerShellRoute("liveState", "Состояние", "Ресурсы, эффекты, действия и активное снаряжение.", "character", 30, "PlayerRoute_LiveState"),
+        new PlayerShellRoute("development", "Развитие", "Пространственная карта путей и специализаций.", "character", 40, "PlayerRoute_Development"),
+        new PlayerShellRoute("engineering", "Инженерия", "Исследования и инженерные проекты.", "character", 50, "PlayerRoute_Engineering"),
+        new PlayerShellRoute("production", "Производство", "Создание предметов и производство.", "character", 50, "PlayerRoute_Production"),
+        new PlayerShellRoute("player.asset_configurators", "Конструкторы активов", "Корабли, техника, здания и ваши чертежи.", "character", 60, "PlayerRoute_AssetConfigurators"),
+        new PlayerShellRoute("sceneMap", "Карта сцены", "Активная локальная карта и видимые маркеры.", "world", 10, "PlayerRoute_SceneMap"),
+        new PlayerShellRoute("worldMap", "Карта мира", "Доступные игроку слои и маркеры мира.", "world", 20, "PlayerRoute_WorldMap"),
+        new PlayerShellRoute("weatherTravel", "Погода и путешествия", "Наблюдаемая погода, прогноз и путь группы.", "world", 25, "PlayerRoute_WeatherTravel"),
+        new PlayerShellRoute("definitions", "Справочник", "Открытые определения кампании.", "world", 30, "PlayerRoute_Definitions"),
+        new PlayerShellRoute("rooms", "Помещения", "Доступные планы помещений.", "world", 40, "PlayerRoute_Rooms"),
+        new PlayerShellRoute("calendar", "Календарь", "Мировой календарь и расписание.", "world", 50, "PlayerRoute_Calendar"),
+        new PlayerShellRoute("journal", "События", "Журнал доступных персонажу событий.", "journal", 10, "PlayerRoute_Journal"),
+        new PlayerShellRoute("quests", "Задачи", "Текущие задачи персонажа.", "journal", 20, "PlayerRoute_Quests"),
+        new PlayerShellRoute("requests", "Заявки", "Ваши заявки и решения GM.", "journal", 30, "PlayerRoute_Requests"),
+        new PlayerShellRoute("search", "Поиск", "Поиск по доступным данным кампании.", "journal", 40, "PlayerRoute_Search"),
+        new PlayerShellRoute("communication", "Чат и кубики", "Сообщения партии и ваши броски.", "communication", 10, "PlayerRoute_Communication"),
+        new PlayerShellRoute("audio", "Музыка", "Музыка сессии и локальная громкость.", "communication", 20, "PlayerRoute_Audio")
+    };
+
     public bool IsAuthPopupOpen { get => _isAuthPopupOpen; set { _isAuthPopupOpen = value; Notify(); } }
     public bool IsConnectionPopupOpen { get => _isConnectionPopupOpen; set { _isConnectionPopupOpen = value; Notify(); } }
     public string ConnectionState { get => _connectionState; set { _connectionState = value; Notify(); Notify(nameof(IsOnline)); Notify(nameof(IsAuthenticated)); } }
-    public bool IsOnline => string.Equals(ConnectionState, "Онлайн", StringComparison.OrdinalIgnoreCase);
-    public bool IsAuthenticated => IsOnline && !string.Equals(PlayerDisplayName, "Гость", StringComparison.OrdinalIgnoreCase);
+    public bool IsOnline => _client.Lifecycle.Current.State == ConnectionLifecycleState.Ready;
+    public bool IsAuthenticated => !string.IsNullOrWhiteSpace(_session.AuthToken)
+                                   && !string.Equals(PlayerDisplayName, "Гость", StringComparison.OrdinalIgnoreCase);
+    public bool IsConnectionRecovering => _client.Lifecycle.Current.IsRecovering;
+    public bool IsConnectionStaleReadOnly => _client.Lifecycle.Current.IsStaleReadOnly;
+    public bool AreServerMutationsEnabled => _client.Lifecycle.Current.CanMutate;
+    public string ReconnectStatusText => _client.Lifecycle.Current.ReadableStatus;
 
-    public string SelectedMainTab { get => _selectedMainTab; set { _selectedMainTab = value; Notify(); } }
+    public string SelectedMainTab
+    {
+        get => _selectedMainTab;
+        set => SelectPlayerRoute(value);
+    }
+    public string SelectedPlayerAreaId
+    {
+        get => _selectedPlayerAreaId;
+        set
+        {
+            var normalized = string.IsNullOrWhiteSpace(value) ? "game" : value;
+            if (string.Equals(_selectedPlayerAreaId, normalized, StringComparison.OrdinalIgnoreCase)) return;
+            _selectedPlayerAreaId = normalized;
+            Notify();
+            Notify(nameof(SelectedPlayerArea));
+            Notify(nameof(VisiblePlayerRoutes));
+            var route = _lastRouteByArea.TryGetValue(normalized, out var remembered)
+                ? remembered
+                : PlayerRoutes.Where(item => item.AreaId == normalized).OrderBy(item => item.DisplayOrder).Select(item => item.RouteKey).FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(route)) SelectPlayerRoute(route);
+        }
+    }
+    public PlayerShellArea? SelectedPlayerArea => PlayerAreas.FirstOrDefault(area => area.Id == SelectedPlayerAreaId);
+    public IEnumerable<PlayerShellRoute> VisiblePlayerRoutes => PlayerRoutes.Where(route => route.AreaId == SelectedPlayerAreaId).OrderBy(route => route.DisplayOrder);
+    public string SelectedPlayerRouteKey
+    {
+        get => SelectedMainTab;
+        set => SelectPlayerRoute(value);
+    }
+    public PlayerShellRoute? SelectedPlayerRoute => PlayerRoutes.FirstOrDefault(route => string.Equals(route.RouteKey, SelectedMainTab, StringComparison.OrdinalIgnoreCase));
+    public string SelectedPlayerRouteTitle => SelectedPlayerRoute?.Title ?? "Раздел";
+    public string SelectedPlayerRouteDescription => SelectedPlayerRoute?.Description ?? string.Empty;
+    public string SelectedPlayerBreadcrumb => $"{SelectedPlayerArea?.Title ?? "Игра"} / {SelectedPlayerRouteTitle}";
+    public System.Windows.Visibility SelectedPlayerRouteHeaderVisibility => string.Equals(SelectedMainTab, "development", StringComparison.OrdinalIgnoreCase)
+        ? System.Windows.Visibility.Collapsed
+        : System.Windows.Visibility.Visible;
+    public bool IsNavigationCollapsed { get => _isNavigationCollapsed; set { if (_isNavigationCollapsed == value) return; _isNavigationCollapsed = value; Notify(); Notify(nameof(PlayerNavigationWidth)); } }
+    public double PlayerNavigationWidth => IsNavigationCollapsed ? 76d : 248d;
+    public bool IsActivityDockOpen { get => _isActivityDockOpen; set { if (_isActivityDockOpen == value) return; _isActivityDockOpen = value; Notify(); } }
+    public string ActiveCharacterShellTitle => !string.IsNullOrWhiteSpace(CharacterName) ? CharacterName : SelectedMyCharacter?.Name ?? "Персонаж не выбран";
+    public string DevelopmentBusinessContextText => $"{FirstNonEmpty(ApplicationContext.Campaign.DisplayName, "Кампания не выбрана")} · {ActiveCharacterShellTitle}";
     public string SelectedCharacterId { get; set; } = string.Empty;
     public string ActiveCharacterId { get => _activeCharacterId; set { _activeCharacterId = value; Notify(); Notify(nameof(HasActiveCharacter)); } }
+    public ObservableCollection<PlayerCharacterTitleVm> CharacterTitles { get; } = new ObservableCollection<PlayerCharacterTitleVm>();
+    private PlayerCharacterTitleVm? _selectedCharacterTitle;
+    private long _characterTitleRevision;
+    public PlayerCharacterTitleVm? SelectedCharacterTitle { get => _selectedCharacterTitle; set { _selectedCharacterTitle = value; Notify(); Notify(nameof(SelectedCharacterTitleDisplay)); } }
+    public string SelectedCharacterTitleDisplay => SelectedCharacterTitle?.DisplayName ?? "Титул не выбран";
+    public ApplicationContextSnapshot ApplicationContext => _applicationContext.Current;
+    public string ActiveCampaignRoleSummary => string.IsNullOrWhiteSpace(ApplicationContext.Campaign.Id)
+        ? "Роль кампании не определена"
+        : $"Роль: {FirstNonEmpty(ApplicationContext.Role, "не определена")}";
+    public bool IsContextChanging => _applicationContext.IsLoading;
+    public string ApplicationContextStatusText => IsContextChanging
+        ? "Смена контекста..."
+        : FirstNonEmpty(ApplicationContext.StateMessage, ApplicationContext.CampaignSessionSummary);
     public bool HasActiveCharacter => !string.IsNullOrWhiteSpace(ActiveCharacterId);
     public string ActiveCharacterStatusText { get => _activeCharacterStatusText; set { _activeCharacterStatusText = value; Notify(); } }
+    public NriContentState CharacterSelectionContentState
+    {
+        get => _characterSelectionContentState;
+        private set { if (_characterSelectionContentState == value) return; _characterSelectionContentState = value; Notify(); }
+    }
+    public string CharacterSelectionStatusText
+    {
+        get => _characterSelectionStatusText;
+        private set { if (_characterSelectionStatusText == value) return; _characterSelectionStatusText = value; Notify(); }
+    }
+    public string CharacterSelectionFeedbackText
+    {
+        get => _characterSelectionFeedbackText;
+        private set { if (_characterSelectionFeedbackText == value) return; _characterSelectionFeedbackText = value; Notify(); }
+    }
     public CharacterListItemVm? SelectedMyCharacter
     {
         get => _selectedMyCharacter;
@@ -998,10 +1500,14 @@ public class PlayerMainViewModel : ViewModelBase
             }
             Notify();
             Notify(nameof(CanSetActiveCharacter));
+            Notify(nameof(CanOpenSelectedCharacter));
+            Notify(nameof(ActiveCharacterShellTitle));
+            Notify(nameof(DevelopmentBusinessContextText));
         }
     }
     public bool HasMyCharacters => MyCharacters.Count > 0;
-    public bool CanSetActiveCharacter => IsAuthenticated && SelectedMyCharacter != null;
+    public bool CanSetActiveCharacter => IsAuthenticated && SelectedMyCharacter?.IsSelectable == true && !SelectedMyCharacter.Archived;
+    public bool CanOpenSelectedCharacter => IsAuthenticated && SelectedMyCharacter?.IsSelectable == true && !SelectedMyCharacter.Archived;
     public int ChatScrollRequestVersion { get => _chatScrollRequestVersion; private set { _chatScrollRequestVersion = value; Notify(); } }
     public string PublicViewCharacterId { get; set; } = string.Empty;
     public string ServerHostInput { get; set; } = "127.0.0.1";
@@ -1028,6 +1534,14 @@ public class PlayerMainViewModel : ViewModelBase
     public string CharacterHeight { get; set; } = string.Empty;
     public string CharacterDescription { get; set; } = string.Empty;
     public string CharacterBackstory { get; set; } = string.Empty;
+    public string CharacterBodyTypeDisplay { get; set; } = "Не указан";
+    public string CharacterSizeCategoryDisplay { get; set; } = "Не указана";
+    public string CharacterOriginProtectionDisplay { get; set; } = "Нет данных";
+    public string CharacterOriginLifespanDisplay { get; set; } = "Нет данных";
+    public string CharacterOriginTraitsDisplay { get; set; } = "Нет публичных свойств";
+    public string CharacterOriginSensesDisplay { get; set; } = "Нет особых чувств";
+    public string CharacterOriginMovementDisplay { get; set; } = "Нет особых способов движения";
+    public string CharacterOriginEquipmentFitDisplay { get; set; } = "Стандартная совместимость";
     public long ExperienceCoins
     {
         get => _experienceCoins;
@@ -1041,9 +1555,6 @@ public class PlayerMainViewModel : ViewModelBase
     }
 
     public string ExperienceCoinsDisplay => _experienceCoinsLoaded ? ExperienceCoins.ToString(CultureInfo.InvariantCulture) : "нет данных";
-    public string CreateCharacterName { get; set; } = string.Empty;
-    public string CreateCharacterRace { get; set; } = string.Empty;
-    public string CreateCharacterBackstory { get; set; } = string.Empty;
 
     public string CharacterNameDisplay => string.IsNullOrWhiteSpace(CharacterName) ? "Без имени" : CharacterName;
     public string CharacterRaceDisplay => string.IsNullOrWhiteSpace(CharacterRace) ? "Не указано" : CharacterRace;
@@ -1056,6 +1567,10 @@ public class PlayerMainViewModel : ViewModelBase
     public string CharacterGroupDisplay { get; set; } = "—";
     public string CharacterKindDisplay { get; set; } = "—";
     public string CharacterStatusDisplay { get; set; } = "—";
+    public string FinalizedDisplayNameInput { get; set; } = string.Empty;
+    public string FinalizedBackstoryInput { get; set; } = string.Empty;
+    public string FinalizedPublicProfileStatus { get; set; } = string.Empty;
+    private long _finalizedPublicProfileRevision;
 
     public string CharacterOwnershipReadOnlySummary =>
         $"Владелец: {FirstNonEmpty(CharacterOwnerDisplay, "—")}; группа: {FirstNonEmpty(CharacterGroupDisplay, "—")}; тип: {FirstNonEmpty(CharacterKindDisplay, "—")}; статус: {FirstNonEmpty(CharacterStatusDisplay, "—")}";
@@ -1131,15 +1646,25 @@ public class PlayerMainViewModel : ViewModelBase
     public string CombatEncounterStatus { get => _combatEncounterStatus; set { _combatEncounterStatus = value; Notify(); } }
     public string CombatCurrentTurnText { get => _combatCurrentTurnText; set { _combatCurrentTurnText = value; Notify(); } }
     public string CombatLastRefreshText { get => _combatLastRefreshText; set { _combatLastRefreshText = value; Notify(); } }
+    public string CombatMapStatusText { get => _combatMapStatusText; set { _combatMapStatusText = value; Notify(); } }
+    public string CombatMapSceneText { get => _combatMapSceneText; set { _combatMapSceneText = value; Notify(); } }
+    public double CombatMapCanvasWidth { get => _combatMapCanvasWidth; private set { if (Math.Abs(_combatMapCanvasWidth - value) > 0.01) { _combatMapCanvasWidth = value; Notify(); } } }
+    public double CombatMapCanvasHeight { get => _combatMapCanvasHeight; private set { if (Math.Abs(_combatMapCanvasHeight - value) > 0.01) { _combatMapCanvasHeight = value; Notify(); } } }
+    public string CombatMapScaleText { get => _combatMapScaleText; private set { _combatMapScaleText = value ?? string.Empty; Notify(); } }
     public string CombatErrorMessage { get => _combatErrorMessage; set { _combatErrorMessage = value; Notify(); Notify(nameof(HasCombatError)); } }
     public string CombatWarningMessage { get => _combatWarningMessage; set { _combatWarningMessage = value; Notify(); Notify(nameof(HasCombatWarning)); } }
     public bool CombatIsLoading { get => _combatIsLoading; set { _combatIsLoading = value; Notify(); } }
     public bool CombatIsMyTurn { get => _combatIsMyTurn; set { _combatIsMyTurn = value; Notify(); Notify(nameof(CombatTurnBanner)); } }
     public bool HasCombatError => !string.IsNullOrWhiteSpace(CombatErrorMessage);
     public bool HasCombatWarning => !string.IsNullOrWhiteSpace(CombatWarningMessage);
-    public string CombatTurnBanner => CombatIsMyTurn ? " " : " ";
+    public string CombatTurnBanner => CombatIsMyTurn ? "Сейчас ваш ход." : "Ожидание хода.";
     public PlayerCombatParticipantVm? CombatMyParticipant { get => _combatMyParticipant; set { _combatMyParticipant = value; Notify(); Notify(nameof(HasCombatMyParticipant)); } }
     public bool HasCombatMyParticipant => CombatMyParticipant != null;
+    public PlayerCombatParticipantVm? SelectedCombatTarget { get; set; }
+    public DevelopmentSkillTrackVm? SelectedCombatSkillTrack { get; set; }
+    public InventoryDisplayItemVm? SelectedCombatWeapon { get; set; }
+    public ObservableCollection<InventoryDisplayItemVm> CombatWeaponItems { get; } = new ObservableCollection<InventoryDisplayItemVm>();
+    public string CombatResolutionText { get => _combatResolutionText; set { _combatResolutionText = value ?? string.Empty; Notify(); } }
 
     public string SelectedClassNodeId
     {
@@ -1180,6 +1705,7 @@ public class PlayerMainViewModel : ViewModelBase
     }
 
     public ObservableCollection<SkillDisplayRowVm> SkillRows { get; } = new ObservableCollection<SkillDisplayRowVm>();
+    public ObservableCollection<DevelopmentSkillTrackVm> DevelopmentSkillTracks { get; } = new ObservableCollection<DevelopmentSkillTrackVm>();
     public ObservableCollection<string> SkillCatalogRows { get; } = new ObservableCollection<string>();
     private SkillDisplayRowVm? _selectedSkillRow;
     public SkillDisplayRowVm? SelectedSkillRow
@@ -1201,7 +1727,10 @@ public class PlayerMainViewModel : ViewModelBase
         get => _selectedDevelopmentHexagonId;
         set
         {
-            var normalized = string.IsNullOrWhiteSpace(value) ? DevelopmentHexagonIds.Main : value;
+            // A bound selector briefly clears SelectedValue while its item collection is refreshed.
+            // That transient null must not switch a player back to the main development graph.
+            if (string.IsNullOrWhiteSpace(value)) return;
+            var normalized = value;
             if (string.Equals(_selectedDevelopmentHexagonId, normalized, StringComparison.OrdinalIgnoreCase)) return;
             _selectedDevelopmentHexagonId = normalized;
             Notify();
@@ -1213,6 +1742,8 @@ public class PlayerMainViewModel : ViewModelBase
             RebuildDevelopmentCanvasLinks();
             ApplyDevelopmentViewerSearch();
             RebuildDevelopmentViewerCanonicalOverlay();
+            if (!_loadingDevelopmentProjection && !string.IsNullOrWhiteSpace(SelectedCharacterId))
+                SetDevelopmentProductView("overview");
         }
     }
     public string SelectedDevelopmentHexagonDisplay => DevelopmentHexagons.FirstOrDefault(h => string.Equals(h.HexagonId, SelectedDevelopmentHexagonId, StringComparison.OrdinalIgnoreCase))?.Name ?? "Основной шестиугольник развития";
@@ -1220,14 +1751,13 @@ public class PlayerMainViewModel : ViewModelBase
     {
         get
         {
-            var mode = "Канонический шестиугольник";
+            var mode = DevelopmentProductViewModeDisplay;
             var nodes = VisibleDevelopmentCanvasNodes.ToList();
             var visibleWorking = nodes.Count(node => !node.IsFilteredOut && !PlayerDevelopmentLayoutVisualRules.IsDiagnosticToken(node.NodeId, node.Title, node.NodeTypeLabel, node.BranchKey, node.DirectionKey));
-            var diagnostic = nodes.Count(node => PlayerDevelopmentLayoutVisualRules.IsDiagnosticToken(node.NodeId, node.Title, node.NodeTypeLabel, node.BranchKey, node.DirectionKey));
             var rootLabel = ResolvePlayerDevelopmentCanonicalRootLabel(
                 SelectedDevelopmentHexagonId,
                 FindPlayerDevelopmentCanonicalRootNode(SelectedDevelopmentHexagonId));
-            return $"Дерево: {PlayerDevelopmentGraphDisplay.ToReadableText(SelectedDevelopmentHexagonDisplay)}; Ключ: {SelectedDevelopmentHexagonId}; Режим: {mode}; Корень: {rootLabel}; Узлов: {visibleWorking}; Связей: {DevelopmentCanvasLinks.Count}; Направлений: {DevelopmentViewerCanonicalDirections.Count}; Линий: {DevelopmentViewerCanonicalLanes.Count}; Диагностических узлов: {diagnostic}";
+            return $"{PlayerDevelopmentGraphDisplay.ToReadableText(SelectedDevelopmentHexagonDisplay)}. Режим: {mode}. Корень: {rootLabel}. Доступных узлов: {visibleWorking}. Направлений: {DevelopmentViewerCanonicalDirections.Count}.";
         }
     }
     public double DevelopmentViewerWorkspaceWidth => PlayerDevelopmentLayoutVisualRules.WorkspaceWidth;
@@ -1279,6 +1809,14 @@ public class PlayerMainViewModel : ViewModelBase
     public System.Windows.Visibility DevelopmentViewerLegendVisibility => DevelopmentViewerShowLegend ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
     public System.Windows.Visibility DevelopmentViewerCanonicalLayerVisibility => System.Windows.Visibility.Visible;
     public string DevelopmentViewerModeText => "Канонический шестиугольник";
+    public string DevelopmentProductViewModeDisplay => _developmentProductViewMode switch
+    {
+        "direction" => "Фокус направления",
+        "path" => "Фокус пути",
+        "my_route" => "Мой путь",
+        "available_now" => "Доступно сейчас",
+        _ => "Обзор развития"
+    };
     public string DevelopmentViewerFocusedDirectionKey
     {
         get => _developmentViewerFocusedDirectionKey;
@@ -1289,6 +1827,8 @@ public class PlayerMainViewModel : ViewModelBase
             _developmentViewerFocusedDirectionKey = normalized;
             Notify();
             RebuildDevelopmentViewerCanonicalOverlay();
+            if (!_loadingDevelopmentProjection && !string.IsNullOrWhiteSpace(normalized) && !string.IsNullOrWhiteSpace(SelectedCharacterId))
+                SetDevelopmentProductView("direction", normalized);
         }
     }
     public string DevelopmentViewerSearchText
@@ -1324,7 +1864,7 @@ public class PlayerMainViewModel : ViewModelBase
         : SelectedClassEntry.CanPurchase
             ? $"Узел можно купить за {SelectedClassEntry.CostText}."
             : SelectedClassEntry.RequiresRequest
-                ? "Для открытия нужен запрос GM."
+                ? "Для открытия нужен запрос мастеру."
                 : $"Покупка недоступна: {SelectedClassEntry.FriendlyRequirementsText}";
     public ObservableCollection<ClassNodeVisualVm> ClassNodes { get; } = new ObservableCollection<ClassNodeVisualVm>();
     public ObservableCollection<ClassNodeVisualLinkVm> DevelopmentCanvasLinks { get; } = new ObservableCollection<ClassNodeVisualLinkVm>();
@@ -1361,6 +1901,7 @@ public class PlayerMainViewModel : ViewModelBase
             }
             Notify();
             NotifyClassDetail();
+            RebuildDevelopmentSpatialProduct();
         }
     }
 
@@ -1372,6 +1913,10 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<string> DiceFeedRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> RequestRows { get; } = new ObservableCollection<string>();
     public ObservableCollection<string> SessionStateRows { get; } = new ObservableCollection<string>();
+    public ObservableCollection<NriOptionItem> GameCampaignOptions { get; } = new ObservableCollection<NriOptionItem>();
+    public ObservableCollection<NriOptionItem> GameSessionOptions { get; } = new ObservableCollection<NriOptionItem>();
+    public string SelectedGameCampaignId { get => _selectedGameCampaignId; set { if (_selectedGameCampaignId == value) return; _selectedGameCampaignId = value ?? string.Empty; Notify(); } }
+    public string SelectedGameSessionId { get => _selectedGameSessionId; set { if (_selectedGameSessionId == value) return; _selectedGameSessionId = value ?? string.Empty; Notify(); } }
     public ObservableCollection<GameFeedItemVm> GameFeedRows { get; } = new ObservableCollection<GameFeedItemVm>();
 
     public ObservableCollection<string> PublicCharacterRows { get; } = new ObservableCollection<string>();
@@ -1400,10 +1945,15 @@ public class PlayerMainViewModel : ViewModelBase
     public ObservableCollection<PlayerCombatParticipantVm> CombatParticipants { get; } = new ObservableCollection<PlayerCombatParticipantVm>();
     public ObservableCollection<PlayerCombatLogVm> CombatPublicLog { get; } = new ObservableCollection<PlayerCombatLogVm>();
     public ObservableCollection<PlayerCombatConditionVm> CombatKnownConditions { get; } = new ObservableCollection<PlayerCombatConditionVm>();
+    public ObservableCollection<PlayerCombatMapTokenVm> CombatMapTokens { get; } = new ObservableCollection<PlayerCombatMapTokenVm>();
+    public ObservableCollection<MapGridLineUiItem> CombatMapGridLines { get; } = new ObservableCollection<MapGridLineUiItem>();
+    public ObservableCollection<PlayerSceneTilePatchUiItem> CombatMapTilePatches { get; } = new ObservableCollection<PlayerSceneTilePatchUiItem>();
+    public ObservableCollection<PlayerSceneAssetInstanceUiItem> CombatMapAssetInstances { get; } = new ObservableCollection<PlayerSceneAssetInstanceUiItem>();
+    public ObservableCollection<string> CombatMapWarnings { get; } = new ObservableCollection<string>();
 
-    public ObservableCollection<string> DiceVisibilityOptions { get; } = new ObservableCollection<string> { "Публично", "Только GM", "Скрыто" };
+    public ObservableCollection<string> DiceVisibilityOptions { get; } = new ObservableCollection<string> { "Публично", "Только мастеру", "Скрыто" };
     public ObservableCollection<string> DiceModeOptions { get; } = new ObservableCollection<string> { "Обычный", "Проверочный" };
-    public ObservableCollection<string> ChatTypeOptions { get; } = new ObservableCollection<string> { "Обычное", "Действие", "Вопрос GM" };
+    public ObservableCollection<string> ChatTypeOptions { get; } = new ObservableCollection<string> { "Обычное", "Действие", "Вопрос мастеру" };
     public ObservableCollection<string> NoteTargetTypeOptions { get; } = new ObservableCollection<string> { "character", "session", "campaign" };
     public ObservableCollection<string> NoteVisibilityOptions { get; } = new ObservableCollection<string> { "Personal", "SharedWithOwner", "SessionShared" };
 
@@ -1412,7 +1962,8 @@ public class PlayerMainViewModel : ViewModelBase
     public string SelectedClassBranchSummary => SelectedClassBranch?.Summary ?? "Выберите направление развития персонажа.";
     public string SelectedClassEntryTitle => SelectedClassEntry?.DisplayTitle ?? "Узел не выбран";
     public string SelectedClassEntrySummary => SelectedClassEntry?.Summary ?? "Выберите узел развития, чтобы увидеть описание.";
-    public string SelectedClassEntryState => SelectedClassEntry?.Status ?? "Не выбрано";
+    public string SelectedClassEntryState => SelectedClassEntry?.DisplayStatus ?? "Не выбрано";
+    public string SelectedClassEntryTier => SelectedClassEntry?.TierDisplay ?? "Уровень не указан";
     public string SelectedClassEntryRequirements => SelectedClassEntry == null ? "Требования появятся после выбора узла." : SelectedClassEntry.FriendlyRequirementsText;
     public string SelectedClassEntryReward => SelectedClassEntry == null ? string.Empty : SelectedClassEntry.RewardSummary;
     public string SelectedClassEntryCost => SelectedClassEntry?.CostText ?? "—";
@@ -1422,7 +1973,7 @@ public class PlayerMainViewModel : ViewModelBase
     public string SelectedClassEntryLayoutVersion => SelectedClassEntry == null ? "layout: —" : $"layout: v{SelectedClassEntry.LayoutVersion}; sort:{SelectedClassEntry.SortOrder}";
     public string SelectedClassEntryMeta => SelectedClassEntry?.FriendlyMetaText ?? "Узел не выбран.";
     public string SelectedClassEntryUnlock => SelectedClassEntry?.FriendlyUnlockText ?? string.Empty;
-    public bool CanBuySelectedClassNode => SelectedClassEntry?.CanPurchase == true && !string.IsNullOrWhiteSpace(SelectedCharacterId);
+    public bool CanBuySelectedClassNode => SelectedClassEntry?.CanPurchase == true && SelectedClassEntry.IsCostResolved && !string.IsNullOrWhiteSpace(SelectedCharacterId);
     public bool CanRequestSelectedClassNode => SelectedClassEntry?.RequiresRequest == true && !string.IsNullOrWhiteSpace(SelectedCharacterId);
     public string DevelopmentStatusText { get => _developmentStatusText; set { _developmentStatusText = value ?? string.Empty; Notify(); } }
     public bool HasClassBranches => ClassBranches.Count > 0;
@@ -1471,27 +2022,35 @@ public class PlayerMainViewModel : ViewModelBase
 
     public ICommand ToggleAuthPopupCommand { get; }
     public ICommand ToggleConnectionPopupCommand { get; }
+    public ICommand ToggleNavigationCommand { get; }
+    public ICommand ToggleActivityDockCommand { get; }
     public ICommand LoginCommand { get; }
     public ICommand RegisterCommand { get; }
     public ICommand ChangePasswordCommand { get; }
     public ICommand RefreshCommand { get; }
+    public ICommand SelectGameCampaignCommand { get; }
+    public ICommand SelectGameSessionCommand { get; }
     public ICommand GlobalSearchCommand { get; }
     public ICommand GlobalSearchOpenCommand { get; }
     public ICommand LoadCharacterHubCommand { get; }
+    public ICommand RefreshCharactersCommand { get; }
     public ICommand SetActiveCharacterCommand { get; }
-    public ICommand CreateCharacterCommand { get; }
+    public ICommand OpenSelectedCharacterCommand { get; }
     public ICommand CreateDiceRequestCommand { get; }
     public ICommand CreatePlayerRequestCommand { get; }
     public ICommand CancelRequestCommand { get; }
     public ICommand ResubmitRequestCommand { get; }
     public ICommand RefreshRequestsCommand { get; }
     public ICommand ChatSendCommand { get; }
+    public ICommand ChatClearDraftCommand { get; }
     public ICommand BottomRefreshCommand { get; }
     public ICommand AudioRefreshCommand { get; }
     public ICommand AudioApplyLocalSettingsCommand { get; }
     public ICommand VisibilityLoadCommand { get; }
     public ICommand VisibilitySaveCommand { get; }
     public ICommand PublicCharacterLoadCommand { get; }
+    public ICommand SelectCharacterTitleCommand { get; }
+    public ICommand SaveFinalizedPublicProfileCommand { get; }
     public ICommand NotesRefreshCommand { get; }
     public ICommand NotesCreateCommand { get; }
     public ICommand NotesArchiveCommand { get; }
@@ -1502,10 +2061,16 @@ public class PlayerMainViewModel : ViewModelBase
     public ICommand CombatRefreshSnapshotCommand { get; }
     public ICommand CombatRefreshFeedCommand { get; }
     public ICommand CombatClearErrorCommand { get; }
+    public ICommand CombatExecuteAttackCommand { get; private set; } = null!;
+    public ICommand CombatPrepareActionCommand { get; private set; } = null!;
     public ICommand AcquireClassNodeCommand { get; }
     public ICommand BuySelectedClassNodeCommand { get; }
     public ICommand RequestUnlockNodeCommand { get; }
     public ICommand FitToViewDevelopmentHexagonCommand { get; }
+    public ICommand DevelopmentOverviewCommand { get; }
+    public ICommand DevelopmentMyRouteCommand { get; }
+    public ICommand DevelopmentAvailableNowCommand { get; }
+    public ICommand DevelopmentFocusSelectedPathCommand { get; }
     public ICommand DevelopmentViewerSearchClearCommand { get; }
     public ICommand DevelopmentViewerSearchNextCommand { get; }
     public ICommand DevelopmentViewerSearchPreviousCommand { get; }
@@ -1614,8 +2179,14 @@ public class PlayerMainViewModel : ViewModelBase
             case "character.details":
                 if (!string.IsNullOrWhiteSpace(result.EntityId))
                 {
-                    ActiveCharacterId = result.EntityId;
-                    LoadSelectedCharacterHub();
+                    var target = MyCharacters.FirstOrDefault(x => string.Equals(x.Id, result.EntityId, StringComparison.Ordinal));
+                    if (target == null || target.Archived || !target.IsSelectable)
+                    {
+                        GlobalSearchStatusText = "Персонаж из результата поиска недоступен в текущем контексте.";
+                        return;
+                    }
+                    SelectedMyCharacter = target;
+                    SetSelectedCharacterActive();
                 }
                 SelectedMainTab = "character";
                 break;
@@ -1667,6 +2238,74 @@ public class PlayerMainViewModel : ViewModelBase
             Visibility = GetString(map, "visibility")
         };
 
+    private void SelectPlayerRoute(string? routeKey)
+    {
+        var navigationStopwatch = Stopwatch.StartNew();
+        if (string.IsNullOrWhiteSpace(routeKey)) return;
+        var route = PlayerRoutes.FirstOrDefault(item => string.Equals(item.RouteKey, routeKey, StringComparison.OrdinalIgnoreCase));
+        if (route == null) return;
+        if (!route.IsEnabled)
+        {
+            ConnectionStatusDetail = string.IsNullOrWhiteSpace(route.DisabledReason) ? "Раздел сейчас недоступен." : route.DisabledReason;
+            Notify(nameof(ConnectionStatusDetail));
+            return;
+        }
+
+        var routeChanged = !string.Equals(_selectedMainTab, route.RouteKey, StringComparison.OrdinalIgnoreCase);
+        var areaChanged = !string.Equals(_selectedPlayerAreaId, route.AreaId, StringComparison.OrdinalIgnoreCase);
+        _selectedMainTab = route.RouteKey;
+        _selectedPlayerAreaId = route.AreaId;
+        _lastRouteByArea[route.AreaId] = route.RouteKey;
+
+        if (routeChanged)
+        {
+            Notify(nameof(SelectedMainTab));
+            Notify(nameof(SelectedPlayerRouteKey));
+            Notify(nameof(SelectedPlayerRoute));
+            Notify(nameof(SelectedPlayerRouteTitle));
+            Notify(nameof(SelectedPlayerRouteDescription));
+            Notify(nameof(SelectedPlayerBreadcrumb));
+            Notify(nameof(SelectedPlayerRouteHeaderVisibility));
+        }
+
+        if (areaChanged)
+        {
+            Notify(nameof(SelectedPlayerAreaId));
+            Notify(nameof(SelectedPlayerArea));
+            Notify(nameof(VisiblePlayerRoutes));
+            Notify(nameof(SelectedPlayerBreadcrumb));
+        }
+
+        PerformanceTelemetry0214.Current.Record(new PerformanceSample0214
+        {
+            Source = "PlayerClient",
+            Category = "ui_route",
+            Command = "route." + route.RouteKey,
+            Status = "Ok",
+            Outcome = "activated",
+            ElapsedMilliseconds = navigationStopwatch.ElapsedMilliseconds,
+            ConnectionGeneration = _client.ConnectionGeneration
+        });
+        if (string.Equals(route.RouteKey, "development", StringComparison.OrdinalIgnoreCase))
+        {
+            LoadClassAndSkills();
+            RebuildDevelopmentSpatialProduct();
+        }
+        else if (string.Equals(route.RouteKey, "characterCreation", StringComparison.OrdinalIgnoreCase))
+        {
+            CharacterCreation.Load();
+        }
+        else if (string.Equals(route.RouteKey, "combat", StringComparison.OrdinalIgnoreCase))
+        {
+            LoadClassAndSkills();
+            RefreshCombatEvents();
+        }
+        else if (string.Equals(route.RouteKey, "liveState", StringComparison.OrdinalIgnoreCase))
+        {
+            LoadLiveActorState();
+        }
+    }
+
     private void Login()
     {
         try
@@ -1681,15 +2320,14 @@ public class PlayerMainViewModel : ViewModelBase
                 return;
             }
 
-            SetConnectedState();
             IsAuthPopupOpen = false;
             PlayerDisplayName = LoginText;
             NotifyHeader();
             RefreshLocalNotesForCurrentCharacter();
-            SessionSummary = "Сессия: default";
-            RefreshAll();
+            RestoreActiveRouteAfterReauthentication();
             ClientLogService.Instance.Info($"player.auth.login.success user={LoginText}");
             _poller.Start();
+            PerformanceTelemetry0214.Current.SetCounter("active_pollers", 1);
         }
         catch (Exception ex)
         {
@@ -1742,7 +2380,7 @@ public class PlayerMainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            ConnectionStatusDetail = $"Ошибка подключения: {ex.Message}";
+            ConnectionStatusDetail = ConnectionProblemMapper.ToUserMessage(ex);
             Notify(nameof(ConnectionStatusDetail));
             ClientLogService.Instance.Info("changePassword.response status=Failed");
             ClientLogService.Instance.Warn($"changePassword.error reason={ex.Message}");
@@ -1753,6 +2391,13 @@ public class PlayerMainViewModel : ViewModelBase
     {
         try
         {
+            if (!IsAuthenticated)
+            {
+                return;
+            }
+            LoadApplicationContext();
+            if (_client.Lifecycle.Current.State == ConnectionLifecycleState.RestoringContext)
+                _client.Lifecycle.MarkRestoringModules();
             LoadCharacters();
             LoadActiveCharacter();
             LoadClassAndSkills();
@@ -1762,6 +2407,11 @@ public class PlayerMainViewModel : ViewModelBase
             CurrentSession.RefreshFlags();
             ActiveGroup.RefreshFlags();
             EventJournal.RefreshFlags();
+            QuestJournal.Refresh();
+            Shops.Refresh();
+            Rest.Refresh();
+            Gameplay.Refresh();
+            AssetConfigurators.Refresh();
             if (!SceneMap.ManualMapIdMode || !string.IsNullOrWhiteSpace(SceneMap.MapId))
                 SceneMap.Refresh();
             if (!string.IsNullOrWhiteSpace(WorldMap.MapId))
@@ -1779,14 +2429,31 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void PollRefresh()
     {
+        if (_client.Lifecycle.Current.IsRecovering)
+        {
+            AttemptReconnectRestore();
+            return;
+        }
+        if (!_pollRefreshGate.TryEnter())
+        {
+            PerformanceTelemetry0214.Current.IncrementCounter("poller_overlap_prevented");
+            return;
+        }
+        PerformanceTelemetry0214.Current.IncrementCounter("in_flight_refreshes");
         try
         {
             RefreshBottomPanel();
+            if (_client.Lifecycle.Current.IsRecovering) return;
             PollPassiveSync();
         }
         catch (Exception ex)
         {
             SetConnectionError(ex);
+        }
+        finally
+        {
+            PerformanceTelemetry0214.Current.IncrementCounter("in_flight_refreshes", -1);
+            _pollRefreshGate.Exit();
         }
     }
 
@@ -1810,71 +2477,137 @@ public class PlayerMainViewModel : ViewModelBase
     private void LoadCharacters()
     {
         MyCharacters.Clear();
+        CharacterSelectionContentState = NriContentState.Loading;
+        CharacterSelectionStatusText = "Загрузка персонажей...";
+        CharacterSelectionFeedbackText = string.Empty;
         ClientLogService.Instance.Info("player.characters.load.start");
-        var mine = _api.GetMyCharacters();
+        var mine = _api.GetAssignedCharacters(new Dictionary<string, object>
+        {
+            { "campaignId", ApplicationContext.Campaign.Id },
+            { "includeCompanions", true }
+        });
         if (mine.Status == ResponseStatus.Unauthorized)
         {
-            HandleUnauthorizedState(CommandNames.CharacterListMine, mine.Message);
+            if (string.IsNullOrWhiteSpace(ApplicationContext.Campaign.Id))
+            {
+                CharacterSelectionContentState = NriContentState.Empty;
+                CharacterSelectionStatusText = "Сначала выберите кампанию";
+                CharacterSelectionFeedbackText = "Персонажи станут доступны после выбора кампании в верхней панели.";
+                ClientLogService.Instance.Info("player.characters.load.context_required");
+                Notify(nameof(HasMyCharacters));
+            }
+            else
+            {
+                CharacterSelectionContentState = NriContentState.Error;
+                CharacterSelectionStatusText = "Доступ к кампании завершён";
+                CharacterSelectionFeedbackText = "Войдите снова или выберите доступную кампанию.";
+                HandleUnauthorizedState(CommandNames.CharacterPlayerAssignedList, mine.Message);
+            }
             return;
         }
 
         if (mine.Status != ResponseStatus.Ok)
         {
             ClientLogService.Instance.Warn($"player.characters.load.error status={mine.Status} message={mine.Message}");
+            CharacterSelectionContentState = NriContentState.Error;
+            CharacterSelectionStatusText = "Не удалось загрузить персонажей";
+            CharacterSelectionFeedbackText = FirstNonEmpty(mine.Message, "Проверьте соединение с сервером.");
             Notify(nameof(HasMyCharacters));
             return;
         }
-        foreach (var item in ToObjectList(mine.Payload.ContainsKey("items") ? mine.Payload["items"] : new ArrayList()))
+
+        var cards = mine.Payload.ContainsKey("items")
+            ? ToObjectList(mine.Payload["items"])
+            : new ArrayList();
+        foreach (var item in cards)
         {
-            var map = AsMap(item, CommandNames.CharacterListMine);
+            var map = AsMap(item, CommandNames.CharacterPlayerAssignedList);
             if (map == null) continue;
-            var rowStats = map.ContainsKey("stats") ? AsMap(map["stats"], CommandNames.CharacterListMine) : null;
-            var backstory = FirstNonEmpty(GetString(map, "backstory"), GetString(map, "description"));
-            var healthText = FirstNonEmpty(
-                GetString(map, "health"),
-                GetString(map, "currentHealth"),
-                GetString(rowStats, "health"),
-                "—");
-            var physicalArmor = FirstNonEmpty(GetString(map, "physicalArmor"), GetString(rowStats, "physicalArmor"), "—");
-            var magicalArmor = FirstNonEmpty(GetString(map, "magicalArmor"), GetString(rowStats, "magicalArmor"), "—");
+            var characterId = FirstNonEmpty(GetString(map, "characterId"), GetString(map, "id"));
+            if (string.IsNullOrWhiteSpace(characterId))
+            {
+                ClientLogService.Instance.Warn("player.characters.load.warning missingCharacterId=true");
+                continue;
+            }
+
+            var rowStats = map.ContainsKey("stats") ? AsMap(map["stats"], CommandNames.CharacterPlayerAssignedList) : null;
+            var summary = FirstNonEmpty(GetString(map, "summary"), GetString(map, "description"), GetString(map, "backstory"));
+            var healthText = FirstNonEmpty(GetString(map, "health"), GetString(map, "currentHealth"), GetString(rowStats, "health"), "—");
+            var armorText = FirstNonEmpty(GetString(map, "armor"), "—");
             var xpCoinsText = FirstNonEmpty(GetString(map, "xpCoins"), GetString(map, "experienceCoins"), "—");
+            var archived = GetBool(map, "isArchived") || GetBool(map, "archived");
+            var playerVisible = !map.ContainsKey("isPlayerVisible") || GetBool(map, "isPlayerVisible");
             MyCharacters.Add(new CharacterListItemVm
             {
-                Id = FirstNonEmpty(GetString(map, "characterId"), GetString(map, "id"), Guid.NewGuid().ToString("N")),
+                Id = characterId,
+                CampaignId = GetString(map, "campaignId"),
                 Name = FirstNonEmpty(GetString(map, "name"), "Без имени"),
-                Race = FirstNonEmpty(GetString(map, "race"), "—"),
+                Race = FirstNonEmpty(GetString(map, "race"), "Не указана"),
                 Age = FirstNonEmpty(GetString(map, "age"), "—"),
                 Height = FirstNonEmpty(GetString(map, "height"), "—"),
-                Description = backstory,
-                BackstoryPreview = BuildPreviewText(backstory, 140),
+                Description = BuildPreviewText(summary, 180),
+                BackstoryPreview = BuildPreviewText(summary, 140),
                 HealthText = string.IsNullOrWhiteSpace(healthText) ? "—" : healthText,
-                ArmorText = $"Физ: {physicalArmor} / Маг: {magicalArmor}",
+                ArmorText = armorText,
                 ExperienceCoinsText = xpCoinsText,
-                OwnerDisplay = FirstNonEmpty(GetString(map, "ownerDisplayName"), GetString(map, "ownerUserId"), "—"),
+                OwnerDisplay = FirstNonEmpty(GetString(map, "ownerDisplayName"), "Не указан"),
                 GroupDisplay = BuildGroupDisplay(map),
-                CharacterKindDisplay = FirstNonEmpty(GetString(map, "characterKindDisplayName"), GetString(map, "characterKind"), GetString(map, "characterRole"), "—"),
-                CharacterStatusDisplay = FirstNonEmpty(GetString(map, "characterStatusDisplayName"), GetString(map, "characterStatus"), "—"),
-                Archived = GetBool(map, "archived")
+                CharacterKindDisplay = CharacterKindPlayerDisplay(FirstNonEmpty(GetString(map, "characterKindDisplayName"), GetString(map, "characterKind"), GetString(map, "characterRole"))),
+                CharacterStatusDisplay = CharacterStatusPlayerDisplay(FirstNonEmpty(GetString(map, "characterStatusDisplayName"), GetString(map, "characterStatus"))),
+                SelectedTitleDisplay = FirstNonEmpty(GetString(map, "selectedTitle"), "Без титула"),
+                Archived = archived,
+                IsSelectable = playerVisible
+                    && !archived
+                    && (!map.ContainsKey("isSelectable") || GetBool(map, "isSelectable"))
             });
-
-            var optionalMissing = new List<string>();
-            if (string.IsNullOrWhiteSpace(GetString(map, "health")) && string.IsNullOrWhiteSpace(GetString(map, "currentHealth")) && string.IsNullOrWhiteSpace(GetString(rowStats, "health"))) optionalMissing.Add("health");
-            if (string.IsNullOrWhiteSpace(GetString(map, "physicalArmor")) && string.IsNullOrWhiteSpace(GetString(rowStats, "physicalArmor"))) optionalMissing.Add("physicalArmor");
-            if (string.IsNullOrWhiteSpace(GetString(map, "magicalArmor")) && string.IsNullOrWhiteSpace(GetString(rowStats, "magicalArmor"))) optionalMissing.Add("magicalArmor");
-            if (string.IsNullOrWhiteSpace(GetString(map, "xpCoins")) && string.IsNullOrWhiteSpace(GetString(map, "experienceCoins"))) optionalMissing.Add("xpCoins");
-            if (optionalMissing.Count > 0)
-            {
-                ClientLogService.Instance.Warn($"player.characters.load.warning characterId={FirstNonEmpty(GetString(map, "characterId"), GetString(map, "id"), "unknown")} missingOptional={string.Join(",", optionalMissing)}");
-            }
         }
         ClientLogService.Instance.Info($"player.characters.load.done count={MyCharacters.Count}");
         ClientLogService.Instance.Info($"myCharacters.render count={MyCharacters.Count}");
+        CharacterSelectionContentState = MyCharacters.Count == 0 ? NriContentState.Empty : NriContentState.Populated;
+        CharacterSelectionStatusText = MyCharacters.Count == 0
+            ? "Нет доступных персонажей"
+            : $"Доступно персонажей: {MyCharacters.Count}";
+        CharacterSelectionFeedbackText = MyCharacters.Count == 0
+            ? "Если персонаж должен быть доступен, обратитесь к GM."
+            : "Выберите персонажа в списке.";
         Notify(nameof(HasMyCharacters));
 
-        if (string.IsNullOrWhiteSpace(SelectedCharacterId) && MyCharacters.Count > 0)
-            SelectedCharacterId = MyCharacters[0].Id;
-        SelectedMyCharacter = MyCharacters.FirstOrDefault(item => item.Id == SelectedCharacterId) ?? MyCharacters.FirstOrDefault();
+        var selectedId = FirstNonEmpty(SelectedCharacterId, ActiveCharacterId);
+        SelectedMyCharacter = MyCharacters.FirstOrDefault(item => string.Equals(item.Id, selectedId, StringComparison.OrdinalIgnoreCase))
+            ?? MyCharacters.FirstOrDefault(item => item.IsSelectable);
         UpdateCharacterActiveFlags();
+    }
+
+    private void RestoreActiveRouteAfterReauthentication()
+    {
+        LoadApplicationContext();
+        LoadCharacters();
+        LoadActiveCharacter();
+
+        switch (SelectedMainTab)
+        {
+            case "character":
+            case "development":
+                LoadClassAndSkills();
+                break;
+            case "communication":
+            case "requests":
+                RefreshBottomPanel();
+                break;
+            case "combat":
+                RefreshCombatEvents();
+                break;
+            case "sceneMap":
+                SceneMap.Refresh();
+                break;
+            case "worldMap" when !string.IsNullOrWhiteSpace(WorldMap.MapId):
+                WorldMap.RefreshCurrentMap();
+                break;
+        }
+
+        NotifyHeader();
+        SetConnectedState();
+        ClientLogService.Instance.Info($"connection.restore.scoped client=player route={SelectedMainTab}");
     }
 
     private void LoadSelectedCharacterHub()
@@ -1907,12 +2640,43 @@ public class PlayerMainViewModel : ViewModelBase
     {
         var groups = ToObjectList(payload.TryGetValue("groupMembership", out var raw) ? raw : new ArrayList())
             .Cast<object>()
-            .Select(item => AsMap(item, CommandNames.CharacterListMine))
+            .Select(item => AsMap(item, CommandNames.CharacterPlayerHubGet))
             .Where(map => map != null)
-            .Select(map => FirstNonEmpty(GetString(map, "displayName"), GetString(map, "groupId")))
+            .Select(map => GetString(map, "displayName"))
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .ToArray();
-        return groups.Length == 0 ? "—" : string.Join(", ", groups);
+        return groups.Length == 0 ? "Без группы" : string.Join(", ", groups);
+    }
+
+    private static string CharacterKindPlayerDisplay(string value)
+    {
+        var normalized = (value ?? string.Empty).Trim().ToLowerInvariant();
+        if (Regex.IsMatch(value ?? string.Empty, "[А-Яа-яЁё]")) return value.Trim();
+        return normalized switch
+        {
+            "player_character" or "player" or "pc" => "Персонаж игрока",
+            "companion" => "Компаньон",
+            "npc" => "Неигровой персонаж",
+            "enemy" => "Противник",
+            "neutral" => "Нейтральный персонаж",
+            _ => "Другой персонаж"
+        };
+    }
+
+    private static string CharacterStatusPlayerDisplay(string value)
+    {
+        var normalized = (value ?? string.Empty).Trim().ToLowerInvariant();
+        if (Regex.IsMatch(value ?? string.Empty, "[А-Яа-яЁё]")) return value.Trim();
+        return normalized switch
+        {
+            "active" => "Активен",
+            "inactive" => "Не активен",
+            "draft" => "Черновик",
+            "archived" => "В архиве",
+            "deceased" => "Погиб",
+            "missing" => "Пропал",
+            _ => "Статус не указан"
+        };
     }
 
     public void NotifyChatWindowOpened()
@@ -1922,25 +2686,73 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void SetSelectedCharacterActive()
     {
-        if (SelectedMyCharacter == null) return;
+        if (SelectedMyCharacter == null || !SelectedMyCharacter.IsSelectable || SelectedMyCharacter.Archived)
+        {
+            CharacterSelectionFeedbackText = "Этот персонаж сейчас недоступен для выбора.";
+            return;
+        }
+        if (_applicationContext.IsLoading) return;
+
+        var selectedCharacter = SelectedMyCharacter;
+        ClientLogService.Instance.Info($"character.set.active requested characterId={selectedCharacter.Id}");
+        _applicationContext.BeginReplacement();
+        ClearCharacterDependentState();
+        CharacterSelectionFeedbackText = $"Смена контекста: {selectedCharacter.Name}...";
+        NotifyContextState();
+
+        var transitionTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
+        transitionTimer.Tick += (_, _) =>
+        {
+            transitionTimer.Stop();
+            CompleteSelectedCharacterSwitch(selectedCharacter);
+        };
+        transitionTimer.Start();
+    }
+
+    private void CompleteSelectedCharacterSwitch(CharacterListItemVm selectedCharacter)
+    {
         try
         {
-            ClientLogService.Instance.Info($"character.set.active requested characterId={SelectedMyCharacter.Id}");
-            var result = _api.SetActiveCharacter(SelectedMyCharacter.Id);
+            var result = _api.SwitchApplicationContextCharacter(selectedCharacter.Id, _applicationContext.LastAcceptedRevision);
             if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
-            ApplyCharacterPayload(result.Payload);
-            ActiveCharacterId = SelectedMyCharacter.Id;
-            ActiveCharacterStatusText = $"Активный персонаж: {SelectedMyCharacter.Name}";
-            ClientLogService.Instance.Info($"character.set.active success characterId={SelectedMyCharacter.Id}");
+            var snapshot = ApplicationContextPayloadReader.Read(result.Payload);
+            if (!_applicationContext.TryAccept(snapshot))
+                throw new InvalidOperationException("Получен устаревший ответ смены контекста.");
+            CharacterSelectionFeedbackText = $"{selectedCharacter.Name} выбран активным персонажем.";
+            ClientLogService.Instance.Info($"character.set.active success characterId={selectedCharacter.Id}");
             LoadCharacters();
             LoadActiveCharacter();
+            CharacterSelectionFeedbackText = $"{CharacterNameDisplay} выбран активным персонажем.";
         }
         catch (Exception ex)
         {
+            _applicationContext.TryAccept(_applicationContext.Current);
+            NotifyContextState();
             ClientLogService.Instance.Warn($"character.set.active failed reason={ex.Message}");
-            ConnectionStatusDetail = $"Ошибка подключения: {ex.Message}";
+            ConnectionStatusDetail = ConnectionProblemMapper.ToUserMessage(ex);
+            CharacterSelectionFeedbackText = ConnectionStatusDetail;
             Notify(nameof(ConnectionStatusDetail));
         }
+    }
+
+    private void OpenSelectedCharacter()
+    {
+        if (!CanOpenSelectedCharacter || SelectedMyCharacter == null)
+        {
+            CharacterSelectionFeedbackText = "Сначала выберите доступного персонажа.";
+            return;
+        }
+
+        if (!string.Equals(ActiveCharacterId, SelectedMyCharacter.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            SetSelectedCharacterActive();
+            if (!string.Equals(ActiveCharacterId, SelectedMyCharacter?.Id, StringComparison.OrdinalIgnoreCase))
+                return;
+        }
+
+        LoadActiveCharacter();
+        SelectPlayerRoute("character");
+        CharacterSelectionFeedbackText = "Карточка персонажа открыта.";
     }
 
     private void UpdateCharacterActiveFlags()
@@ -1961,8 +2773,21 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void LoadActiveCharacter()
     {
-        var requestedCharacterId = FirstNonEmpty(ActiveCharacterId, SelectedCharacterId);
+        var requestedCharacterId = _applicationContext.Current.ActiveCharacter.Id;
+        var requestedRevision = _applicationContext.LastAcceptedRevision;
+        if (string.IsNullOrWhiteSpace(requestedCharacterId))
+        {
+            ClearCharacterDependentState();
+            ActiveCharacterStatusText = "Активный персонаж не выбран.";
+            NotifyCharacter();
+            return;
+        }
         var active = _api.CharacterPlayerHubGet(requestedCharacterId);
+        if (!_applicationContext.IsCurrent(requestedRevision, characterId: requestedCharacterId))
+        {
+            ClientLogService.Instance.Info($"activeCharacter.response.rejected staleRevision={requestedRevision}");
+            return;
+        }
         if (active.Status == ResponseStatus.Ok && active.Payload.Count > 0)
         {
             var cards = active.Payload.ContainsKey("characters")
@@ -1980,14 +2805,26 @@ public class PlayerMainViewModel : ViewModelBase
             }
 
             ApplyCharacterPayload(first);
-            ActiveCharacterId = GetString(first, "characterId");
+            var returnedCharacterId = GetString(first, "characterId");
+            if (!string.Equals(returnedCharacterId, requestedCharacterId, StringComparison.Ordinal))
+            {
+                ClientLogService.Instance.Warn($"activeCharacter.response.rejected boundaryMismatch=true revision={requestedRevision}");
+                return;
+            }
+            ActiveCharacterId = returnedCharacterId;
             ActiveCharacterStatusText = string.IsNullOrWhiteSpace(ActiveCharacterId) ? "Активный персонаж не выбран." : $"Активный персонаж: {CharacterNameDisplay}";
             ClientLogService.Instance.Info($"activeCharacter.load id={ActiveCharacterId}");
             UpdateCharacterActiveFlags();
+            LoadCharacterTitles();
+            LoadLiveActorState();
+            LanguageWorkspace.Refresh(ActiveCharacterId);
             return;
         }
 
         ActiveCharacterId = string.Empty;
+        CharacterTitles.Clear();
+        SelectedCharacterTitle = null;
+        _characterTitleRevision = 0;
         ActiveCharacterStatusText = "Активный персонаж не выбран.";
         CharacterName = string.Empty;
         CharacterRace = string.Empty;
@@ -2003,28 +2840,283 @@ public class PlayerMainViewModel : ViewModelBase
         NotifyCharacter();
         ClientLogService.Instance.Info("activeCharacter.load id=null");
         UpdateCharacterActiveFlags();
+        LanguageWorkspace.Clear();
+    }
+
+    private void LoadCharacterTitles()
+    {
+        CharacterTitles.Clear();
+        CharacterTitles.Add(new PlayerCharacterTitleVm
+        {
+            Id = string.Empty,
+            DisplayName = "Без титула",
+            Description = "Показывать имя персонажа без дополнительного титула."
+        });
+        SelectedCharacterTitle = null;
+        _characterTitleRevision = 0;
+        if (string.IsNullOrWhiteSpace(ActiveCharacterId)) return;
+        var response = _api.CharacterTitleList(new Dictionary<string, object> { ["characterId"] = ActiveCharacterId });
+        if (response.Status != ResponseStatus.Ok) return;
+        long.TryParse(GetString(response.Payload, "entityRevision"), out _characterTitleRevision);
+        var selectedId = GetString(response.Payload, "selectedTitleId");
+        var rawItems = response.Payload.TryGetValue("items", out var items) ? items : new object[0];
+        foreach (var raw in ToObjectList(rawItems))
+        {
+            var map = AsMap(raw, CommandNames.CharacterTitleList);
+            if (map == null) continue;
+            CharacterTitles.Add(new PlayerCharacterTitleVm
+            {
+                Id = GetString(map, "titleId"),
+                DisplayName = GetString(map, "displayName"),
+                Description = GetString(map, "description")
+            });
+        }
+        SelectedCharacterTitle = CharacterTitles.FirstOrDefault(x => string.Equals(x.Id, selectedId, StringComparison.Ordinal))
+            ?? CharacterTitles[0];
+        Notify(nameof(CharacterTitles));
+    }
+
+    private void SelectCharacterTitle()
+    {
+        if (string.IsNullOrWhiteSpace(ActiveCharacterId)) return;
+        var response = _api.CharacterTitleSelect(new Dictionary<string, object>
+        {
+            ["characterId"] = ActiveCharacterId,
+            ["titleId"] = SelectedCharacterTitle?.Id ?? string.Empty,
+            ["expectedRevision"] = _characterTitleRevision
+        });
+        if (response.Status != ResponseStatus.Ok) throw new InvalidOperationException(response.Message);
+        LoadCharacterTitles();
+    }
+
+    private void SaveFinalizedPublicProfile()
+    {
+        if (string.IsNullOrWhiteSpace(ActiveCharacterId))
+        {
+            FinalizedPublicProfileStatus = "Сначала выберите активного персонажа.";
+            Notify(nameof(FinalizedPublicProfileStatus));
+            return;
+        }
+        try
+        {
+            var response = _api.CharacterFinalizedUpdatePublic(new Dictionary<string, object>
+            {
+                ["characterId"] = ActiveCharacterId,
+                ["displayName"] = FinalizedDisplayNameInput,
+                ["backstory"] = FinalizedBackstoryInput,
+                ["expectedRevision"] = _finalizedPublicProfileRevision
+            });
+            if (response.Status == ResponseStatus.Ok) LoadActiveCharacter();
+            FinalizedPublicProfileStatus = response.Message;
+            Notify(nameof(FinalizedPublicProfileStatus));
+        }
+        catch (Exception ex)
+        {
+            FinalizedPublicProfileStatus = ex.Message;
+            Notify(nameof(FinalizedPublicProfileStatus));
+        }
+    }
+
+    private void LoadApplicationContext()
+    {
+        if (!IsAuthenticated) return;
+        _applicationContext.BeginReplacement();
+        NotifyContextState();
+        RefreshRouteAvailability();
+        var response = _api.GetApplicationContext();
+        if (response.Status != ResponseStatus.Ok)
+            throw new InvalidOperationException(string.IsNullOrWhiteSpace(response.Message) ? "Контекст приложения недоступен." : response.Message);
+        if (!_applicationContext.TryAccept(ApplicationContextPayloadReader.Read(response.Payload)))
+            throw new InvalidOperationException("Получен устаревший контекст приложения.");
+        LoadGameContextSelectors();
+    }
+
+    private void LoadGameContextSelectors()
+    {
+        GameCampaignOptions.Clear();
+        var campaigns = _api.GameContextCampaignsList();
+        if (campaigns.Status == ResponseStatus.Ok && campaigns.Payload.TryGetValue("campaigns", out var rawCampaigns))
+        {
+            foreach (var raw in ToObjectList(rawCampaigns))
+            {
+                var map = AsMap(raw, CommandNames.GameContextCampaignsList);
+                if (map == null) continue;
+                var id = map.TryGetValue("campaignId", out var rawId) ? Convert.ToString(rawId) ?? string.Empty : string.Empty;
+                var name = map.TryGetValue("name", out var rawName) ? Convert.ToString(rawName) ?? string.Empty : string.Empty;
+                var role = map.TryGetValue("role", out var rawRole) ? Convert.ToString(rawRole) ?? string.Empty : string.Empty;
+                if (!string.IsNullOrWhiteSpace(id)) GameCampaignOptions.Add(new NriOptionItem { Value = id, DisplayName = name, Description = role });
+            }
+        }
+        SelectedGameCampaignId = ApplicationContext.Campaign.Id;
+        GameSessionOptions.Clear();
+        if (!string.IsNullOrWhiteSpace(SelectedGameCampaignId))
+        {
+            var sessions = _api.GameContextSessionsList(SelectedGameCampaignId);
+            if (sessions.Status == ResponseStatus.Ok && sessions.Payload.TryGetValue("sessions", out var rawSessions))
+            {
+                foreach (var raw in ToObjectList(rawSessions))
+                {
+                    var map = AsMap(raw, CommandNames.GameContextSessionsList);
+                    if (map == null) continue;
+                    var id = map.TryGetValue("sessionId", out var rawId) ? Convert.ToString(rawId) ?? string.Empty : string.Empty;
+                    var name = map.TryGetValue("name", out var rawName) ? Convert.ToString(rawName) ?? string.Empty : string.Empty;
+                    var state = map.TryGetValue("status", out var rawState) ? Convert.ToString(rawState) ?? string.Empty : string.Empty;
+                    if (!string.IsNullOrWhiteSpace(id)) GameSessionOptions.Add(new NriOptionItem { Value = id, DisplayName = name, Description = state });
+                }
+            }
+        }
+        SelectedGameSessionId = ApplicationContext.Session.Id;
+    }
+
+    private void SelectGameCampaign()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedGameCampaignId)) return;
+        var response = _api.GameContextSelectCampaign(SelectedGameCampaignId, ApplicationContext.ContextRevision);
+        if (response.Status != ResponseStatus.Ok)
+        {
+            ConnectionStatusDetail = response.Message;
+            Notify(nameof(ConnectionStatusDetail));
+            return;
+        }
+        _applicationContext.BeginReplacement();
+        _applicationContext.TryAccept(ApplicationContextPayloadReader.Read(response.Payload));
+        ClearCharacterDependentState();
+        LoadGameContextSelectors();
+    }
+
+    private void SelectGameSession()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedGameSessionId)) return;
+        var response = _api.GameContextSelectSession(SelectedGameSessionId, ApplicationContext.ContextRevision);
+        if (response.Status != ResponseStatus.Ok)
+        {
+            ConnectionStatusDetail = response.Message;
+            Notify(nameof(ConnectionStatusDetail));
+            return;
+        }
+        _applicationContext.BeginReplacement();
+        _applicationContext.TryAccept(ApplicationContextPayloadReader.Read(response.Payload));
+        ClearCharacterDependentState();
+        LoadGameContextSelectors();
+    }
+
+    private void OnApplicationContextChanged(object? sender, ApplicationContextChangedEventArgs e)
+    {
+        ActiveCharacterId = e.Current.ActiveCharacter.Id;
+        _activeCharacterCampaignId = e.Current.Campaign.Id;
+        CurrentSession.CampaignId = e.Current.Campaign.Id;
+        SessionSummary = e.Current.CampaignSessionSummary;
+        ActiveCharacterStatusText = e.Current.HasActiveCharacter
+            ? $"Активный персонаж: {e.Current.ActiveCharacter.DisplayName}"
+            : "Активный персонаж не выбран.";
+        if (e.CharacterChanged || e.SessionChanged) ClearCharacterDependentState();
+        NotifyHeader();
+        NotifyCharacter();
+        NotifyContextState();
+        RefreshRouteAvailability();
+    }
+
+    private void NotifyContextState()
+    {
+        Notify(nameof(ApplicationContext));
+        Notify(nameof(ActiveCampaignRoleSummary));
+        Notify(nameof(IsContextChanging));
+        Notify(nameof(ApplicationContextStatusText));
+        Notify(nameof(DevelopmentBusinessContextText));
+    }
+
+    private void RefreshRouteAvailability()
+    {
+        var enabledModules = new HashSet<string>(ApplicationContext.Modules.Where(x => x.IsAvailable).Select(x => x.ModuleKey), StringComparer.OrdinalIgnoreCase);
+        foreach (var route in PlayerRoutes)
+        {
+            var availability = RouteAvailabilityEvaluator.Evaluate(route.Descriptor, ApplicationContext, new HashSet<string>());
+            if (availability.CanNavigate && route.RouteKey == "gameCenter" && !enabledModules.Contains("current_session"))
+                availability = new RouteAvailability { RouteKey = route.RouteKey, State = RouteAvailabilityStates.FeatureDisabled, Reason = "Текущая сессия временно недоступна." };
+            if (availability.CanNavigate && route.RouteKey == "sceneMap" && !enabledModules.Contains("scene_map"))
+                availability = new RouteAvailability { RouteKey = route.RouteKey, State = RouteAvailabilityStates.FeatureDisabled, Reason = "Карта сцены временно недоступна." };
+            if (availability.CanNavigate && route.RouteKey == "worldMap" && !enabledModules.Contains("world_map"))
+                availability = new RouteAvailability { RouteKey = route.RouteKey, State = RouteAvailabilityStates.FeatureDisabled, Reason = "Карта мира временно недоступна." };
+            if (availability.CanNavigate && route.RouteKey == "combat" && !enabledModules.Contains("combat"))
+                availability = new RouteAvailability { RouteKey = route.RouteKey, State = RouteAvailabilityStates.FeatureDisabled, Reason = "Боевой раздел временно недоступен." };
+            route.ApplyAvailability(availability);
+        }
+        Notify(nameof(PlayerRoutes));
+        Notify(nameof(VisiblePlayerRoutes));
+    }
+
+    private void ClearCharacterDependentState()
+    {
+        CharacterName = string.Empty;
+        CharacterRace = string.Empty;
+        CharacterAge = string.Empty;
+        CharacterHeight = string.Empty;
+        CharacterDescription = string.Empty;
+        CharacterBackstory = string.Empty;
+        _activeCharacterCampaignId = string.Empty;
+        ExperienceCoins = 0;
+        StatsRows.Clear();
+        CoreStatRows.Clear();
+        AttributeStatRows.Clear();
+        DerivedStatRows.Clear();
+        MoneyRows.Clear();
+        InventoryRows.Clear();
+        InventoryItems.Clear();
+        HoldingsRows.Clear();
+        HoldingsItems.Clear();
+        ReputationRows.Clear();
+        Companions.Clear();
+        ClassBranches.Clear();
+        SkillRows.Clear();
+        _selectedInventoryItem = null;
+        _selectedHoldingItem = null;
+        _selectedCompanion = null;
+        RebuildStatGroups();
+        NotifyCharacter();
     }
     private void ApplyCharacterPayload(Dictionary<string, object> payload)
     {
+        _activeCharacterCampaignId = GetString(payload, "campaignId");
         CharacterName = GetString(payload, "name");
         CharacterRace = GetString(payload, "race");
         CharacterAge = GetString(payload, "age");
         CharacterHeight = GetString(payload, "height");
         CharacterBackstory = GetString(payload, "backstory");
+        FinalizedDisplayNameInput = CharacterName;
+        FinalizedBackstoryInput = CharacterBackstory;
+        long.TryParse(GetString(payload, "publicProfileRevision"), out _finalizedPublicProfileRevision);
+        FinalizedPublicProfileStatus = string.Empty;
+        CharacterBodyTypeDisplay = FirstNonEmpty(GetString(payload, "bodyTypeDisplay"), "Не указан");
+        CharacterSizeCategoryDisplay = FirstNonEmpty(GetString(payload, "sizeCategoryDisplay"), "Не указана");
+        CharacterOriginProtectionDisplay = $"Базовое здоровье: {FirstNonEmpty(GetString(payload, "originBaseHealth"), "нет данных")} · Естественная броня: {FirstNonEmpty(GetString(payload, "originNaturalArmorRating"), "нет данных")} · Стойкость к пробитию: {FirstNonEmpty(GetString(payload, "originNaturalPenetrationResistance"), "нет данных")}";
+        CharacterOriginLifespanDisplay = FirstNonEmpty(GetString(payload, "originLifespanDisplay"), "Нет данных");
+        CharacterOriginTraitsDisplay = JoinReadablePayloadValues(payload, "originTraitNames", "Нет публичных свойств");
+        CharacterOriginSensesDisplay = JoinReadablePayloadValues(payload, "originSenseNames", "Нет особых чувств");
+        CharacterOriginMovementDisplay = JoinReadablePayloadValues(payload, "originMovementNames", "Нет особых способов движения");
+        CharacterOriginEquipmentFitDisplay = FirstNonEmpty(GetString(payload, "originEquipmentFitWarning"), "Стандартная совместимость");
+        Notify(nameof(CharacterOriginProtectionDisplay));
+        Notify(nameof(CharacterOriginLifespanDisplay));
+        Notify(nameof(CharacterOriginTraitsDisplay));
+        Notify(nameof(CharacterOriginSensesDisplay));
+        Notify(nameof(CharacterOriginMovementDisplay));
+        Notify(nameof(CharacterOriginEquipmentFitDisplay));
         ExperienceCoins = ParseLongValue(payload, "xpCoins");
         SelectedCharacterId = GetString(payload, "characterId");
-        CharacterOwnerDisplay = FirstNonEmpty(GetString(payload, "ownerDisplayName"), GetString(payload, "ownerUserId"), "—");
-        CharacterControllerDisplay = FirstNonEmpty(GetString(payload, "controlledByDisplayName"), GetString(payload, "controlledByUserId"), "—");
-        CharacterKindDisplay = FirstNonEmpty(GetString(payload, "characterKindDisplayName"), GetString(payload, "characterKind"), GetString(payload, "characterRole"), "—");
-        CharacterStatusDisplay = FirstNonEmpty(GetString(payload, "characterStatusDisplayName"), GetString(payload, "characterStatus"), GetString(payload, "assignmentStatus"), "—");
+        CharacterOwnerDisplay = FirstNonEmpty(GetString(payload, "ownerDisplayName"), "Не указан");
+        CharacterControllerDisplay = FirstNonEmpty(GetString(payload, "controlledByDisplayName"), "Не указан");
+        CharacterKindDisplay = CharacterKindPlayerDisplay(FirstNonEmpty(GetString(payload, "characterKindDisplayName"), GetString(payload, "characterKind"), GetString(payload, "characterRole")));
+        CharacterStatusDisplay = CharacterStatusPlayerDisplay(FirstNonEmpty(GetString(payload, "characterStatusDisplayName"), GetString(payload, "characterStatus"), GetString(payload, "assignmentStatus")));
+        Notify(nameof(FinalizedDisplayNameInput));
+        Notify(nameof(FinalizedBackstoryInput));
+        Notify(nameof(FinalizedPublicProfileStatus));
         var groupMaps = ToObjectList(payload.TryGetValue("groupMembership", out var groupRaw) ? groupRaw : new ArrayList())
             .Cast<object>()
             .Select(item => AsMap(item, CommandNames.CharacterGetActive))
             .Where(map => map != null)
-            .Select(map => FirstNonEmpty(GetString(map, "displayName"), GetString(map, "groupId")))
+            .Select(map => GetString(map, "displayName"))
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .ToArray();
-        CharacterGroupDisplay = groupMaps.Length == 0 ? "—" : string.Join(", ", groupMaps);
+        CharacterGroupDisplay = groupMaps.Length == 0 ? "Без группы" : string.Join(", ", groupMaps);
 
         StatsRows.Clear();
         CoreStatRows.Clear();
@@ -2125,14 +3217,14 @@ public class PlayerMainViewModel : ViewModelBase
             var vm = new InventoryDisplayItemVm
             {
                 Id = GetString(map, "id"),
-                Code = FirstNonEmpty(GetString(map, "itemCode"), GetString(map, "definitionId"), GetString(map, "id")),
+                Code = FirstNonEmpty(GetString(map, "itemDefinitionId"), GetString(map, "definitionId"), GetString(map, "itemCode")),
                 Name = FirstNonEmpty(GetString(map, "displayName"), GetString(map, "name"), GetString(map, "label"), " "),
                 Quantity = quantity,
                 QuantityDisplay = string.IsNullOrWhiteSpace(quantityText) ? MissingDataText : quantity.ToString(CultureInfo.InvariantCulture),
                 IsEquipped = string.Equals(equippedText, "True", StringComparison.OrdinalIgnoreCase),
                 Durability = durability,
                 Slot = FirstNonEmpty(GetString(map, "slot"), GetString(map, "slotId"), GetString(map, "properties"), "-"),
-                Category = GetString(map, "category"),
+                Category = FirstNonEmpty(GetString(map, "definitionCategory"), GetString(map, "category"), GetString(map, "snapshotCategory")),
                 Description = GetString(map, "description")
             };
             InventoryItems.Add(vm);
@@ -2142,6 +3234,13 @@ public class PlayerMainViewModel : ViewModelBase
         if (!placeholderHidden) EnsureCollectionPlaceholder(InventoryRows, "Инвентарь пока не загружен.");
         if (SelectedInventoryItem == null || !InventoryItems.Contains(SelectedInventoryItem))
             SelectedInventoryItem = InventoryItems.FirstOrDefault();
+
+        CombatWeaponItems.Clear();
+        foreach (var weapon in InventoryItems.Where(item => item.IsEquipped && string.Equals(item.Category, "weapon", StringComparison.OrdinalIgnoreCase)))
+            CombatWeaponItems.Add(weapon);
+        SelectedCombatWeapon = CombatWeaponItems.FirstOrDefault();
+        Notify(nameof(CombatWeaponItems));
+        Notify(nameof(SelectedCombatWeapon));
 
         if (_lastInventoryRenderCount != InventoryItems.Count)
         {
@@ -2434,43 +3533,9 @@ public class PlayerMainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            ConnectionStatusDetail = "Ошибка входа: " + ex.Message;
+            ConnectionStatusDetail = ConnectionProblemMapper.ToUserMessage(ex);
             Notify(nameof(ConnectionStatusDetail));
             ClientLogService.Instance.Warn($"player.request.create.fail reason={ex.Message}");
-            RefreshConnectionSummary();
-        }
-    }
-
-    private void CreateCharacter()
-    {
-        try
-        {
-            EnsureConnected();
-            var payload = new Dictionary<string, object>
-            {
-                { "name", CreateCharacterName },
-                { "race", CreateCharacterRace },
-                { "backstory", CreateCharacterBackstory }
-            };
-            ClientLogService.Instance.Info($"character.create.send name={CreateCharacterName}");
-            var result = _api.CreateCharacter(payload);
-            ClientLogService.Instance.Info($"character.create.response status={result.Status} message={result.Message}");
-            if (result.Status != ResponseStatus.Ok) throw new InvalidOperationException(result.Message);
-            LoadCharacters();
-            if (MyCharacters.Count > 0 && string.IsNullOrWhiteSpace(ActiveCharacterId))
-            {
-                SelectedMyCharacter = MyCharacters.OrderByDescending(x => x.Id).FirstOrDefault() ?? MyCharacters[0];
-                SetSelectedCharacterActive();
-            }
-            LoadActiveCharacter();
-            ClientLogService.Instance.Info($"character.create.success count={MyCharacters.Count}");
-        }
-        catch (Exception ex)
-        {
-            ClientLogService.Instance.Warn($"character.create.result=fail reason={ex.Message}");
-            ConnectionStatusDetail = $"Ошибка подключения: {ex.Message}";
-            Notify(nameof(ConnectionStatusDetail));
-            ClientLogService.Instance.Info("character.create.handled-error session-preserved=true");
             RefreshConnectionSummary();
         }
     }
@@ -2484,6 +3549,14 @@ public class PlayerMainViewModel : ViewModelBase
             RefreshBottomPanel();
         }
         catch (Exception ex) { SetConnectionError(ex); }
+    }
+
+    private string ResolveActiveCharacterCampaignId()
+    {
+        var characterId = FirstNonEmpty(ActiveCharacterId, SelectedCharacterId);
+        var activeCharacter = MyCharacters.FirstOrDefault(item =>
+            string.Equals(item.Id, characterId, StringComparison.OrdinalIgnoreCase));
+        return FirstNonEmpty(activeCharacter?.CampaignId, _activeCharacterCampaignId);
     }
 
     private void ResubmitRequest()
@@ -2519,8 +3592,11 @@ public class PlayerMainViewModel : ViewModelBase
     private void RefreshBottomPanel()
     {
         RefreshChat();
+        if (_client.Lifecycle.Current.IsRecovering) return;
         RefreshDiceAndRequests();
+        if (_client.Lifecycle.Current.IsRecovering) return;
         RefreshCombatEvents();
+        if (_client.Lifecycle.Current.IsRecovering) return;
         RefreshAudioState();
         BuildMergedChatRows();
         BuildGameFeed();
@@ -2543,6 +3619,13 @@ public class PlayerMainViewModel : ViewModelBase
         RefreshChat();
         BuildMergedChatRows();
         BuildGameFeed();
+    }
+
+    private void ClearChatDraft()
+    {
+        ChatTextInput = string.Empty;
+        Notify(nameof(ChatTextInput));
+        ClientLogService.Instance.Info("player.chat.draft.cleared");
     }
 
     private void RefreshChat()
@@ -2699,30 +3782,18 @@ public class PlayerMainViewModel : ViewModelBase
     private void RefreshCombatEvents()
     {
         EventRows.Clear();
-        var timeline = _api.CombatTimeline(ChatSessionId);
-        foreach (var item in ToObjectList(timeline.Payload.ContainsKey("items") ? timeline.Payload["items"] : new ArrayList()))
-        {
-            if (item is not Dictionary<string, object> map) continue;
-            EventRows.Add($"{GetString(map, "at")} | {GetString(map, "eventType")} | {GetString(map, "message")}");
-        }
-
         SessionStateRows.Clear();
-        var state = _api.CombatVisibleState(ChatSessionId);
-        SessionStateRows.Add("Статус сессии: " + GetString(state.Payload, "status"));
-        SessionStateRows.Add("Раунд: " + GetString(state.Payload, "round"));
-        SessionStateRows.Add("Активный слот: " + GetString(state.Payload, "activeSlotId"));
+        RefreshCombatSnapshot();
 
-        EnsureCollectionPlaceholder(EventRows, "Событий пока нет.");
+        SessionStateRows.Add("Бой: " + CombatEncounterStatus);
+        SessionStateRows.Add("Ход: " + CombatCurrentTurnText);
+        foreach (var item in CombatPublicLog.Take(20))
+            EventRows.Add($"{item.RoundTurnText} | {item.Message}");
+        EnsureCollectionPlaceholder(EventRows, "Боевых событий пока нет.");
     }
 
     private void RefreshCombatSnapshot()
     {
-        if (string.IsNullOrWhiteSpace(CombatEncounterId))
-        {
-            CombatWarningMessage = "Укажите идентификатор боя.";
-            return;
-        }
-
         CombatIsLoading = true;
         CombatErrorMessage = string.Empty;
         CombatWarningMessage = string.Empty;
@@ -2731,7 +3802,9 @@ public class PlayerMainViewModel : ViewModelBase
         {
             var payload = new Dictionary<string, object>
             {
-                { "encounterId", CombatEncounterId.Trim() },
+                { "encounterId", FirstNonEmpty(CombatEncounterId, ApplicationContext.ActiveCombat.Id) },
+                { "campaignId", FirstNonEmpty(ApplicationContext.Campaign.Id, _activeCharacterCampaignId) },
+                { "sessionId", FirstNonEmpty(ApplicationContext.Session.Id, ChatSessionId) },
                 { "characterId", FirstNonEmpty(CombatCharacterIdInput, ActiveCharacterId, SelectedCharacterId) },
                 { "participantId", CombatParticipantId },
                 { "includePublicParticipants", true },
@@ -2747,6 +3820,11 @@ public class PlayerMainViewModel : ViewModelBase
             }
 
             ApplyCombatSnapshot(response.Payload);
+            if (!string.IsNullOrWhiteSpace(CombatEncounterId))
+            {
+                payload["encounterId"] = CombatEncounterId;
+                RefreshCombatMapOverlay(payload);
+            }
             ClientLogService.Instance.Info("player.combat.snapshot.refresh.done");
         }
         catch (Exception ex)
@@ -2760,22 +3838,190 @@ public class PlayerMainViewModel : ViewModelBase
         }
     }
 
-    private void RefreshCombatFeed()
+    private void RefreshCombatMapOverlay(Dictionary<string, object> basePayload)
     {
-        if (string.IsNullOrWhiteSpace(CombatEncounterId))
+        try
         {
-            CombatWarningMessage = "Укажите идентификатор боя.";
+            var response = _api.CombatMapPlayerGetActiveSceneMapOverlay(basePayload);
+            if (response.Status != ResponseStatus.Ok)
+            {
+                CombatMapStatusText = string.IsNullOrWhiteSpace(response.Message) ? "Боевой слой карты недоступен." : response.Message;
+                CombatMapSceneText = "Карта сцены недоступна.";
+                CombatMapTokens.Clear();
+                CombatMapGridLines.Clear();
+                CombatMapTilePatches.Clear();
+                CombatMapAssetInstances.Clear();
+                CombatMapWarnings.Clear();
+                return;
+            }
+
+            ApplyCombatMapOverlay(response.Payload);
+        }
+        catch (Exception ex)
+        {
+            CombatMapStatusText = ex.Message;
+            CombatMapTokens.Clear();
+            CombatMapGridLines.Clear();
+            CombatMapTilePatches.Clear();
+            CombatMapAssetInstances.Clear();
+            CombatMapWarnings.Clear();
+            ClientLogService.Instance.Warn($"player.combat.map.overlay.error {ex.Message}");
+        }
+    }
+
+    private void ApplyCombatMapOverlay(Dictionary<string, object> payload)
+    {
+        var sceneMap = payload.ContainsKey("sceneMap") ? AsMap(payload["sceneMap"], CommandNames.CombatMapPlayerGetActiveSceneMapOverlay) : null;
+        CombatMapSceneText = sceneMap == null
+            ? "Карта сцены недоступна."
+            : $"{FirstNonEmpty(GetString(sceneMap, "name"), GetString(sceneMap, "mapId"))} | {GetString(sceneMap, "widthMeters")}x{GetString(sceneMap, "heightMeters")} м | сетка {FirstNonEmpty(GetString(sceneMap, "gridCellSizeMeters"), GetString(sceneMap, "gridSizeMeters"), "5")} м";
+        _combatMapWidthMeters = sceneMap == null ? 1d : ParseDoubleValue(sceneMap, "widthMeters", 1d);
+        _combatMapHeightMeters = sceneMap == null ? 1d : ParseDoubleValue(sceneMap, "heightMeters", 1d);
+        _combatMapGridMeters = sceneMap == null
+            ? 5d
+            : Math.Max(1d, sceneMap.ContainsKey("gridCellSizeMeters")
+                ? ParseDoubleValue(sceneMap, "gridCellSizeMeters", 5d)
+                : ParseDoubleValue(sceneMap, "gridSizeMeters", 5d));
+
+        CombatMapTilePatches.Clear();
+        foreach (var raw in ToObjectList(payload.ContainsKey("tilePatches") ? payload["tilePatches"] : new ArrayList()))
+        {
+            var map = AsMap(raw, CommandNames.CombatMapPlayerGetActiveSceneMapOverlay);
+            if (map != null) CombatMapTilePatches.Add(PlayerSceneTilePatchUiItem.From(map));
+        }
+
+        CombatMapAssetInstances.Clear();
+        foreach (var raw in ToObjectList(payload.ContainsKey("assetInstances") ? payload["assetInstances"] : new ArrayList()))
+        {
+            var map = AsMap(raw, CommandNames.CombatMapPlayerGetActiveSceneMapOverlay);
+            if (map != null) CombatMapAssetInstances.Add(PlayerSceneAssetInstanceUiItem.From(map));
+        }
+
+        CombatMapTokens.Clear();
+        var currentParticipantId = string.Empty;
+        var combat = payload.ContainsKey("combat") ? AsMap(payload["combat"], CommandNames.CombatMapPlayerGetActiveSceneMapOverlay) : null;
+        if (combat != null) currentParticipantId = GetString(combat, "currentParticipantId");
+        foreach (var raw in ToObjectList(payload.ContainsKey("combatTokens") ? payload["combatTokens"] : new ArrayList()))
+        {
+            var map = AsMap(raw, CommandNames.CombatMapPlayerGetActiveSceneMapOverlay);
+            if (map == null) continue;
+            var token = PlayerCombatMapTokenVm.From(map);
+            token.IsCurrentTurn = !string.IsNullOrWhiteSpace(currentParticipantId) && string.Equals(token.ParticipantId, currentParticipantId, StringComparison.OrdinalIgnoreCase);
+            token.IsMine = CombatMyParticipant != null && string.Equals(token.ParticipantId, CombatMyParticipant.ParticipantId, StringComparison.OrdinalIgnoreCase);
+            CombatMapTokens.Add(token);
+        }
+        RebuildCombatMapCanvas();
+
+        CombatMapWarnings.Clear();
+        foreach (var raw in ToObjectList(payload.ContainsKey("warnings") ? payload["warnings"] : new ArrayList()))
+        {
+            var value = Convert.ToString(raw, CultureInfo.InvariantCulture);
+            if (!string.IsNullOrWhiteSpace(value)) CombatMapWarnings.Add(value);
+        }
+
+        CombatMapStatusText = CombatMapTokens.Count == 0
+            ? "На карте нет видимых боевых токенов."
+            : $"Видимые боевые токены: {CombatMapTokens.Count}.";
+    }
+
+    private void RebuildCombatMapCanvas()
+    {
+        var projection = MapCanvasProjectionHelper.Calculate(_combatMapWidthMeters, _combatMapHeightMeters, 560, 320);
+        CombatMapCanvasWidth = projection.CanvasWidth;
+        CombatMapCanvasHeight = projection.CanvasHeight;
+        CombatMapScaleText = $"Координаты в метрах; 1 м = {projection.Scale:0.###} пикс.; сетка {_combatMapGridMeters:0.##} м";
+
+        CombatMapGridLines.Clear();
+        var step = Math.Max(1d, _combatMapGridMeters);
+        for (var x = 0d; x <= _combatMapWidthMeters + 0.001d; x += step)
+        {
+            var px = MapCanvasProjectionHelper.ToPixel(x, projection.Scale);
+            CombatMapGridLines.Add(new MapGridLineUiItem { X1 = px, Y1 = 0, X2 = px, Y2 = CombatMapCanvasHeight });
+        }
+        for (var y = 0d; y <= _combatMapHeightMeters + 0.001d; y += step)
+        {
+            var py = MapCanvasProjectionHelper.ToPixel(y, projection.Scale);
+            CombatMapGridLines.Add(new MapGridLineUiItem { X1 = 0, Y1 = py, X2 = CombatMapCanvasWidth, Y2 = py });
+        }
+
+        foreach (var patch in CombatMapTilePatches)
+            patch.ApplyScale(projection.Scale);
+        foreach (var asset in CombatMapAssetInstances)
+            asset.ApplyScale(projection.Scale);
+        foreach (var token in CombatMapTokens)
+            token.ApplyScale(projection.Scale);
+    }
+
+    public void MoveCombatTokenToCanvasPoint(double pixelX, double pixelY)
+    {
+        CombatErrorMessage = string.Empty;
+        if (!CombatIsMyTurn || CombatMyParticipant == null)
+        {
+            CombatMapStatusText = "Перемещать токен можно только в свой ход.";
+            return;
+        }
+        var ownToken = CombatMapTokens.FirstOrDefault(token => token.IsMine);
+        if (ownToken == null)
+        {
+            CombatMapStatusText = "Ваш токен не найден на активной карте.";
             return;
         }
 
+        var rawX = Math.Max(0d, Math.Min(_combatMapWidthMeters, pixelX / Math.Max(1d, CombatMapCanvasWidth) * _combatMapWidthMeters));
+        var rawY = Math.Max(0d, Math.Min(_combatMapHeightMeters, pixelY / Math.Max(1d, CombatMapCanvasHeight) * _combatMapHeightMeters));
+        var targetX = Math.Max(0d, Math.Min(_combatMapWidthMeters, Math.Round(rawX / _combatMapGridMeters) * _combatMapGridMeters));
+        var targetY = Math.Max(0d, Math.Min(_combatMapHeightMeters, Math.Round(rawY / _combatMapGridMeters) * _combatMapGridMeters));
+        var operationId = $"player-map-move-{CombatEncounterId}-{Guid.NewGuid():N}";
+        CombatMapStatusText = $"Перемещение в точку {targetX:0.##}; {targetY:0.##} м...";
+        try
+        {
+            var response = _api.CombatMapPlayerMoveMyToken(new Dictionary<string, object>
+            {
+                ["encounterId"] = CombatEncounterId,
+                ["characterId"] = FirstNonEmpty(CombatCharacterIdInput, ActiveCharacterId, SelectedCharacterId),
+                ["participantId"] = CombatMyParticipant.ParticipantId,
+                ["x"] = targetX,
+                ["y"] = targetY,
+                ["operationId"] = operationId
+            });
+            if (response.Status != ResponseStatus.Ok)
+            {
+                CombatMapStatusText = response.Message;
+                return;
+            }
+            if (response.Payload.TryGetValue("overlay", out var rawOverlay))
+            {
+                var overlay = AsMap(rawOverlay, CommandNames.CombatMapPlayerMoveMyToken);
+                if (overlay != null) ApplyCombatMapOverlay(overlay);
+            }
+            var distance = response.Payload.TryGetValue("distanceMeters", out var rawDistance)
+                ? Convert.ToDouble(rawDistance, CultureInfo.InvariantCulture)
+                : 0d;
+            var movementStatus = GetBool(response.Payload, "alreadyApplied")
+                ? "Это перемещение уже было применено; действие повторно не потрачено."
+                : $"Токен перемещён на {distance:0.##} м; потрачена одна половина действия.";
+            ClientLogService.Instance.Info($"player.combat.map.move.done operationId={operationId} x={targetX:0.##} y={targetY:0.##} alreadyApplied={GetBool(response.Payload, "alreadyApplied")}");
+            RefreshCombatSnapshot();
+            CombatMapStatusText = movementStatus;
+        }
+        catch (Exception ex)
+        {
+            CombatMapStatusText = ex.Message;
+            ClientLogService.Instance.Warn($"player.combat.map.move.error {ex.Message}");
+        }
+    }
+
+    private void RefreshCombatFeed()
+    {
         CombatIsLoading = true;
         CombatErrorMessage = string.Empty;
         ClientLogService.Instance.Info("player.combat.feed.refresh.start");
         try
         {
+            var combatId = CombatEncounterId.Trim();
             var response = _api.CombatV1PlayerFeed(new Dictionary<string, object>
             {
-                { "encounterId", CombatEncounterId.Trim() },
+                { "encounterId", combatId },
                 { "characterId", FirstNonEmpty(CombatCharacterIdInput, ActiveCharacterId, SelectedCharacterId) },
                 { "participantId", CombatParticipantId },
                 { "limit", 100 }
@@ -2788,9 +4034,14 @@ public class PlayerMainViewModel : ViewModelBase
             }
 
             CombatPublicLog.Clear();
-            foreach (var raw in ToObjectList(response.Payload.ContainsKey("items") ? response.Payload["items"] : new ArrayList()))
+            var rawItems = response.Payload.ContainsKey("items")
+                ? response.Payload["items"]
+                : response.Payload.ContainsKey("logs") ? response.Payload["logs"] : new ArrayList();
+            var feedItems = ToObjectList(rawItems);
+            for (var itemIndex = 0; itemIndex < feedItems.Count; itemIndex++)
             {
-                var map = AsMap(raw, CommandNames.CombatV1PlayerFeed);
+                var raw = feedItems[itemIndex];
+                var map = AsMap(raw, CommandNames.CombatPlayerGetLog);
                 if (map == null) continue;
                 CombatPublicLog.Add(BuildCombatLog(map));
             }
@@ -2809,24 +4060,146 @@ public class PlayerMainViewModel : ViewModelBase
         }
     }
 
+    private void ExecuteCombatAttack()
+    {
+        CombatErrorMessage = string.Empty;
+        if (!CombatIsMyTurn || CombatMyParticipant == null)
+        {
+            CombatErrorMessage = "Атака доступна только в ваш ход.";
+            return;
+        }
+        if (SelectedCombatTarget == null)
+        {
+            CombatErrorMessage = "Выберите видимую цель.";
+            return;
+        }
+        if (SelectedCombatSkillTrack == null)
+        {
+            CombatErrorMessage = "Выберите навык атаки.";
+            return;
+        }
+        if (SelectedCombatWeapon == null)
+        {
+            CombatErrorMessage = "Выберите экипированное оружие.";
+            return;
+        }
+
+        var response = _api.CombatV1WeaponAttackResolve(new Dictionary<string, object>
+        {
+            ["encounterId"] = CombatEncounterId,
+            ["actorParticipantId"] = CombatMyParticipant.ParticipantId,
+            ["targetParticipantId"] = SelectedCombatTarget.ParticipantId,
+            ["weaponItemInstanceId"] = SelectedCombatWeapon.Id,
+            ["weaponDefinitionId"] = SelectedCombatWeapon.Code,
+            ["attackSkillId"] = SelectedCombatSkillTrack.SkillCode,
+            ["attackAttributeId"] = SelectedCombatSkillTrack.DefaultAttribute,
+            ["spendActionPoint"] = true,
+            ["autoApplyDamage"] = true,
+            ["damageType"] = "physical",
+            ["requestId"] = $"player-attack-{CombatEncounterId}-{Guid.NewGuid():N}"
+        });
+        if (response.Status != ResponseStatus.Ok)
+        {
+            CombatErrorMessage = response.Message;
+            return;
+        }
+
+        var attack = response.Payload.TryGetValue("attackResult", out var rawAttack) ? AsMap(rawAttack, CommandNames.CombatV1WeaponAttackResolve) : null;
+        var penetration = response.Payload.TryGetValue("penetrationResult", out var rawPenetration) ? AsMap(rawPenetration, CommandNames.CombatV1WeaponAttackResolve) : null;
+        var damage = response.Payload.TryGetValue("damageResult", out var rawDamage) ? AsMap(rawDamage, CommandNames.CombatV1WeaponAttackResolve) : null;
+        var weapon = response.Payload.TryGetValue("weaponSummary", out var rawWeapon) ? AsMap(rawWeapon, CommandNames.CombatV1WeaponAttackResolve) : null;
+        attack ??= new Dictionary<string, object>();
+        penetration ??= new Dictionary<string, object>();
+        damage ??= new Dictionary<string, object>();
+        weapon ??= new Dictionary<string, object>();
+        var hitResult = GetString(attack, "hitResult").Trim().ToLowerInvariant() switch
+        {
+            "critical_hit" => "критическое попадание",
+            "hit" => "попадание",
+            "miss" => "промах",
+            "fumble" => "критическая неудача",
+            _ => "результат определён"
+        };
+        var degree = GetString(attack, "degreeOfSuccess").Trim().ToLowerInvariant() switch
+        {
+            "exceptional" => "исключительный успех",
+            "strong" => "сильный успех",
+            "ordinary" => "обычный успех",
+            "failure" => "неудача",
+            _ => "степень не определена"
+        };
+        var resourceLabel = GetString(damage, "resourceType").Trim().ToLowerInvariant() switch
+        {
+            "structure" => "Прочность",
+            "health" => "Здоровье",
+            _ => "Ресурс"
+        };
+        CombatResolutionText =
+            $"{FirstNonEmpty(GetString(weapon, "displayName"), SelectedCombatWeapon.Name)}\n" +
+            $"Цель: {SelectedCombatTarget.DisplayName}. Навык: {SelectedCombatSkillTrack.Name}.\n" +
+            $"Попадание: d20 {GetInt(attack, "naturalRoll")} + {GetInt(attack, "totalModifier"):+0;-0;0} = {GetInt(attack, "attackTotal")} против защиты {GetInt(attack, "targetDefense")} · {hitResult} · {degree}.\n" +
+            $"Пробитие: {GetInt(penetration, "totalPenetration")} против защиты {GetInt(penetration, "targetProtection")} · {(GetBool(penetration, "isPenetrated") ? "пробито" : "остановлено")}.\n" +
+            $"Урон: предотвращено {GetInt(damage, "damagePrevented")}, применено {GetInt(damage, "damageApplied")}.\n" +
+            $"{resourceLabel}: {GetInt(damage, "previousResource")} → {GetInt(damage, "currentResource")}.";
+        RefreshCombatSnapshot();
+    }
+
+    private void PrepareCombatAction()
+    {
+        CombatErrorMessage = string.Empty;
+        if (!CombatIsMyTurn || CombatMyParticipant == null)
+        {
+            CombatErrorMessage = "Подготовить действие можно только в свой ход.";
+            return;
+        }
+
+        var response = _api.CombatV1ActionDeclare(new Dictionary<string, object>
+        {
+            ["encounterId"] = CombatEncounterId,
+            ["actorParticipantId"] = CombatMyParticipant.ParticipantId,
+            ["actionType"] = "prepare",
+            ["actionName"] = "Подготовленное действие",
+            ["targetParticipantIds"] = SelectedCombatTarget == null ? Array.Empty<string>() : new[] { SelectedCombatTarget.ParticipantId },
+            ["payloadSummary"] = new Dictionary<string, object> { ["triggerDefinitionId"] = "visible_enemy_enters_reach" },
+            ["requestId"] = $"player-prepare-{CombatEncounterId}-{Guid.NewGuid():N}"
+        });
+        if (response.Status != ResponseStatus.Ok)
+        {
+            CombatErrorMessage = response.Message;
+            return;
+        }
+
+        CombatResolutionText = "Подготовленное действие объявлено: потрачены две половины действия; реакция сохранена до срабатывания условия.";
+        RefreshCombatSnapshot();
+    }
+
     private void ApplyCombatSnapshot(Dictionary<string, object> payload)
     {
+        if (payload.ContainsKey("hasActiveCombat") && !GetBool(payload, "hasActiveCombat"))
+        {
+            CombatEncounterName = "Бой не активен";
+            CombatEncounterStatus = "GM еще не начал бой.";
+            CombatCurrentTurnText = "Нет текущего хода.";
+            CombatParticipants.Clear();
+            CombatPublicLog.Clear();
+            CombatMyParticipant = null;
+            CombatWarningMessage = FirstNonEmpty(ToObjectList(payload.ContainsKey("warnings") ? payload["warnings"] : new ArrayList()).Cast<object?>().Select(x => x?.ToString() ?? string.Empty).FirstOrDefault() ?? string.Empty, "Активный бой не найден.");
+            return;
+        }
+
         var encounter = payload.ContainsKey("encounter") ? AsMap(payload["encounter"], CommandNames.CombatV1PlayerSnapshot) : null;
         if (encounter != null)
         {
-            CombatEncounterName = FirstNonEmpty(GetString(encounter, "name"), GetString(encounter, "encounterId"), "Combat");
-            CombatEncounterStatus = $"{GetString(encounter, "status")} | раунд {GetInt(encounter, "roundNumber")} | ход {GetInt(encounter, "activeTurnIndex")}";
+            CombatEncounterId = GetString(encounter, "encounterId");
+            CombatEncounterName = FirstNonEmpty(GetString(encounter, "name"), "Бой");
+            CombatEncounterStatus = $"{LocalizeCombatStatus(GetString(encounter, "status"))} | раунд {GetInt(encounter, "roundNumber")} | 5 секунд";
         }
 
         var currentTurn = payload.ContainsKey("currentTurn") ? AsMap(payload["currentTurn"], CommandNames.CombatV1PlayerSnapshot) : null;
-        if (currentTurn != null)
-        {
-            CombatIsMyTurn = GetBool(currentTurn, "isMyTurn");
-            CombatCurrentTurnText = $"Раунд {GetInt(currentTurn, "roundNumber")}, ход {GetInt(currentTurn, "turnIndex")}: {GetString(currentTurn, "activeParticipantName")}";
-        }
-
+        CombatCurrentTurnText = currentTurn == null ? "Текущий ход не назначен." : $"Текущий ход: {GetString(currentTurn, "activeParticipantName")}";
         var myParticipantMap = payload.ContainsKey("myParticipant") ? AsMap(payload["myParticipant"], CommandNames.CombatV1PlayerSnapshot) : null;
         CombatMyParticipant = myParticipantMap == null ? null : BuildCombatParticipant(myParticipantMap);
+        CombatIsMyTurn = CombatMyParticipant != null && string.Equals(CombatMyParticipant.TurnStatus, "active", StringComparison.OrdinalIgnoreCase);
 
         CombatKnownConditions.Clear();
         if (CombatMyParticipant != null)
@@ -2836,17 +4209,23 @@ public class PlayerMainViewModel : ViewModelBase
         }
 
         CombatParticipants.Clear();
-        foreach (var raw in ToObjectList(payload.ContainsKey("participants") ? payload["participants"] : new ArrayList()))
+        var currentParticipantId = currentTurn == null ? string.Empty : GetString(currentTurn, "activeParticipantId");
+        foreach (var raw in ToObjectList(payload.ContainsKey("participants") ? payload["participants"] : payload.ContainsKey("initiativeOrder") ? payload["initiativeOrder"] : new ArrayList()))
         {
-            var map = AsMap(raw, CommandNames.CombatV1PlayerSnapshot);
+            var map = AsMap(raw, CommandNames.CombatPlayerGetActiveForSession);
             if (map == null) continue;
-            CombatParticipants.Add(BuildCombatParticipant(map));
+            var participant = BuildCombatParticipant(map);
+            participant.IsCurrentTurn = !string.IsNullOrWhiteSpace(currentParticipantId) && string.Equals(participant.ParticipantId, currentParticipantId, StringComparison.OrdinalIgnoreCase);
+            CombatParticipants.Add(participant);
         }
+        SelectedCombatTarget = CombatParticipants.FirstOrDefault(participant =>
+            CombatMyParticipant == null || !string.Equals(participant.ParticipantId, CombatMyParticipant.ParticipantId, StringComparison.OrdinalIgnoreCase));
+        Notify(nameof(SelectedCombatTarget));
 
         CombatPublicLog.Clear();
         foreach (var raw in ToObjectList(payload.ContainsKey("publicLog") ? payload["publicLog"] : new ArrayList()))
         {
-            var map = AsMap(raw, CommandNames.CombatV1PlayerSnapshot);
+            var map = AsMap(raw, CommandNames.CombatPlayerGetActiveForSession);
             if (map == null) continue;
             CombatPublicLog.Add(BuildCombatLog(map));
         }
@@ -2859,6 +4238,19 @@ public class PlayerMainViewModel : ViewModelBase
         CombatLastRefreshText = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
     }
 
+    private static string LocalizeCombatStatus(string status)
+    {
+        return (status ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "setup" => "Подготовка",
+            "active" => "Активен",
+            "paused" => "Приостановлен",
+            "ended" => "Завершён",
+            "cancelled" => "Отменён",
+            _ => string.IsNullOrWhiteSpace(status) ? "Статус не указан" : status
+        };
+    }
+
     private PlayerCombatParticipantVm BuildCombatParticipant(Dictionary<string, object> map)
     {
         var participant = new PlayerCombatParticipantVm
@@ -2868,6 +4260,18 @@ public class PlayerMainViewModel : ViewModelBase
             DisplayName = FirstNonEmpty(GetString(map, "displayName"), GetString(map, "participantId")),
             TeamId = GetString(map, "teamId"),
             ParticipantType = GetString(map, "participantType"),
+            InitiativeRoll = GetInt(map, "initiative"),
+            InitiativeOrderIndex = GetInt(map, "initiativeOrderIndex"),
+            TurnStatus = GetBool(map, "isCurrentTurn") ? "active" : "pending",
+            StandardActions = GetInt(map, "halfActionsRemaining"),
+            MinorActions = 0,
+            ReactionAvailable = GetBool(map, "reactionAvailable"),
+            Natural20BonusTurn = GetBool(map, "natural20BonusTurn"),
+            Natural1FirstTurnPenalty = GetBool(map, "natural1FirstTurnPenalty"),
+            PublicStateText = GetString(map, "publicStateText"),
+            PublicNotes = GetString(map, "publicNotes"),
+            MapTokenId = GetString(map, "mapTokenId"),
+            MapTokenDisplayName = GetString(map, "mapTokenDisplayName"),
             IsCurrentTurn = GetBool(map, "isCurrentTurn"),
             IsActive = GetBool(map, "isActive"),
             IsDefeated = GetBool(map, "isDefeated"),
@@ -2877,6 +4281,7 @@ public class PlayerMainViewModel : ViewModelBase
             CurrentMorale = GetInt(map, "currentMorale"),
             MaxMorale = GetInt(map, "maxMorale"),
             VisibilityState = GetString(map, "visibilityState")
+            ,RacialMovementState = GetString(map, "racialMovementState")
         };
 
         foreach (var raw in ToObjectList(map.ContainsKey("knownConditions") ? map["knownConditions"] : new ArrayList()))
@@ -2886,7 +4291,7 @@ public class PlayerMainViewModel : ViewModelBase
             participant.KnownConditions.Add(new PlayerCombatConditionVm
             {
                 ConditionDefinitionId = GetString(condition, "conditionDefinitionId"),
-                DisplayName = FirstNonEmpty(GetString(condition, "displayName"), GetString(condition, "conditionDefinitionId")),
+                DisplayName = FirstNonEmpty(GetString(condition, "displayName"), "Состояние"),
                 Severity = GetString(condition, "severity"),
                 StackCount = GetInt(condition, "stackCount"),
                 RemainingRounds = GetInt(condition, "remainingRounds"),
@@ -2901,14 +4306,24 @@ public class PlayerMainViewModel : ViewModelBase
     private PlayerCombatLogVm BuildCombatLog(Dictionary<string, object> map)
     {
         var createdRaw = FirstNonEmpty(GetString(map, "createdAtUtc"), GetString(map, "createdUtc"));
+        var eventType = GetString(map, "eventType");
         return new PlayerCombatLogVm
         {
             CreatedAtText = FormatChatTimestamp(createdRaw),
             RoundNumber = GetInt(map, "roundNumber"),
             TurnIndex = GetInt(map, "turnIndex"),
-            EventType = GetString(map, "eventType"),
-            Message = GetString(map, "message")
+            EventType = eventType,
+            Message = LocalizeCombatLogMessage(GetString(map, "message"))
         };
+    }
+
+    private static string LocalizeCombatLogMessage(string message)
+    {
+        if (string.Equals(message, "Combat encounter started.", StringComparison.OrdinalIgnoreCase)) return "Бой начат.";
+        if (string.Equals(message, "Initiative order sorted.", StringComparison.OrdinalIgnoreCase)) return "Инициатива определена.";
+        if (message.StartsWith("Participant added: ", StringComparison.OrdinalIgnoreCase))
+            return "Участник добавлен: " + message.Substring("Participant added: ".Length);
+        return message;
     }
 
     private string ConnectionSettingsPath
@@ -3006,6 +4421,7 @@ public class PlayerMainViewModel : ViewModelBase
 
         try
         {
+            var wasAuthenticated = IsAuthenticated;
             _client.UpdateEndpoint(host, port);
             _client.Connect();
             ServerHostInput = host;
@@ -3015,8 +4431,14 @@ public class PlayerMainViewModel : ViewModelBase
             Notify(nameof(LastServerHost));
             Notify(nameof(LastServerPort));
             SaveConnectionSettings();
-            SetConnectedState();
+            if (wasAuthenticated)
+            {
+                _client.Lifecycle.MarkRestoringContext();
+                RenderRecoveryPhase();
+                RefreshAll();
+            }
             IsConnectionPopupOpen = false;
+            IsAuthPopupOpen = !wasAuthenticated;
             Notify(nameof(ServerHostInput));
             Notify(nameof(ServerPortInput));
             RefreshConnectionSummary();
@@ -3053,19 +4475,19 @@ public class PlayerMainViewModel : ViewModelBase
 
         if (string.IsNullOrWhiteSpace(host))
         {
-            error = "Нет текста сообщения";
+            error = "Укажите адрес сервера.";
             return false;
         }
 
         if (!string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) && !IPAddress.TryParse(host, out _))
         {
-            error = "Нет активного персонажа";
+            error = "Адрес сервера должен быть localhost или корректным IP-адресом.";
             return false;
         }
 
         if (!int.TryParse(ServerPortInput, NumberStyles.Integer, CultureInfo.InvariantCulture, out port) || port < 1 || port > 65535)
         {
-            error = "Нет подключения";
+            error = "Порт должен быть числом от 1 до 65535.";
             return false;
         }
 
@@ -3082,8 +4504,9 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void SetConnectedState()
     {
+        _client.Lifecycle.MarkReady(_applicationContext.LastAcceptedRevision);
         ConnectionState = "Онлайн";
-        ConnectionStatusDetail = $"Подключено к {ServerHostInput}:{ServerPortInput}";
+        ConnectionStatusDetail = "Подключение выполнено.";
         ClientLogService.Instance.Info("ui.player.dice.button state=enabled reason=ready");
         RefreshConnectionSummary();
         Notify(nameof(ConnectionStatusDetail));
@@ -3093,7 +4516,7 @@ public class PlayerMainViewModel : ViewModelBase
     {
         _client.Disconnect();
         ConnectionState = "Оффлайн";
-        ConnectionStatusDetail = message;
+        ConnectionStatusDetail = ToConnectionUserMessage(message, "Соединение с сервером отсутствует.");
         ClientLogService.Instance.Info("ui.player.dice.button state=disabled reason=not_authenticated");
         RefreshConnectionSummary();
         Notify(nameof(ConnectionStatusDetail));
@@ -3101,15 +4524,117 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void SetConnectionError(Exception ex)
     {
-        var message = ex switch
-        {
-            SocketException => "Нет соединения",
-            TimeoutException => "Сервер не ответил вовремя: timeout",
-            InvalidOperationException => "Операция сейчас недоступна",
-            _ => string.IsNullOrWhiteSpace(ex.Message) ? "Неизвестная ошибка подключения" : ex.Message
-        };
+        var message = ex is InvalidOperationException && ConnectionProblemMapper.IsSafeUserMessage(ex.Message)
+            ? ex.Message
+            : ConnectionProblemMapper.ToUserMessage(ex);
         ClientLogService.Instance.Error("Connection error", ex);
+        if (IsAuthenticated && _client.ConnectionGeneration > 0)
+        {
+            _client.Lifecycle.MarkTransportLost(message);
+            return;
+        }
         SetDisconnectedState(message);
+        IsConnectionPopupOpen = true;
+    }
+
+    private void AttemptReconnectRestore()
+    {
+        if (_reconnectInProgress || !IsAuthenticated || !_client.Lifecycle.CanAttemptReconnect(DateTime.UtcNow)) return;
+        _reconnectInProgress = true;
+        PerformanceTelemetry0214.Current.SetCounter("active_reconnect_loops", 1);
+        try
+        {
+            _client.Connect();
+            _client.Lifecycle.MarkAuthenticating();
+            ClientLogService.Instance.Info($"connection.reauthentication.start user={LoginText}");
+            var authentication = _api.Login(LoginText, PasswordText);
+            if (authentication.Status != ResponseStatus.Ok)
+            {
+                _client.Lifecycle.MarkSessionExpired(authentication.Message);
+                IsAuthPopupOpen = true;
+                Notify(nameof(IsAuthPopupOpen));
+                ClientLogService.Instance.Warn($"connection.reauthentication.failed user={LoginText} status={authentication.Status}");
+                return;
+            }
+            ClientLogService.Instance.Info($"connection.reauthentication.done user={LoginText}");
+            _client.Lifecycle.MarkRestoringContext();
+            ApplyRecoveryVisualState();
+            RenderRecoveryPhase();
+            ClientLogService.Instance.Info($"connection.restore.phase.rendered state={_client.Lifecycle.Current.State}");
+            RestoreActiveRouteAfterReauthentication();
+            if (_client.Lifecycle.Current.State != ConnectionLifecycleState.Ready)
+                throw new InvalidOperationException("Не удалось восстановить данные приложения.");
+            ClientLogService.Instance.Info($"connection.restore.done generation={_client.ConnectionGeneration} contextRevision={_applicationContext.LastAcceptedRevision}");
+        }
+        catch (Exception ex)
+        {
+            ClientLogService.Instance.Warn($"connection.restore.pending generation={_client.ConnectionGeneration} message={ex.Message}");
+            _client.Lifecycle.MarkTransportLost(ConnectionProblemMapper.ToUserMessage(ex));
+        }
+        finally
+        {
+            _reconnectInProgress = false;
+            PerformanceTelemetry0214.Current.SetCounter("active_reconnect_loops", 0);
+        }
+    }
+
+    private void OnConnectionLifecycleChanged(object? sender, ConnectionLifecycleChangedEventArgs args)
+    {
+        void Apply()
+        {
+            var current = args.Current;
+            ConnectionState = current.State switch
+            {
+                ConnectionLifecycleState.Reconnecting => "Повторное подключение",
+                ConnectionLifecycleState.RestoringContext => "Восстановление контекста",
+                ConnectionLifecycleState.RestoringModules => "Обновление данных",
+                ConnectionLifecycleState.SessionExpired => "Сессия завершена",
+                ConnectionLifecycleState.Ready => "Онлайн",
+                ConnectionLifecycleState.Disconnected => "Оффлайн",
+                _ => current.ReadableStatus
+            };
+            ConnectionStatusDetail = current.IsStaleReadOnly
+                ? "Соединение потеряно. Показанные данные доступны только для чтения."
+                : current.ReadableStatus;
+            Notify(nameof(ConnectionStatusDetail));
+            Notify(nameof(ReconnectStatusText));
+            Notify(nameof(IsConnectionRecovering));
+            Notify(nameof(IsConnectionStaleReadOnly));
+            Notify(nameof(AreServerMutationsEnabled));
+            Notify(nameof(IsOnline));
+            Notify(nameof(IsAuthenticated));
+        }
+
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess()) dispatcher.BeginInvoke((Action)Apply);
+        else Apply();
+    }
+
+    private static void RenderRecoveryPhase()
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher == null) return;
+        if (!dispatcher.CheckAccess())
+        {
+            dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, new Action(() => { }));
+            return;
+        }
+
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
+            new Action(() => frame.Continue = false));
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
+    }
+
+    private void ApplyRecoveryVisualState()
+    {
+        ConnectionState = "Восстановление контекста";
+        ConnectionStatusDetail = "Соединение восстановлено. Обновляем актуальные данные приложения.";
+        Notify(nameof(ConnectionStatusDetail));
+        Notify(nameof(ReconnectStatusText));
+        Notify(nameof(IsConnectionRecovering));
+        Notify(nameof(IsConnectionStaleReadOnly));
+        Notify(nameof(AreServerMutationsEnabled));
     }
 
     private static bool IsConnectionLevelException(Exception ex)
@@ -3122,30 +4647,42 @@ public class PlayerMainViewModel : ViewModelBase
     private static bool LooksLikeUnauthorized(string? message)
     {
         if (string.IsNullOrWhiteSpace(message)) return false;
-        return message.IndexOf("unauthorized", StringComparison.OrdinalIgnoreCase) >= 0
-               || message.IndexOf("auth token is invalid", StringComparison.OrdinalIgnoreCase) >= 0
-               || message.IndexOf("invalid token", StringComparison.OrdinalIgnoreCase) >= 0
-               || message.IndexOf("token", StringComparison.OrdinalIgnoreCase) >= 0
-                  && message.IndexOf("invalid", StringComparison.OrdinalIgnoreCase) >= 0;
+        var normalized = message!;
+        return normalized.IndexOf("unauthorized", StringComparison.OrdinalIgnoreCase) >= 0
+               || normalized.IndexOf("auth token is invalid", StringComparison.OrdinalIgnoreCase) >= 0
+               || normalized.IndexOf("invalid token", StringComparison.OrdinalIgnoreCase) >= 0
+               || normalized.IndexOf("token", StringComparison.OrdinalIgnoreCase) >= 0
+                  && normalized.IndexOf("invalid", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private void HandleUnauthorizedState(string source, string? message)
     {
         _poller.Stop();
+        PerformanceTelemetry0214.Current.SetCounter("active_pollers", 0);
         _session.AuthToken = null;
         PlayerDisplayName = "Гость";
         Notify(nameof(PlayerDisplayName));
         Notify(nameof(IsAuthenticated));
         ClientLogService.Instance.Warn($"player.auth.unauthorized source={source} message={message}");
-        SetDisconnectedState("Сессия истекла. Войдите снова.");
+        SetDisconnectedState(ConnectionProblemMapper.ToUserMessage(
+            message,
+            "Сеанс входа завершён. Войдите в учётную запись снова."));
+        IsConnectionPopupOpen = false;
+        IsAuthPopupOpen = true;
     }
 
     private void RefreshConnectionSummary()
     {
-        SessionSummary = $"Сервер: {ServerHostInput}:{ServerPortInput}";
+        SessionSummary = IsAuthenticated
+            ? FirstNonEmpty(ApplicationContext.CampaignSessionSummary, "Контекст кампании загружается")
+            : "Подключение к кампании";
         Notify(nameof(SessionSummary));
+        Notify(nameof(ApplicationContextStatusText));
         Notify(nameof(ConnectedEndpointDisplay));
     }
+
+    private static string ToConnectionUserMessage(string? detail, string fallback)
+        => ConnectionProblemMapper.ToUserMessage(detail, fallback);
 
     private void RefreshAudioState()
     {
@@ -3554,7 +5091,23 @@ public class PlayerMainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(SelectedCharacterId)) return;
 
-        var tree = _api.DevelopmentPlayerHexagonGet(SelectedCharacterId);
+        LoadInitialDevelopment02112();
+        if (IsInitialDevelopmentPending) return;
+
+        _loadingDevelopmentProjection = true;
+        var tree = _api.DevelopmentHexagonPlayerGetProductProjection(
+            SelectedCharacterId,
+            SelectedDevelopmentHexagonId,
+            _developmentProductViewMode,
+            _developmentViewerFocusedDirectionKey,
+            _developmentProductPathKey);
+        if (tree.Status != ResponseStatus.Ok)
+        {
+            _loadingDevelopmentProjection = false;
+            DevelopmentStatusText = FirstNonEmpty(tree.Message, "Карта развития пока недоступна.");
+            return;
+        }
+        _developmentProfileRevision = ParseInt(GetString(tree.Payload, "profileRevision"), 0);
         var available = new HashSet<string>();
         var acquired = new HashSet<string>();
         var serverNodes = new List<ClassNodeVisualVm>();
@@ -3587,7 +5140,7 @@ public class PlayerMainViewModel : ViewModelBase
             if (string.IsNullOrWhiteSpace(nodeId)) continue;
             if (GetBool(map, "acquired") || GetBool(map, "isPurchased")) acquired.Add(nodeId);
             else if (GetBool(map, "available") || GetBool(map, "canPurchase")) available.Add(nodeId);
-            var title = FirstNonEmpty(GetString(map, "name"), nodeId);
+            var title = GetString(map, "name");
             var stateRaw = FirstNonEmpty(GetString(map, "state"), GetString(map, "status"));
             var state = nodeId == "novice" ? "Start" : FormatDevelopmentNodeState(stateRaw, acquired.Contains(nodeId), available.Contains(nodeId));
             var cost = ParseInt(FirstNonEmpty(GetString(map, "cost"), GetString(map, "costExperienceCoins")), 0);
@@ -3601,6 +5154,9 @@ public class PlayerMainViewModel : ViewModelBase
             var visualNode = new ClassNodeVisualVm
             {
                 NodeId = nodeId,
+                PresentationKey = FirstNonEmpty(GetString(map, "presentationKey"), nodeId),
+                PresentationKind = FirstNonEmpty(GetString(map, "presentationKind"), "Path"),
+                CanonicalNodeId = FirstNonEmpty(GetString(map, "canonicalNodeId"), nodeId),
                 HexagonId = FirstNonEmpty(GetString(map, "hexagonId"), DevelopmentHexagonIds.Main),
                 HexagonName = PlayerDevelopmentGraphDisplay.ToReadableText(FirstNonEmpty(GetString(map, "hexagonName"), "Основной шестиугольник развития")),
                 NodeTypeLabel = PlayerDevelopmentGraphDisplay.ToReadableType(FirstNonEmpty(GetString(map, "nodeTypeLabel"), GetString(map, "nodeType"), "Узел развития")),
@@ -3609,24 +5165,34 @@ public class PlayerMainViewModel : ViewModelBase
                 Title = PlayerDevelopmentGraphDisplay.ToReadableNodeTitle(title, nodeId),
                 State = PlayerDevelopmentGraphDisplay.ToReadableState(state),
                 CostExperienceCoins = cost,
-                CostText = PlayerDevelopmentGraphDisplay.ToReadableCost(cost, currencyId),
+                IsCostResolved = GetBool(map, "costResolved"),
+                CostText = FirstNonEmpty(GetString(map, "costDisplay"), GetBool(map, "costResolved") ? PlayerDevelopmentGraphDisplay.ToReadableCost(cost, currencyId) : "Стоимость развития пока не утверждена."),
+                KnownDecisionSummary = PlayerDevelopmentGraphDisplay.ToReadableText(GetString(map, "knownDecisionSummary")),
                 Summary = PlayerDevelopmentGraphDisplay.ToReadableText(FirstNonEmpty(GetString(map, "description"), reward)),
                 RequirementSummary = PlayerDevelopmentGraphDisplay.ToReadableText(requirements),
                 RewardSummary = PlayerDevelopmentGraphDisplay.ToReadableText(reward),
                 RequiredNodeIds = requiredNodeIds,
+                RequiredCanonicalNodeIds = JoinObjectList(map, "requiredCanonicalNodeIds"),
                 LinkedClassId = PlayerDevelopmentGraphDisplay.ToReadableText(FirstNonEmpty(GetString(map, "linkedClassId"), GetString(map, "classId"))),
                 CurrencyId = currencyId,
                 PositionX = positionX,
                 PositionY = positionY,
                 Ring = ParseInt(GetString(map, "ring"), 0),
+                Tier = ParseInt(FirstNonEmpty(GetString(map, "tier"), GetString(map, "level")), 0),
+                MaxTier = ParseInt(GetString(map, "maxTier"), 20),
+                VisibleRankMin = ParseInt(GetString(map, "visibleRankMin"), 1),
                 Sector = ParseInt(GetString(map, "sector"), 0),
                 SortOrder = ParseInt(GetString(map, "sortOrder"), 0),
                 LayoutVersion = ParseInt(GetString(map, "layoutVersion"), 0),
                 CanPurchase = GetBool(map, "canPurchase") || available.Contains(nodeId),
-                RequiresRequest = GetBool(map, "requiresPlayerRequest") || GetBool(map, "requiresGMApproval"),
+                RequiresRequest = GetBool(map, "requiresPlayerRequest"),
+                RequiresGMApproval = GetBool(map, "requiresGMApproval"),
                 X = positionX,
                 Y = positionY
             };
+            if (string.Equals(visualNode.PresentationKind, "Root", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(visualNode.PresentationKind, "Direction", StringComparison.OrdinalIgnoreCase))
+                continue;
             PlayerDevelopmentLayoutVisualRules.ApplyNodeSize(visualNode);
             if (PlayerDevelopmentLayoutVisualRules.IsDiagnosticToken(visualNode.NodeId, visualNode.Title, visualNode.NodeTypeLabel, visualNode.BranchKey, visualNode.DirectionKey))
                 continue;
@@ -3658,14 +5224,64 @@ public class PlayerMainViewModel : ViewModelBase
         Notify(nameof(DevelopmentHexagons));
         Notify(nameof(SelectedDevelopmentHexagonDisplay));
         Notify(nameof(DevelopmentTreeModeOverlayText));
+        Notify(nameof(DevelopmentProductViewModeDisplay));
+        _loadingDevelopmentProjection = false;
         RebuildClassNavigation();
-        if (!string.IsNullOrWhiteSpace(SelectedClassNodeId))
-        {
-            TrySelectClassNodeById(SelectedClassNodeId, updateStatus: false);
-        }
+        RestoreDevelopmentSpatialSelectionAfterProjection();
+        RebuildDevelopmentSpatialProduct();
 
         SkillRows.Clear();
         SkillCatalogRows.Clear();
+        DevelopmentSkillTracks.Clear();
+
+        var developmentSkills = _api.SkillsList(SelectedCharacterId);
+        if (developmentSkills.Status == ResponseStatus.Ok && developmentSkills.Payload.TryGetValue("items", out var developmentItems) && developmentItems is IList developmentList)
+        {
+            foreach (var item in developmentList)
+            {
+                var map = AsMap(item, CommandNames.SkillsList);
+                if (map == null || !GetBool(map, "acquired") || !GetBool(map, "available")) continue;
+                var techniques = new List<string>();
+                if (map.TryGetValue("techniques", out var rawTechniques) && rawTechniques is IList techniqueList)
+                {
+                    foreach (var rawTechnique in techniqueList)
+                    {
+                        var technique = AsMap(rawTechnique, CommandNames.SkillsList);
+                        if (technique == null) continue;
+                        var techniqueName = GetString(technique, "name");
+                        if (!string.IsNullOrWhiteSpace(techniqueName)) techniques.Add(techniqueName);
+                    }
+                }
+                var milestoneText = "Следующая веха не задана.";
+                if (map.TryGetValue("nextMilestone", out var rawMilestone))
+                {
+                    var milestone = AsMap(rawMilestone, CommandNames.SkillsList);
+                    if (milestone != null && !string.IsNullOrWhiteSpace(GetString(milestone, "name")))
+                        milestoneText = $"Ранг {ParseInt(GetString(milestone, "rank"), 0)}: {GetString(milestone, "name")}";
+                }
+                DevelopmentSkillTracks.Add(new DevelopmentSkillTrackVm
+                {
+                    SkillCode = GetString(map, "skillId"),
+                    Name = FirstNonEmpty(GetString(map, "name"), "Навык"),
+                    SourcePathName = GetString(map, "sourcePathName"),
+                    DefaultAttribute = GetString(map, "defaultAttribute"),
+                    DefaultSubAttribute = GetString(map, "defaultSubAttribute"),
+                    Rank = ParseInt(GetString(map, "rank"), 0),
+                    RankMax = ParseInt(GetString(map, "rankMax"), 20),
+                    MasteryBand = FirstNonEmpty(GetString(map, "masteryBand"), "Без подготовки"),
+                    ProficiencyBonus = ParseInt(GetString(map, "proficiencyBonus"), 0),
+                    NextMilestone = milestoneText,
+                    Techniques = techniques.Count == 0 ? "Приёмы пока не открыты." : string.Join(" · ", techniques),
+                    Requirement = GetString(map, "reason")
+                });
+            }
+            SelectedCombatSkillTrack ??= DevelopmentSkillTracks.FirstOrDefault();
+            Notify(nameof(SelectedCombatSkillTrack));
+        }
+        Notify(nameof(DevelopmentSkillTracks));
+        Notify(nameof(DevelopmentInspectorVisibility));
+        Notify(nameof(DevelopmentInspectorTitle));
+        Notify(nameof(DevelopmentInspectorSummary));
 
         var catalog = _api.ProgressionAvailableSkills(SelectedCharacterId);
         var catalogPayloadKeys = string.Join(",", catalog.Payload.Keys.OrderBy(key => key, StringComparer.Ordinal));
@@ -3753,6 +5369,8 @@ public class PlayerMainViewModel : ViewModelBase
             ClientLogService.Instance.Info($"activeCharacter.skills.placeholder hidden={placeholderHidden.ToString().ToLowerInvariant()}");
             _lastSkillsPlaceholderHidden = placeholderHidden;
         }
+        if (!string.IsNullOrWhiteSpace(_developmentOutcomeStatus))
+            DevelopmentStatusText = _developmentOutcomeStatus;
     }
 
     private void RebuildDevelopmentCanvasLinks()
@@ -3834,8 +5452,8 @@ public class PlayerMainViewModel : ViewModelBase
         DevelopmentViewerCanonicalDirections.Clear();
         DevelopmentViewerCanonicalLanes.Clear();
 
-        const double rootWidth = 320;
-        const double rootHeight = 184;
+        const double rootWidth = 220;
+        const double rootHeight = 108;
 
         var rootNode = FindPlayerDevelopmentCanonicalRootNode(SelectedDevelopmentHexagonId);
         var centerX = rootNode == null
@@ -3874,20 +5492,20 @@ public class PlayerMainViewModel : ViewModelBase
                 .Where(item => PlayerNodeMatchesCanonicalDirection(item.Node, direction.DirectionId))
                 .ToList();
             var farthest = matching.Count == 0
-                ? 680
-                : Math.Max(680, matching.Max(item => (item.X - centerX) * normalX + (item.Y - centerY) * normalY) + 160);
-            farthest = Math.Min(farthest, 940);
+                ? 260
+                : Math.Max(260, matching.Max(item => (item.X - centerX) * normalX + (item.Y - centerY) * normalY) + 40);
+            farthest = Math.Min(farthest, 360);
 
             var isFocused = string.IsNullOrWhiteSpace(DevelopmentViewerFocusedDirectionKey) ||
                             string.Equals(DevelopmentViewerFocusedDirectionKey, direction.DirectionId, StringComparison.OrdinalIgnoreCase);
-            var anchorWidth = 190.0;
-            var anchorHeight = 86.0;
+            var anchorWidth = 140.0;
+            var anchorHeight = 50.0;
             DevelopmentViewerCanonicalLanes.Add(new PlayerDevelopmentCanonicalLaneVm
             {
                 DirectionId = direction.DirectionId,
                 SideIndex = direction.SideIndex,
-                X1 = centerX + normalX * 178,
-                Y1 = centerY + normalY * 178,
+                X1 = centerX + normalX * 110,
+                Y1 = centerY + normalY * 110,
                 X2 = centerX + normalX * farthest,
                 Y2 = centerY + normalY * farthest,
                 Opacity = isFocused ? 0.76 : 0.18,
@@ -3899,8 +5517,8 @@ public class PlayerMainViewModel : ViewModelBase
                 SideIndex = direction.SideIndex,
                 DisplayName = direction.DisplayName,
                 AtmosphericName = direction.AtmosphericName,
-                AnchorX = centerX + normalX * 360 - anchorWidth / 2.0,
-                AnchorY = centerY + normalY * 360 - anchorHeight / 2.0,
+                AnchorX = centerX + normalX * 145 - anchorWidth / 2.0,
+                AnchorY = centerY + normalY * 145 - anchorHeight / 2.0,
                 AnchorWidth = anchorWidth,
                 AnchorHeight = anchorHeight,
                 IsFocused = isFocused
@@ -3938,12 +5556,14 @@ public class PlayerMainViewModel : ViewModelBase
 
     private string ResolvePlayerDevelopmentCanonicalRootLabel(string hexagonId, ClassNodeVisualVm? rootNode)
     {
+        if (string.Equals(hexagonId, DevelopmentHexagonIds.Main, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(hexagonId, DevelopmentHexagonIds.Magic, StringComparison.OrdinalIgnoreCase))
+            return DevelopmentProductProjectionPolicy0215.RootLabel(hexagonId);
+
         var centerName = string.Empty;
         if (_developmentViewerHexagonPayloads.TryGetValue(hexagonId, out var payload))
             centerName = GetString(payload, "centerNodeName");
 
-        if (string.Equals(hexagonId, DevelopmentHexagonIds.Magic, StringComparison.OrdinalIgnoreCase))
-            return FirstNonEmpty(rootNode?.DisplayTitle ?? string.Empty, centerName, "Источник магии");
         if (string.Equals(hexagonId, DevelopmentHexagonIds.LargeTest0154, StringComparison.OrdinalIgnoreCase))
             return FirstNonEmpty(rootNode?.DisplayTitle ?? string.Empty, centerName, "Большое дерево");
         return FirstNonEmpty(rootNode?.DisplayTitle ?? string.Empty, centerName, "Новичок");
@@ -3996,12 +5616,12 @@ public class PlayerMainViewModel : ViewModelBase
     private static IReadOnlyList<PlayerCanonicalDirectionDefinition> BuildDefaultPlayerMagicCanonicalDirections()
         => new[]
         {
-            new PlayerCanonicalDirectionDefinition("magic_mana", "Мана", "Поток", 0, -90),
-            new PlayerCanonicalDirectionDefinition("magic_spell", "Заклинания", "Форма", 1, -30),
-            new PlayerCanonicalDirectionDefinition("magic_seal", "Печати", "Знак", 2, 30),
-            new PlayerCanonicalDirectionDefinition("magic_arcana", "Аркана", "Глубина", 3, 90),
-            new PlayerCanonicalDirectionDefinition("magic_element_fire", "Стихия огня", "Пламя", 4, 150),
-            new PlayerCanonicalDirectionDefinition("magic_direction_light", "Направление света", "Свет", 5, -150)
+            new PlayerCanonicalDirectionDefinition("magic_methods", "Методы магии", string.Empty, 0, -90),
+            new PlayerCanonicalDirectionDefinition("magic_element_water", "Вода", string.Empty, 1, -30),
+            new PlayerCanonicalDirectionDefinition("magic_element_earth", "Земля", string.Empty, 2, 30),
+            new PlayerCanonicalDirectionDefinition("magic_element_fire", "Огонь", string.Empty, 3, 90),
+            new PlayerCanonicalDirectionDefinition("magic_element_air", "Воздух", string.Empty, 4, 150),
+            new PlayerCanonicalDirectionDefinition("magic_special", "Особые направления", string.Empty, 5, -150)
         };
 
     private static IReadOnlyList<PlayerCanonicalDirectionDefinition> BuildPlayerCanonicalDirectionsFromPayload(Dictionary<string, object> payload)
@@ -4018,8 +5638,8 @@ public class PlayerMainViewModel : ViewModelBase
                 : Math.Max(0, ParseInt(GetString(map, "sideIndex"), result.Count));
             result.Add(new PlayerCanonicalDirectionDefinition(
                 directionId,
-                FirstNonEmpty(GetString(map, "name"), GetString(map, "displayName"), directionId),
-                FirstNonEmpty(GetString(map, "atmosphericName"), GetString(map, "subtitle"), GetString(map, "secondaryName")),
+                CanonicalDirectionPrimaryName(directionId, FirstNonEmpty(GetString(map, "name"), GetString(map, "displayName"))),
+                CanonicalDirectionSecondaryName(directionId, FirstNonEmpty(GetString(map, "atmosphericName"), GetString(map, "subtitle"), GetString(map, "secondaryName"))),
                 sideIndex,
                 ParseDouble(FirstNonEmpty(GetString(map, "angleDegrees"), GetString(map, "angle")), PlayerCanonicalAngleForSide(sideIndex))));
         }
@@ -4242,6 +5862,7 @@ public class PlayerMainViewModel : ViewModelBase
         SelectedClassEntry = entry;
         if (updateStatus)
         {
+            _developmentOutcomeStatus = string.Empty;
             DevelopmentStatusText = $"Выбран узел развития: {entry.Title}";
         }
 
@@ -4250,6 +5871,7 @@ public class PlayerMainViewModel : ViewModelBase
 
     private void BuySelectedClassNode()
     {
+        _developmentOutcomeStatus = string.Empty;
         if (string.IsNullOrWhiteSpace(SelectedCharacterId) || string.IsNullOrWhiteSpace(SelectedClassNodeId))
         {
             DevelopmentStatusText = "Выберите узел развития.";
@@ -4262,11 +5884,50 @@ public class PlayerMainViewModel : ViewModelBase
             return;
         }
 
-        var response = _api.DevelopmentPlayerPurchase(SelectedCharacterId, SelectedClassNodeId, FirstNonEmpty(SelectedClassEntry?.HexagonId ?? string.Empty, SelectedDevelopmentHexagonId));
-        DevelopmentStatusText = response.Status == ResponseStatus.Ok
-            ? "Узел развития куплен."
-            : FirstNonEmpty(response.Message, "Не удалось купить узел развития.");
+        var nodeName = SelectedClassEntry?.DisplayTitle ?? "выбранный узел";
+        var confirmation = System.Windows.MessageBox.Show(
+            $"Купить «{nodeName}» за {SelectedClassEntryCost}? Сервер повторно проверит стоимость и требования.",
+            "Подтверждение развития",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+        if (confirmation != System.Windows.MessageBoxResult.Yes)
+        {
+            DevelopmentStatusText = "Покупка отменена. Изменений нет.";
+            return;
+        }
+
+        var operationId = $"development-{SelectedCharacterId}-{FirstNonEmpty(SelectedClassEntry?.PresentationKey ?? string.Empty, SelectedClassNodeId)}-{_developmentProfileRevision}";
+        var response = _api.DevelopmentHexagonPlayerAdvanceProductPath(
+            SelectedCharacterId,
+            FirstNonEmpty(SelectedClassEntry?.HexagonId ?? string.Empty, SelectedDevelopmentHexagonId),
+            FirstNonEmpty(SelectedClassEntry?.PresentationKey ?? string.Empty, SelectedClassNodeId),
+            _developmentProfileRevision,
+            operationId);
+        var outcomeStatus = response.Status == ResponseStatus.Ok
+            ? "Путь развития обновлён."
+            : FirstNonEmpty(response.Message, "Не удалось обновить путь развития.");
+        _developmentOutcomeStatus = outcomeStatus;
         LoadClassAndSkills();
+        DevelopmentStatusText = outcomeStatus;
+    }
+
+    private void SetDevelopmentProductView(string mode, string directionKey = "", string pathKey = "")
+    {
+        _developmentOutcomeStatus = string.Empty;
+        var normalizedMode = string.IsNullOrWhiteSpace(mode) ? "overview" : mode;
+        SynchronizeDevelopmentSpatialSelection(normalizedMode, directionKey, pathKey);
+        _developmentProductViewMode = normalizedMode;
+        _developmentProductPathKey = pathKey ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(directionKey))
+            _developmentViewerFocusedDirectionKey = directionKey;
+        else if (_developmentProductViewMode == "overview")
+            _developmentViewerFocusedDirectionKey = string.Empty;
+        Notify(nameof(DevelopmentViewerFocusedDirectionKey));
+        Notify(nameof(DevelopmentProductViewModeDisplay));
+        Notify(nameof(DevelopmentTreeModeOverlayText));
+        RebuildDevelopmentSpatialProduct();
+        if (!string.IsNullOrWhiteSpace(SelectedCharacterId))
+            LoadClassAndSkills();
     }
 
     private void RequestUnlockNode()
@@ -4304,7 +5965,8 @@ public class PlayerMainViewModel : ViewModelBase
         }
         var total = response.Payload.ContainsKey("totalBonus") ? Convert.ToString(response.Payload["totalBonus"]) : string.Empty;
         var breakdown = response.Payload.ContainsKey("breakdown") ? Convert.ToString(response.Payload["breakdown"]) : string.Empty;
-        DiceFeedRows.Insert(0, $"Проверка навыка {skillCode}: бонус {total}. {breakdown}");
+        var skillName = FirstNonEmpty(SelectedSkillRow?.DisplayName ?? string.Empty, "Навык");
+        DiceFeedRows.Insert(0, $"Проверка навыка «{skillName}»: бонус {total}. {breakdown}");
         ClientLogService.Instance.Info($"player.skillCheck.done skill={skillCode} subAttribute={subAttributeId} totalBonus={total}");
         RefreshDiceAndRequests();
     }
@@ -4312,12 +5974,12 @@ public class PlayerMainViewModel : ViewModelBase
     private void InitializeClassVisualLayout()
     {
         ClassDirections.Clear();
-        ClassDirections.Add(new ClassDirectionVm { Key = "strength_assault", Label = "Сила - Натиск", Summary = "Силовое направление для ударов, удержания и прорыва." });
-        ClassDirections.Add(new ClassDirectionVm { Key = "dexterity_maneuver", Label = "Ловкость - Манёвр", Summary = "Уклонение, мобильность и точные действия." });
-        ClassDirections.Add(new ClassDirectionVm { Key = "endurance_resilience", Label = "Выносливость - Стойкость", Summary = "Защита, живучесть и сопротивление давлению." });
-        ClassDirections.Add(new ClassDirectionVm { Key = "intellect_reason", Label = "Интеллект - Разум", Summary = "Анализ, ремесло, техника и сложные решения." });
-        ClassDirections.Add(new ClassDirectionVm { Key = "wisdom_path", Label = "Мудрость - Путь", Summary = "Внимание, интуиция и устойчивые практики." });
-        ClassDirections.Add(new ClassDirectionVm { Key = "charisma_influence", Label = "Харизма - Влияние", Summary = "Переговоры, лидерство и социальное давление." });
+        ClassDirections.Add(new ClassDirectionVm { Key = "strength_assault", Label = "Сила — Натиск", Summary = "Силовое направление для ударов, удержания и прорыва." });
+        ClassDirections.Add(new ClassDirectionVm { Key = "dexterity_maneuver", Label = "Ловкость — Манёвр", Summary = "Уклонение, мобильность и точные действия." });
+        ClassDirections.Add(new ClassDirectionVm { Key = "endurance_resilience", Label = "Выносливость — Стойкость", Summary = "Защита, живучесть и сопротивление давлению." });
+        ClassDirections.Add(new ClassDirectionVm { Key = "intellect_reason", Label = "Интеллект — Разум", Summary = "Анализ, ремесло, техника и сложные решения." });
+        ClassDirections.Add(new ClassDirectionVm { Key = "wisdom_path", Label = "Мудрость — Путь", Summary = "Внимание, интуиция и устойчивые практики." });
+        ClassDirections.Add(new ClassDirectionVm { Key = "charisma_influence", Label = "Харизма — Влияние", Summary = "Переговоры, лидерство и социальное давление." });
 
         ClassNodes.Clear();
         ClassNodes.Add(new ClassNodeVisualVm { NodeId = "novice", Title = "", State = "Start", X = 190, Y = 120 });
@@ -4465,9 +6127,9 @@ public class PlayerMainViewModel : ViewModelBase
         EnsureCompanionsPlaceholder();
         SelectedCompanion = Companions.FirstOrDefault();
         EnsureCollectionPlaceholder(NoteRows, "Нет заметок");
-        EnsureCollectionPlaceholder(CharacterKnowledgeRows, "Статус: Недоступно / Отложено • Причина: знания персонажа ещё не раскрыты сервером • Target: 0.15");
-        EnsureCollectionPlaceholder(CharacterResearchRows, "Статус: Недоступно / Отложено • Причина: исследования персонажа ещё не подключены к рабочему player-safe потоку • Target: 0.15");
-        EnsureCollectionPlaceholder(CharacterCraftingRows, "Статус: Недоступно / Отложено • Причина: крафт персонажа ещё не подключён к рабочему player-safe потоку • Target: 0.15");
+        EnsureCollectionPlaceholder(CharacterKnowledgeRows, "Языки и сведения пока не добавлены этому персонажу.");
+        EnsureCollectionPlaceholder(CharacterResearchRows, "Исследования пока не добавлены этому персонажу.");
+        EnsureCollectionPlaceholder(CharacterCraftingRows, "Рецепты и работы пока не добавлены этому персонажу.");
         RefreshLocalNotesForCurrentCharacter();
         RebuildStatGroups();
         RebuildClassNavigation();
@@ -4519,7 +6181,7 @@ public class PlayerMainViewModel : ViewModelBase
             ClassDirections.Add(new ClassDirectionVm
             {
                 Key = string.Equals(activeHexagonId, DevelopmentHexagonIds.Magic, StringComparison.OrdinalIgnoreCase) ? "magic_root" : "strength_assault",
-                Label = string.Equals(activeHexagonId, DevelopmentHexagonIds.Magic, StringComparison.OrdinalIgnoreCase) ? "Пробуждение" : "Сила - Натиск",
+                Label = string.Equals(activeHexagonId, DevelopmentHexagonIds.Magic, StringComparison.OrdinalIgnoreCase) ? "Пробуждение" : "Сила — Натиск",
                 Summary = "Направления развития пока не загружены."
             });
         }
@@ -4535,12 +6197,12 @@ public class PlayerMainViewModel : ViewModelBase
     {
         return (key ?? string.Empty).Trim().ToLowerInvariant() switch
         {
-            "strength_assault" => "Сила - Натиск",
-            "dexterity_maneuver" => "Ловкость - Манёвр",
-            "endurance_resilience" => "Выносливость - Стойкость",
-            "intellect_reason" => "Интеллект - Разум",
-            "wisdom_path" => "Мудрость - Путь",
-            "charisma_influence" => "Харизма - Влияние",
+            "strength_assault" => "Сила — Натиск",
+            "dexterity_maneuver" => "Ловкость — Манёвр",
+            "endurance_resilience" => "Выносливость — Стойкость",
+            "intellect_reason" => "Интеллект — Разум",
+            "wisdom_path" => "Мудрость — Путь",
+            "charisma_influence" => "Харизма — Влияние",
             "magic_root" => "Пробуждение",
             "magic_mana" => "Мана",
             "magic_spell" => "Заклинания",
@@ -4548,9 +6210,33 @@ public class PlayerMainViewModel : ViewModelBase
             "magic_arcana" => "Аркана",
             "magic_element_fire" => "Стихия огня",
             "magic_direction_light" => "Направление света",
-            _ => string.IsNullOrWhiteSpace(key) ? "Направление" : PlayerDevelopmentGraphDisplay.ToReadableText(key)
+            _ => "Направление не настроено"
         };
     }
+
+    private static string CanonicalDirectionPrimaryName(string directionId, string suppliedName)
+        => (directionId ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "strength_assault" => "Сила",
+            "dexterity_maneuver" => "Ловкость",
+            "endurance_resilience" => "Выносливость",
+            "intellect_reason" => "Интеллект",
+            "wisdom_path" => "Мудрость",
+            "charisma_influence" => "Харизма",
+            _ => string.IsNullOrWhiteSpace(suppliedName) ? "Направление не настроено" : suppliedName
+        };
+
+    private static string CanonicalDirectionSecondaryName(string directionId, string suppliedName)
+        => (directionId ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "strength_assault" => "Натиск",
+            "dexterity_maneuver" => "Манёвр",
+            "endurance_resilience" => "Стойкость",
+            "intellect_reason" => "Разум",
+            "wisdom_path" => "Путь",
+            "charisma_influence" => "Влияние",
+            _ => suppliedName
+        };
 
     private void RebuildClassNavigation()
     {
@@ -4631,6 +6317,9 @@ public class PlayerMainViewModel : ViewModelBase
                 ClassEntries.Add(new ClassEntryVm
                 {
                     NodeId = node.NodeId,
+                    PresentationKey = node.PresentationKey,
+                    PresentationKind = node.PresentationKind,
+                    CanonicalNodeId = node.CanonicalNodeId,
                     HexagonId = node.HexagonId,
                     HexagonName = node.HexagonName,
                     NodeTypeLabel = node.NodeTypeLabel,
@@ -4642,18 +6331,25 @@ public class PlayerMainViewModel : ViewModelBase
                     RequirementSummary = node.RequirementSummary,
                     RewardSummary = node.RewardSummary,
                     RequiredNodeIds = node.RequiredNodeIds,
+                    RequiredCanonicalNodeIds = node.RequiredCanonicalNodeIds,
                     LinkedClassId = node.LinkedClassId,
                     CurrencyId = node.CurrencyId,
                     PositionX = node.PositionX,
                     PositionY = node.PositionY,
                     Ring = node.Ring,
+                    Tier = node.Tier,
+                    MaxTier = node.MaxTier,
+                    VisibleRankMin = node.VisibleRankMin,
                     Sector = node.Sector,
                     SortOrder = node.SortOrder,
                     LayoutVersion = node.LayoutVersion,
                     CostExperienceCoins = node.CostExperienceCoins,
                     CostText = node.CostText,
+                    IsCostResolved = node.IsCostResolved,
+                    KnownDecisionSummary = node.KnownDecisionSummary,
                     CanPurchase = node.CanPurchase,
-                    RequiresRequest = node.RequiresRequest
+                    RequiresRequest = node.RequiresRequest,
+                    RequiresGMApproval = node.RequiresGMApproval
                 });
             }
 
@@ -4710,6 +6406,7 @@ public class PlayerMainViewModel : ViewModelBase
         Notify(nameof(SelectedClassEntryTitle));
         Notify(nameof(SelectedClassEntrySummary));
         Notify(nameof(SelectedClassEntryState));
+        Notify(nameof(SelectedClassEntryTier));
         Notify(nameof(SelectedClassEntryRequirements));
         Notify(nameof(SelectedClassEntryReward));
         Notify(nameof(SelectedClassEntryCost));
@@ -4719,9 +6416,14 @@ public class PlayerMainViewModel : ViewModelBase
         Notify(nameof(SelectedClassEntryDirection));
         Notify(nameof(SelectedClassEntryRequiredNodeIds));
         Notify(nameof(SelectedClassEntryLayoutVersion));
+        Notify(nameof(DevelopmentPathInspectorDetailsVisibility));
+        Notify(nameof(DevelopmentInspectorTitle));
+        Notify(nameof(DevelopmentInspectorSummary));
         Notify(nameof(DevelopmentViewerPurchaseExplanation));
         Notify(nameof(CanBuySelectedClassNode));
         Notify(nameof(CanRequestSelectedClassNode));
+        Notify(nameof(DevelopmentRequestActionVisibility));
+        Notify(nameof(DevelopmentGmLegendVisibility));
         Notify(nameof(HasSelectedClassEntry));
     }
 
@@ -4808,7 +6510,7 @@ public class PlayerMainViewModel : ViewModelBase
             vm.SkillsRows.Add("Нет данных");
             vm.ClassRows.Add("Развитие компаньона пока не загружено.");
             vm.KnowledgeRows.Add("Знания компаньона пока не раскрыты.");
-            vm.ResearchRows.Add("Статус: Недоступно / Отложено • Причина: исследования компаньона ещё не раскрыты сервером • Target: 0.15");
+            vm.ResearchRows.Add("Исследования пока не добавлены этому компаньону.");
             Companions.Add(vm);
         }
     }
@@ -4863,7 +6565,7 @@ public class PlayerMainViewModel : ViewModelBase
         AppendLabeledValues(CharacterKnowledgeRows, payload, "Технологии", "knownTechnologies", "knownMethods");
         AppendLabeledValues(CharacterKnowledgeRows, payload, "Рецепты", "knownRecipes", "recipes");
         AppendLabeledValues(CharacterKnowledgeRows, payload, "Сведения", "knownFacts", "rumors", "intel");
-        EnsureCollectionPlaceholder(CharacterKnowledgeRows, "Статус: Недоступно / Отложено • Причина: знания персонажа ещё не раскрыты сервером • Target: 0.15");
+        EnsureCollectionPlaceholder(CharacterKnowledgeRows, "Языки и сведения пока не добавлены этому персонажу.");
     }
 
     private void BindCharacterResearch(Dictionary<string, object> payload)
@@ -4874,7 +6576,7 @@ public class PlayerMainViewModel : ViewModelBase
         AppendLabeledValues(CharacterResearchRows, payload, "Чертежи", "blueprints");
         AppendLabeledValues(CharacterResearchRows, payload, "Методики", "researchMethods");
         AppendLabeledValues(CharacterResearchRows, payload, "Незавершённые проекты", "pendingProjects");
-        EnsureCollectionPlaceholder(CharacterResearchRows, "Статус: Недоступно / Отложено • Причина: исследования персонажа ещё не подключены к рабочему player-safe потоку • Target: 0.15");
+        EnsureCollectionPlaceholder(CharacterResearchRows, "Исследования пока не добавлены этому персонажу.");
     }
 
     private void BindCharacterCrafting(Dictionary<string, object> payload)
@@ -4884,7 +6586,7 @@ public class PlayerMainViewModel : ViewModelBase
         AppendLabeledValues(CharacterCraftingRows, payload, "Материалы", "craftMaterials");
         AppendLabeledValues(CharacterCraftingRows, payload, "Активные работы", "craftJobs");
         AppendLabeledValues(CharacterCraftingRows, payload, "Результаты", "craftResults");
-        EnsureCollectionPlaceholder(CharacterCraftingRows, "Статус: Недоступно / Отложено • Причина: крафт персонажа ещё не подключён к рабочему player-safe потоку • Target: 0.15");
+        EnsureCollectionPlaceholder(CharacterCraftingRows, "Рецепты и работы пока не добавлены этому персонажу.");
     }
 
     private void RefreshCharacterCrafting()
@@ -4975,7 +6677,7 @@ public class PlayerMainViewModel : ViewModelBase
         vm.ResearchRows.Clear();
         AppendLabeledValues(vm.ResearchRows, payload, "Активные исследования", "activeResearch");
         AppendLabeledValues(vm.ResearchRows, payload, "Изученное", "researchedTechnologies", "researchMethods");
-        EnsureCollectionPlaceholder(vm.ResearchRows, "Статус: Недоступно / Отложено • Причина: исследования компаньона ещё не раскрыты сервером • Target: 0.15");
+        EnsureCollectionPlaceholder(vm.ResearchRows, "Исследования пока не добавлены этому компаньону.");
     }
 
     private void BindCompanionCrafting(CompanionVm vm, Dictionary<string, object> payload)
@@ -4984,7 +6686,7 @@ public class PlayerMainViewModel : ViewModelBase
         AppendLabeledValues(vm.CraftingRows, payload, "Рецепты", "craftRecipes", "knownRecipes");
         AppendLabeledValues(vm.CraftingRows, payload, "Материалы", "craftMaterials");
         AppendLabeledValues(vm.CraftingRows, payload, "Активные работы", "craftJobs", "craftingProjects");
-        EnsureCollectionPlaceholder(vm.CraftingRows, "Статус: Недоступно / Отложено • Причина: крафт компаньона ещё не подключён к рабочему player-safe потоку • Target: 0.15");
+        EnsureCollectionPlaceholder(vm.CraftingRows, "Рецепты и работы пока не добавлены этому компаньону.");
     }
 
     private static IList ExtractCraftingItems(Dictionary<string, object> payload)
@@ -5047,6 +6749,7 @@ public class PlayerMainViewModel : ViewModelBase
     {
         ClientLogService.Instance.Info("Logout / shutdown requested from Player client");
         _poller.Stop();
+        PerformanceTelemetry0214.Current.SetCounter("active_pollers", 0);
         _client.Disconnect();
     }
 
@@ -5056,7 +6759,7 @@ public class PlayerMainViewModel : ViewModelBase
         {
             "Обычное" => "Public",
             "Действие" => "Public",
-            "Вопрос GM" => "AdminOnly",
+            "Вопрос мастеру" => "AdminOnly",
             "Общее" => "Public",
             "Скрыто от админов" => "HiddenToAdmins",
             "Только админам" => "AdminOnly",
@@ -5071,7 +6774,7 @@ public class PlayerMainViewModel : ViewModelBase
             "Публично" => "Public",
             "Скрыто" => "HiddenToAdmins",
             "Общее" => "Public",
-            "Только GM" => "AdminOnly",
+            "Только мастеру" => "AdminOnly",
             "" => "HiddenToAdmins",
             _ => "Public"
         };
@@ -5412,6 +7115,10 @@ public class PlayerMainViewModel : ViewModelBase
         Notify(nameof(CharacterHeight));
         Notify(nameof(CharacterDescription));
         Notify(nameof(CharacterBackstory));
+        Notify(nameof(CharacterBodyTypeDisplay));
+        Notify(nameof(CharacterSizeCategoryDisplay));
+        Notify(nameof(ActiveCharacterShellTitle));
+        Notify(nameof(DevelopmentBusinessContextText));
         Notify(nameof(CharacterNameDisplay));
         Notify(nameof(CharacterRaceDisplay));
         Notify(nameof(CharacterAgeDisplay));
@@ -5511,6 +7218,13 @@ public class PlayerMainViewModel : ViewModelBase
     }
 
     private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+
+    private static string JoinReadablePayloadValues(Dictionary<string, object> payload, string key, string fallback)
+    {
+        if (!payload.TryGetValue(key, out var raw)) return fallback;
+        var values = ToObjectList(raw).Cast<object>().Select(Convert.ToString).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal).ToArray();
+        return values.Length == 0 ? fallback : string.Join(", ", values);
+    }
 
     private static string GetString(Dictionary<string, object>? map, string key)
     {
@@ -6043,8 +7757,8 @@ public class PlayerMainViewModel : ViewModelBase
 
 public static class SyncFeatureFlags
 {
-    public const bool UsePassiveSyncPoller = false;
-    public const bool UseEventDispatcher = false;
+    public const bool UsePassiveSyncPoller = true;
+    public const bool UseEventDispatcher = true;
 }
 
 public interface IClientSyncEventDispatcher

@@ -84,6 +84,7 @@ public sealed class CombatDefenseCalculationService : ICombatDefenseCalculationS
 
         var effectiveRequest = CopyRequestWithDefaults(safeRequest, encounter);
         result.BaseDefense = await CalculateBaseDefenseAsync(target, effectiveRequest);
+        result.NaturalArmorRating = string.IsNullOrWhiteSpace(target.CharacterId) ? 0 : Math.Max(0, _profiles.GetBodyProfile(target.CharacterId)?.NaturalArmorRating ?? 0);
 
         if (effectiveRequest.IncludeArmor)
         {
@@ -97,6 +98,16 @@ public sealed class CombatDefenseCalculationService : ICombatDefenseCalculationS
                 result.Warnings.Add("armor_bonus_capped");
                 result.ArmorDefenseBonus = ArmorDefenseCap;
             }
+
+            result.ArmorMobilityPenalty = result.ArmorItems.Count == 0 ? 0 : 4;
+            var skillProfile = string.IsNullOrWhiteSpace(target.CharacterId)
+                ? null
+                : _profiles.GetSkillProfile(target.CharacterId);
+            result.ArmorTrainingRank = skillProfile?.Skills?
+                .FirstOrDefault(x => string.Equals(x.SkillId, "plate_armor_training_0219", StringComparison.OrdinalIgnoreCase))?.Rank ?? 0;
+            result.EffectiveMobilityPenalty = result.ArmorMobilityPenalty == 0
+                ? 0
+                : result.ArmorTrainingRank >= 10 ? 1 : result.ArmorMobilityPenalty;
         }
 
         if (effectiveRequest.IncludeShield)
@@ -131,6 +142,7 @@ public sealed class CombatDefenseCalculationService : ICombatDefenseCalculationS
         else
         {
             result.TargetDefense = Math.Max(0, result.BaseDefense
+                + result.NaturalArmorRating
                 + result.ArmorDefenseBonus
                 + result.ShieldDefenseBonus
                 + result.CoverDefenseBonus
@@ -248,7 +260,7 @@ public sealed class CombatDefenseCalculationService : ICombatDefenseCalculationS
             var source = resolved == null ? "inventory_profile_fallback" : "armor_definition";
             var bonus = resolved == null
                 ? ShieldFallbackBonus(item)
-                : ParseDraftDefenseBonus(resolved.PhysicalArmorDraft, item.DefinitionId, result.Warnings);
+                : resolved.ArmorRating > 0 ? resolved.ArmorRating : ParseDraftDefenseBonus(resolved.PhysicalArmorDraft, item.DefinitionId, result.Warnings);
 
             if (includeShields && bonus <= 0) bonus = ShieldFallbackBonus(item);
             if (includeShields && twoHandedWeaponEquipped)
@@ -267,6 +279,7 @@ public sealed class CombatDefenseCalculationService : ICombatDefenseCalculationS
                 DisplayName = FirstNonEmpty(item.DisplayName, resolved?.Name, item.DefinitionId),
                 EquipmentSlotId = item.EquipmentSlotId ?? string.Empty,
                 DefenseBonus = Math.Max(0, bonus),
+                PenetrationResistanceByBodyZone = resolved?.PenetrationResistanceByBodyZone ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
                 Source = source
             });
         }

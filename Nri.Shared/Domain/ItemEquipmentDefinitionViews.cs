@@ -34,10 +34,12 @@ public sealed class WeaponDefinitionView
     public string DamageDraft { get; set; } = string.Empty;
     public string AccuracyDraft { get; set; } = string.Empty;
     public string PenetrationDraft { get; set; } = string.Empty;
+    public decimal FailedPenetrationDamageTransfer { get; set; }
     public List<string> LinkedSkillIds { get; set; } = new List<string>();
     public List<string> AttributeHints { get; set; } = new List<string>();
     public List<string> AmmoDefinitionIds { get; set; } = new List<string>();
     public List<string> EquipmentSlotIds { get; set; } = new List<string>();
+    public List<AttackProfileDefinition> AttackProfiles { get; set; } = new List<AttackProfileDefinition>();
     public decimal WeightKg { get; set; }
     public string ValueCurrencyId { get; set; } = string.Empty;
     public long ValueAmountDraft { get; set; }
@@ -56,6 +58,8 @@ public sealed class ArmorDefinitionView
     public string ArmorType { get; set; } = string.Empty;
     public List<string> EquipmentSlotIds { get; set; } = new List<string>();
     public string PhysicalArmorDraft { get; set; } = string.Empty;
+    public int ArmorRating { get; set; }
+    public Dictionary<string, int> PenetrationResistanceByBodyZone { get; set; } = new Dictionary<string, int>(System.StringComparer.OrdinalIgnoreCase);
     public string MagicArmorDraft { get; set; } = string.Empty;
     public string MobilityPenaltyDraft { get; set; } = string.Empty;
     public string StealthPenaltyDraft { get; set; } = string.Empty;

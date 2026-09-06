@@ -50,8 +50,14 @@ public sealed class CombatParticipantAddRequest
     public string ControllerUserId { get; set; } = string.Empty;
     public bool IsNpc { get; set; }
     public bool IsPlayerControlled { get; set; }
+    public bool IsHidden { get; set; }
     public int Initiative { get; set; }
     public int InitiativeTieBreaker { get; set; }
+    public int MaxStructure { get; set; }
+    public int CurrentStructure { get; set; }
+    public int FrontProtection { get; set; }
+    public int SideProtection { get; set; }
+    public int RearProtection { get; set; }
     public List<string> Tags { get; set; } = new List<string>();
     public string Notes { get; set; } = string.Empty;
     public string RequestId { get; set; } = string.Empty;
@@ -112,6 +118,11 @@ public sealed class CombatParticipantSummary
     public bool IsNpc { get; set; }
     public bool IsPlayerControlled { get; set; }
     public int Initiative { get; set; }
+    public bool Natural20BonusTurn { get; set; }
+    public bool Natural20BonusTurnUsed { get; set; }
+    public bool Natural1FirstTurnPenalty { get; set; }
+    public bool Natural1PenaltyConsumed { get; set; }
+    public bool Natural1PenaltyActive { get; set; }
     public bool IsActive { get; set; }
     public bool IsDefeated { get; set; }
     public bool IsHidden { get; set; }
@@ -122,6 +133,12 @@ public sealed class CombatParticipantSummary
     public int ReactionLimit { get; set; }
     public int MaxHealth { get; set; }
     public int CurrentHealth { get; set; }
+    public int MaxStructure { get; set; }
+    public int CurrentStructure { get; set; }
+    public int FrontProtection { get; set; }
+    public int SideProtection { get; set; }
+    public int RearProtection { get; set; }
+    public string DisabledModuleName { get; set; } = string.Empty;
     public int TemporaryHealth { get; set; }
     public int MaxMorale { get; set; }
     public int CurrentMorale { get; set; }
@@ -132,6 +149,13 @@ public sealed class CombatParticipantSummary
     public int ConditionCount { get; set; }
     public List<string> ActiveConditionIds { get; set; } = new List<string>();
     public string PositionSummary { get; set; } = string.Empty;
+    public string SceneMapId { get; set; } = string.Empty;
+    public string MapTokenId { get; set; } = string.Empty;
+    public string MapTokenDisplayName { get; set; } = string.Empty;
+    public string MapTokenVisibility { get; set; } = "hidden";
+    public string MapLinkStatus { get; set; } = "unlinked";
+    public string MapBadgeText { get; set; } = string.Empty;
+    public string MapBadgeColorKey { get; set; } = string.Empty;
     public decimal DistanceMeters { get; set; }
     public string CoverState { get; set; } = string.Empty;
     public string VisibilityState { get; set; } = string.Empty;
@@ -239,6 +263,8 @@ public sealed class CombatReplayListResponse
 public sealed class CombatPlayerSnapshotRequest
 {
     public string EncounterId { get; set; } = string.Empty;
+    public string CampaignId { get; set; } = string.Empty;
+    public string SessionId { get; set; } = string.Empty;
     public string CharacterId { get; set; } = string.Empty;
     public string ParticipantId { get; set; } = string.Empty;
     public bool IncludePublicParticipants { get; set; } = true;
@@ -259,6 +285,7 @@ public sealed class CombatPlayerFeedRequest
 
 public sealed class CombatPlayerSnapshotResponse
 {
+    public bool HasActiveCombat { get; set; } = true;
     public CombatPlayerEncounterSummary Encounter { get; set; } = new CombatPlayerEncounterSummary();
     public CombatPlayerParticipantSummary MyParticipant { get; set; } = new CombatPlayerParticipantSummary();
     public List<CombatPlayerParticipantSummary> Participants { get; set; } = new List<CombatPlayerParticipantSummary>();
@@ -285,6 +312,8 @@ public sealed class CombatPlayerParticipantSummary
     public string DisplayName { get; set; } = string.Empty;
     public string TeamId { get; set; } = string.Empty;
     public string ParticipantType { get; set; } = string.Empty;
+    public int Initiative { get; set; }
+    public int InitiativeOrderIndex { get; set; }
     public bool IsCurrentTurn { get; set; }
     public bool IsActive { get; set; }
     public bool IsDefeated { get; set; }
@@ -295,6 +324,12 @@ public sealed class CombatPlayerParticipantSummary
     public int? MaxMorale { get; set; }
     public List<CombatPlayerConditionSummary> KnownConditions { get; set; } = new List<CombatPlayerConditionSummary>();
     public string VisibilityState { get; set; } = string.Empty;
+    public string MapTokenDisplayName { get; set; } = string.Empty;
+    public int HalfActionsRemaining { get; set; }
+    public int ReactionsUsed { get; set; }
+    public int ReactionLimit { get; set; }
+    public bool ReactionAvailable => ReactionsUsed < ReactionLimit;
+    public string RacialMovementState { get; set; } = string.Empty;
 }
 
 public sealed class CombatPlayerConditionSummary
@@ -576,6 +611,16 @@ public sealed class CombatActionSpendRequest
     public string RequestId { get; set; } = string.Empty;
 }
 
+public sealed class CombatPreparedActionTriggerRequest
+{
+    public string EncounterId { get; set; } = string.Empty;
+    public string PreparedActionId { get; set; } = string.Empty;
+    public string TriggerDefinitionId { get; set; } = string.Empty;
+    public List<string> TargetParticipantIds { get; set; } = new List<string>();
+    public string TriggerContext { get; set; } = string.Empty;
+    public string RequestId { get; set; } = string.Empty;
+}
+
 public sealed class CombatActionEconomyResponse
 {
     public string EncounterId { get; set; } = string.Empty;
@@ -586,6 +631,7 @@ public sealed class CombatActionEconomyResponse
     public int MinorActionPointsRemaining { get; set; }
     public int ReactionsUsed { get; set; }
     public int ReactionLimit { get; set; }
+    public bool AlreadyApplied { get; set; }
     public string Message { get; set; } = string.Empty;
     public List<string> Warnings { get; set; } = new List<string>();
     public CombatFullSnapshotResponse Snapshot { get; set; } = new CombatFullSnapshotResponse();
@@ -597,6 +643,8 @@ public sealed class CombatAttackDeclareRequest
     public string ActorParticipantId { get; set; } = string.Empty;
     public string TargetParticipantId { get; set; } = string.Empty;
     public string WeaponDefinitionId { get; set; } = string.Empty;
+    public string AttackProfileId { get; set; } = string.Empty;
+    public string NaturalAttackId { get; set; } = string.Empty;
     public string AttackSkillId { get; set; } = string.Empty;
     public string AttackAttributeId { get; set; } = string.Empty;
     public int AttackBonus { get; set; }
@@ -617,6 +665,7 @@ public sealed class CombatAttackResultResponse
     public string ActorParticipantId { get; set; } = string.Empty;
     public string TargetParticipantId { get; set; } = string.Empty;
     public string WeaponDefinitionId { get; set; } = string.Empty;
+    public string AttackProfileId { get; set; } = string.Empty;
     public int Roll { get; set; }
     public int NaturalRoll { get; set; }
     public int AttackTotal { get; set; }
@@ -627,9 +676,11 @@ public sealed class CombatAttackResultResponse
     public bool IsFumble { get; set; }
     public bool IsNaturalCritical { get; set; }
     public bool IsNaturalFumble { get; set; }
+    public string DegreeOfSuccess { get; set; } = CoreResolutionDegreeIds.Failure;
     public CombatAttackModifierBreakdown Modifiers { get; set; } = new CombatAttackModifierBreakdown();
     public CombatFateHookResult Fate { get; set; } = new CombatFateHookResult();
     public string Message { get; set; } = string.Empty;
+    public bool AlreadyApplied { get; set; }
     public List<string> Warnings { get; set; } = new List<string>();
     public CombatFullSnapshotResponse Snapshot { get; set; } = new CombatFullSnapshotResponse();
 }
@@ -659,6 +710,7 @@ public sealed class CombatAttackRollComputation
     public bool IsFumble { get; set; }
     public bool IsNaturalCritical { get; set; }
     public bool IsNaturalFumble { get; set; }
+    public string DegreeOfSuccess { get; set; } = CoreResolutionDegreeIds.Failure;
     public CombatAttackModifierBreakdown Modifiers { get; set; } = new CombatAttackModifierBreakdown();
     public CombatFateHookResult Fate { get; set; } = new CombatFateHookResult();
     public List<string> Warnings { get; set; } = new List<string>();
@@ -672,6 +724,8 @@ public sealed class CombatDefenseCalculationRequest
     public string RuleSetId { get; set; } = string.Empty;
     public string AttackType { get; set; } = string.Empty;
     public string WeaponDefinitionId { get; set; } = string.Empty;
+    public string AttackProfileId { get; set; } = string.Empty;
+    public string AttackProfileName { get; set; } = string.Empty;
     public decimal? DistanceMeters { get; set; }
     public string CoverState { get; set; } = string.Empty;
     public int? CoverModifierOverride { get; set; }
@@ -692,6 +746,10 @@ public sealed class CombatDefenseCalculationResult
     public int TargetDefense { get; set; }
     public int BaseDefense { get; set; }
     public int ArmorDefenseBonus { get; set; }
+    public int NaturalArmorRating { get; set; }
+    public int ArmorMobilityPenalty { get; set; }
+    public int ArmorTrainingRank { get; set; }
+    public int EffectiveMobilityPenalty { get; set; }
     public int ShieldDefenseBonus { get; set; }
     public int CoverDefenseBonus { get; set; }
     public int DistanceDefenseBonus { get; set; }
@@ -745,11 +803,15 @@ public sealed class CombatDamageResultResponse
     public string DamageType { get; set; } = string.Empty;
     public int PreviousHealth { get; set; }
     public int CurrentHealth { get; set; }
+    public string ResourceType { get; set; } = "health";
+    public int PreviousResource { get; set; }
+    public int CurrentResource { get; set; }
     public int PreviousTemporaryHealth { get; set; }
     public int CurrentTemporaryHealth { get; set; }
     public bool TargetDefeated { get; set; }
     public string DefeatedReason { get; set; } = string.Empty;
     public string ActionId { get; set; } = string.Empty;
+    public bool AlreadyApplied { get; set; }
     public string Message { get; set; } = string.Empty;
     public List<string> Warnings { get; set; } = new List<string>();
     public CombatFullSnapshotResponse Snapshot { get; set; } = new CombatFullSnapshotResponse();
@@ -847,6 +909,8 @@ public sealed class CombatWeaponAttackRequest
     public string TargetParticipantId { get; set; } = string.Empty;
     public string WeaponItemInstanceId { get; set; } = string.Empty;
     public string WeaponDefinitionId { get; set; } = string.Empty;
+    public string AttackProfileId { get; set; } = string.Empty;
+    public string NaturalAttackId { get; set; } = string.Empty;
     public string AmmoItemInstanceId { get; set; } = string.Empty;
     public string AmmoDefinitionId { get; set; } = string.Empty;
     public string AttackSkillId { get; set; } = string.Empty;
@@ -854,6 +918,7 @@ public sealed class CombatWeaponAttackRequest
     public int AttackBonus { get; set; }
     public int? DamageOverride { get; set; }
     public string DamageType { get; set; } = string.Empty;
+    public string TargetProtectionZone { get; set; } = "torso";
     public decimal? DistanceMeters { get; set; }
     public int CoverModifier { get; set; }
     public int SituationalModifier { get; set; }
@@ -871,21 +936,37 @@ public sealed class CombatWeaponAttackResponse
     public string ActorParticipantId { get; set; } = string.Empty;
     public string TargetParticipantId { get; set; } = string.Empty;
     public string WeaponDefinitionId { get; set; } = string.Empty;
+    public string AttackProfileId { get; set; } = string.Empty;
     public string AmmoDefinitionId { get; set; } = string.Empty;
     public CombatAttackResultResponse AttackResult { get; set; } = new CombatAttackResultResponse();
     public CombatDamageResultResponse DamageResult { get; set; } = new CombatDamageResultResponse();
     public CombatWeaponCombatSummary WeaponSummary { get; set; } = new CombatWeaponCombatSummary();
     public CombatAmmoCombatSummary AmmoSummary { get; set; } = new CombatAmmoCombatSummary();
+    public CombatPenetrationResult0219 PenetrationResult { get; set; } = new CombatPenetrationResult0219();
     public CombatDamagePreview DamagePreview { get; set; } = new CombatDamagePreview();
+    public List<CombatAreaTargetResult022Gate2> AreaTargetResults { get; set; } = new List<CombatAreaTargetResult022Gate2>();
     public List<string> Warnings { get; set; } = new List<string>();
     public string Message { get; set; } = string.Empty;
     public CombatFullSnapshotResponse Snapshot { get; set; } = new CombatFullSnapshotResponse();
+}
+
+public sealed class CombatAreaTargetResult022Gate2
+{
+    public string TargetParticipantId { get; set; } = string.Empty;
+    public string TargetDisplayName { get; set; } = string.Empty;
+    public bool IsHit { get; set; }
+    public int AttackTotal { get; set; }
+    public int TargetDefense { get; set; }
+    public CombatDamagePreview DamagePreview { get; set; } = new CombatDamagePreview();
+    public CombatDamageResultResponse DamageResult { get; set; } = new CombatDamageResultResponse();
 }
 
 public sealed class CombatWeaponCombatSummary
 {
     public string WeaponItemInstanceId { get; set; } = string.Empty;
     public string WeaponDefinitionId { get; set; } = string.Empty;
+    public string AttackProfileId { get; set; } = string.Empty;
+    public string AttackProfileName { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string WeaponType { get; set; } = string.Empty;
     public string Handedness { get; set; } = string.Empty;
@@ -912,7 +993,15 @@ public sealed class CombatDamagePreview
     public int AmmoDamageModifier { get; set; }
     public int FateModifier { get; set; }
     public int CriticalMultiplier { get; set; } = 1;
+    public int DamageBeforeMitigation { get; set; }
     public int FinalDamage { get; set; }
+    public int ProtectionValue { get; set; }
+    public int PenetrationValue { get; set; }
+    public int MitigatedDamage { get; set; }
+    public decimal FailedPenetrationDamageTransfer { get; set; }
+    public bool IsPenetrated { get; set; }
+    public string PenetrationType { get; set; } = CombatPenetrationTypes0219.Armor;
+    public string ProtectionZone { get; set; } = "torso";
     public string DamageType { get; set; } = string.Empty;
     public bool IsDraftBased { get; set; }
     public CombatFateHookResult Fate { get; set; } = new CombatFateHookResult();
@@ -959,6 +1048,7 @@ public sealed class CombatDefenseEquipmentSummary
     public string DisplayName { get; set; } = string.Empty;
     public string EquipmentSlotId { get; set; } = string.Empty;
     public int DefenseBonus { get; set; }
+    public Dictionary<string, int> PenetrationResistanceByBodyZone { get; set; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
     public string Source { get; set; } = string.Empty;
 }
 

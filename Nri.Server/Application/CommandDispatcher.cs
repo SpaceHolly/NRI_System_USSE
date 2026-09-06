@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Nri.Server.Infrastructure;
 using Nri.Server.Logging;
 using Nri.Shared.Contracts;
+using Nri.Shared.Diagnostics;
 
 namespace Nri.Server.Application;
 
@@ -23,24 +25,54 @@ public class CommandDispatcher
     private readonly IServerLogger _logger;
     private readonly SessionManager _sessionManager;
     private readonly Dictionary<string, ICommandHandler> _handlers = new Dictionary<string, ICommandHandler>();
+    private readonly ProtocolAuthorizationCatalog02110 _authorizationCatalog;
+    private readonly ProtocolAuthorizationMiddleware02110? _authorizationMiddleware;
     private readonly HashSet<string> _anonymousCommands = new HashSet<string>
     {
         CommandNames.AuthRegister,
         CommandNames.AuthLogin
     };
 
-    public CommandDispatcher(IServerLogger logger, SessionManager sessionManager)
+    public CommandDispatcher(IServerLogger logger, SessionManager sessionManager, ProtocolAuthorizationCatalog02110? authorizationCatalog = null, ProtocolAuthorizationMiddleware02110? authorizationMiddleware = null)
     {
         _logger = logger;
         _sessionManager = sessionManager;
+        _authorizationCatalog = authorizationCatalog ?? new ProtocolAuthorizationCatalog02110();
+        _authorizationMiddleware = authorizationMiddleware;
     }
+
+    public ProtocolAuthorizationCatalog02110 AuthorizationCatalog => _authorizationCatalog;
+    public IReadOnlyCollection<string> RegisteredCommands => _handlers.Keys;
 
     public void Register(string command, ICommandHandler handler)
     {
+        var identity = handler is IIdentifiedCommandHandler02110 identified
+            ? identified.HandlerIdentity
+            : handler.GetType().FullName ?? handler.GetType().Name;
+        _authorizationCatalog.Register(command, identity);
         _handlers[command] = handler;
     }
 
+    public void ValidateAuthorizationCatalog() => _authorizationCatalog.ValidateComplete(_handlers.Keys);
+
     public ResponseEnvelope Dispatch(string connectionId, RequestEnvelope request)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var response = DispatchCore(connectionId, request);
+        PerformanceTelemetry0214.Current.Record(new PerformanceSample0214
+        {
+            Source = "Nri.Server",
+            Category = "server_handler",
+            Command = request.Command,
+            Status = response.Status.ToString(),
+            Outcome = response.Status == ResponseStatus.Ok ? "completed" : "failed",
+            ElapsedMilliseconds = stopwatch.ElapsedMilliseconds,
+            ConnectionGeneration = request.ConnectionGeneration
+        });
+        return response;
+    }
+
+    private ResponseEnvelope DispatchCore(string connectionId, RequestEnvelope request)
     {
         var requestId = NormalizeRequestId(request.RequestId);
         request.RequestId = requestId;
@@ -58,6 +90,8 @@ public class CommandDispatcher
                 _logger.Debug($"request.validation.failed requestId={requestId} reason=unsupported-command command={request.Command}");
                 return Error(requestId, ResponseStatus.Error, ErrorCode.InvalidCommand, $"Unsupported command: {request.Command}");
             }
+
+            var authorizationDescriptor = _authorizationCatalog.GetRequired(request.Command);
 
             var context = new CommandContext
             {
@@ -81,6 +115,8 @@ public class CommandDispatcher
             {
                 _logger.Session($"request.auth.skipped requestId={requestId} command={request.Command}");
             }
+
+            _authorizationMiddleware?.Authorize(context, authorizationDescriptor);
 
             _logger.Debug($"request.handler.start requestId={requestId} command={request.Command}");
             var response = _handlers[request.Command].Handle(context);

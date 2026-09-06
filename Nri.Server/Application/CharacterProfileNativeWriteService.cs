@@ -25,6 +25,18 @@ public sealed class ProfileNativeWriteResult
     public DateTime WrittenAtUtc { get; set; } = DateTime.UtcNow;
 }
 
+public sealed class ProfileNativeKnowledgeWriteResult
+{
+    public string CharacterId { get; set; } = string.Empty;
+    public string Topic { get; set; } = string.Empty;
+    public bool UsedProfileNative { get; set; }
+    public bool ProfileWritten { get; set; }
+    public bool TopicAdded { get; set; }
+    public bool AlreadyKnown { get; set; }
+    public string ErrorMessage { get; set; } = string.Empty;
+    public DateTime WrittenAtUtc { get; set; } = DateTime.UtcNow;
+}
+
 public sealed class ProfileNativeWriteDiagnosticResult
 {
     public string CharacterId { get; set; } = string.Empty;
@@ -117,6 +129,7 @@ public interface ICharacterProfileNativeWriteService
     Task<ProfileNativeRaceBodyWriteResult> UpdateBodyProfileNativeAsync(string characterId, Dictionary<string, object> payload, string actorUserId, string requestId);
     Task<ProfileNativeRaceBodyWriteResult> UpdateRaceBodyProfilesNativeAsync(string characterId, Dictionary<string, object> payload, string actorUserId, string requestId);
     Task<ProfileNativeRaceBodyWriteResult> UpdateBiographyProfileNativeAsync(string characterId, Dictionary<string, object> payload, string actorUserId, string requestId);
+    Task<ProfileNativeKnowledgeWriteResult> UnlockKnowledgeTopicProfileNativeAsync(string characterId, string topic, string actorUserId, string requestId);
     Task<ProfileNativeWriteResult> SyncLegacyStatsFacadeAsync(string characterId, AttributeProfile profile, string actorUserId, string requestId);
     Task<ProfileNativeWriteResult> SyncLegacyWalletFacadeAsync(string characterId, WalletProfile profile, string actorUserId, string requestId);
     Task<ProfileNativeSkillWriteResult> SyncLegacySkillFacadeAsync(string characterId, SkillProfile profile, string actorUserId, string requestId);
@@ -144,6 +157,7 @@ public sealed class CharacterProfileNativeWriteService : ICharacterProfileNative
     private const string RaceSection = "race";
     private const string BodySection = "body";
     private const string BiographySection = "biography";
+    private const string KnowledgeSection = "knowledge";
 
     private static readonly Dictionary<string, string> StatPayloadToAttributeIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -371,7 +385,7 @@ public sealed class CharacterProfileNativeWriteService : ICharacterProfileNative
 
             var level = PayloadReader.GetInt(payload, "level");
             if (!level.HasValue) return Task.FromResult(SkillFallback(characterId, SkillAddOperation, skillId, "missing_level"));
-            var rank = ClampLegacySkillLevel(level.Value, definition);
+            var rank = ResolveRequestedSkillRank(level.Value, definition);
             if (!ValidateSkillRank(skillId, rank, definition, out var rankError)) return Task.FromResult(SkillFallback(characterId, SkillAddOperation, skillId, rankError));
 
             profile.Skills.Add(new CharacterSkillProfileValue
@@ -421,7 +435,7 @@ public sealed class CharacterProfileNativeWriteService : ICharacterProfileNative
             if (!level.HasValue) return Task.FromResult(SkillFallback(characterId, SkillUpdateOperation, skillId, "missing_level"));
             var definition = LoadSkillDefinition(skillId);
             if (definition == null) return Task.FromResult(SkillFallback(characterId, SkillUpdateOperation, skillId, "skill_definition_missing"));
-            var rank = ClampLegacySkillLevel(level.Value, definition);
+            var rank = ResolveRequestedSkillRank(level.Value, definition);
             if (!ValidateSkillRank(skillId, rank, definition, out var rankError)) return Task.FromResult(SkillFallback(characterId, SkillUpdateOperation, skillId, rankError));
 
             row.Rank = rank;
@@ -729,6 +743,87 @@ public sealed class CharacterProfileNativeWriteService : ICharacterProfileNative
         }
 
         return Task.FromResult(result);
+    }
+
+    public Task<ProfileNativeKnowledgeWriteResult> UnlockKnowledgeTopicProfileNativeAsync(string characterId, string topic, string actorUserId, string requestId)
+    {
+        topic = (topic ?? string.Empty).Trim();
+        _logger.Debug($"profile.native.write.start section={KnowledgeSection} characterId={characterId} requestId={requestId}");
+        if (string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(topic))
+        {
+            return Task.FromResult(new ProfileNativeKnowledgeWriteResult
+            {
+                CharacterId = characterId,
+                Topic = topic,
+                UsedProfileNative = true,
+                ErrorMessage = "missing_character_or_topic"
+            });
+        }
+
+        try
+        {
+            var characterFilter = Builders<CharacterKnowledgeProfileDocument>.Filter.Eq(x => x.CharacterId, characterId);
+            if (!_mongo.CharacterKnowledgeProfiles.Find(characterFilter).Any())
+            {
+                try
+                {
+                    _mongo.CharacterKnowledgeProfiles.InsertOne(new CharacterKnowledgeProfileDocument
+                    {
+                        CharacterId = characterId,
+                        Profile = new KnowledgeProfile()
+                    });
+                }
+                catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+                {
+                    // Another request initialized the same Character v2 profile first.
+                }
+            }
+
+            var notKnownFilter = characterFilter
+                & Builders<CharacterKnowledgeProfileDocument>.Filter.Ne("Profile.KnownTopics", topic);
+            var now = DateTime.UtcNow;
+            var update = Builders<CharacterKnowledgeProfileDocument>.Update
+                .AddToSet("Profile.KnownTopics", topic)
+                .Set(x => x.UpdatedUtc, now);
+            var write = _mongo.CharacterKnowledgeProfiles.UpdateOne(notKnownFilter, update);
+            if (!write.IsAcknowledged)
+            {
+                throw new InvalidOperationException("knowledge_profile_update_not_acknowledged");
+            }
+
+            var added = write.ModifiedCount == 1;
+            var exists = _mongo.CharacterKnowledgeProfiles.Find(
+                    characterFilter
+                    & Builders<CharacterKnowledgeProfileDocument>.Filter.Eq("Profile.KnownTopics", topic))
+                .Any();
+            if (!exists)
+            {
+                throw new InvalidOperationException("knowledge_topic_not_persisted");
+            }
+
+            _logger.Debug($"profile.native.write.done section={KnowledgeSection} characterId={characterId} topicAdded={added} actorUserId={actorUserId}");
+            return Task.FromResult(new ProfileNativeKnowledgeWriteResult
+            {
+                CharacterId = characterId,
+                Topic = topic,
+                UsedProfileNative = true,
+                ProfileWritten = true,
+                TopicAdded = added,
+                AlreadyKnown = !added,
+                WrittenAtUtc = now
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug($"profile.native.write.error section={KnowledgeSection} characterId={characterId} message={ex.Message}");
+            return Task.FromResult(new ProfileNativeKnowledgeWriteResult
+            {
+                CharacterId = characterId,
+                Topic = topic,
+                UsedProfileNative = true,
+                ErrorMessage = ex.Message
+            });
+        }
     }
 
     private Task<ProfileNativeRaceBodyWriteResult> UpdateRaceBodyProfilesNativeAsync(string characterId, Dictionary<string, object> payload, string actorUserId, string requestId, bool writeRace, bool writeBody)
@@ -1342,10 +1437,11 @@ public sealed class CharacterProfileNativeWriteService : ICharacterProfileNative
         return _mongo.DefinitionSkills.Find(Builders<SkillDefinition>.Filter.Eq(x => x.Code, skillId)).FirstOrDefault();
     }
 
-    private static int ClampLegacySkillLevel(int requestedLevel, SkillDefinition definition)
+    private static int ResolveRequestedSkillRank(int requestedRank, SkillDefinition definition)
     {
-        var maxLevel = Math.Max(1, definition?.MaxLevel ?? 1);
-        return Math.Min(Math.Max(1, requestedLevel), maxLevel);
+        var minimum = Math.Max(0, definition?.RankMin ?? 0);
+        var maximum = Math.Max(minimum, definition?.RankMax ?? 20);
+        return Math.Min(Math.Max(minimum, requestedRank), maximum);
     }
 
     private static bool ValidateSkillRank(string skillId, int rank, SkillDefinition? definition, out string error)
@@ -1357,7 +1453,7 @@ public sealed class CharacterProfileNativeWriteService : ICharacterProfileNative
             return false;
         }
 
-        if (IsSkillDefinitionV2Enabled() && definition != null)
+        if (definition != null)
         {
             var min = Math.Max(0, definition.RankMin);
             var max = Math.Max(min, definition.RankMax);
@@ -1369,11 +1465,6 @@ public sealed class CharacterProfileNativeWriteService : ICharacterProfileNative
         }
 
         return true;
-    }
-
-    private static bool IsSkillDefinitionV2Enabled()
-    {
-        return ProfileFeatureFlags.UseSkillDefinitionV2;
     }
 
     private static string ResolveSkillId(Dictionary<string, object> payload)
@@ -1513,6 +1604,15 @@ public sealed class CharacterProfileNativeWriteService : ICharacterProfileNative
         profile.BodyTags ??= new List<string>();
         profile.EquipmentCompatibilityTags ??= new List<string>();
         profile.BodyStats ??= new Dictionary<string, int>();
+        var bodyStats = PayloadReader.GetDictionary(payload, "bodyStats");
+        if (bodyStats != null)
+        {
+            foreach (var pair in bodyStats)
+            {
+                if (int.TryParse(Convert.ToString(pair.Value, System.Globalization.CultureInfo.InvariantCulture), out var value) && value >= 0)
+                    profile.BodyStats[pair.Key] = value;
+            }
+        }
     }
 
     private static string GetTrimmed(Dictionary<string, object> payload, string key)

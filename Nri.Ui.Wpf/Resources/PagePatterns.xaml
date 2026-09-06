@@ -1,0 +1,189 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls"
+                    xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="ControlStyles.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+    <Style TargetType="{x:Type controls:NriRouteStateHost}">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:NriRouteStateHost}">
+                    <Border Background="{StaticResource NriPrimarySurfaceBrush}" Padding="18">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Content="{TemplateBinding Content}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="{x:Type controls:NriRouteStatePresenter}">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:NriRouteStatePresenter}">
+                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Content="{TemplateBinding Content}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="{x:Type patterns:NriCollectionBrowserHost}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type patterns:NriCollectionBrowserHost}">
+                    <Grid Background="{StaticResource NriApplicationBackgroundBrush}">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+                        <ContentPresenter Content="{TemplateBinding Header}"/>
+                        <ContentPresenter Grid.Row="1" Content="{TemplateBinding Toolbar}" Margin="0,0,0,12"/>
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions><ColumnDefinition x:Name="NavigationColumn" Width="220"/><ColumnDefinition/><ColumnDefinition x:Name="InspectorColumn" Width="360"/></Grid.ColumnDefinitions>
+                            <Border Background="{StaticResource NriPrimarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,12,0"><ContentPresenter Content="{TemplateBinding Navigation}"/></Border>
+                            <Border Grid.Column="1" Background="{StaticResource NriPrimarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12"><Grid><ContentPresenter x:Name="Collection" Content="{TemplateBinding Collection}"/><controls:NriEmptyState x:Name="Empty" Title="Записей пока нет" Message="Создайте первую запись, чтобы начать работу." Visibility="Collapsed"/><controls:NriEmptyState x:Name="NoResults" Title="Ничего не найдено" Message="Измените запрос или сбросьте фильтры." Visibility="Collapsed"/><controls:NriEmptyState x:Name="Error" Title="Не удалось загрузить записи" Message="Проверьте соединение и повторите попытку." Visibility="Collapsed"/><controls:NriLoadingOverlay x:Name="Loading" IsLoading="True" IsBlocking="True" ProgressText="Загружаем записи…" Visibility="Collapsed"/></Grid></Border>
+                            <controls:NriInspectorDrawer Grid.Column="2" Content="{TemplateBinding Inspector}" IsOpen="{Binding IsInspectorOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Navigation" Value="{x:Null}"><Setter TargetName="NavigationColumn" Property="Width" Value="0"/></Trigger>
+                        <Trigger Property="IsInspectorOpen" Value="False"><Setter TargetName="InspectorColumn" Property="Width" Value="0"/></Trigger>
+                        <Trigger Property="ContentState" Value="Empty"><Setter TargetName="Collection" Property="Visibility" Value="Collapsed"/><Setter TargetName="Empty" Property="Visibility" Value="Visible"/></Trigger>
+                        <Trigger Property="ContentState" Value="NoResults"><Setter TargetName="Collection" Property="Visibility" Value="Collapsed"/><Setter TargetName="NoResults" Property="Visibility" Value="Visible"/></Trigger>
+                        <Trigger Property="ContentState" Value="Error"><Setter TargetName="Collection" Property="Visibility" Value="Collapsed"/><Setter TargetName="Error" Property="Visibility" Value="Visible"/></Trigger>
+                        <Trigger Property="ContentState" Value="Loading"><Setter TargetName="Collection" Property="Visibility" Value="Collapsed"/><Setter TargetName="Loading" Property="Visibility" Value="Visible"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type patterns:NriEntityEditorHost}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type patterns:NriEntityEditorHost}">
+                    <Grid Background="{StaticResource NriApplicationBackgroundBrush}">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+                        <ContentPresenter Content="{TemplateBinding Header}"/>
+                        <Grid Grid.Row="1" Margin="0,0,0,12"><ContentPresenter Content="{TemplateBinding CommandBar}"/><controls:NriStatusBadge x:Name="Unsaved" Text="Есть несохранённые изменения" StatusKind="Warning" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" Visibility="Collapsed"/></Grid>
+                        <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition x:Name="RecordColumn" Width="{TemplateBinding RecordListWidth}" MinWidth="280" MaxWidth="460"/><ColumnDefinition x:Name="RecordSplitterColumn" Width="6"/><ColumnDefinition x:Name="FormColumn"/><ColumnDefinition x:Name="InspectorColumn" Width="360" MinWidth="280" MaxWidth="360"/></Grid.ColumnDefinitions>
+                            <Border Background="{StaticResource NriPrimarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,12,0"><ContentPresenter Content="{TemplateBinding RecordList}"/></Border>
+                            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="{StaticResource NriBorderBrush}" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="False" AutomationProperties.AutomationId="NriEntityEditorHost_CollectionSplitter" ToolTip="Изменить ширину списка"/>
+                            <Border Grid.Column="2" Background="{StaticResource NriPrimarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="18"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><ContentPresenter Content="{TemplateBinding Form}"/></ScrollViewer></Border>
+                            <controls:NriInspectorDrawer Grid.Column="3" Content="{TemplateBinding Inspector}" IsOpen="{Binding IsInspectorOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Grid>
+                    <ControlTemplate.Triggers><Trigger Property="RecordList" Value="{x:Null}"><Setter TargetName="RecordColumn" Property="Width" Value="0"/><Setter TargetName="RecordSplitterColumn" Property="Width" Value="0"/></Trigger><Trigger Property="IsInspectorOpen" Value="False"><Setter TargetName="InspectorColumn" Property="Width" Value="0"/><Setter TargetName="InspectorColumn" Property="MinWidth" Value="0"/><Setter TargetName="InspectorColumn" Property="MaxWidth" Value="0"/></Trigger><Trigger Property="HasUnsavedChanges" Value="True"><Setter TargetName="Unsaved" Property="Visibility" Value="Visible"/></Trigger></ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type patterns:NriPlayerDetailHost}">
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type patterns:NriPlayerDetailHost}"><Grid Background="{StaticResource NriApplicationBackgroundBrush}"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions><ContentPresenter Content="{TemplateBinding Header}"/><Border Grid.Row="1" Background="{StaticResource NriPrimarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="20" Margin="0,0,0,16"><ContentPresenter Content="{TemplateBinding Summary}"/></Border><Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition/></Grid.ColumnDefinitions><Border Background="{StaticResource NriPrimarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="20" Margin="0,0,16,0"><ContentPresenter Content="{TemplateBinding Facts}"/></Border><Border Grid.Column="1" Background="{StaticResource NriPrimarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="20"><StackPanel><ContentPresenter Content="{TemplateBinding Actions}"/><ContentPresenter Content="{TemplateBinding RelatedContent}" Margin="0,16,0,0"/></StackPanel></Border></Grid></Grid></ControlTemplate></Setter.Value></Setter>
+    </Style>
+
+    <Style TargetType="{x:Type patterns:NriDashboardHost}">
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type patterns:NriDashboardHost}"><Grid Background="{StaticResource NriApplicationBackgroundBrush}"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition/></Grid.RowDefinitions><ContentPresenter Content="{TemplateBinding Header}"/><Grid Grid.Row="1" Margin="0,0,0,16"><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition/></Grid.ColumnDefinitions><Border Background="{StaticResource NriPrimarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="18" Margin="0,0,16,0"><ContentPresenter Content="{TemplateBinding Tasks}"/></Border><Border Grid.Column="1" Background="{StaticResource NriPrimarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="18"><ContentPresenter Content="{TemplateBinding Exceptions}"/></Border></Grid><Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition/></Grid.ColumnDefinitions><Border Background="{StaticResource NriPrimarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="18" Margin="0,0,16,0"><ContentPresenter Content="{TemplateBinding Events}"/></Border><Border Grid.Column="1" Background="{StaticResource NriPrimarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="18"><ContentPresenter Content="{TemplateBinding QuickActions}"/></Border></Grid></Grid></ControlTemplate></Setter.Value></Setter>
+    </Style>
+
+    <Style TargetType="{x:Type patterns:NriOperationalWorkspaceHost}">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type patterns:NriOperationalWorkspaceHost}">
+                    <Grid Background="{StaticResource NriApplicationBackgroundBrush}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition x:Name="HeaderRow" Height="Auto"/>
+                            <RowDefinition x:Name="ToolbarRow" Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition x:Name="StatusRow" Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <ContentPresenter Content="{TemplateBinding Header}"/>
+                        <ContentPresenter Grid.Row="1" Content="{TemplateBinding Toolbar}" Margin="0,0,0,12"/>
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition x:Name="InspectorColumn" Width="0" MinWidth="0" MaxWidth="360"/>
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                            <controls:NriInspectorDrawer Grid.Column="1"
+                                                         Content="{TemplateBinding Inspector}"
+                                                         IsOpen="{Binding IsInspectorOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                         Margin="12,0,0,0"/>
+                        </Grid>
+                        <ContentPresenter Grid.Row="3" Content="{TemplateBinding Status}" Margin="0,10,0,0"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Header" Value="{x:Null}"><Setter TargetName="HeaderRow" Property="Height" Value="0"/></Trigger>
+                        <Trigger Property="Toolbar" Value="{x:Null}"><Setter TargetName="ToolbarRow" Property="Height" Value="0"/></Trigger>
+                        <Trigger Property="Status" Value="{x:Null}"><Setter TargetName="StatusRow" Property="Height" Value="0"/></Trigger>
+                        <Trigger Property="IsInspectorOpen" Value="True"><Setter TargetName="InspectorColumn" Property="Width" Value="360"/><Setter TargetName="InspectorColumn" Property="MinWidth" Value="280"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type patterns:NriQueueWorkspaceHost}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type patterns:NriQueueWorkspaceHost}">
+                    <Grid Background="{StaticResource NriApplicationBackgroundBrush}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition x:Name="HeaderRow" Height="Auto"/>
+                            <RowDefinition x:Name="ToolbarRow" Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition x:Name="StatusRow" Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <ContentPresenter Content="{TemplateBinding Header}"/>
+                        <ContentPresenter Grid.Row="1" Content="{TemplateBinding Toolbar}" Margin="0,0,0,12"/>
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{TemplateBinding QueueWidth}" MinWidth="320" MaxWidth="520"/>
+                                <ColumnDefinition Width="6"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition x:Name="InspectorColumn" Width="0" MinWidth="0" MaxWidth="360"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Background="{StaticResource NriPrimarySurfaceBrush}"
+                                    BorderBrush="{StaticResource NriBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12"
+                                    Margin="0,0,12,0">
+                                <ContentPresenter Content="{TemplateBinding Queue}"/>
+                            </Border>
+                            <GridSplitter Grid.Column="1"
+                                          Width="6"
+                                          Background="{StaticResource NriBorderBrush}"
+                                          ResizeDirection="Columns"
+                                          ResizeBehavior="PreviousAndNext"
+                                          ToolTip="Изменить ширину очереди"/>
+                            <Border Grid.Column="2"
+                                    Background="{StaticResource NriPrimarySurfaceBrush}"
+                                    BorderBrush="{StaticResource NriBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="14">
+                                <ContentPresenter Content="{TemplateBinding Workspace}"/>
+                            </Border>
+                            <controls:NriInspectorDrawer Grid.Column="3"
+                                                         Content="{TemplateBinding Inspector}"
+                                                         IsOpen="{Binding IsInspectorOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                         Margin="12,0,0,0"/>
+                        </Grid>
+                        <ContentPresenter Grid.Row="3" Content="{TemplateBinding Status}" Margin="0,10,0,0"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Header" Value="{x:Null}"><Setter TargetName="HeaderRow" Property="Height" Value="0"/></Trigger>
+                        <Trigger Property="Toolbar" Value="{x:Null}"><Setter TargetName="ToolbarRow" Property="Height" Value="0"/></Trigger>
+                        <Trigger Property="Status" Value="{x:Null}"><Setter TargetName="StatusRow" Property="Height" Value="0"/></Trigger>
+                        <Trigger Property="IsInspectorOpen" Value="True"><Setter TargetName="InspectorColumn" Property="Width" Value="360"/><Setter TargetName="InspectorColumn" Property="MinWidth" Value="280"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

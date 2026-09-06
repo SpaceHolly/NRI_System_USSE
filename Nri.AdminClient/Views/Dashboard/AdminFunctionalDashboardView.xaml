@@ -17,10 +17,12 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock Text="Пульт Гейм-мастера" Foreground="#FFF8FAFC" FontSize="22" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding StatusText}" Foreground="#FF9CA3AF" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding StatusText}" Foreground="#FF9CA3AF" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   AutomationProperties.AutomationId="AdminDashboard_Status"/>
                         <TextBlock Text="{Binding LastRefreshText, StringFormat=Обновлено: {0}}" Foreground="#FF9CA3AF" FontSize="11" Margin="0,4,0,0"/>
                     </StackPanel>
-                    <Button Grid.Column="1" Content="Обновить" Command="{Binding RefreshCommand}" MinWidth="110" Padding="12,6"/>
+                    <Button Grid.Column="1" Content="Обновить" Command="{Binding RefreshCommand}" MinWidth="110" Padding="12,6"
+                            AutomationProperties.AutomationId="AdminDashboard_Refresh"/>
                 </Grid>
             </Border>
 
@@ -84,7 +86,8 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </StackPanel>
-                        <ListBox ItemsSource="{Binding NextActions}" Background="Transparent" BorderThickness="0">
+                        <ListBox ItemsSource="{Binding NextActions}" Background="Transparent" BorderThickness="0"
+                                 AutomationProperties.AutomationId="AdminDashboard_NextActions">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="#FF111827" BorderBrush="#334C6A88" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8">

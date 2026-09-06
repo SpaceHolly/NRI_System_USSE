@@ -1,0 +1,109 @@
+<UserControl x:Class="Nri.PlayerClient.Views.Gameplay.PlayerGameplayView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Nri.PlayerClient.ViewModels"
+             xmlns:nri="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:PlayerGameplayViewModel}"
+             Background="{StaticResource NriApplicationBackgroundBrush}"
+             Foreground="{StaticResource TextBrush}"
+             AutomationProperties.AutomationId="PlayerGameplay_Root">
+    <patterns:NriOperationalWorkspaceHost Margin="10"
+                                          AutomationProperties.AutomationId="PlayerGameplay_Workspace">
+        <patterns:NriOperationalWorkspaceHost.Header>
+            <nri:NriPageHeader Breadcrumbs="Игра"
+                               Title="Игровой цикл"
+                               Subtitle="Текущие задачи, ожидающие решения и применённые результаты."
+                               StatusText="{Binding StatusMessage}">
+                <nri:NriPageHeader.PrimaryAction>
+                    <Button Content="Обновить"
+                            Command="{Binding RefreshCommand}"
+                            AutomationProperties.AutomationId="PlayerGameplay_Refresh"/>
+                </nri:NriPageHeader.PrimaryAction>
+            </nri:NriPageHeader>
+        </patterns:NriOperationalWorkspaceHost.Header>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.35*"/>
+                <ColumnDefinition Width="0.9*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,12,0">
+                <TabControl AutomationProperties.AutomationId="PlayerGameplay_Categories">
+                    <TabItem Header="Задачи" AutomationProperties.AutomationId="PlayerGameplay_ActiveQuests">
+                        <ListBox ItemsSource="{Binding ActiveQuests}"
+                                 SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                                 DisplayMemberPath="Display"
+                                 AutomationProperties.AutomationId="PlayerGameplay_QuestList"/>
+                    </TabItem>
+                    <TabItem Header="Покупки" AutomationProperties.AutomationId="PlayerGameplay_PendingPurchases">
+                        <ListBox ItemsSource="{Binding PendingPurchases}"
+                                 SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                    <TabItem Header="Продажи" AutomationProperties.AutomationId="PlayerGameplay_PendingSales">
+                        <ListBox ItemsSource="{Binding PendingSales}"
+                                 SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                    <TabItem Header="Отдых" AutomationProperties.AutomationId="PlayerGameplay_RestStatus">
+                        <ListBox ItemsSource="{Binding RestStatus}"
+                                 SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                    <TabItem Header="Действия отдыха" AutomationProperties.AutomationId="PlayerGameplay_DowntimeActions">
+                        <ListBox ItemsSource="{Binding DowntimeActions}"
+                                 SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                    <TabItem Header="Награды" AutomationProperties.AutomationId="PlayerGameplay_RewardSummary">
+                        <ListBox ItemsSource="{Binding RewardSummary}"
+                                 SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                    <TabItem Header="Квитанции" AutomationProperties.AutomationId="PlayerGameplay_RecentReceipts">
+                        <ListBox ItemsSource="{Binding RecentReceipts}"
+                                 SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                                 DisplayMemberPath="Display"/>
+                    </TabItem>
+                </TabControl>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Style="{StaticResource CardStyle}"
+                    AutomationProperties.AutomationId="PlayerGameplay_SelectedDetail">
+                <StackPanel>
+                    <TextBlock Text="Подробности" FontWeight="SemiBold" FontSize="16"/>
+                    <TextBlock Text="{Binding SelectedTitle}"
+                               FontWeight="SemiBold"
+                               FontSize="18"
+                               TextWrapping="Wrap"
+                               Margin="0,12,0,0"
+                               AutomationProperties.AutomationId="PlayerGameplay_SelectedTitle"/>
+                    <nri:NriStatusBadge Text="{Binding SelectedStatus}" Margin="0,8,0,0"/>
+                    <TextBlock Text="{Binding SelectedSummary}"
+                               TextWrapping="Wrap"
+                               Margin="0,12,0,0"
+                               AutomationProperties.AutomationId="PlayerGameplay_SelectedSummary"/>
+                    <Button Content="Закрыть подробности"
+                            Command="{Binding ClearSelectionCommand}"
+                            Style="{StaticResource NriSecondaryButtonStyle}"
+                            HorizontalAlignment="Left"
+                            Margin="0,16,0,0"
+                            AutomationProperties.AutomationId="PlayerGameplay_ClearSelection"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <patterns:NriOperationalWorkspaceHost.Status>
+            <TextBlock Text="{Binding VisibilityHint}"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       TextWrapping="Wrap"
+                       AutomationProperties.AutomationId="PlayerGameplay_VisibilityHint"/>
+        </patterns:NriOperationalWorkspaceHost.Status>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

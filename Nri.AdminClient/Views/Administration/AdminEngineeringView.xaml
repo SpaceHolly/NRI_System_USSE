@@ -1,6 +1,7 @@
 <UserControl x:Class="Nri.AdminClient.Views.Administration.AdminEngineeringView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf">
     <Grid Margin="8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -40,13 +41,13 @@
                     <StackPanel Grid.Row="2">
                         <TextBox Text="{Binding NewPlatformName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название платформы"/>
                         <WrapPanel Margin="0,6,0,0">
-                            <TextBox Width="130" Text="{Binding NewPlatformKind, UpdateSourceTrigger=PropertyChanged}" ToolTip="ground_vehicle / aircraft / spacecraft"/>
-                            <TextBox Width="100" Text="{Binding NewPlatformSizeClass, UpdateSourceTrigger=PropertyChanged}" ToolTip="size class" Margin="6,0,0,0"/>
+                            <controls:NriOptionField Width="130"  Text="{Binding NewPlatformKind, UpdateSourceTrigger=PropertyChanged}" ToolTip="ground_vehicle / aircraft / spacecraft" />
+                            <controls:NriOptionField Width="100"  Text="{Binding NewPlatformSizeClass, UpdateSourceTrigger=PropertyChanged}" ToolTip="size class" Margin="6,0,0,0" />
                         </WrapPanel>
                         <WrapPanel Margin="0,6,0,0">
-                            <TextBox Width="70" Text="{Binding NewPlatformSlots, UpdateSourceTrigger=PropertyChanged}" ToolTip="Слоты"/>
-                            <TextBox Width="90" Text="{Binding NewPlatformHardpoints, UpdateSourceTrigger=PropertyChanged}" ToolTip="Hardpoints" Margin="6,0,0,0"/>
-                            <TextBox Width="90" Text="{Binding NewPlatformPowerOutput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Питание" Margin="6,0,0,0"/>
+                            <controls:NriIntegerField Width="70"  Text="{Binding NewPlatformSlots, UpdateSourceTrigger=PropertyChanged}" ToolTip="Слоты" />
+                            <controls:NriIntegerField Width="90"  Text="{Binding NewPlatformHardpoints, UpdateSourceTrigger=PropertyChanged}" ToolTip="Очки крепления" Margin="6,0,0,0" />
+                            <controls:NriIntegerField Width="90"  Text="{Binding NewPlatformPowerOutput, UpdateSourceTrigger=PropertyChanged}" ToolTip="Питание" Margin="6,0,0,0" />
                         </WrapPanel>
                         <CheckBox Content="Видна игрокам" IsChecked="{Binding NewPlatformVisible}" Margin="0,6,0,0"/>
                         <Button Content="Создать платформу" Command="{Binding CreatePlatformCommand}" Margin="0,8,0,0"/>
@@ -69,13 +70,13 @@
                     <StackPanel Grid.Row="2">
                         <TextBox Text="{Binding NewModuleName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название модуля"/>
                         <WrapPanel Margin="0,6,0,0">
-                            <TextBox Width="110" Text="{Binding NewModuleCategory, UpdateSourceTrigger=PropertyChanged}" ToolTip="Категория"/>
-                            <TextBox Width="100" Text="{Binding NewModuleSlotType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип слота" Margin="6,0,0,0"/>
+                            <controls:NriOptionField Width="110"  Text="{Binding NewModuleCategory, UpdateSourceTrigger=PropertyChanged}" ToolTip="Категория" />
+                            <controls:NriOptionField Width="100"  Text="{Binding NewModuleSlotType, UpdateSourceTrigger=PropertyChanged}" ToolTip="Тип слота" Margin="6,0,0,0" />
                         </WrapPanel>
                         <WrapPanel Margin="0,6,0,0">
-                            <TextBox Width="70" Text="{Binding NewModuleSlotCost, UpdateSourceTrigger=PropertyChanged}" ToolTip="Слоты"/>
-                            <TextBox Width="70" Text="{Binding NewModuleHardpointCost, UpdateSourceTrigger=PropertyChanged}" ToolTip="Hardpoints" Margin="6,0,0,0"/>
-                            <TextBox Width="80" Text="{Binding NewModulePowerLoad, UpdateSourceTrigger=PropertyChanged}" ToolTip="Потребление" Margin="6,0,0,0"/>
+                            <controls:NriIntegerField Width="70"  Text="{Binding NewModuleSlotCost, UpdateSourceTrigger=PropertyChanged}" ToolTip="Слоты" />
+                            <controls:NriIntegerField Width="70"  Text="{Binding NewModuleHardpointCost, UpdateSourceTrigger=PropertyChanged}" ToolTip="Очки крепления" Margin="6,0,0,0" />
+                            <controls:NriIntegerField Width="80"  Text="{Binding NewModulePowerLoad, UpdateSourceTrigger=PropertyChanged}" ToolTip="Потребление" Margin="6,0,0,0" />
                         </WrapPanel>
                         <TextBox Text="{Binding NewModuleDiceExpression, UpdateSourceTrigger=PropertyChanged}" ToolTip="Dice expression, например 2d10+4" Margin="0,6,0,0"/>
                         <CheckBox Content="Виден игрокам" IsChecked="{Binding NewModuleVisible}" Margin="0,6,0,0"/>
@@ -108,13 +109,13 @@
                     </TabControl>
                     <StackPanel Grid.Row="2">
                         <TextBox Text="{Binding ProjectName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название проекта"/>
-                        <TextBox Text="{Binding ProjectPlatformId, UpdateSourceTrigger=PropertyChanged}" ToolTip="PlatformId" Margin="0,6,0,0"/>
-                        <TextBox Text="{Binding ProjectModuleIds, UpdateSourceTrigger=PropertyChanged}" ToolTip="ModuleIds через запятую" Margin="0,6,0,0"/>
+                        <controls:NriReferencePicker  SelectedId="{Binding ProjectPlatformId, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Выберите связанный объект" ToolTip="Платформа" Margin="0,6,0,0" />
+                        <controls:NriMultiReferencePicker  SelectedReferences="{Binding ProjectModuleIds, UpdateSourceTrigger=PropertyChanged}" ToolTip="ModuleIds через запятую" Margin="0,6,0,0" />
                         <WrapPanel Margin="0,6,0,0">
-                            <TextBox Width="145" Text="{Binding ProjectOwnerUserId, UpdateSourceTrigger=PropertyChanged}" ToolTip="OwnerUserId"/>
-                            <TextBox Width="145" Text="{Binding ProjectActorEntityId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ID персонажа или действующего лица" Margin="6,0,0,0"/>
+                            <controls:NriReferencePicker Width="145"  SelectedId="{Binding ProjectOwnerUserId, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Выберите связанный объект" ToolTip="Владелец" />
+                            <controls:NriReferencePicker Width="145" Options="{Binding ProjectActorOptions}" SelectedId="{Binding ProjectActorEntityId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayName="{Binding ProjectActorDisplayName}" AutomationProperties.Name="Выберите действующее лицо" ToolTip="Выберите персонажа или другое действующее лицо" Margin="6,0,0,0"/>
                         </WrapPanel>
-                        <TextBox Text="{Binding ProjectIntendedRole, UpdateSourceTrigger=PropertyChanged}" ToolTip="Назначение / роль" Margin="0,6,0,0"/>
+                        <controls:NriOptionField  Text="{Binding ProjectIntendedRole, UpdateSourceTrigger=PropertyChanged}" ToolTip="Назначение / роль" Margin="0,6,0,0" />
                         <WrapPanel Margin="0,8,0,0">
                             <Button Content="Проверить" Command="{Binding ValidateDesignCommand}"/>
                             <Button Content="Создать проект" Command="{Binding CreateProjectCommand}" Margin="6,0,0,0"/>
@@ -122,7 +123,7 @@
                         </WrapPanel>
                         <WrapPanel Margin="0,6,0,0">
                             <Button Content="Старт" Command="{Binding StartProjectCommand}"/>
-                            <TextBox Width="60" Text="{Binding ProgressAmount, UpdateSourceTrigger=PropertyChanged}" Margin="6,0,0,0"/>
+                            <controls:NriDecimalField Width="60"  Text="{Binding ProgressAmount, UpdateSourceTrigger=PropertyChanged}" Margin="6,0,0,0" />
                             <Button Content="+ прогресс" Command="{Binding AddProgressCommand}" Margin="6,0,0,0"/>
                             <Button Content="Завершить" Command="{Binding CompleteProjectCommand}" Margin="6,0,0,0"/>
                         </WrapPanel>

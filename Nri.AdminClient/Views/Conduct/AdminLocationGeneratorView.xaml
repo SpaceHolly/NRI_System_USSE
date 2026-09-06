@@ -1,0 +1,165 @@
+<UserControl x:Class="Nri.AdminClient.Views.Conduct.AdminLocationGeneratorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Nri.AdminClient.ViewModels"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminLocationGenerator_Route">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminLocationGenerator_OperationalHost">
+        <Grid Margin="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <DockPanel Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Content="Обновить" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsIdle}"/>
+                <StackPanel>
+                    <TextBlock Text="Генератор карты сцены" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Подготовьте предпросмотр, проверьте состав и примените его к выбранной карте."
+                               Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </DockPanel>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="300"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="330"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="Основа генерации" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock Text="Карта" Margin="0,10,0,3" FontWeight="SemiBold"/>
+                            <ComboBox ItemsSource="{Binding Maps}"
+                                      SelectedItem="{Binding SelectedMap, Mode=TwoWay}"
+                                      DisplayMemberPath="DisplayName"
+                                      IsTextSearchEnabled="True"
+                                      TextSearch.TextPath="DisplayName"
+                                      MaxDropDownHeight="300"
+                                      AutomationProperties.AutomationId="AdminMapGenerator_MapList"/>
+                            <TextBlock Text="{Binding SelectedMapSummary}" Margin="0,4,0,0"
+                                       Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+
+                            <TextBlock Text="Шаблон" Margin="0,12,0,3" FontWeight="SemiBold"/>
+                            <ComboBox ItemsSource="{Binding Templates}"
+                                      SelectedItem="{Binding SelectedTemplate, Mode=TwoWay}"
+                                      DisplayMemberPath="DisplayName"
+                                      IsTextSearchEnabled="True"
+                                      TextSearch.TextPath="DisplayName"
+                                      MaxDropDownHeight="300"
+                                      AutomationProperties.AutomationId="AdminMapGenerator_TemplateList"/>
+                            <TextBlock Text="{Binding CleanSelectedTemplateSummary}" Margin="0,4,0,0"
+                                       Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+
+                            <TextBlock Text="Набор параметров" Margin="0,12,0,3" FontWeight="SemiBold"/>
+                            <ComboBox ItemsSource="{Binding Presets}"
+                                      SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+                                      DisplayMemberPath="DisplayName"
+                                      IsTextSearchEnabled="True"
+                                      TextSearch.TextPath="DisplayName"
+                                      MaxDropDownHeight="300"
+                                      AutomationProperties.AutomationId="AdminMapGenerator_PresetList"/>
+                            <TextBlock Text="{Binding CleanSelectedPresetSummary}" Margin="0,4,0,0"
+                                       Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+
+                            <TextBlock Text="Ключ генерации" Margin="0,12,0,3" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Одинаковый ключ даёт одинаковый результат при тех же шаблоне и размере карты."
+                                     AutomationProperties.AutomationId="AdminMapGenerator_Seed"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Предпросмотр" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <Border Grid.Row="1" Margin="0,8" BorderBrush="{StaticResource BorderBrushTheme}" BorderThickness="1" Background="#142028">
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                <Canvas Width="{Binding PreviewCanvasWidth}" Height="{Binding PreviewCanvasHeight}"
+                                        AutomationProperties.AutomationId="AdminMapGenerator_PreviewCanvas">
+                                    <ItemsControl ItemsSource="{Binding PreviewTiles}">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding Left}"/><Setter Property="Canvas.Top" Value="{Binding Top}"/></Style></ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:LocationGeneratorTilePreviewItem}"><Border Width="{Binding Width}" Height="{Binding Height}" Background="{Binding Fill}" BorderBrush="{Binding Stroke}" BorderThickness="1" Opacity="0.9"/></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl ItemsSource="{Binding PreviewAssets}">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding Left}"/><Setter Property="Canvas.Top" Value="{Binding Top}"/></Style></ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:LocationGeneratorAssetPreviewItem}"><Border Width="{Binding Width}" Height="{Binding Height}" Background="{Binding Fill}" BorderBrush="{Binding Stroke}" BorderThickness="1" CornerRadius="2"><TextBlock Text="{Binding Label}" FontSize="9" TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" Margin="2"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl ItemsSource="{Binding PreviewMarkers}">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding Left}"/><Setter Property="Canvas.Top" Value="{Binding Top}"/></Style></ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:LocationGeneratorMarkerPreviewItem}"><StackPanel><Ellipse Width="14" Height="14" Fill="#F4C542" Stroke="#1D232A" StrokeThickness="1.5"/><TextBlock Text="{Binding Label}" Foreground="{StaticResource TextBrush}" FontSize="10"/></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Canvas>
+                            </ScrollViewer>
+                        </Border>
+                        <TextBlock Grid.Row="2" Text="{Binding PreviewStateText}" TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   AutomationProperties.AutomationId="AdminMapGenerator_PreviewState"/>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="10">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="Параметры и результат" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock Text="Название результата" Margin="0,10,0,3" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Text="Плотность" Margin="0,10,0,3"/>
+                            <ComboBox ItemsSource="{Binding DensityOptions}" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectedValue="{Binding Density}"/>
+                            <TextBlock Text="Детализация" Margin="0,8,0,3"/>
+                            <ComboBox ItemsSource="{Binding DetailLevelOptions}" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectedValue="{Binding DetailLevel}"/>
+                            <TextBlock Text="Композиция" Margin="0,8,0,3"/>
+                            <ComboBox ItemsSource="{Binding SymmetryOptions}" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectedValue="{Binding Symmetry}"/>
+
+                            <Expander Header="Дополнительные параметры" Margin="0,10,0,0">
+                                <StackPanel Margin="0,6,0,0">
+                                    <CheckBox Content="Добавить секреты мастера" IsChecked="{Binding IncludeGmSecrets}"/>
+                                    <CheckBox Content="Добавить опасности" IsChecked="{Binding IncludeHazards}"/>
+                                    <CheckBox Content="Добавить зоны появления" IsChecked="{Binding IncludeSpawnZones}"/>
+                                    <CheckBox Content="Добавить зоны целей" IsChecked="{Binding IncludeObjectiveZones}"/>
+                                </StackPanel>
+                            </Expander>
+
+                            <Separator Margin="0,12"/>
+                            <TextBlock Text="{Binding ResultSummary}" TextWrapping="Wrap"
+                                       AutomationProperties.AutomationId="AdminMapGenerator_Summary"/>
+                            <ItemsControl ItemsSource="{Binding PreviewWarnings}" Margin="0,6,0,0">
+                                <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Foreground="#FFF59E0B" TextWrapping="Wrap"/></DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       AutomationProperties.AutomationId="AdminMapGenerator_Error"/>
+                            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       AutomationProperties.AutomationId="AdminMapGenerator_Status"/>
+
+                            <WrapPanel Margin="0,12,0,0">
+                                <Button Content="Предпросмотр" Command="{Binding PreviewCommand}" IsEnabled="{Binding CanCreatePreview}"
+                                        AutomationProperties.AutomationId="AdminMapGenerator_Preview"/>
+                                <Button Content="Применить" Margin="6,0,0,0" Command="{Binding ApplyPreviewCommand}" IsEnabled="{Binding CanApplyPreview}"
+                                        AutomationProperties.AutomationId="AdminMapGenerator_Apply"/>
+                                <Button Content="Отменить" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}"
+                                        Command="{Binding CancelPreviewCommand}" IsEnabled="{Binding HasPreview}"
+                                        AutomationProperties.AutomationId="AdminMapGenerator_CancelPreview"/>
+                            </WrapPanel>
+                            <TextBlock Text="{Binding LastAppliedRunText}" Margin="0,10,0,0" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"
+                                       AutomationProperties.AutomationId="AdminMapGenerator_LastAppliedRun"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+
+            <TextBlock Grid.Row="2" Text="{Binding SelectedMapSummary}" Margin="0,8,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+        </Grid>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

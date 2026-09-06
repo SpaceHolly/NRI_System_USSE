@@ -1,14 +1,150 @@
 <UserControl x:Class="Nri.PlayerClient.Views.Pages.CombatView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="PlayerCombatTracker_Visible">
     <Grid Margin="8">
-        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" MaxWidth="720" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <StackPanel>
-                <TextBlock Text="Бой" Style="{StaticResource HeaderTitleTextStyle}"/>
-                <TextBlock Text="Статус: Недоступно / Отложено" FontWeight="SemiBold" Margin="0,8,0,0"/>
-                <TextBlock Text="Причина: player-safe боевые действия ещё не доведены до рабочего MVP." Foreground="{StaticResource MutedBrush}" Margin="0,6,0,0"/>
-                <TextBlock Text="Target: 0.15" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,0"/>
-            </StackPanel>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Padding="12" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Бой" Style="{StaticResource HeaderTitleTextStyle}"/>
+                    <WrapPanel Margin="0,4,0,0">
+                        <TextBlock Text="{Binding CombatEncounterName}" FontWeight="SemiBold" Margin="0,0,12,0"/>
+                        <TextBlock Text="{Binding CombatEncounterStatus}" Foreground="{StaticResource MutedBrush}" AutomationProperties.AutomationId="PlayerCombatTracker_RoundNumber"/>
+                    </WrapPanel>
+                    <TextBlock Text="{Binding CombatCurrentTurnText}" AutomationProperties.AutomationId="PlayerCombatTracker_CurrentTurn"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="Обновить" Command="{Binding CombatRefreshSnapshotCommand}" VerticalAlignment="Center" AutomationProperties.AutomationId="PlayerCombatTracker_Refresh"/>
+            </Grid>
         </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/><ColumnDefinition Width="330"/></Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <TextBlock Text="Инициатива" FontWeight="Bold"/>
+                    <ListBox Grid.Row="1" Margin="0,8,0,0" ItemsSource="{Binding CombatParticipants}" AutomationProperties.AutomationId="PlayerCombatTracker_InitiativeList">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="2,4">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border Background="#253A5A" Padding="4" CornerRadius="3"><TextBlock Text="{Binding InitiativeText}" HorizontalAlignment="Center" FontWeight="Bold"/></Border>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding TurnText}" Foreground="{StaticResource MutedBrush}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="1" Margin="0,0,8,0">
+                <Grid.RowDefinitions><RowDefinition Height="2.4*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,8" AutomationProperties.AutomationId="PlayerCombatMap_Overlay">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <DockPanel>
+                            <StackPanel>
+                                <TextBlock Text="Карта боя" FontWeight="Bold" AutomationProperties.AutomationId="PlayerCombatMap_Title"/>
+                                <TextBlock Text="{Binding CombatMapSceneText}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" AutomationProperties.AutomationId="PlayerCombatMap_ActiveSceneMap"/>
+                            </StackPanel>
+                            <TextBlock DockPanel.Dock="Right" Text="Перемещение доступно в свой ход" Foreground="{StaticResource MutedBrush}" AutomationProperties.AutomationId="PlayerCombatMap_NoAdminControls"/>
+                        </DockPanel>
+                        <Border Grid.Row="1" Margin="0,8,0,0" Background="#0B1424" BorderBrush="#263A57" BorderThickness="1" ClipToBounds="True">
+                            <Viewbox Stretch="Uniform">
+                                <controls:NriAutomationAnchor Width="{Binding CombatMapCanvasWidth}"
+                                                              Height="{Binding CombatMapCanvasHeight}"
+                                                              AutomationProperties.Name="Поле боя"
+                                                              AutomationProperties.AutomationId="PlayerCombatMap_Canvas">
+                                <Canvas x:Name="CombatMapCanvas" Width="{Binding CombatMapCanvasWidth}" Height="{Binding CombatMapCanvasHeight}" Background="#0B1424"
+                                        MouseLeftButtonUp="CombatMapCanvas_OnMouseLeftButtonUp">
+                                    <ItemsControl Width="{Binding CombatMapCanvasWidth}" Height="{Binding CombatMapCanvasHeight}" IsHitTestVisible="False" ItemsSource="{Binding CombatMapGridLines}" AutomationProperties.AutomationId="PlayerCombatMap_GridLayer">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate><DataTemplate><Line X1="{Binding X1}" Y1="{Binding Y1}" X2="{Binding X2}" Y2="{Binding Y2}" Stroke="#233A5A" StrokeThickness="1"/></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl Width="{Binding CombatMapCanvasWidth}" Height="{Binding CombatMapCanvasHeight}" IsHitTestVisible="False" ItemsSource="{Binding CombatMapTilePatches}" AutomationProperties.AutomationId="PlayerCombatMap_RenderedTileLayer">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding PixelX}"/><Setter Property="Canvas.Top" Value="{Binding PixelY}"/></Style></ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate><DataTemplate><Rectangle Width="{Binding PixelWidth}" Height="{Binding PixelHeight}" Fill="{Binding FillBrush}" Stroke="{Binding StrokeBrush}" Opacity="{Binding Opacity}"/></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl Width="{Binding CombatMapCanvasWidth}" Height="{Binding CombatMapCanvasHeight}" IsHitTestVisible="False" ItemsSource="{Binding CombatMapAssetInstances}" AutomationProperties.AutomationId="PlayerCombatMap_RenderedAssetLayer">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding PixelX}"/><Setter Property="Canvas.Top" Value="{Binding PixelY}"/></Style></ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate><DataTemplate><Border Width="{Binding PixelWidth}" Height="{Binding PixelHeight}" Background="{Binding FillBrush}" BorderBrush="{Binding StrokeBrush}" BorderThickness="1" CornerRadius="2"><TextBlock Text="{Binding AssetGlyph}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl Width="{Binding CombatMapCanvasWidth}" Height="{Binding CombatMapCanvasHeight}" IsHitTestVisible="False" ItemsSource="{Binding CombatMapTokens}" AutomationProperties.AutomationId="PlayerCombatMap_RenderedTokenLayer">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding PixelLeft}"/><Setter Property="Canvas.Top" Value="{Binding PixelTop}"/><Setter Property="Panel.ZIndex" Value="10"/></Style></ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid>
+                                                    <Ellipse Width="{Binding PixelDiameter}" Height="{Binding PixelDiameter}" Fill="#16A34A" Stroke="#BBF7D0" StrokeThickness="2"/>
+                                                    <Ellipse Width="{Binding PixelDiameter}" Height="{Binding PixelDiameter}" Fill="Transparent" Stroke="#FDE68A">
+                                                        <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="StrokeThickness" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsCurrentTurn}" Value="True"><Setter Property="StrokeThickness" Value="4"/></DataTrigger></Style.Triggers></Style></Ellipse.Style>
+                                                    </Ellipse>
+                                                    <Ellipse Width="{Binding PixelDiameter}" Height="{Binding PixelDiameter}" Fill="Transparent" Stroke="#60A5FA">
+                                                        <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="StrokeThickness" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsMine}" Value="True"><Setter Property="StrokeThickness" Value="3"/></DataTrigger></Style.Triggers></Style></Ellipse.Style>
+                                                    </Ellipse>
+                                                    <TextBlock Text="{Binding CanvasLabel}" Margin="20,-3,0,0" Padding="4,2" Foreground="#F8FAFC" Background="#D90F172A" FontWeight="SemiBold"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Canvas>
+                                </controls:NriAutomationAnchor>
+                            </Viewbox>
+                        </Border>
+                        <TextBlock Grid.Row="2" Text="{Binding CombatMapStatusText}" Margin="0,6,0,0" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" AutomationProperties.AutomationId="PlayerCombatMap_Status"/>
+                    </Grid>
+                </Border>
+                <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="10">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <TextBlock Text="Журнал боя" FontWeight="Bold"/>
+                        <ListBox Grid.Row="1" Margin="0,6,0,0" ItemsSource="{Binding CombatPublicLog}" DisplayMemberPath="DisplayText" AutomationProperties.AutomationId="PlayerCombatTracker_CombatLog"/>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="10">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <TextBlock Text="Мой ход" FontWeight="Bold" AutomationProperties.AutomationId="PlayerCombatTracker_MyTurnState"/>
+                        <Border Background="#10352E" BorderBrush="#23866F" BorderThickness="1" Padding="8" Margin="0,6,0,0">
+                            <TextBlock Text="{Binding CombatTurnBanner}" Foreground="#FFA7F3D0" TextWrapping="Wrap"/>
+                        </Border>
+                        <TextBlock Text="{Binding CombatMyParticipant.DisplayName, TargetNullValue=Участник не найден}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding CombatMyParticipant.ActionText}" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBlock Text="{Binding CombatMyParticipant.RacialMovementState}" TextWrapping="Wrap" Foreground="#FFA7F3D0" Margin="0,5,0,0" AutomationProperties.AutomationId="PlayerCombat_RacialMovementState">
+                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding CombatMyParticipant.RacialMovementState}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                        </TextBlock>
+                        <ItemsControl ItemsSource="{Binding CombatKnownConditions}" Margin="0,6,0,0"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding Summary}" TextWrapping="Wrap"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <Separator Margin="0,10"/>
+                        <TextBlock Text="Действие" FontWeight="Bold"/>
+                        <TextBlock Text="Цель" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,2"/>
+                        <ComboBox ItemsSource="{Binding CombatParticipants}" SelectedItem="{Binding SelectedCombatTarget, Mode=TwoWay}" DisplayMemberPath="DisplayName" AutomationProperties.AutomationId="PlayerCombat_TargetPicker"/>
+                        <TextBlock Text="Экипированное оружие" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,2"/>
+                        <ComboBox ItemsSource="{Binding CombatWeaponItems}" SelectedItem="{Binding SelectedCombatWeapon, Mode=TwoWay}" DisplayMemberPath="Name" AutomationProperties.AutomationId="PlayerCombat_WeaponPicker"/>
+                        <TextBlock Text="Навык" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,2"/>
+                        <ComboBox ItemsSource="{Binding DevelopmentSkillTracks}" SelectedItem="{Binding SelectedCombatSkillTrack, Mode=TwoWay}" DisplayMemberPath="Name" AutomationProperties.AutomationId="PlayerCombat_SkillPicker"/>
+                        <Button Content="Выполнить атаку" Margin="0,8,0,0" Command="{Binding CombatExecuteAttackCommand}" AutomationProperties.AutomationId="PlayerCombat_ExecuteAttack"/>
+                        <Button Content="Подготовить действие" Margin="0,6,0,0" Command="{Binding CombatPrepareActionCommand}" Style="{StaticResource GhostButtonStyle}" AutomationProperties.AutomationId="PlayerCombat_PrepareAction"/>
+                        <Border Background="#101A2C" BorderBrush="#263A57" BorderThickness="1" Padding="8" Margin="0,8,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Последний результат" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding CombatResolutionText}" TextWrapping="Wrap" AutomationProperties.AutomationId="PlayerCombat_ResolutionBreakdown"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="{Binding CombatWarningMessage}" Foreground="#FFF59E0B" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding CombatErrorMessage}" Foreground="#FFF87171" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+        <TextBlock Grid.Row="2" Text="{Binding CombatLastRefreshText}" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0" HorizontalAlignment="Right"/>
     </Grid>
 </UserControl>

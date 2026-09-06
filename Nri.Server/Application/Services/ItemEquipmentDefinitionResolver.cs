@@ -239,16 +239,17 @@ public sealed class ItemEquipmentDefinitionResolver : IItemEquipmentDefinitionRe
             DefinitionId = doc.Id,
             Name = doc.Name,
             DisplayNameRu = reader.GetString("displayNameRu", string.Empty),
-            WeaponType = reader.GetString("weaponType", string.Empty),
+            WeaponType = FirstNonEmpty(reader.GetString("weaponType", string.Empty), reader.GetString("weaponCategory", string.Empty)),
             Handedness = reader.GetString("handedness", string.Empty),
             RangeType = reader.GetString("rangeType", string.Empty),
             DamageDraft = reader.GetString("damageDraft", string.Empty),
             AccuracyDraft = reader.GetString("accuracyDraft", string.Empty),
             PenetrationDraft = reader.GetString("penetrationDraft", string.Empty),
-            LinkedSkillIds = reader.GetStringList("linkedSkillIds"),
-            AttributeHints = reader.GetStringList("attributeHints"),
+            LinkedSkillIds = FirstNonEmptyList(reader.GetStringList("linkedSkillIds"), reader.GetStringList("requiredSkillIds")),
+            AttributeHints = FirstNonEmptyList(reader.GetStringList("attributeHints"), reader.GetStringList("requiredAttributeIds")),
             AmmoDefinitionIds = reader.GetStringList("ammoDefinitionIds"),
-            EquipmentSlotIds = reader.GetStringList("equipmentSlotIds"),
+            EquipmentSlotIds = FirstNonEmptyList(reader.GetStringList("equipmentSlotIds"), reader.GetStringList("bodyRequirements")),
+            AttackProfiles = reader.GetDictionaryList("attackProfiles").Select(MapAttackProfile).ToList(),
             WeightKg = reader.GetDecimal("weightKg", 0m),
             ValueCurrencyId = reader.GetString("valueCurrencyId", string.Empty),
             ValueAmountDraft = reader.GetLong("valueAmountDraft", 0L),
@@ -267,6 +268,37 @@ public sealed class ItemEquipmentDefinitionResolver : IItemEquipmentDefinitionRe
         return view;
     }
 
+    private static AttackProfileDefinition MapAttackProfile(Dictionary<string, object> map)
+    {
+        var reader = new DefinitionExtraDataReader(map);
+        return new AttackProfileDefinition
+        {
+            ProfileId = reader.GetString("profileId", string.Empty),
+            Name = reader.GetString("name", string.Empty),
+            AttackType = reader.GetString("attackType", string.Empty),
+            ActionCost = reader.GetInt("actionCost", 1),
+            AttackRollType = reader.GetString("attackRollType", "d20"),
+            SkillDefinitionId = reader.GetString("skillDefinitionId", string.Empty),
+            SubAttributeDefinitionId = reader.GetString("subAttributeDefinitionId", string.Empty),
+            AccuracyModifier = reader.GetInt("accuracyModifier", 0),
+            Range = reader.GetString("range", string.Empty),
+            DamageExpression = reader.GetString("damageExpression", string.Empty),
+            DamageTypeDefinitionIds = reader.GetStringList("damageTypeDefinitionIds"),
+            PhysicalPenetration = reader.GetInt("physicalPenetration", 0),
+            ArmorPenetration = reader.GetInt("armorPenetration", 0),
+            MagicPenetration = reader.GetInt("magicPenetration", 0),
+            MoralePenetration = reader.GetInt("moralePenetration", 0),
+            Area = reader.GetString("area", string.Empty),
+            FireMode = reader.GetString("fireMode", string.Empty),
+            ReloadCost = reader.GetInt("reloadCost", 0),
+            AmmoCost = reader.GetInt("ammoCost", 0),
+            CanReact = reader.GetBool("canReact", false),
+            CanReturnFire = reader.GetBool("canReturnFire", false),
+            CanParry = reader.GetBool("canParry", false),
+            CanBlock = reader.GetBool("canBlock", false)
+        };
+    }
+
     private static ArmorDefinitionView MapArmor(UnifiedDefinitionDocument doc, DefinitionExtraDataReader reader, DefinitionResolveResult<ArmorDefinitionView> result)
     {
         var view = new ArmorDefinitionView
@@ -274,12 +306,20 @@ public sealed class ItemEquipmentDefinitionResolver : IItemEquipmentDefinitionRe
             DefinitionId = doc.Id,
             Name = doc.Name,
             DisplayNameRu = reader.GetString("displayNameRu", string.Empty),
-            ArmorType = reader.GetString("armorType", string.Empty),
-            EquipmentSlotIds = reader.GetStringList("equipmentSlotIds"),
-            PhysicalArmorDraft = reader.GetString("physicalArmorDraft", string.Empty),
-            MagicArmorDraft = reader.GetString("magicArmorDraft", string.Empty),
+            ArmorType = FirstNonEmpty(reader.GetString("armorType", string.Empty), reader.GetString("armorCategory", string.Empty)),
+            EquipmentSlotIds = FirstNonEmptyList(reader.GetStringList("equipmentSlotIds"), reader.GetStringList("protectedBodyZones")),
+            PhysicalArmorDraft = FirstNonEmpty(reader.GetString("physicalArmorDraft", string.Empty), reader.GetString("physicalDefense", string.Empty)),
+            ArmorRating = reader.GetInt("armorRating", reader.GetInt("physicalDefense", 0)),
+            PenetrationResistanceByBodyZone = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                [BodyZoneIds.Head] = reader.GetInt("headPenetrationResistance", 0),
+                [BodyZoneIds.Torso] = reader.GetInt("torsoPenetrationResistance", 0),
+                [BodyZoneIds.LeftArm] = reader.GetInt("armsPenetrationResistance", 0), [BodyZoneIds.RightArm] = reader.GetInt("armsPenetrationResistance", 0),
+                [BodyZoneIds.LeftLeg] = reader.GetInt("legsPenetrationResistance", 0), [BodyZoneIds.RightLeg] = reader.GetInt("legsPenetrationResistance", 0)
+            },
+            MagicArmorDraft = FirstNonEmpty(reader.GetString("magicArmorDraft", string.Empty), reader.GetString("magicalDefense", string.Empty)),
             MobilityPenaltyDraft = reader.GetString("mobilityPenaltyDraft", string.Empty),
-            StealthPenaltyDraft = reader.GetString("stealthPenaltyDraft", string.Empty),
+            StealthPenaltyDraft = FirstNonEmpty(reader.GetString("stealthPenaltyDraft", string.Empty), reader.GetString("stealthPenalty", string.Empty)),
             HeightFitMode = reader.GetString("heightFitMode", string.Empty),
             SizeCategoryAllowed = reader.GetStringList("sizeCategoryAllowed"),
             WeightKg = reader.GetDecimal("weightKg", 0m),
@@ -360,6 +400,12 @@ public sealed class ItemEquipmentDefinitionResolver : IItemEquipmentDefinitionRe
     {
         result.Success = result.Errors.Count == 0;
     }
+
+    private static string FirstNonEmpty(params string[] values)
+        => values.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? string.Empty;
+
+    private static List<string> FirstNonEmptyList(params List<string>[] values)
+        => values.FirstOrDefault(x => x != null && x.Count > 0) ?? new List<string>();
 
     private static bool IsSupportedCategory(string category)
     {
@@ -511,6 +557,35 @@ public sealed class DefinitionExtraDataReader
             Warnings.Add($"field_list_parse_failed:{key}");
             return new List<string>();
         }
+    }
+
+    public List<Dictionary<string, object>> GetDictionaryList(string key)
+    {
+        if (!TryGetRaw(key, out var value) || value == null) return new List<Dictionary<string, object>>();
+        try
+        {
+            if (value is JsonElement element && element.ValueKind == JsonValueKind.Array)
+            {
+                return element.EnumerateArray()
+                    .Where(x => x.ValueKind == JsonValueKind.Object)
+                    .Select(x => JsonSerializer.Deserialize<Dictionary<string, object>>(x.GetRawText()) ?? new Dictionary<string, object>())
+                    .ToList();
+            }
+
+            if (value is IEnumerable enumerable)
+            {
+                return enumerable.Cast<object>()
+                    .Select(x => x as Dictionary<string, object> ?? (x is IDictionary<string, object> map ? new Dictionary<string, object>(map) : null))
+                    .Where(x => x != null)
+                    .Cast<Dictionary<string, object>>()
+                    .ToList();
+            }
+        }
+        catch
+        {
+            Warnings.Add($"field_object_list_parse_failed:{key}");
+        }
+        return new List<Dictionary<string, object>>();
     }
 
     private bool TryGetRaw(string key, out object value)

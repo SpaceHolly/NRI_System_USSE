@@ -1,95 +1,577 @@
 <UserControl x:Class="Nri.PlayerClient.Views.Engineering.PlayerEngineeringView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:nri="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             xmlns:engineering="clr-namespace:Nri.PlayerClient.Views.Engineering"
+             Background="{StaticResource NriApplicationBackgroundBrush}"
+             Foreground="{StaticResource TextBrush}"
+             AutomationProperties.AutomationId="PlayerEngineering_Route">
+    <patterns:NriOperationalWorkspaceHost Margin="10"
+                                          AutomationProperties.AutomationId="PlayerEngineering_Workspace">
+        <patterns:NriOperationalWorkspaceHost.Header>
+            <nri:NriPageHeader Breadcrumbs="Персонаж"
+                               Title="Инженерия"
+                               Subtitle="Конструктор предложений и исследования технологий активного персонажа."
+                               StatusText="{Binding StatusMessage}">
+                <nri:NriPageHeader.PrimaryAction>
+                    <Button Content="Обновить"
+                            Command="{Binding RefreshCommand}"
+                            AutomationProperties.AutomationId="PlayerEngineering_Refresh"/>
+                </nri:NriPageHeader.PrimaryAction>
+            </nri:NriPageHeader>
+        </patterns:NriOperationalWorkspaceHost.Header>
 
-        <Border Style="{StaticResource CardStyle}">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Left">
-                    <TextBlock Text="Инженерия / предложения конструкций" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                </StackPanel>
-                <Button DockPanel.Dock="Right" Content="Обновить" Command="{Binding RefreshCommand}" Margin="8,0,0,0"/>
-            </DockPanel>
-        </Border>
-
-        <Grid Grid.Row="1" Margin="0,8,0,0">
+        <TabControl AutomationProperties.AutomationId="PlayerEngineering_ModeTabs">
+            <TabItem Header="Конструирование">
+        <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="1.1*"/>
-                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="0.9*"/>
+                <ColumnDefinition Width="1.4*"/>
             </Grid.ColumnDefinitions>
 
-            <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0">
-                <TabControl>
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,12,0">
+                <TabControl AutomationProperties.AutomationId="PlayerEngineering_ReferenceTabs">
                     <TabItem Header="Платформы">
-                        <ListBox ItemsSource="{Binding Platforms}"/>
+                        <ListBox ItemsSource="{Binding Platforms}"
+                                 SelectedItem="{Binding SelectedPlatform, Mode=TwoWay}"
+                                 HorizontalContentAlignment="Stretch"
+                                 AutomationProperties.AutomationId="PlayerEngineering_PlatformSelector">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="4"
+                                                AutomationProperties.Name="{Binding AccessibleSummary}">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </TabItem>
                     <TabItem Header="Модули">
-                        <ListBox ItemsSource="{Binding Modules}"/>
+                        <ListBox ItemsSource="{Binding Modules}"
+                                 HorizontalContentAlignment="Stretch"
+                                 AutomationProperties.AutomationId="PlayerEngineering_ModuleSelector">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                              IsEnabled="{Binding CanSelect}">
+                                        <StackPanel Margin="4">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </CheckBox>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </TabItem>
-                    <TabItem Header="Пресеты">
-                        <ListBox ItemsSource="{Binding Presets}"/>
+                    <TabItem Header="Готовые варианты">
+                        <ListBox ItemsSource="{Binding Presets}"
+                                 SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+                                 HorizontalContentAlignment="Stretch"
+                                 AutomationProperties.AutomationId="PlayerEngineering_PresetSelector">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="4">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </TabItem>
                 </TabControl>
             </Border>
 
-            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
+
                     <StackPanel>
-                        <TextBlock Text="Мои черновики" Style="{StaticResource TitleTextStyle}"/>
-                        <TextBlock Text="Черновик можно отправить GM как заявку на инженерный проект." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
-                    </StackPanel>
-                    <TabControl Grid.Row="1" Margin="0,8,0,8">
-                        <TabItem Header="Черновики">
-                            <ListBox ItemsSource="{Binding Drafts}" SelectedItem="{Binding SelectedDraft, Mode=TwoWay}" DisplayMemberPath="Summary"/>
-                        </TabItem>
-                        <TabItem Header="Проверка">
-                            <ListBox ItemsSource="{Binding ValidationRows}"/>
-                        </TabItem>
-                    </TabControl>
-                    <StackPanel Grid.Row="2">
-                        <TextBox Text="{Binding DraftName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Название предложения"/>
-                        <TextBox Text="{Binding DraftPlatformId, UpdateSourceTrigger=PropertyChanged}" ToolTip="PlatformId" Margin="0,6,0,0"/>
-                        <TextBox Text="{Binding DraftModuleIds, UpdateSourceTrigger=PropertyChanged}" ToolTip="ModuleIds через запятую" Margin="0,6,0,0"/>
-                        <TextBox Text="{Binding DraftRole, UpdateSourceTrigger=PropertyChanged}" ToolTip="Назначение / роль" Margin="0,6,0,0"/>
-                        <TextBox Text="{Binding DraftNotes, UpdateSourceTrigger=PropertyChanged}" ToolTip="Комментарий для GM" Margin="0,6,0,0"/>
-                        <WrapPanel Margin="0,8,0,0">
-                            <Button Content="Создать черновик" Command="{Binding CreateDraftCommand}"/>
-                            <Button Content="Проверить" Command="{Binding ValidateDraftCommand}" Margin="6,0,0,0"/>
-                            <Button Content="Отправить GM" Command="{Binding SubmitDraftCommand}" Margin="6,0,0,0"/>
+                        <TextBlock Text="Новое предложение" Style="{StaticResource NriSectionTitleTextStyle}"/>
+                        <TextBlock Text="Платформа выбирается слева. Отметьте совместимые модули, затем опишите назначение."
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,4,0,12"/>
+                        <TextBlock Text="Название *" FontWeight="SemiBold"/>
+                        <TextBox Text="{Binding DraftName, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="PlayerEngineering_DraftName"/>
+                        <TextBlock Text="Назначение" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                        <TextBox Text="{Binding DraftRole, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Кратко опишите задачу конструкции."
+                                 AutomationProperties.AutomationId="PlayerEngineering_DraftPurpose"/>
+                        <TextBlock Text="Комментарий для GM" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                        <TextBox Text="{Binding DraftNotes, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="64"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"/>
+                        <Border Background="{StaticResource NriSecondarySurfaceBrush}"
+                                BorderBrush="{StaticResource NriBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="10"
+                                Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Резюме предложения" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding DraftSummary}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,4,0,0"
+                                           AutomationProperties.AutomationId="PlayerEngineering_DraftSummary"/>
+                            </StackPanel>
+                        </Border>
+                        <WrapPanel Margin="0,12,0,0">
+                            <Button Content="Очистить выбор"
+                                    Command="{Binding ClearSelectionCommand}"
+                                    Style="{StaticResource NriSecondaryButtonStyle}"
+                                    AutomationProperties.AutomationId="PlayerEngineering_ClearSelection"/>
+                            <Button Content="Создать черновик"
+                                    Command="{Binding CreateDraftCommand}"
+                                    Margin="8,0,0,0"
+                                    AutomationProperties.AutomationId="PlayerEngineering_CreateDraft"/>
+                            <Button Content="Проверить предложение"
+                                    Command="{Binding PreviewProposalCommand}"
+                                    Margin="8,0,0,0"
+                                    AutomationProperties.AutomationId="PlayerEngineering_PreviewProposal"/>
+                            <Button Content="Отправить GM"
+                                    Command="{Binding SubmitDraftCommand}"
+                                    Margin="8,0,0,0"
+                                    AutomationProperties.AutomationId="PlayerEngineering_SubmitDraft"/>
                         </WrapPanel>
                     </StackPanel>
+
+                    <Separator Grid.Row="1" Margin="0,14"/>
+
+                    <TabControl Grid.Row="2">
+                        <TabItem Header="Мои черновики">
+                            <ListBox ItemsSource="{Binding Drafts}"
+                                     SelectedItem="{Binding SelectedDraft, Mode=TwoWay}"
+                                     DisplayMemberPath="Summary"/>
+                        </TabItem>
+                        <TabItem Header="Результат проверки">
+                            <ListBox ItemsSource="{Binding ValidationRows}"/>
+                        </TabItem>
+                        <TabItem Header="Проекты">
+                            <ListBox ItemsSource="{Binding Projects}"/>
+                        </TabItem>
+                        <TabItem Header="Чертежи">
+                            <ListBox ItemsSource="{Binding Blueprints}"/>
+                        </TabItem>
+                    </TabControl>
                 </Grid>
             </Border>
+        </Grid>
+            </TabItem>
 
-            <Border Grid.Column="2" Style="{StaticResource CardStyle}">
-                <TabControl>
-                    <TabItem Header="Проекты">
-                        <ListBox ItemsSource="{Binding Projects}"/>
+            <TabItem Header="Исследование теории"
+                     AutomationProperties.AutomationId="PlayerResearchTheory_Tab">
+                <Grid Margin="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.9*"/>
+                        <ColumnDefinition Width="1.4*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,12,0">
+                        <TabControl>
+                            <TabItem Header="Доступные технологии">
+                                <ListBox ItemsSource="{Binding ResearchTechnologies0192}"
+                                         SelectedItem="{Binding SelectedResearchTechnology0192, Mode=TwoWay}"
+                                         HorizontalContentAlignment="Stretch"
+                                         AutomationProperties.AutomationId="PlayerResearchTheory_TechnologySelector">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="4">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </TabItem>
+                            <TabItem Header="Мои исследования">
+                                <ListBox ItemsSource="{Binding ResearchProjects0192}"
+                                         SelectedItem="{Binding SelectedResearchProject0192, Mode=TwoWay}"
+                                         DisplayMemberPath="Summary"
+                                         AutomationProperties.AutomationId="PlayerResearchTheory_ProjectList"/>
+                            </TabItem>
+                        </TabControl>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Новое исследование" Style="{StaticResource NriSectionTitleTextStyle}"/>
+                                <TextBlock Text="{Binding SelectedResearchTechnology0192.Description, TargetNullValue=Выберите опубликованную технологию слева.}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,4,0,10"/>
+                                <TextBlock Text="Название *" FontWeight="SemiBold"/>
+                                <TextBox Text="{Binding ResearchProjectName0192, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.AutomationId="PlayerResearchTheory_Name"/>
+                                <Border Background="{StaticResource NriSecondarySurfaceBrush}"
+                                        BorderBrush="{StaticResource NriBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="10"
+                                        Margin="0,10,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Статус знания" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding ResearchKnowledgeStatus0192}"
+                                                   TextWrapping="Wrap"
+                                                   AutomationProperties.AutomationId="PlayerResearchTheory_KnowledgeStatus"/>
+                                        <TextBlock Text="{Binding ResearchState0192}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <WrapPanel Margin="0,12,0,0">
+                                    <Button Content="Обновить"
+                                            Command="{Binding RefreshResearchCommand0192}"
+                                            Style="{StaticResource NriSecondaryButtonStyle}"
+                                            AutomationProperties.AutomationId="PlayerResearchTheory_Refresh"/>
+                                    <Button Content="Проверить требования"
+                                            Command="{Binding PreviewResearchCommand0192}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerResearchTheory_Preview"/>
+                                    <Button Content="Создать черновик"
+                                            Command="{Binding CreateResearchCommand0192}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerResearchTheory_Create"/>
+                                    <Button Content="Отправить GM"
+                                            Command="{Binding SubmitResearchCommand0192}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerResearchTheory_Submit"/>
+                                    <Button Content="Отменить"
+                                            Command="{Binding CancelResearchCommand0192}"
+                                            Style="{StaticResource NriSecondaryButtonStyle}"
+                                            Margin="8,0,0,0"/>
+                                </WrapPanel>
+                            </StackPanel>
+
+                            <Separator Grid.Row="1" Margin="0,14"/>
+
+                            <TabControl Grid.Row="2" AutomationProperties.AutomationId="PlayerResearchTheory_Details">
+                                <TabItem Header="Требования">
+                                    <ListBox ItemsSource="{Binding ResearchRequirements0192}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Ресурсы">
+                                    <ListBox ItemsSource="{Binding ResearchResources0192}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                                <TabItem Header="Стадии">
+                                    <ListBox ItemsSource="{Binding ResearchStages0192}" DisplayMemberPath="Summary"/>
+                                </TabItem>
+                            </TabControl>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Обратная инженерия"
+                     AutomationProperties.AutomationId="PlayerReverseEngineering_Tab">
+                <Grid Margin="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.95*"/>
+                        <ColumnDefinition Width="1.45*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,12,0">
+                        <TabControl>
+                            <TabItem Header="Предметы для анализа">
+                                <ListBox ItemsSource="{Binding ReverseSources0193}"
+                                         SelectedItem="{Binding SelectedReverseSource0193, Mode=TwoWay}"
+                                         HorizontalContentAlignment="Stretch"
+                                         AutomationProperties.AutomationId="PlayerReverseEngineering_SourceSelector">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="4"
+                                                        AutomationProperties.Name="{Binding Summary}">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Condition}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Availability}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </TabItem>
+                            <TabItem Header="Мои проекты">
+                                <ListBox ItemsSource="{Binding ReverseProjects0193}"
+                                         SelectedItem="{Binding SelectedReverseProject0193, Mode=TwoWay}"
+                                         DisplayMemberPath="Summary"
+                                         AutomationProperties.AutomationId="PlayerReverseEngineering_ProjectList"/>
+                            </TabItem>
+                        </TabControl>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel>
+                                <TextBlock Text="Разбор предмета" Style="{StaticResource NriSectionTitleTextStyle}"/>
+                                <TextBlock Text="{Binding SelectedReverseSource0193.Description, TargetNullValue=Выберите собственный предмет слева.}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,4,0,10"/>
+                                <TextBlock Text="Название проекта *" FontWeight="SemiBold"/>
+                                <TextBox Text="{Binding ReverseProjectName0193, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.AutomationId="PlayerReverseEngineering_Name"/>
+
+                                <Border Background="{StaticResource NriSecondarySurfaceBrush}"
+                                        BorderBrush="{StaticResource NriWarningBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="10"
+                                        Margin="0,10,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Судьба исходного предмета" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding ReverseDispositionWarning0193}"
+                                                   Foreground="{StaticResource NriWarningBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0"
+                                                   AutomationProperties.AutomationId="PlayerReverseEngineering_DispositionWarning"/>
+                                        <TextBlock Text="{Binding ReverseSourceStatus0193}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,6,0,0"
+                                                   AutomationProperties.AutomationId="PlayerReverseEngineering_SourceStatus"/>
+                                        <TextBlock Text="{Binding ReverseExpectedDiscovery0193}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0"/>
+                                        <TextBlock Text="{Binding ReverseState0193}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <WrapPanel Margin="0,12,0,0">
+                                    <Button Content="Обновить"
+                                            Command="{Binding RefreshReverseCommand0193}"
+                                            Style="{StaticResource NriSecondaryButtonStyle}"
+                                            AutomationProperties.AutomationId="PlayerReverseEngineering_Refresh"/>
+                                    <Button Content="Проверить анализ"
+                                            Command="{Binding PreviewReverseCommand0193}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerReverseEngineering_Preview"/>
+                                    <Button Content="Создать черновик"
+                                            Command="{Binding CreateReverseCommand0193}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerReverseEngineering_Create"/>
+                                    <Button Content="Отправить GM"
+                                            Command="{Binding SubmitReverseCommand0193}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerReverseEngineering_Submit"/>
+                                    <Button Content="Отменить"
+                                            Command="{Binding CancelReverseCommand0193}"
+                                            Style="{StaticResource NriSecondaryButtonStyle}"
+                                            Margin="8,0,0,0"/>
+                                </WrapPanel>
+                            </StackPanel>
+
+                            <Separator Grid.Row="1" Margin="0,14"/>
+
+                            <TabControl Grid.Row="2"
+                                        AutomationProperties.AutomationId="PlayerReverseEngineering_Details">
+                                <TabItem Header="Требования">
+                                    <ListBox ItemsSource="{Binding ReverseRequirements0193}" DisplayMemberPath="Display"/>
+                                </TabItem>
+                                <TabItem Header="Ресурсы">
+                                    <ListBox ItemsSource="{Binding ReverseResources0193}" DisplayMemberPath="Display"/>
+                                </TabItem>
+                                <TabItem Header="Стадии">
+                                    <ListBox ItemsSource="{Binding ReverseStages0193}" DisplayMemberPath="Display"/>
+                                </TabItem>
+                            </TabControl>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Прототипы"
+                     AutomationProperties.AutomationId="PlayerPrototypeProject_Tab">
+                <TabControl AutomationProperties.AutomationId="PlayerPrototypeProject_WorkflowTabs">
+                    <TabItem Header="Создание">
+                <Grid Margin="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.95*"/>
+                        <ColumnDefinition Width="1.45*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,12,0">
+                        <TabControl AutomationProperties.AutomationId="PlayerPrototypeProject_SelectionTabs">
+                            <TabItem Header="Доступные чертежи">
+                                <ListBox ItemsSource="{Binding PrototypeBlueprints0194}"
+                                         SelectedItem="{Binding SelectedPrototypeBlueprint0194, Mode=TwoWay}"
+                                         HorizontalContentAlignment="Stretch"
+                                         AutomationProperties.AutomationId="PlayerPrototypeProject_BlueprintSelector">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="4"
+                                                        AutomationProperties.Name="{Binding AccessibleSummary}">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding TargetItemName}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding TestProtocolName}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </TabItem>
+                            <TabItem Header="Мои проекты">
+                                <ListBox ItemsSource="{Binding PrototypeProjects0194}"
+                                         SelectedItem="{Binding SelectedPrototypeProject0194, Mode=TwoWay}"
+                                         DisplayMemberPath="Summary"
+                                         AutomationProperties.AutomationId="PlayerPrototypeProject_ProjectList"/>
+                            </TabItem>
+                        </TabControl>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel>
+                                <TextBlock Text="Создание прототипа"
+                                           Style="{StaticResource NriSectionTitleTextStyle}"/>
+                                <TextBlock Text="{Binding SelectedPrototypeBlueprint0194.Description, TargetNullValue=Выберите опубликованный канонический чертёж слева.}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,4,0,10"/>
+                                <TextBlock Text="Название проекта *" FontWeight="SemiBold"/>
+                                <TextBox Text="{Binding PrototypeProjectName0194, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.AutomationId="PlayerPrototypeProject_Name"/>
+
+                                <Border Background="{StaticResource NriSecondarySurfaceBrush}"
+                                        BorderBrush="{StaticResource NriWarningBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="10"
+                                        Margin="0,10,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding PrototypeWarning0194}"
+                                                   Foreground="{StaticResource NriWarningBrush}"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap"
+                                                   AutomationProperties.AutomationId="PlayerPrototypeProject_Warning"/>
+                                        <TextBlock Text="{Binding PrototypeStatus0194}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,6,0,0"
+                                                   AutomationProperties.AutomationId="PlayerPrototypeProject_PrototypeStatus"/>
+                                        <TextBlock Text="{Binding PrototypeTestStatus0194}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0"
+                                                   AutomationProperties.AutomationId="PlayerPrototypeProject_TestStatus"/>
+                                        <TextBlock Text="{Binding PrototypeTestResult0194}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0"
+                                                   AutomationProperties.AutomationId="PlayerPrototypeProject_TestResult"/>
+                                        <TextBlock Text="{Binding PrototypeDefect0194}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0"
+                                                   AutomationProperties.AutomationId="PlayerPrototypeProject_Defect"/>
+                                        <TextBlock Text="{Binding PrototypeProductionStatus0194}"
+                                                   Foreground="{StaticResource NriWarningBrush}"
+                                                   FontWeight="SemiBold"
+                                                   Margin="0,6,0,0"
+                                                   AutomationProperties.AutomationId="PlayerPrototypeProject_ProductionStatus"/>
+                                        <TextBlock Text="{Binding PrototypeState0194}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <WrapPanel Margin="0,12,0,0">
+                                    <Button Content="Обновить"
+                                            Command="{Binding RefreshPrototypeCommand0194}"
+                                            Style="{StaticResource NriSecondaryButtonStyle}"
+                                            AutomationProperties.AutomationId="PlayerPrototypeProject_Refresh"/>
+                                    <Button Content="Проверить требования"
+                                            Command="{Binding PreviewPrototypeCommand0194}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerPrototypeProject_Preview"/>
+                                    <Button Content="Создать черновик"
+                                            Command="{Binding CreatePrototypeCommand0194}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerPrototypeProject_Create"/>
+                                    <Button Content="Отправить GM"
+                                            Command="{Binding SubmitPrototypeCommand0194}"
+                                            Margin="8,0,0,0"
+                                            AutomationProperties.AutomationId="PlayerPrototypeProject_Submit"/>
+                                    <Button Content="Отменить"
+                                            Command="{Binding CancelPrototypeCommand0194}"
+                                            Style="{StaticResource NriSecondaryButtonStyle}"
+                                            Margin="8,0,0,0"/>
+                                </WrapPanel>
+                            </StackPanel>
+
+                            <Separator Grid.Row="1" Margin="0,14"/>
+
+                            <TabControl Grid.Row="2"
+                                        AutomationProperties.AutomationId="PlayerPrototypeProject_Details">
+                                <TabItem Header="Требования">
+                                    <ListBox ItemsSource="{Binding PrototypeRequirements0194}"
+                                             DisplayMemberPath="Display"/>
+                                </TabItem>
+                                <TabItem Header="Ресурсы">
+                                    <ListBox ItemsSource="{Binding PrototypeResources0194}"
+                                             DisplayMemberPath="Display"/>
+                                </TabItem>
+                                <TabItem Header="Стадии">
+                                    <ListBox ItemsSource="{Binding PrototypeStages0194}"
+                                             DisplayMemberPath="Display"/>
+                                </TabItem>
+                                <TabItem Header="Испытание">
+                                    <ListBox ItemsSource="{Binding PrototypeTestSteps0194}"/>
+                                </TabItem>
+                                <TabItem Header="Публичные риски">
+                                    <ListBox ItemsSource="{Binding PrototypeRisks0194}"/>
+                                </TabItem>
+                            </TabControl>
+                        </Grid>
+                    </Border>
+                </Grid>
                     </TabItem>
-                    <TabItem Header="Чертежи">
-                        <ListBox ItemsSource="{Binding Blueprints}"/>
-                    </TabItem>
-                    <TabItem Header="Граница">
-                        <TextBlock Margin="8" Text="Здесь отображаются только player-safe данные. GM notes, hidden modules и ServerOnlyData не запрашиваются и не показываются. Производство техники будет отдельным этапом." TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TabItem Header="Ремонт"
+                             AutomationProperties.AutomationId="PlayerPrototypeRepair_Tab">
+                        <engineering:PlayerPrototypeRepairView/>
                     </TabItem>
                 </TabControl>
-            </Border>
-        </Grid>
+            </TabItem>
+        </TabControl>
 
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,8,0,0">
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"/>
-        </Border>
-    </Grid>
+        <patterns:NriOperationalWorkspaceHost.Status>
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="{StaticResource DangerBrush}"
+                       TextWrapping="Wrap"
+                       AutomationProperties.AutomationId="PlayerEngineering_Error"/>
+        </patterns:NriOperationalWorkspaceHost.Status>
+    </patterns:NriOperationalWorkspaceHost>
 </UserControl>

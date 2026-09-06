@@ -1,0 +1,320 @@
+{
+  "fixtureId": "core_resolution_class_skill_tracks_0_21_9",
+  "ruleSetId": "fantasy_nri_default",
+  "schemaVersion": 1,
+  "nonCanonical": true,
+  "classes": [
+    {
+      "code": "knight_0219",
+      "name": "Рыцарь",
+      "description": "Воинский путь тяжёлого клинка и латного доспеха.",
+      "directionCode": "strength_assault",
+      "branchCode": "knight",
+      "rootClassCode": "novice",
+      "requiredHexagonId": "main_development_hexagon",
+      "requiredNodeId": "development_knight_0219",
+      "visibilityRule": "public",
+      "isPlayerVisible": true,
+      "level": 1,
+      "maxLevel": 20,
+      "grantedSkillCodes": ["hema_school_0219"],
+      "status": "Active"
+    },
+    {
+      "code": "samurai_0219",
+      "name": "Самурай",
+      "description": "Воинский путь катаны и японского длинного лука.",
+      "directionCode": "dexterity_maneuver",
+      "branchCode": "samurai",
+      "rootClassCode": "novice",
+      "requiredHexagonId": "main_development_hexagon",
+      "requiredNodeId": "development_samurai_0219",
+      "visibilityRule": "public",
+      "isPlayerVisible": true,
+      "level": 1,
+      "maxLevel": 20,
+      "grantedSkillCodes": ["kendo_school_0219"],
+      "status": "Active"
+    }
+  ],
+  "developmentNodes": [
+    {
+      "nodeId": "development_knight_0219",
+      "name": "Рыцарь",
+      "publicName": "Рыцарь",
+      "description": "Открывает Школу Хэма и путь владения тяжёлым клинком.",
+      "directionId": "strength_assault",
+      "branchId": "knight",
+      "tier": 1,
+      "maxTier": 20,
+      "unlockSkillIds": ["hema_school_0219"]
+    },
+    {
+      "nodeId": "development_samurai_0219",
+      "name": "Самурай",
+      "publicName": "Самурай",
+      "description": "Открывает Школу Кендо; более поздняя веха открывает Школу Кюдо.",
+      "directionId": "dexterity_maneuver",
+      "branchId": "samurai",
+      "tier": 1,
+      "maxTier": 20,
+      "unlockSkillIds": ["kendo_school_0219"]
+    },
+    {
+      "nodeId": "development_knight_plate_training_0219",
+      "name": "Латная подготовка",
+      "publicName": "Латная подготовка",
+      "description": "Следующая веха Пути Рыцаря открывает обучение ношению латного доспеха.",
+      "directionId": "strength_assault",
+      "branchId": "knight",
+      "tier": 5,
+      "maxTier": 20,
+      "unlockSkillIds": ["plate_armor_training_0219"],
+      "requirementExpression": {
+        "kind": "leaf",
+        "leafType": "development_node",
+        "targetId": "development_knight_0219",
+        "minimumValue": 1,
+        "publicLabel": "Рыцарь"
+      }
+    },
+    {
+      "nodeId": "development_samurai_kyudo_0219",
+      "name": "Путь лука",
+      "publicName": "Путь лука",
+      "description": "Следующая веха Пути Самурая открывает Школу Кюдо.",
+      "directionId": "dexterity_maneuver",
+      "branchId": "samurai",
+      "tier": 5,
+      "maxTier": 20,
+      "unlockSkillIds": ["kyudo_school_0219"],
+      "requirementExpression": {
+        "kind": "leaf",
+        "leafType": "development_node",
+        "targetId": "development_samurai_0219",
+        "minimumValue": 1,
+        "publicLabel": "Самурай"
+      }
+    },
+    {
+      "nodeId": "combat_discipline_master_0219",
+      "name": "Мастер боевой дисциплины",
+      "publicName": "Мастер боевой дисциплины",
+      "description": "Общая специализация, доступная рыцарю или самураю.",
+      "directionId": "shared_combat",
+      "branchId": "shared",
+      "tier": 8,
+      "maxTier": 20,
+      "requirementExpression": {
+        "kind": "any_of",
+        "children": [
+          { "kind": "leaf", "leafType": "development_node", "targetId": "development_knight_0219", "minimumValue": 1, "publicLabel": "Рыцарь" },
+          { "kind": "leaf", "leafType": "development_node", "targetId": "development_samurai_0219", "minimumValue": 1, "publicLabel": "Самурай" }
+        ]
+      }
+    },
+    {
+      "nodeId": "west_east_blade_master_0219",
+      "name": "Мастер западно-восточного клинка",
+      "publicName": "Мастер западно-восточного клинка",
+      "description": "Гибридная специализация, требующая обе школы клинка.",
+      "directionId": "shared_combat",
+      "branchId": "hybrid",
+      "tier": 12,
+      "maxTier": 20,
+      "requirementExpression": {
+        "kind": "all_of",
+        "children": [
+          { "kind": "leaf", "leafType": "skill_rank", "targetId": "hema_school_0219", "minimumValue": 8, "publicLabel": "Школа Хэма — ранг 8" },
+          { "kind": "leaf", "leafType": "skill_rank", "targetId": "kendo_school_0219", "minimumValue": 8, "publicLabel": "Школа Кендо — ранг 8" }
+        ]
+      }
+    }
+  ],
+  "skills": [
+    {
+      "code": "hema_school_0219",
+      "name": "Школа Хэма",
+      "description": "Школа владения двуручным мечом: контроль дистанции, подготовленные ответы и силовые техники.",
+      "displayGroup": "Боевые школы",
+      "defaultAttribute": "strength",
+      "allowedAttributes": ["strength", "dexterity"],
+      "rankMin": 0,
+      "rankMax": 20,
+      "isRollable": true,
+      "visibilityRule": "public",
+      "milestones": [
+        { "rank": 1, "displayName": "Основы Хэма", "publicDescription": "Обученное применение двуручного меча." },
+        { "rank": 4, "displayName": "Сдерживающий замах", "publicDescription": "Открывает подготовленную реакцию на сближение." },
+        { "rank": 5, "displayName": "Обученный", "publicDescription": "Профиль мастерства повышается до +2." },
+        { "rank": 8, "displayName": "Точный силовой удар", "publicDescription": "Открывает активную технику тяжёлого клинка." },
+        { "rank": 10, "displayName": "Контроль инерции", "publicDescription": "Уменьшает штраф неудобной позиции на 1." },
+        { "rank": 13, "displayName": "Эксперт Хэма", "publicDescription": "Открывает экспертную технику контроля пространства." },
+        { "rank": 17, "displayName": "Мастер Хэма", "publicDescription": "Открывает мастерскую технику школы." }
+      ],
+      "techniques": [
+        { "id": "hema_guarded_reach_0219", "displayName": "Сдерживающий замах", "skillId": "hema_school_0219", "minimumRank": 4, "actionDefinitionId": "combat.prepare.guarded_reach", "halfActionCost": 2, "reactionCost": 1, "publicDescription": "Подготовить удар на вход противника в дистанцию." },
+        { "id": "hema_precise_power_0219", "displayName": "Точный силовой удар", "skillId": "hema_school_0219", "minimumRank": 8, "actionDefinitionId": "combat.attack.precise_power", "halfActionCost": 2, "requiredEquipmentTags": ["two_handed_sword"], "publicDescription": "Полное действие для точного силового удара." }
+      ]
+    },
+    {
+      "code": "kendo_school_0219",
+      "name": "Школа Кендо",
+      "description": "Школа катаны с упором на дистанцию, инициативу и контратаку.",
+      "displayGroup": "Боевые школы",
+      "defaultAttribute": "dexterity",
+      "allowedAttributes": ["dexterity", "wisdom"],
+      "rankMin": 0,
+      "rankMax": 20,
+      "isRollable": true,
+      "visibilityRule": "public",
+      "milestones": [
+        { "rank": 1, "displayName": "Основы Кендо", "publicDescription": "Обученное применение катаны." },
+        { "rank": 4, "displayName": "Ответный шаг", "publicDescription": "Открывает реакцию на промах противника." },
+        { "rank": 5, "displayName": "Обученный", "publicDescription": "Профиль мастерства повышается до +2." },
+        { "rank": 8, "displayName": "Мгновенный ответ", "publicDescription": "Открывает активную технику контратаки." },
+        { "rank": 10, "displayName": "Экономное движение", "publicDescription": "Уменьшает ситуационный штраф неудобной стойки на 1." },
+        { "rank": 13, "displayName": "Эксперт Кендо", "publicDescription": "Открывает экспертный контроль темпа." },
+        { "rank": 17, "displayName": "Мастер Кендо", "publicDescription": "Открывает мастерскую технику школы." }
+      ],
+      "techniques": [
+        { "id": "kendo_reply_step_0219", "displayName": "Ответный шаг", "skillId": "kendo_school_0219", "minimumRank": 4, "actionDefinitionId": "combat.reaction.reply_step", "reactionCost": 1, "requiredEquipmentTags": ["katana"], "publicDescription": "Реакция после промаха видимого противника." },
+        { "id": "kendo_instant_reply_0219", "displayName": "Мгновенный ответ", "skillId": "kendo_school_0219", "minimumRank": 8, "actionDefinitionId": "combat.attack.instant_reply", "halfActionCost": 1, "requiredEquipmentTags": ["katana"], "publicDescription": "Быстрый ответный удар катаной." }
+      ]
+    },
+    {
+      "code": "kyudo_school_0219",
+      "name": "Школа Кюдо",
+      "description": "Школа стрельбы из юми с подготовкой выстрела и контролем дыхания.",
+      "displayGroup": "Боевые школы",
+      "defaultAttribute": "wisdom",
+      "allowedAttributes": ["wisdom", "dexterity"],
+      "rankMin": 0,
+      "rankMax": 20,
+      "isRollable": true,
+      "visibilityRule": "public",
+      "requirementExpression": {
+        "kind": "leaf",
+        "leafType": "development_node",
+        "targetId": "development_samurai_kyudo_0219",
+        "minimumValue": 1,
+        "publicLabel": "Путь лука"
+      },
+      "milestones": [
+        { "rank": 1, "displayName": "Основы Кюдо", "publicDescription": "Обученное применение юми." },
+        { "rank": 4, "displayName": "Подготовленный выстрел", "publicDescription": "Открывает подготовку выстрела как полное действие." },
+        { "rank": 5, "displayName": "Обученный", "publicDescription": "Профиль мастерства повышается до +2." },
+        { "rank": 8, "displayName": "Дальний прицел", "publicDescription": "Снижает один штраф дистанции." },
+        { "rank": 13, "displayName": "Эксперт Кюдо", "publicDescription": "Открывает экспертную технику контроля дыхания." },
+        { "rank": 17, "displayName": "Мастер Кюдо", "publicDescription": "Открывает мастерскую технику школы." }
+      ],
+      "techniques": [
+        { "id": "kyudo_prepared_shot_0219", "displayName": "Подготовленный выстрел", "skillId": "kyudo_school_0219", "minimumRank": 4, "actionDefinitionId": "combat.prepare.ranged_shot", "halfActionCost": 2, "reactionCost": 1, "requiredEquipmentTags": ["yumi"], "publicDescription": "Подготовить выстрел по заданному условию." }
+      ]
+    },
+    {
+      "code": "plate_armor_training_0219",
+      "name": "Ношение латного доспеха",
+      "description": "Уменьшает штрафы мобильности и усталости в латах, не меняя защиту доспеха.",
+      "displayGroup": "Владение снаряжением",
+      "defaultAttribute": "endurance",
+      "allowedAttributes": ["endurance", "strength"],
+      "rankMin": 0,
+      "rankMax": 20,
+      "isRollable": false,
+      "visibilityRule": "public",
+      "requirementExpression": {
+        "kind": "leaf",
+        "leafType": "development_node",
+        "targetId": "development_knight_plate_training_0219",
+        "minimumValue": 1,
+        "publicLabel": "Латная подготовка"
+      },
+      "milestones": [
+        { "rank": 1, "displayName": "Привыкание к латам", "publicDescription": "Позволяет действовать в совместимых латах с полным базовым штрафом." },
+        { "rank": 5, "displayName": "Распределение веса", "publicDescription": "Уменьшает штраф мобильности на 1." },
+        { "rank": 10, "displayName": "Выверенное движение", "publicDescription": "Уменьшает штраф усталости и вставания." },
+        { "rank": 13, "displayName": "Эксперт лат", "publicDescription": "Возвращает доступ к одной реакции, запрещённой неопытному носителю." },
+        { "rank": 17, "displayName": "Мастер лат", "publicDescription": "Минимизирует разрешённые определением доспеха операционные штрафы." }
+      ]
+    },
+    {
+      "code": "advanced_heavy_blade_0219",
+      "name": "Продвинутая школа тяжёлого клинка",
+      "description": "Общая школа, доступная одному из совместимых боевых путей.",
+      "displayGroup": "Общие боевые школы",
+      "defaultAttribute": "strength",
+      "allowedAttributes": ["strength", "dexterity"],
+      "rankMin": 0,
+      "rankMax": 20,
+      "isRollable": true,
+      "visibilityRule": "public",
+      "requirementExpression": {
+        "kind": "any_of",
+        "children": [
+          { "kind": "leaf", "leafType": "development_node", "targetId": "development_knight_0219", "minimumValue": 1, "publicLabel": "Рыцарь" },
+          { "kind": "leaf", "leafType": "development_node", "targetId": "development_samurai_0219", "minimumValue": 1, "publicLabel": "Самурай" }
+        ]
+      }
+    },
+    {
+      "code": "mixed_blade_school_0219",
+      "name": "Смешанная школа клинка",
+      "description": "Гибридная школа, требующая подготовки Хэма и Кендо.",
+      "displayGroup": "Гибридные боевые школы",
+      "defaultAttribute": "dexterity",
+      "allowedAttributes": ["strength", "dexterity"],
+      "rankMin": 0,
+      "rankMax": 20,
+      "isRollable": true,
+      "visibilityRule": "public",
+      "requirementExpression": {
+        "kind": "all_of",
+        "children": [
+          { "kind": "leaf", "leafType": "skill_rank", "targetId": "hema_school_0219", "minimumValue": 8, "publicLabel": "Школа Хэма — ранг 8" },
+          { "kind": "leaf", "leafType": "skill_rank", "targetId": "kendo_school_0219", "minimumValue": 8, "publicLabel": "Школа Кендо — ранг 8" }
+        ]
+      }
+    }
+  ],
+  "sharedTechniques": [
+    {
+      "id": "distance_control_0219",
+      "displayName": "Контроль дистанции",
+      "minimumRank": 6,
+      "requirementExpression": {
+        "kind": "any_of",
+        "children": [
+          { "kind": "leaf", "leafType": "skill_rank", "targetId": "hema_school_0219", "minimumValue": 6, "publicLabel": "Школа Хэма — ранг 6" },
+          { "kind": "leaf", "leafType": "skill_rank", "targetId": "kendo_school_0219", "minimumValue": 6, "publicLabel": "Школа Кендо — ранг 6" }
+        ]
+      }
+    },
+    {
+      "id": "mixed_counter_thrust_0219",
+      "displayName": "Смешанный контрвыпад",
+      "minimumRank": 8,
+      "requirementExpression": {
+        "kind": "all_of",
+        "children": [
+          { "kind": "leaf", "leafType": "skill_rank", "targetId": "hema_school_0219", "minimumValue": 8, "publicLabel": "Школа Хэма — ранг 8" },
+          { "kind": "leaf", "leafType": "skill_rank", "targetId": "kendo_school_0219", "minimumValue": 8, "publicLabel": "Школа Кендо — ранг 8" }
+        ]
+      }
+    },
+    {
+      "id": "combat_adaptation_master_0219",
+      "displayName": "Мастер боевой адаптации",
+      "minimumRank": 6,
+      "requirementExpression": {
+        "kind": "at_least",
+        "requiredCount": 2,
+        "children": [
+          { "kind": "leaf", "leafType": "skill_rank", "targetId": "hema_school_0219", "minimumValue": 6, "publicLabel": "Школа Хэма — ранг 6" },
+          { "kind": "leaf", "leafType": "skill_rank", "targetId": "kendo_school_0219", "minimumValue": 6, "publicLabel": "Школа Кендо — ранг 6" },
+          { "kind": "leaf", "leafType": "skill_rank", "targetId": "kyudo_school_0219", "minimumValue": 6, "publicLabel": "Школа Кюдо — ранг 6" }
+        ]
+      }
+    }
+  ]
+}

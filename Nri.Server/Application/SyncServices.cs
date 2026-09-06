@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Nri.Server.Infrastructure;
 using Nri.Server.Logging;
@@ -20,25 +21,37 @@ public sealed class RevisionService
 
     public long NextRevision()
     {
-        var update = Builders<SyncCounter>.Update
-            .SetOnInsert(x => x.CounterKey, CounterKey)
-            .SetOnInsert(x => x.CreatedUtc, DateTime.UtcNow)
-            .Inc(x => x.Value, 1)
-            .Set(x => x.UpdatedUtc, DateTime.UtcNow);
+        var collection = _mongo.Database.GetCollection<BsonDocument>("sync_counters");
+        var now = DateTime.UtcNow;
+        var update = Builders<BsonDocument>.Update
+            .SetOnInsert("CounterKey", CounterKey)
+            .SetOnInsert("CreatedUtc", now)
+            .Inc("Value", 1)
+            .Set("UpdatedUtc", now);
 
-        var options = new FindOneAndUpdateOptions<SyncCounter>
+        var options = new FindOneAndUpdateOptions<BsonDocument>
         {
             IsUpsert = true,
             ReturnDocument = ReturnDocument.After
         };
 
-        var item = _mongo.SyncCounters.FindOneAndUpdate(Builders<SyncCounter>.Filter.Eq(x => x.CounterKey, CounterKey), update, options);
-        return item?.Value ?? 1;
+        var item = collection.FindOneAndUpdate(Builders<BsonDocument>.Filter.Eq("CounterKey", CounterKey), update, options);
+        return item == null ? 1 : BsonLong(item, "Value", 1);
     }
 
     public long CurrentRevision()
     {
-        return _mongo.SyncCounters.Find(Builders<SyncCounter>.Filter.Eq(x => x.CounterKey, CounterKey)).FirstOrDefault()?.Value ?? 0;
+        var collection = _mongo.Database.GetCollection<BsonDocument>("sync_counters");
+        var item = collection.Find(Builders<BsonDocument>.Filter.Eq("CounterKey", CounterKey)).FirstOrDefault();
+        return item == null ? 0 : BsonLong(item, "Value");
+    }
+
+    private static long BsonLong(BsonDocument doc, string key, long fallback = 0)
+    {
+        if (!doc.TryGetValue(key, out var value) || value.IsBsonNull) return fallback;
+        if (value.IsInt64) return value.AsInt64;
+        if (value.IsInt32) return value.AsInt32;
+        return long.TryParse(value.ToString(), out var parsed) ? parsed : fallback;
     }
 }
 
@@ -59,17 +72,101 @@ public sealed class SyncEventRepository
     public IReadOnlyCollection<SyncEvent> GetAfterRevision(long afterRevision, IReadOnlyCollection<string> scopes, int limit)
     {
         var normalizedLimit = Math.Max(1, Math.Min(500, limit));
+        var collection = _mongo.Database.GetCollection<BsonDocument>("sync_events");
         var scopeFilter = scopes.Count == 0
-            ? FilterDefinition<SyncEvent>.Empty
-            : Builders<SyncEvent>.Filter.In(x => x.Scope, scopes);
-        var filter = Builders<SyncEvent>.Filter.Gt(x => x.Revision, afterRevision) & scopeFilter;
-        return _mongo.SyncEvents.Find(filter).SortBy(x => x.Revision).Limit(normalizedLimit).ToList();
+            ? FilterDefinition<BsonDocument>.Empty
+            : Builders<BsonDocument>.Filter.In("Scope", scopes);
+        var filter = Builders<BsonDocument>.Filter.Gt("Revision", afterRevision) & scopeFilter;
+        return collection.Find(filter)
+            .Sort(Builders<BsonDocument>.Sort.Ascending("Revision"))
+            .Limit(normalizedLimit)
+            .ToList()
+            .Select(ToSyncEvent)
+            .ToList();
     }
 
     public long GetLatestRevision()
     {
-        var item = _mongo.SyncEvents.Find(FilterDefinition<SyncEvent>.Empty).SortByDescending(x => x.Revision).Limit(1).FirstOrDefault();
-        return item?.Revision ?? 0;
+        var collection = _mongo.Database.GetCollection<BsonDocument>("sync_events");
+        var item = collection.Find(FilterDefinition<BsonDocument>.Empty)
+            .Sort(Builders<BsonDocument>.Sort.Descending("Revision"))
+            .Limit(1)
+            .FirstOrDefault();
+        return item == null ? 0 : BsonLong(item, "Revision");
+    }
+
+    private static SyncEvent ToSyncEvent(BsonDocument doc)
+    {
+        return new SyncEvent
+        {
+            Id = BsonString(doc, "Id", BsonString(doc, "_id")),
+            Revision = BsonLong(doc, "Revision"),
+            Type = BsonString(doc, "Type"),
+            Scope = BsonString(doc, "Scope", SyncScopes.Global),
+            EntityType = BsonString(doc, "EntityType"),
+            EntityId = BsonString(doc, "EntityId"),
+            Operation = BsonString(doc, "Operation"),
+            ActorUserId = BsonString(doc, "ActorUserId"),
+            CampaignId = BsonString(doc, "CampaignId"),
+            SessionId = BsonString(doc, "SessionId"),
+            Payload = BsonDictionary(doc, "Payload"),
+            SchemaVersion = (int)BsonLong(doc, "SchemaVersion", 1),
+            Deleted = BsonBool(doc, "Deleted"),
+            Archived = BsonBool(doc, "Archived"),
+            CreatedUtc = BsonDate(doc, "CreatedUtc"),
+            UpdatedUtc = BsonDate(doc, "UpdatedUtc")
+        };
+    }
+
+    private static Dictionary<string, object> BsonDictionary(BsonDocument doc, string key)
+    {
+        if (!doc.TryGetValue(key, out var value) || value.IsBsonNull || !value.IsBsonDocument)
+            return new Dictionary<string, object>();
+        return value.AsBsonDocument.ToDictionary(x => x.Name, x => BsonValueToObject(x.Value), StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static object BsonValueToObject(BsonValue value)
+    {
+        if (value == null || value.IsBsonNull) return string.Empty;
+        if (value.IsString) return value.AsString;
+        if (value.IsBoolean) return value.AsBoolean;
+        if (value.IsInt32) return value.AsInt32;
+        if (value.IsInt64) return value.AsInt64;
+        if (value.IsDouble) return value.AsDouble;
+        if (value.IsDecimal128) return value.AsDecimal128.ToString();
+        if (value.IsValidDateTime) return value.ToUniversalTime();
+        if (value.IsObjectId) return value.AsObjectId.ToString();
+        if (value.IsBsonDocument)
+            return value.AsBsonDocument.ToDictionary(x => x.Name, x => BsonValueToObject(x.Value), StringComparer.OrdinalIgnoreCase);
+        if (value.IsBsonArray)
+            return value.AsBsonArray.Select(BsonValueToObject).Cast<object>().ToArray();
+        return value.ToString();
+    }
+
+    private static string BsonString(BsonDocument doc, string key, string fallback = "")
+    {
+        if (!doc.TryGetValue(key, out var value) || value.IsBsonNull) return fallback;
+        return value.IsObjectId ? value.AsObjectId.ToString() : value.ToString();
+    }
+
+    private static long BsonLong(BsonDocument doc, string key, long fallback = 0)
+    {
+        if (!doc.TryGetValue(key, out var value) || value.IsBsonNull) return fallback;
+        if (value.IsInt64) return value.AsInt64;
+        if (value.IsInt32) return value.AsInt32;
+        return long.TryParse(value.ToString(), out var parsed) ? parsed : fallback;
+    }
+
+    private static bool BsonBool(BsonDocument doc, string key)
+    {
+        if (!doc.TryGetValue(key, out var value) || value.IsBsonNull) return false;
+        return value.IsBoolean ? value.AsBoolean : bool.TryParse(value.ToString(), out var parsed) && parsed;
+    }
+
+    private static DateTime BsonDate(BsonDocument doc, string key)
+    {
+        if (!doc.TryGetValue(key, out var value) || value.IsBsonNull || !value.IsValidDateTime) return DateTime.UtcNow;
+        return value.ToUniversalTime();
     }
 }
 
@@ -78,15 +175,79 @@ public sealed class SyncEventService
     private readonly SyncEventRepository _repository;
     private readonly RevisionService _revisionService;
     private readonly IServerLogger _logger;
+    private readonly IMongoDatabase _database;
+    private readonly AuthoritativeMongoScopeLookup02110 _scopeLookup;
 
-    public SyncEventService(SyncEventRepository repository, RevisionService revisionService, IServerLogger logger)
+    public SyncEventService(SyncEventRepository repository, RevisionService revisionService, IServerLogger logger, MongoContext mongo)
     {
         _repository = repository;
         _revisionService = revisionService;
         _logger = logger;
+        _database = mongo.Database;
+        _scopeLookup = new AuthoritativeMongoScopeLookup02110(mongo.Database);
     }
 
+    public SyncEvent PublishGlobal(string type, string entityType, string entityId, string operation, string actorUserId, Dictionary<string, object>? payload, string requestId)
+        => Write(type, SyncScopes.Global, string.Empty, string.Empty, entityType, entityId, operation, actorUserId, payload, requestId, "global");
+
+    public SyncEvent PublishCampaign(string campaignId, string type, string entityType, string entityId, string operation, string actorUserId, Dictionary<string, object>? payload, string requestId)
+    {
+        if (string.IsNullOrWhiteSpace(campaignId)) throw new InvalidOperationException("Campaign sync publication requires CampaignId.");
+        return Write(type, SyncScopes.Campaign(campaignId), campaignId, string.Empty, entityType, entityId, operation, actorUserId, payload, requestId, "campaign");
+    }
+
+    public SyncEvent PublishSession(string campaignId, string sessionId, string type, string entityType, string entityId, string operation, string actorUserId, Dictionary<string, object>? payload, string requestId)
+    {
+        if (string.IsNullOrWhiteSpace(campaignId) || string.IsNullOrWhiteSpace(sessionId)) throw new InvalidOperationException("Session sync publication requires CampaignId and SessionId.");
+        return Write(type, SyncScopes.Session(sessionId), campaignId, sessionId, entityType, entityId, operation, actorUserId, payload, requestId, "session");
+    }
+
+    public SyncEvent PublishPrivate(string userId, string campaignId, string sessionId, string type, string entityType, string entityId, string operation, Dictionary<string, object>? payload, string requestId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) throw new InvalidOperationException("Private sync publication requires UserId.");
+        return Write(type, $"private:{userId}", campaignId, sessionId, entityType, entityId, operation, userId, payload, requestId, "private");
+    }
+
+    public SyncEvent PublishSessionById(string sessionId, string type, string entityType, string entityId, string operation, string actorUserId, Dictionary<string, object>? payload, string requestId)
+    {
+        var campaignId = ResolveSessionCampaign(sessionId);
+        if (string.IsNullOrWhiteSpace(campaignId)) throw new InvalidOperationException("Session sync publication could not resolve its Campaign.");
+        return PublishSession(campaignId, sessionId, type, entityType, entityId, operation, actorUserId, payload, requestId);
+    }
+
+    public SyncEvent PublishCharacter(string characterId, string type, string entityType, string entityId, string operation, string actorUserId, Dictionary<string, object>? payload, string requestId)
+    {
+        var campaignId = ResolveCharacterCampaign(characterId);
+        if (string.IsNullOrWhiteSpace(campaignId)) throw new InvalidOperationException("Character sync publication could not resolve its Campaign.");
+        return PublishCampaign(campaignId, type, entityType, entityId, operation, actorUserId, payload, requestId);
+    }
+
+    public SyncEvent PublishEntity(string type, string entityType, string entityId, string operation, string actorUserId, Dictionary<string, object>? payload, string requestId)
+    {
+        var document = _scopeLookup.TryFindAny(entityId) ?? throw new InvalidOperationException("Entity sync publication could not resolve its authoritative scope.");
+        var campaignId = BsonString(document, "CampaignId");
+        var sessionId = BsonString(document, "SessionId");
+        if (string.IsNullOrWhiteSpace(campaignId) && !string.IsNullOrWhiteSpace(sessionId)) campaignId = ResolveSessionCampaign(sessionId);
+        if (string.IsNullOrWhiteSpace(campaignId))
+        {
+            var characterId = FirstNonEmpty(BsonString(document, "CharacterId"), BsonString(document, "SubjectId"), BsonString(document, "OwnerCharacterId"));
+            campaignId = ResolveCharacterCampaign(characterId);
+        }
+        if (string.IsNullOrWhiteSpace(campaignId)) throw new InvalidOperationException("Entity sync publication has no authoritative CampaignId.");
+        return string.IsNullOrWhiteSpace(sessionId)
+            ? PublishCampaign(campaignId, type, entityType, entityId, operation, actorUserId, payload, requestId)
+            : PublishSession(campaignId, sessionId, type, entityType, entityId, operation, actorUserId, payload, requestId);
+    }
+
+    [Obsolete("Use a typed PublishGlobal/PublishCampaign/PublishSession/PublishPrivate/PublishCharacter/PublishEntity API.")]
     public SyncEvent Publish(string type, string scope, string entityType, string entityId, string operation, string actorUserId, Dictionary<string, object>? payload, string requestId)
+    {
+        if (!IsExplicitGlobal(scope, type))
+            throw new InvalidOperationException($"Legacy sync publication is allowed only for explicit global events. Event '{type}' must use a typed scope API.");
+        return PublishGlobal(type, entityType, entityId, operation, actorUserId, payload, requestId);
+    }
+
+    private SyncEvent Write(string type, string scope, string campaignId, string sessionId, string entityType, string entityId, string operation, string actorUserId, Dictionary<string, object>? payload, string requestId, string publicationKind)
     {
         var evt = new SyncEvent
         {
@@ -97,13 +258,60 @@ public sealed class SyncEventService
             EntityId = entityId ?? string.Empty,
             Operation = operation ?? string.Empty,
             ActorUserId = actorUserId ?? string.Empty,
+            CampaignId = campaignId ?? string.Empty,
+            SessionId = sessionId ?? string.Empty,
             Payload = payload ?? new Dictionary<string, object>()
         };
 
         _repository.Add(evt);
-        _logger.Debug($"sync.event.published requestId={requestId} revision={evt.Revision} type={evt.Type} scope={evt.Scope} entityType={evt.EntityType} entityId={evt.EntityId}");
+        _logger.Debug($"sync.event.published requestId={requestId} revision={evt.Revision} type={evt.Type} publicationKind={publicationKind} scope={evt.Scope} campaignId={evt.CampaignId} sessionId={evt.SessionId} entityType={evt.EntityType} entityId={evt.EntityId}");
         return evt;
     }
+
+    private static string ReadScopeValue(Dictionary<string, object>? payload, string key)
+        => payload != null && payload.TryGetValue(key, out var value) ? Convert.ToString(value) ?? string.Empty : string.Empty;
+
+    private string ResolveSessionCampaign(string sessionId)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId)) return string.Empty;
+        var collection = _database.GetCollection<BsonDocument>("current_sessions");
+        var document = collection.Find(Builders<BsonDocument>.Filter.Eq("SessionId", sessionId) | Builders<BsonDocument>.Filter.Eq("_id", sessionId)).Limit(1).FirstOrDefault();
+        return document == null ? string.Empty : BsonString(document, "CampaignId");
+    }
+
+    private string ResolveCampaignIdentity(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var campaign = _database.GetCollection<BsonDocument>("campaigns").Find(Builders<BsonDocument>.Filter.Eq("_id", value) | Builders<BsonDocument>.Filter.Eq("Id", value)).Limit(1).FirstOrDefault();
+        if (campaign != null) return value;
+        return ResolveSessionCampaign(value);
+    }
+
+    private string ResolveCharacterCampaign(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId)) return string.Empty;
+        var character = _database.GetCollection<BsonDocument>("characters").Find(Builders<BsonDocument>.Filter.Eq("_id", characterId) | Builders<BsonDocument>.Filter.Eq("Id", characterId)).Limit(1).FirstOrDefault();
+        if (character == null) return string.Empty;
+        var sessionOrCampaign = BsonString(character, "SessionId");
+        return FirstNonEmpty(ResolveSessionCampaign(sessionOrCampaign), sessionOrCampaign);
+    }
+
+    private static string ParseScopeId(string scope, params string[] prefixes)
+    {
+        foreach (var prefix in prefixes)
+            if ((scope ?? string.Empty).StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return scope.Substring(prefix.Length);
+        return string.Empty;
+    }
+
+    private static bool IsExplicitGlobal(string scope, string type)
+        => string.Equals(scope, SyncScopes.Definitions, StringComparison.OrdinalIgnoreCase)
+           || string.Equals(scope, SyncScopes.Fate, StringComparison.OrdinalIgnoreCase) && (type ?? string.Empty).StartsWith("fate.settings", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(scope, SyncScopes.Admin, StringComparison.OrdinalIgnoreCase)
+           || string.Equals(scope, SyncScopes.Global, StringComparison.OrdinalIgnoreCase) && (type ?? string.Empty).StartsWith("system.", StringComparison.OrdinalIgnoreCase);
+
+    private static string BsonString(BsonDocument document, string name)
+        => document.TryGetValue(name, out var value) && value.IsString ? value.AsString : string.Empty;
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? string.Empty;
 
     public (long LatestRevision, IReadOnlyCollection<SyncEvent> Events) GetChanges(long afterRevision, IReadOnlyCollection<string> scopes, int limit, string requestId)
     {
@@ -161,7 +369,9 @@ public sealed class EntityRevisionService : IEntityRevisionService
     public long GetCurrentRevisionAsync(string entityType, string entityId)
     {
         var key = BuildKey(entityType, entityId);
-        return _mongo.SyncCounters.Find(Builders<SyncCounter>.Filter.Eq(x => x.CounterKey, key)).FirstOrDefault()?.Value ?? 0;
+        var collection = _mongo.Database.GetCollection<BsonDocument>("sync_counters");
+        var item = collection.Find(Builders<BsonDocument>.Filter.Eq("CounterKey", key)).FirstOrDefault();
+        return ReadRevisionValue(item);
     }
 
     public void EnsureExpectedRevisionAsync(string entityType, string entityId, long? expectedRevision)
@@ -185,14 +395,19 @@ public sealed class EntityRevisionService : IEntityRevisionService
     {
         var key = BuildKey(entityType, entityId);
         var now = DateTime.UtcNow;
-        var update = Builders<SyncCounter>.Update
-            .SetOnInsert(x => x.CounterKey, key)
-            .SetOnInsert(x => x.CreatedUtc, now)
-            .Inc(x => x.Value, 1)
-            .Set(x => x.UpdatedUtc, now);
-        var options = new FindOneAndUpdateOptions<SyncCounter> { IsUpsert = true, ReturnDocument = ReturnDocument.After };
-        var item = _mongo.SyncCounters.FindOneAndUpdate(Builders<SyncCounter>.Filter.Eq(x => x.CounterKey, key), update, options);
-        var next = item?.Value ?? 1;
+        var collection = _mongo.Database.GetCollection<BsonDocument>("sync_counters");
+        var update = Builders<BsonDocument>.Update
+            .SetOnInsert("CounterKey", key)
+            .SetOnInsert("CreatedUtc", now)
+            .Inc("Value", 1)
+            .Set("UpdatedUtc", now);
+        var options = new FindOneAndUpdateOptions<BsonDocument>
+        {
+            IsUpsert = true,
+            ReturnDocument = ReturnDocument.After
+        };
+        var item = collection.FindOneAndUpdate(Builders<BsonDocument>.Filter.Eq("CounterKey", key), update, options);
+        var next = ReadRevisionValue(item, 1);
         _logger.Debug($"revision.bump entityType={entityType} entityId={entityId} newRevision={next} requestId={requestId} actorUserId={actorUserId}");
         return next;
     }
@@ -208,5 +423,13 @@ public sealed class EntityRevisionService : IEntityRevisionService
     private static string BuildKey(string entityType, string entityId)
     {
         return $"{Prefix}{entityType}:{entityId}";
+    }
+
+    private static long ReadRevisionValue(BsonDocument? document, long fallback = 0)
+    {
+        if (document == null || !document.TryGetValue("Value", out var value) || value.IsBsonNull) return fallback;
+        if (value.IsInt64) return value.AsInt64;
+        if (value.IsInt32) return value.AsInt32;
+        return long.TryParse(value.ToString(), out var parsed) ? parsed : fallback;
     }
 }

@@ -1,0 +1,86 @@
+<UserControl x:Class="Nri.PlayerClient.Views.Rest.PlayerRestView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:AutomationProperties="clr-namespace:System.Windows.Automation;assembly=UIAutomationTypes"
+             xmlns:nri="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="PlayerRest_Route">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="PlayerRest_Workspace">
+      <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,8">
+            <TextBlock Text="Отдых" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Button Content="Обновить" Command="{Binding RefreshCommand}" Margin="16,0,0,0"/>
+            <TextBlock Text="{Binding StatusMessage}" Margin="16,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center"/>
+        </DockPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0" Margin="0,0,10,0">
+                <TextBlock DockPanel.Dock="Top" Text="Доступный отдых" FontWeight="SemiBold" AutomationProperties.AutomationId="PlayerRest_ActiveStatus"/>
+                <ListBox ItemsSource="{Binding RestSessions}" SelectedItem="{Binding SelectedRest}" DisplayMemberPath="Summary"/>
+            </DockPanel>
+
+            <Grid Grid.Column="1" Margin="0,0,10,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" AutomationProperties.AutomationId="PlayerRest_TimeWindow">
+                    <TextBlock Text="{Binding SelectedRest.PlayerVisibleSummary}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding SelectedRest.PlannedDurationMinutes, StringFormat=Плановая длительность: {0} мин}"/>
+                </StackPanel>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding Participants}" AutoGenerateColumns="False" IsReadOnly="True" AutomationProperties.AutomationId="PlayerRest_ParticipantStatus">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Участник" Binding="{Binding DisplayName}" Width="*"/>
+                        <DataGridTextColumn Header="Статус" Binding="{Binding ParticipationStatus}" Width="130"/>
+                        <DataGridTextColumn Header="Восстановление" Binding="{Binding EligibleForRecovery}" Width="120"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Grid.Row="2" Margin="0,8,0,6" AutomationProperties.AutomationId="PlayerRest_SubmitDowntimeAction">
+                    <TextBlock Text="Заявить действие во время отдыха" FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding DowntimeTypes}"
+                              SelectedItem="{Binding SelectedDowntimeType}"
+                              DisplayMemberPath="Label"
+                              Margin="0,4,0,0"/>
+                    <TextBox Text="{Binding DowntimeText, UpdateSourceTrigger=PropertyChanged}" MinHeight="52" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,6,0,0"/>
+                    <nri:NriDurationField Amount="{Binding DowntimeDurationMinutes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Unit="minutes"
+                                          MinimumMinutes="0"
+                                          AccessibleName="Длительность действия"
+                                          Margin="0,6,0,0"/>
+                    <Button Content="Отправить действие" Command="{Binding SubmitDowntimeCommand}" Margin="0,6,0,0"/>
+                </StackPanel>
+
+                <DataGrid Grid.Row="3" ItemsSource="{Binding DowntimeActions}" AutoGenerateColumns="False" IsReadOnly="True" AutomationProperties.AutomationId="PlayerRest_DowntimeActions">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Тип" Binding="{Binding ActionType}" Width="120"/>
+                        <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="120"/>
+                        <DataGridTextColumn Header="Описание" Binding="{Binding PlayerText}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+
+            <DockPanel Grid.Column="2">
+                <TextBlock DockPanel.Dock="Top" Text="Восстановление" FontWeight="SemiBold"/>
+                <ListBox ItemsSource="{Binding RecoveryGrants}" DisplayMemberPath="Summary" AutomationProperties.AutomationId="PlayerRest_RecoveryGrants"/>
+            </DockPanel>
+        </Grid>
+
+        <TextBlock Grid.Row="2" Text="Показаны доступный вам статус отдыха, ваши действия и применённое восстановление." AutomationProperties.AutomationId="PlayerRest_VisibilityHint" Margin="0,8,0,0" TextWrapping="Wrap"/>
+      </Grid>
+    </patterns:NriOperationalWorkspaceHost>
+</UserControl>

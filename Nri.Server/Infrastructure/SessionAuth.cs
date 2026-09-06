@@ -14,6 +14,7 @@ public class AuthSession
     public string ConnectionId { get; set; } = string.Empty;
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresUtc { get; set; }
+    public ActiveGameContext GameContext { get; set; } = new ActiveGameContext();
 }
 
 public class SessionManager
@@ -40,6 +41,15 @@ public class SessionManager
             ConnectionId = connectionId,
             CreatedUtc = now,
             ExpiresUtc = now.AddHours(_config.TokenLifetimeHours)
+        };
+        session.GameContext = new ActiveGameContext
+        {
+            AuthSessionId = token,
+            ConnectionId = connectionId,
+            UserId = userId,
+            ContextRevision = 1,
+            SelectedAtUtc = now,
+            LastValidatedAtUtc = now
         };
 
         lock (_sync)
@@ -137,9 +147,29 @@ public class SessionManager
                     UserId = x.UserId,
                     ConnectionId = x.ConnectionId,
                     CreatedUtc = x.CreatedUtc,
-                    ExpiresUtc = x.ExpiresUtc
+                    ExpiresUtc = x.ExpiresUtc,
+                    GameContext = x.GameContext
                 })
                 .ToList();
+        }
+    }
+
+    public void InvalidateCampaignContexts(string campaignId, string userId = "")
+    {
+        lock (_sync)
+        {
+            foreach (var session in _sessions.Values.Where(x =>
+                string.Equals(x.GameContext.CampaignId, campaignId, StringComparison.Ordinal)
+                && (string.IsNullOrWhiteSpace(userId) || string.Equals(x.UserId, userId, StringComparison.Ordinal))))
+            {
+                session.GameContext.CampaignId = string.Empty;
+                session.GameContext.SessionId = string.Empty;
+                session.GameContext.ActiveCharacterId = string.Empty;
+                session.GameContext.SuperAdminOverrideActive = false;
+                session.GameContext.SuperAdminOverrideReason = string.Empty;
+                session.GameContext.ContextRevision++;
+                session.GameContext.LastValidatedAtUtc = DateTime.UtcNow;
+            }
         }
     }
     private void UpsertPresence(AuthSession session, bool online)

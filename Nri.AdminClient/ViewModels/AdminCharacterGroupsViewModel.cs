@@ -9,6 +9,7 @@ using Nri.AdminClient.Diagnostics;
 using Nri.AdminClient.Networking;
 using Nri.Shared.Contracts;
 using Nri.Shared.Domain;
+using Nri.Ui.Wpf.Controls;
 
 namespace Nri.AdminClient.ViewModels;
 
@@ -68,6 +69,7 @@ public sealed class AdminCharacterGroupsViewModel : ViewModelBase
 
     public ObservableCollection<CharacterGroupUiItem> Groups { get; } = new();
     public ObservableCollection<CharacterGroupMemberUiItem> Members { get; } = new();
+    public ObservableCollection<NriReferenceOption> MemberReferenceOptions { get; } = new();
     public ObservableCollection<GroupOptionUiItem> GroupTypeOptions { get; } = new()
     {
         Opt(CharacterGroupTypeIds.Party, "Партия"),
@@ -227,7 +229,11 @@ public sealed class AdminCharacterGroupsViewModel : ViewModelBase
             StatusMessage = IsEnabled
                 ? "Character Groups MVP включён. Можно создавать группы, вести состав и назначать активную группу."
                 : "Группы персонажей выключены флагами функций.";
-            if (IsEnabled) RefreshGroups();
+            if (IsEnabled)
+            {
+                RefreshMemberReferenceOptions();
+                RefreshGroups();
+            }
         }
         catch (Exception ex)
         {
@@ -520,6 +526,28 @@ public sealed class AdminCharacterGroupsViewModel : ViewModelBase
         NewMemberVisibilityMode = member.VisibilityMode;
         MemberPublicNotes = member.PublicNotes;
         MemberGmNotes = member.GMNotes;
+    }
+
+    private void RefreshMemberReferenceOptions()
+    {
+        MemberReferenceOptions.Clear();
+        var response = _api.GetAllCharacters(includeArchived: false);
+        if (!IsOk(response)) return;
+
+        foreach (var item in Dictionaries(Get(response.Payload, "items")))
+        {
+            var id = Str(item, "characterId");
+            if (string.IsNullOrWhiteSpace(id)) id = Str(item, "id");
+            if (string.IsNullOrWhiteSpace(id)) continue;
+
+            MemberReferenceOptions.Add(new NriReferenceOption
+            {
+                Id = id,
+                DisplayName = string.IsNullOrWhiteSpace(Str(item, "name")) ? "Персонаж без имени" : Str(item, "name"),
+                TypeLabel = "Персонаж",
+                StatusLabel = Bool(item, "archived") ? "В архиве" : "Доступен"
+            });
+        }
     }
 
     private void Run(string eventName, Action action)

@@ -67,6 +67,13 @@ public static class CombatFeatureFlags
     public const bool UseCombatPlayerFeedEndpoint = false;
     public const bool UseCombatPlayerSnapshotEndpoint = false;
     public const bool UseCombatPlayerKnownConditions = false;
+    public const bool UseCombatTrackerMvp = false;
+    public const bool UseCombatAdminTrackerUi = false;
+    public const bool UseCombatPlayerTrackerUi = false;
+    public const bool UseCombatMapTokenLinks = false;
+    public const bool UseCombatMapIntegrationGate = false;
+    public const bool UseCombatMapOverlay = false;
+    public const bool UseCombatSyncEvents = false;
 }
 
 public static class CombatRuntimeStatuses
@@ -139,6 +146,8 @@ public static class CombatEventTypes
     public const string ActionResolved = "action_resolved";
     public const string ActionCancelled = "action_cancelled";
     public const string ActionPointsSpent = "action_points_spent";
+    public const string PreparedActionTriggered = "prepared_action_triggered";
+    public const string PreparedActionExpired = "prepared_action_expired";
     public const string AttackResolved = "attack_resolved";
     public const string ParticipantVitalsSet = "participant_vitals_set";
     public const string DamageApplied = "damage_applied";
@@ -207,6 +216,10 @@ public sealed class CombatParticipantState : EntityBase
     public int Initiative { get; set; }
     public int InitiativeTieBreaker { get; set; }
     public string InitiativeGroup { get; set; } = string.Empty;
+    public bool Natural20BonusTurn { get; set; }
+    public bool Natural20BonusTurnUsed { get; set; }
+    public bool Natural1FirstTurnPenalty { get; set; }
+    public bool Natural1PenaltyConsumed { get; set; }
     public bool IsActive { get; set; }
     public bool IsDefeated { get; set; }
     public bool IsHidden { get; set; }
@@ -217,6 +230,12 @@ public sealed class CombatParticipantState : EntityBase
     public int ReactionLimit { get; set; }
     public int MaxHealth { get; set; }
     public int CurrentHealth { get; set; }
+    public int MaxStructure { get; set; }
+    public int CurrentStructure { get; set; }
+    public int FrontProtection { get; set; }
+    public int SideProtection { get; set; }
+    public int RearProtection { get; set; }
+    public string DisabledModuleName { get; set; } = string.Empty;
     public int TemporaryHealth { get; set; }
     public int MaxMorale { get; set; }
     public int CurrentMorale { get; set; }
@@ -226,6 +245,13 @@ public sealed class CombatParticipantState : EntityBase
     public string DefeatedReason { get; set; } = string.Empty;
     public List<CombatConditionState> Conditions { get; set; } = new List<CombatConditionState>();
     public string PositionSummary { get; set; } = string.Empty;
+    public string SceneMapId { get; set; } = string.Empty;
+    public string MapTokenId { get; set; } = string.Empty;
+    public string MapTokenDisplayName { get; set; } = string.Empty;
+    public string MapTokenVisibility { get; set; } = "hidden";
+    public string MapLinkStatus { get; set; } = "unlinked";
+    public string MapBadgeText { get; set; } = string.Empty;
+    public string MapBadgeColorKey { get; set; } = string.Empty;
     public decimal DistanceMeters { get; set; }
     public string CoverState { get; set; } = string.Empty;
     public string VisibilityState { get; set; } = string.Empty;

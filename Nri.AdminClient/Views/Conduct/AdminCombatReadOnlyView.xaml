@@ -1,406 +1,223 @@
 <UserControl x:Class="Nri.AdminClient.Views.Conduct.AdminCombatReadOnlyView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:Nri.AdminClient.ViewModels">
-    <Grid Margin="8">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,8">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.2*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel>
-                    <TextBlock Text="Бой" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <TextBlock Text="Read-only просмотр боевого столкновения: snapshot, участники, лог, replay и диагностика."
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               TextWrapping="Wrap"/>
-                    <TextBlock Text="{Binding WarningMessage}" Foreground="#FFF59E0B" TextWrapping="Wrap" Margin="0,6,0,0">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasWarning}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFF87171" TextWrapping="Wrap" Margin="0,6,0,0">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasError}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                    <TextBox Width="280"
-                             Text="{Binding EncounterId, UpdateSourceTrigger=PropertyChanged}"
-                             ToolTip="EncounterId"/>
-                    <Button Content="Обновить"
-                            Command="{Binding RefreshSnapshotCommand}"
-                            IsEnabled="{Binding CanRefresh}"
-                            Margin="8,0,0,0"/>
-                    <Button Content="Логи"
-                            Style="{StaticResource GhostButtonStyle}"
-                            Command="{Binding RefreshLogsCommand}"
-                            IsEnabled="{Binding CanRefresh}"/>
-                    <Button Content="Диагностика"
-                            Style="{StaticResource GhostButtonStyle}"
-                            Command="{Binding RefreshDiagnosticsCommand}"
-                            IsEnabled="{Binding CanRefresh}"/>
-                    <Button Content="Replay"
-                            Style="{StaticResource GhostButtonStyle}"
-                            Command="{Binding RefreshReplayCommand}"
-                            IsEnabled="{Binding CanRefresh}"/>
-                    <Button Content="Очистить"
-                            Style="{StaticResource GhostButtonStyle}"
-                            Command="{Binding ClearErrorCommand}"/>
-                </StackPanel>
-                <StackPanel Grid.Column="2" VerticalAlignment="Center" MinWidth="190">
-                    <TextBlock Text="{Binding LastRefreshText}" HorizontalAlignment="Right" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock Text="{Binding AreCombatReadFlagsEnabled, StringFormat=Read flags: {0}}" HorizontalAlignment="Right" Foreground="{StaticResource TextSecondaryBrush}"/>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.25*"/>
-                <ColumnDefinition Width="1.35*"/>
-                <ColumnDefinition Width="1.45*"/>
-            </Grid.ColumnDefinitions>
+             xmlns:AutomationProperties="clr-namespace:System.Windows.Automation;assembly=UIAutomationTypes"
+             xmlns:patterns="clr-namespace:Nri.Ui.Wpf.Patterns;assembly=Nri.Ui.Wpf"
+             AutomationProperties.AutomationId="AdminCombatTracker_Route">
+    <patterns:NriOperationalWorkspaceHost AutomationProperties.AutomationId="AdminCombatTracker_OperationalHost">
+        <Grid Margin="8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Border Grid.ColumnSpan="3" Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,8">
-                <UniformGrid Columns="6">
-                    <StackPanel>
-                        <TextBlock Text="Encounter" Style="{StaticResource TitleTextStyle}"/>
-                        <TextBlock Text="{Binding EncounterName}" TextTrimming="CharacterEllipsis"/>
-                    </StackPanel>
-                    <StackPanel>
-                        <TextBlock Text="Status" Style="{StaticResource TitleTextStyle}"/>
-                        <TextBlock Text="{Binding EncounterStatus}"/>
-                    </StackPanel>
-                    <StackPanel>
-                        <TextBlock Text="Round" Style="{StaticResource TitleTextStyle}"/>
-                        <TextBlock Text="{Binding RoundNumber}"/>
-                    </StackPanel>
-                    <StackPanel>
-                        <TextBlock Text="Turn" Style="{StaticResource TitleTextStyle}"/>
-                        <TextBlock Text="{Binding ActiveTurnIndex}"/>
-                    </StackPanel>
-                    <StackPanel>
-                        <TextBlock Text="Active" Style="{StaticResource TitleTextStyle}"/>
-                        <TextBlock Text="{Binding ActiveParticipantName}" TextTrimming="CharacterEllipsis"/>
-                    </StackPanel>
-                    <StackPanel>
-                        <TextBlock Text="Participants" Style="{StaticResource TitleTextStyle}"/>
-                        <TextBlock Text="{Binding ParticipantsCount}"/>
-                    </StackPanel>
-                </UniformGrid>
-            </Border>
-
-            <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
+            <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,8">
                 <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <TextBlock Text="Участники" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <DataGrid Grid.Row="1"
-                              Margin="0,8,0,0"
-                              ItemsSource="{Binding Participants}"
-                              SelectedItem="{Binding SelectedParticipant, Mode=TwoWay}"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Имя" Binding="{Binding DisplayName}" Width="1.5*"/>
-                            <DataGridTextColumn Header="Команда" Binding="{Binding TeamId}" Width="*"/>
-                            <DataGridTextColumn Header="Тип" Binding="{Binding ParticipantType}" Width="*"/>
-                            <DataGridTextColumn Header="Иниц." Binding="{Binding Initiative}" Width="0.7*"/>
-                            <DataGridTextColumn Header="HP" Binding="{Binding HitPointsText}" Width="1.1*"/>
-                            <DataGridTextColumn Header="Состояния" Binding="{Binding ConditionsText}" Width="1.3*"/>
-                            <DataGridCheckBoxColumn Header="Активен" Binding="{Binding IsActive}" Width="0.8*"/>
-                            <DataGridCheckBoxColumn Header="Побеждён" Binding="{Binding IsDefeated}" Width="0.9*"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Трекер боя" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <TextBlock Text="Раунд длится 5 секунд. Инициатива, действия и результаты рассчитываются сервером."
+                                   Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CurrentRoundText}" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"
+                                   AutomationProperties.AutomationId="AdminCombatTracker_RoundNumber"/>
+                        <TextBlock Text="{Binding CurrentTurnText}" VerticalAlignment="Center" Margin="0,0,12,0"
+                                   AutomationProperties.AutomationId="AdminCombatTracker_CurrentTurn"/>
+                        <Button Content="Обновить" Command="{Binding RefreshCommand}" AutomationProperties.AutomationId="AdminCombatTracker_Refresh"/>
+                    </StackPanel>
                 </Grid>
             </Border>
 
-            <Grid Grid.Row="1" Grid.Column="1" Margin="0,0,8,0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,8">
-                    <StackPanel>
-                        <TextBlock Text="Текущий участник" Style="{StaticResource SectionTitleTextStyle}"/>
-                        <TextBlock Text="{Binding SelectedParticipantSummary}" TextWrapping="Wrap" Margin="0,4,0,8"/>
-                        <UniformGrid Columns="2">
-                            <StackPanel>
-                                <TextBlock Text="ID персонажа" Style="{StaticResource TitleTextStyle}"/>
-                                <TextBlock Text="{Binding SelectedParticipant.CharacterId}" TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
-                            <StackPanel>
-                                <TextBlock Text="Команда / тип" Style="{StaticResource TitleTextStyle}"/>
-                                <TextBlock Text="{Binding SelectedParticipant.TeamId}" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{Binding SelectedParticipant.ParticipantType}" TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
-                            <StackPanel>
-                                <TextBlock Text="Состояние" Style="{StaticResource TitleTextStyle}"/>
-                                <TextBlock Text="{Binding SelectedParticipant.HitPointsText}"/>
-                                <TextBlock Text="{Binding SelectedParticipant.MoraleText}"/>
-                            </StackPanel>
-                            <StackPanel>
-                                <TextBlock Text="Actions" Style="{StaticResource TitleTextStyle}"/>
-                                <TextBlock Text="{Binding SelectedParticipant.ActionPoints, StringFormat=AP: {0}}"/>
-                                <TextBlock Text="{Binding SelectedParticipant.MinorActionPoints, StringFormat=Minor: {0}}"/>
-                                <TextBlock Text="{Binding SelectedParticipant.ReactionCount, StringFormat=Reactions: {0}}"/>
-                            </StackPanel>
-                        </UniformGrid>
-                        <TextBlock Text="{Binding SelectedParticipant.PositionSummary}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
-                        <TextBlock Text="{Binding SelectedParticipant.CoverState, StringFormat=Cover: {0}}" Foreground="{StaticResource TextSecondaryBrush}"/>
-                        <TextBlock Text="{Binding SelectedParticipant.VisibilityState, StringFormat=Visibility: {0}}" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    </StackPanel>
-                </Border>
-                <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="10">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="Раунд / ход / инициатива" Style="{StaticResource SectionTitleTextStyle}"/>
-                        <StackPanel Grid.Row="1" Margin="0,6,0,8">
-                            <TextBlock Text="{Binding CurrentRoundSummary}"/>
-                            <TextBlock Text="{Binding CurrentTurnSummary}"/>
-                        </StackPanel>
-                        <DataGrid Grid.Row="2" ItemsSource="{Binding InitiativeOrder}" AutoGenerateColumns="False" IsReadOnly="True">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="#" Binding="{Binding OrderIndex}" Width="0.5*"/>
-                                <DataGridTextColumn Header="Участник" Binding="{Binding DisplayName}" Width="1.6*"/>
-                                <DataGridTextColumn Header="Иниц." Binding="{Binding Initiative}" Width="0.8*"/>
-                                <DataGridCheckBoxColumn Header="Delay" Binding="{Binding IsDelayed}" Width="0.8*"/>
-                                <DataGridCheckBoxColumn Header="Skip" Binding="{Binding IsSkipped}" Width="0.8*"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Grid>
-                </Border>
-            </Grid>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="340"/>
+                </Grid.ColumnDefinitions>
 
-            <Grid Grid.Row="1" Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="1.3*"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,8">
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="Боевой лог" Style="{StaticResource SectionTitleTextStyle}"/>
-                        <ListBox Grid.Row="1" ItemsSource="{Binding RecentLogs}" Margin="0,8,0,0">
+                        <TextBlock Text="Инициатива" Style="{StaticResource SectionTitleTextStyle}"/>
+                        <ComboBox Grid.Row="1" Margin="0,8,0,8"
+                                  ItemsSource="{Binding Combats}" SelectedItem="{Binding SelectedCombat, Mode=TwoWay}"
+                                  DisplayMemberPath="Summary" AutomationProperties.AutomationId="AdminCombatTracker_CombatList"/>
+                        <ListBox Grid.Row="2" ItemsSource="{Binding InitiativeOrder}" SelectedItem="{Binding SelectedParticipant, Mode=TwoWay}"
+                                 AutomationProperties.AutomationId="AdminCombatTracker_InitiativeList">
                             <ListBox.ItemTemplate>
-                                <DataTemplate DataType="{x:Type vm:CombatLogUiItem}">
-                                    <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,6">
-                                        <StackPanel>
-                                            <TextBlock TextWrapping="Wrap">
-                                                <Run Text="{Binding CreatedText}"/>
-                                                <Run Text=" "/>
-                                                <Run Text="{Binding RoundTurnText}"/>
-                                                <Run Text=" "/>
-                                                <Run Text="{Binding EventType}" FontWeight="SemiBold"/>
-                                            </TextBlock>
-                                            <TextBlock Text="{Binding Message}" TextWrapping="Wrap"/>
-                                            <TextBlock Text="{Binding Visibility}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                <DataTemplate>
+                                    <Grid Margin="2,4">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Background="#253A5A" Padding="5" CornerRadius="3">
+                                            <TextBlock Text="{Binding InitiativeSummary}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" FontWeight="Bold"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                            <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding TurnStatus}" Foreground="{StaticResource TextSecondaryBrush}"/>
                                         </StackPanel>
-                                    </Border>
+                                    </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
+                        <StackPanel Grid.Row="3" Margin="0,8,0,0">
+                            <WrapPanel>
+                                <Button Content="Инициатива d20" Command="{Binding RollInitiativeCommand}" AutomationProperties.AutomationId="AdminCombatTracker_RollInitiative"/>
+                                <Button Content="Начать" Margin="6,0,0,0" Command="{Binding StartCombatCommand}" AutomationProperties.AutomationId="AdminCombatTracker_StartCombat"/>
+                            </WrapPanel>
+                            <WrapPanel Margin="0,6,0,0">
+                                <Button Content="Следующий" Command="{Binding NextTurnCommand}" Style="{StaticResource GhostButtonStyle}" AutomationProperties.AutomationId="AdminCombatTracker_NextTurn"/>
+                                <Button Content="Пропустить" Margin="6,0,0,0" Command="{Binding SkipTurnCommand}" Style="{StaticResource GhostButtonStyle}" AutomationProperties.AutomationId="AdminCombatTracker_SkipTurn"/>
+                                <Button Content="Завершить" Margin="6,0,0,0" Command="{Binding EndCombatCommand}" Style="{StaticResource GhostButtonStyle}" AutomationProperties.AutomationId="AdminCombatTracker_EndCombat"/>
+                            </WrapPanel>
+                            <Expander Header="Новый бой" Margin="0,8,0,0">
+                                <StackPanel Margin="0,6,0,0">
+                                    <TextBox Text="{Binding NewCombatName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="AdminCombatTracker_NewCombatName"/>
+                                    <Button Content="Создать" Margin="0,6,0,0" Command="{Binding CreateCombatCommand}" AutomationProperties.AutomationId="AdminCombatTracker_CreateCombat"/>
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
                     </Grid>
                 </Border>
-                <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="10">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <DockPanel>
-                            <TextBlock Text="Replay / Diagnostics" Style="{StaticResource SectionTitleTextStyle}"/>
-                            <TextBlock DockPanel.Dock="Right" Text="{Binding ReplayStatus}" Foreground="{StaticResource TextSecondaryBrush}"/>
-                        </DockPanel>
-                        <Grid Grid.Row="1" Margin="0,8,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <ListBox ItemsSource="{Binding RecentReplayEvents}">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type vm:CombatReplayUiItem}">
-                                        <TextBlock TextWrapping="Wrap">
-                                            <Run Text="#"/>
-                                            <Run Text="{Binding SequenceNumber}"/>
-                                            <Run Text=" "/>
-                                            <Run Text="{Binding EventType}"/>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                <TextBlock Text="{Binding DiagnosticsSummary}" TextWrapping="Wrap" Margin="0,0,0,8"/>
-                                <ListBox ItemsSource="{Binding DiagnosticsSections}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type vm:CombatDiagnosticsSectionUiItem}">
-                                            <Border Style="{StaticResource SubtleCardStyle}" Margin="0,0,0,5">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding Section}" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding StatusText}"/>
-                                                    <TextBlock Text="{Binding ErrorCount, StringFormat=Errors: {0}}"/>
-                                                    <TextBlock Text="{Binding WarningCount, StringFormat=Warnings: {0}}"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </StackPanel>
+
+                <Grid Grid.Column="1" Margin="0,0,8,0">
+                    <Grid.RowDefinitions><RowDefinition Height="2.2*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <DockPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Поле боя" Style="{StaticResource SectionTitleTextStyle}"/>
+                                    <TextBlock Text="{Binding ActiveSceneMapText}" Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <Button DockPanel.Dock="Right" Content="Обновить карту" Command="{Binding RefreshCombatMapCommand}"
+                                        Style="{StaticResource GhostButtonStyle}" AutomationProperties.AutomationId="AdminCombatMap_Refresh"/>
+                            </DockPanel>
+                            <Border Grid.Row="1" Margin="0,8,0,0" Background="#0B1424" BorderBrush="#263A57" BorderThickness="1" ClipToBounds="True">
+                                <Viewbox Stretch="Uniform">
+                                    <Canvas Width="{Binding CombatMapCanvasWidth}" Height="{Binding CombatMapCanvasHeight}"
+                                            Background="#0B1424" AutomationProperties.AutomationId="AdminCombatMap_Canvas">
+                                        <ItemsControl Width="{Binding CombatMapCanvasWidth}" Height="{Binding CombatMapCanvasHeight}" IsHitTestVisible="False" ItemsSource="{Binding CombatMapGridLines}">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate><DataTemplate><Line X1="{Binding X1}" Y1="{Binding Y1}" X2="{Binding X2}" Y2="{Binding Y2}" Stroke="#233A5A" StrokeThickness="1"/></DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <ItemsControl Width="{Binding CombatMapCanvasWidth}" Height="{Binding CombatMapCanvasHeight}" IsHitTestVisible="False" ItemsSource="{Binding CombatMapTilePatches}">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding PixelX}"/><Setter Property="Canvas.Top" Value="{Binding PixelY}"/></Style></ItemsControl.ItemContainerStyle>
+                                            <ItemsControl.ItemTemplate><DataTemplate><Rectangle Width="{Binding PixelWidth}" Height="{Binding PixelHeight}" Fill="{Binding FillBrush}" Stroke="{Binding StrokeBrush}" Opacity="{Binding Opacity}"/></DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <ItemsControl Width="{Binding CombatMapCanvasWidth}" Height="{Binding CombatMapCanvasHeight}" IsHitTestVisible="False" ItemsSource="{Binding CombatMapAssetInstances}">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding PixelX}"/><Setter Property="Canvas.Top" Value="{Binding PixelY}"/></Style></ItemsControl.ItemContainerStyle>
+                                            <ItemsControl.ItemTemplate><DataTemplate><Border Width="{Binding PixelWidth}" Height="{Binding PixelHeight}" Background="{Binding FillBrush}" BorderBrush="{Binding StrokeBrush}" BorderThickness="1" CornerRadius="2"><TextBlock Text="{Binding AssetGlyph}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <ItemsControl Width="{Binding CombatMapCanvasWidth}" Height="{Binding CombatMapCanvasHeight}" IsHitTestVisible="False" ItemsSource="{Binding CombatMapOverlayTokens}" AutomationProperties.AutomationId="AdminCombatMap_RenderedTokenLayer">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding PixelLeft}"/><Setter Property="Canvas.Top" Value="{Binding PixelTop}"/><Setter Property="Panel.ZIndex" Value="10"/></Style></ItemsControl.ItemContainerStyle>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid>
+                                                        <Ellipse Width="{Binding PixelDiameter}" Height="{Binding PixelDiameter}" Fill="#2563EB" Stroke="#D8EAFE" StrokeThickness="2"/>
+                                                        <TextBlock Text="{Binding CanvasLabel}" Margin="20,-3,0,0" Padding="4,2" Foreground="#F8FAFC" Background="#D90F172A" FontWeight="SemiBold"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Canvas>
+                                </Viewbox>
+                            </Border>
+                            <TextBlock Grid.Row="2" Text="{Binding CombatMapStatusText}" Margin="0,6,0,0" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"
+                                       AutomationProperties.AutomationId="AdminCombatMap_Status"/>
                         </Grid>
-                    </Grid>
+                    </Border>
+                    <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="10">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <TextBlock Text="Журнал боя" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <ListBox Grid.Row="1" Margin="0,6,0,0" ItemsSource="{Binding CombatLog}" DisplayMemberPath="DisplayText" AutomationProperties.AutomationId="AdminCombatTracker_Log"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="10">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+                            <TextBlock Text="Выбранный участник" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock Text="{Binding SelectedParticipantSummary}" Margin="0,6,0,0" TextWrapping="Wrap" AutomationProperties.AutomationId="AdminCombatTracker_SelectedParticipant"/>
+                            <Separator Margin="0,10"/>
+                            <TextBlock Text="Разрешение атаки" FontWeight="Bold"/>
+                            <TextBlock Text="Цель" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,2"/>
+                            <ComboBox ItemsSource="{Binding Participants}" SelectedItem="{Binding SelectedAttackTarget, Mode=TwoWay}" DisplayMemberPath="DisplayName" AutomationProperties.AutomationId="AdminCombatTracker_AttackTarget"/>
+                            <TextBlock Text="Экипированное оружие" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,2"/>
+                            <ComboBox ItemsSource="{Binding AttackWeaponOptions}" SelectedItem="{Binding SelectedAttackWeapon, Mode=TwoWay}" DisplayMemberPath="DisplayName" AutomationProperties.AutomationId="AdminCombatTracker_AttackWeapon"/>
+                            <TextBlock Text="Навык" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,2"/>
+                            <ComboBox ItemsSource="{Binding AttackSkillOptions}" SelectedItem="{Binding SelectedAttackSkill, Mode=TwoWay}" DisplayMemberPath="Summary" AutomationProperties.AutomationId="AdminCombatTracker_AttackSkill"/>
+                            <TextBlock Text="Зона защиты" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,2"/>
+                            <ComboBox ItemsSource="{Binding AttackFacingOptions}" SelectedItem="{Binding SelectedAttackFacing, Mode=TwoWay}" DisplayMemberPath="DisplayName" AutomationProperties.AutomationId="AdminCombatTracker_AttackFacing"/>
+                            <Button Content="Разрешить атаку" Margin="0,8,0,0" Command="{Binding ExecuteAttackCommand}" AutomationProperties.AutomationId="AdminCombatTracker_ExecuteAttack"/>
+                            <Border Background="#101A2C" BorderBrush="#263A57" BorderThickness="1" Padding="8" Margin="0,8,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Последний результат" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding AttackResolutionText}" TextWrapping="Wrap" AutomationProperties.AutomationId="AdminCombatTracker_AttackResult"/>
+                                </StackPanel>
+                            </Border>
+                            <Separator Margin="0,10"/>
+                            <Expander Header="Сравнение латных доспехов" AutomationProperties.AutomationId="AdminCombatTracker_ArmorComparison">
+                                <StackPanel Margin="0,6,0,0">
+                                    <TextBlock Text="Без подготовки" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <ComboBox ItemsSource="{Binding Participants}" SelectedItem="{Binding SelectedArmorUntrained, Mode=TwoWay}"
+                                              DisplayMemberPath="DisplayName" AutomationProperties.AutomationId="AdminCombatTracker_ArmorUntrained"/>
+                                    <TextBlock Text="С подготовкой" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+                                    <ComboBox ItemsSource="{Binding Participants}" SelectedItem="{Binding SelectedArmorTrained, Mode=TwoWay}"
+                                              DisplayMemberPath="DisplayName" AutomationProperties.AutomationId="AdminCombatTracker_ArmorTrained"/>
+                                    <Button Content="Сравнить" Margin="0,8,0,0" Command="{Binding ComparePlateArmorCommand}"
+                                            AutomationProperties.AutomationId="AdminCombatTracker_CompareArmor"/>
+                                    <Border Background="#101A2C" BorderBrush="#263A57" BorderThickness="1" Padding="8" Margin="0,8,0,0">
+                                        <TextBlock Text="{Binding ArmorComparisonText}" TextWrapping="Wrap"
+                                                   AutomationProperties.AutomationId="AdminCombatTracker_ArmorComparisonResult"/>
+                                    </Border>
+                                </StackPanel>
+                            </Expander>
+                            <Separator Margin="0,10"/>
+                            <Expander Header="Состав боя" AutomationProperties.AutomationId="AdminCombatTracker_ParticipantEditor">
+                                <StackPanel Margin="0,6,0,0">
+                                    <TextBlock Text="Имя участника" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBox Text="{Binding NewParticipantName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="AdminCombatTracker_NewParticipantName"/>
+                                    <TextBlock Text="Сторона" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0"/>
+                                    <TextBox Text="{Binding NewParticipantTeam, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="AdminCombatTracker_NewParticipantTeam"/>
+                                    <Button Content="Добавить участника" Margin="0,8,0,0" Command="{Binding AddParticipantCommand}" AutomationProperties.AutomationId="AdminCombatTracker_AddParticipant"/>
+                                    <Button Content="Удалить выбранного" Margin="0,6,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding RemoveParticipantCommand}" AutomationProperties.AutomationId="AdminCombatTracker_RemoveParticipant"/>
+                                </StackPanel>
+                            </Expander>
+                            <Expander Header="Связь с токеном карты" Margin="0,8,0,0" AutomationProperties.AutomationId="AdminCombatMap_TokenLinkEditor">
+                                <StackPanel Margin="0,6,0,0">
+                                    <ComboBox ItemsSource="{Binding CombatMapJoinableTokens}" SelectedItem="{Binding SelectedCombatMapToken, Mode=TwoWay}" DisplayMemberPath="DisplayName" AutomationProperties.AutomationId="AdminCombatMap_JoinableTokenList"/>
+                                    <WrapPanel Margin="0,6,0,0">
+                                        <Button Content="Привязать" Command="{Binding LinkSelectedOverlayTokenCommand}" AutomationProperties.AutomationId="AdminCombatMap_LinkParticipantToken"/>
+                                        <Button Content="Отвязать" Margin="6,0,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding UnlinkSelectedOverlayTokenCommand}" AutomationProperties.AutomationId="AdminCombatMap_UnlinkParticipantToken"/>
+                                    </WrapPanel>
+                                    <TextBlock Text="Координаты берутся из токена карты и не дублируются в участнике боя." Margin="0,6,0,0" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Border>
+            </Grid>
+
+            <Grid Grid.Row="2" Margin="0,8,0,0">
+                <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFF87171" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding LastRefreshText}" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right"/>
             </Grid>
         </Grid>
-
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,8,0,0" Padding="10">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <DockPanel>
-                    <TextBlock Text="GM controls" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <TextBlock Text="{Binding CanUseCombatWriteEndpoints, StringFormat=Write: {0}}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,12,0"/>
-                        <TextBlock Text="{Binding CanUseTurnEngine, StringFormat=Turn: {0}}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,12,0"/>
-                        <TextBlock Text="{Binding CanUseAttackRoll, StringFormat=Attack: {0}}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,12,0"/>
-                        <TextBlock Text="{Binding CanUseDamage, StringFormat=Damage: {0}}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,12,0"/>
-                        <TextBlock Text="{Binding CanUseConditions, StringFormat=Conditions: {0}}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,12,0"/>
-                        <TextBlock Text="{Binding CanUseWeaponAttack, StringFormat=Weapon: {0}}" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    </StackPanel>
-                </DockPanel>
-                <TextBlock Grid.Row="1" Text="{Binding WriteStatusMessage}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
-                <TabControl Grid.Row="2">
-                    <TabItem Header="Encounter">
-                        <StackPanel Orientation="Horizontal" Margin="4" VerticalAlignment="Top">
-                            <TextBox Width="150" Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}" ToolTip="CampaignId"/>
-                            <TextBox Width="150" Margin="6,0,0,0" Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}" ToolTip="SessionId"/>
-                            <TextBox Width="150" Margin="6,0,0,0" Text="{Binding RuleSetId, UpdateSourceTrigger=PropertyChanged}" ToolTip="RuleSetId"/>
-                            <TextBox Width="210" Margin="6,0,0,0" Text="{Binding NewEncounterName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Encounter name"/>
-                            <Button Content="Создать бой" Margin="8,0,0,0" Command="{Binding CreateEncounterCommand}" IsEnabled="{Binding CanCreateEncounter}"/>
-                            <Button Content="Завершить" Style="{StaticResource GhostButtonStyle}" Command="{Binding EndEncounterCommand}" IsEnabled="{Binding CanRunEncounterCommand}"/>
-                            <Button Content="Отменить" Style="{StaticResource GhostButtonStyle}" Command="{Binding CancelEncounterCommand}" IsEnabled="{Binding CanRunEncounterCommand}"/>
-                            <Button Content="Обновить" Style="{StaticResource GhostButtonStyle}" Command="{Binding RefreshSnapshotCommand}" IsEnabled="{Binding CanRefresh}"/>
-                        </StackPanel>
-                    </TabItem>
-                    <TabItem Header="Participants">
-                        <WrapPanel Margin="4">
-                            <TextBox Width="180" Text="{Binding NewParticipantDisplayName, UpdateSourceTrigger=PropertyChanged}" ToolTip="DisplayName"/>
-                            <TextBox Width="170" Margin="6,0,0,0" Text="{Binding NewParticipantCharacterId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ID персонажа, если нужен"/>
-                            <TextBox Width="100" Margin="6,0,0,0" Text="{Binding NewParticipantTeamId, UpdateSourceTrigger=PropertyChanged}" ToolTip="TeamId"/>
-                            <TextBox Width="110" Margin="6,0,0,0" Text="{Binding NewParticipantType, UpdateSourceTrigger=PropertyChanged}" ToolTip="participantType"/>
-                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding NewParticipantInitiative, UpdateSourceTrigger=PropertyChanged}" ToolTip="Initiative"/>
-                            <Button Content="Добавить" Margin="8,0,0,0" Command="{Binding AddParticipantCommand}" IsEnabled="{Binding CanRunEncounterCommand}"/>
-                            <Button Content="Убрать выбранного" Style="{StaticResource GhostButtonStyle}" Command="{Binding RemoveParticipantCommand}" IsEnabled="{Binding CanRunSelectedParticipantCommand}"/>
-                            <Separator Width="16"/>
-                            <TextBox Width="70" Text="{Binding VitalsMaxHealth, UpdateSourceTrigger=PropertyChanged}" ToolTip="MaxHealth"/>
-                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding VitalsCurrentHealth, UpdateSourceTrigger=PropertyChanged}" ToolTip="CurrentHealth"/>
-                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding VitalsTemporaryHealth, UpdateSourceTrigger=PropertyChanged}" ToolTip="TemporaryHealth"/>
-                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding VitalsMaxMorale, UpdateSourceTrigger=PropertyChanged}" ToolTip="MaxMorale"/>
-                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding VitalsCurrentMorale, UpdateSourceTrigger=PropertyChanged}" ToolTip="CurrentMorale"/>
-                            <Button Content="Задать HP/vitals" Margin="8,0,0,0" Command="{Binding SetVitalsCommand}" IsEnabled="{Binding CanRunVitalsCommand}"/>
-                        </WrapPanel>
-                    </TabItem>
-                    <TabItem Header="Turns">
-                        <WrapPanel Margin="4">
-                            <Button Content="Сортировать инициативу" Command="{Binding SortInitiativeCommand}" IsEnabled="{Binding CanRunTurnCommand}"/>
-                            <Button Content="Старт раунда" Style="{StaticResource GhostButtonStyle}" Command="{Binding StartRoundCommand}" IsEnabled="{Binding CanRunTurnCommand}"/>
-                            <Button Content="Старт хода" Style="{StaticResource GhostButtonStyle}" Command="{Binding StartTurnCommand}" IsEnabled="{Binding CanRunSelectedTurnCommand}"/>
-                            <Button Content="Завершить ход" Style="{StaticResource GhostButtonStyle}" Command="{Binding EndTurnCommand}" IsEnabled="{Binding CanRunSelectedTurnCommand}"/>
-                            <Button Content="Следующий ход" Style="{StaticResource GhostButtonStyle}" Command="{Binding NextTurnCommand}" IsEnabled="{Binding CanRunTurnCommand}"/>
-                            <Button Content="Следующий раунд" Style="{StaticResource GhostButtonStyle}" Command="{Binding NextRoundCommand}" IsEnabled="{Binding CanRunTurnCommand}"/>
-                            <Button Content="Пропустить" Style="{StaticResource GhostButtonStyle}" Command="{Binding SkipTurnCommand}" IsEnabled="{Binding CanRunSelectedTurnCommand}"/>
-                            <Button Content="Задержать" Style="{StaticResource GhostButtonStyle}" Command="{Binding DelayTurnCommand}" IsEnabled="{Binding CanRunSelectedTurnCommand}"/>
-                        </WrapPanel>
-                    </TabItem>
-                    <TabItem Header="Attack / Damage">
-                        <WrapPanel Margin="4">
-                            <ComboBox Width="190" ItemsSource="{Binding Participants}" SelectedItem="{Binding SelectedTargetParticipant}" DisplayMemberPath="DisplayName" ToolTip="Target"/>
-                            <TextBox Width="140" Margin="6,0,0,0" Text="{Binding SelectedWeaponDefinitionId, UpdateSourceTrigger=PropertyChanged}" ToolTip="WeaponDefinitionId"/>
-                            <TextBox Width="120" Margin="6,0,0,0" Text="{Binding SelectedAmmoDefinitionId, UpdateSourceTrigger=PropertyChanged}" ToolTip="AmmoDefinitionId"/>
-                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding AttackBonus, UpdateSourceTrigger=PropertyChanged}" ToolTip="AttackBonus"/>
-                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding CoverModifier, UpdateSourceTrigger=PropertyChanged}" ToolTip="CoverModifier"/>
-                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding SituationalModifier, UpdateSourceTrigger=PropertyChanged}" ToolTip="SituationalModifier"/>
-                            <CheckBox Content="Spend AP" Margin="8,4,0,0" IsChecked="{Binding SpendActionPoint}"/>
-                            <Button Content="Attack roll" Margin="8,0,0,0" Command="{Binding AttackRollCommand}" IsEnabled="{Binding CanRunAttackCommand}"/>
-                            <Button Content="Defense preview" Style="{StaticResource GhostButtonStyle}" Command="{Binding DefensePreviewCommand}" IsEnabled="{Binding CanRunDefensePreviewCommand}"/>
-                            <TextBox Width="70" Margin="14,0,0,0" Text="{Binding DamageAmount, UpdateSourceTrigger=PropertyChanged}" ToolTip="DamageAmount"/>
-                            <TextBox Width="90" Margin="6,0,0,0" Text="{Binding DamageType, UpdateSourceTrigger=PropertyChanged}" ToolTip="DamageType"/>
-                            <Button Content="Apply damage" Style="{StaticResource GhostButtonStyle}" Command="{Binding ApplyDamageCommand}" IsEnabled="{Binding CanRunDamageCommand}"/>
-                            <TextBox Width="70" Margin="14,0,0,0" Text="{Binding DamageOverride, UpdateSourceTrigger=PropertyChanged}" ToolTip="DamageOverride"/>
-                            <CheckBox Content="Авто-урон" Margin="8,4,0,0" IsChecked="{Binding AutoApplyDamage}" ToolTip="Автоматически применить урон при попадании"/>
-                            <Button Content="Weapon attack" Style="{StaticResource GhostButtonStyle}" Command="{Binding WeaponAttackResolveCommand}" IsEnabled="{Binding CanRunWeaponAttackCommand}"/>
-                        </WrapPanel>
-                    </TabItem>
-                    <TabItem Header="Conditions">
-                        <WrapPanel Margin="4">
-                            <ComboBox Width="190" ItemsSource="{Binding Participants}" SelectedItem="{Binding SelectedTargetParticipant}" DisplayMemberPath="DisplayName" ToolTip="Target"/>
-                            <TextBox Width="190" Margin="6,0,0,0" Text="{Binding SelectedConditionDefinitionId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ConditionDefinitionId"/>
-                            <TextBox Width="170" Margin="6,0,0,0" Text="{Binding SelectedConditionInstanceId, UpdateSourceTrigger=PropertyChanged}" ToolTip="ConditionInstanceId for remove"/>
-                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding ConditionStackCount, UpdateSourceTrigger=PropertyChanged}" ToolTip="StackCount"/>
-                            <TextBox Width="130" Margin="6,0,0,0" Text="{Binding ConditionDurationMode, UpdateSourceTrigger=PropertyChanged}" ToolTip="DurationMode"/>
-                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding ConditionDurationRounds, UpdateSourceTrigger=PropertyChanged}" ToolTip="DurationRounds"/>
-                            <Button Content="Apply condition" Margin="8,0,0,0" Command="{Binding ApplyConditionCommand}" IsEnabled="{Binding CanRunConditionCommand}"/>
-                            <Button Content="Remove condition" Style="{StaticResource GhostButtonStyle}" Command="{Binding RemoveConditionCommand}" IsEnabled="{Binding CanRunConditionCommand}"/>
-                        </WrapPanel>
-                    </TabItem>
-                    <TabItem Header="Diagnostics / Fate">
-                        <WrapPanel Margin="4">
-                            <Button Content="Run diagnostics" Command="{Binding RefreshDiagnosticsCommand}" IsEnabled="{Binding CanRefresh}"/>
-                            <Button Content="Refresh logs" Style="{StaticResource GhostButtonStyle}" Command="{Binding RefreshLogsCommand}" IsEnabled="{Binding CanRefresh}"/>
-                            <Button Content="Refresh replay" Style="{StaticResource GhostButtonStyle}" Command="{Binding RefreshReplayCommand}" IsEnabled="{Binding CanRefresh}"/>
-                            <TextBox Width="110" Margin="18,0,0,0" Text="{Binding FateRollContext, UpdateSourceTrigger=PropertyChanged}" ToolTip="RollContext"/>
-                            <TextBox Width="70" Margin="6,0,0,0" Text="{Binding FateBaseRoll, UpdateSourceTrigger=PropertyChanged}" ToolTip="BaseRoll"/>
-                            <TextBox Width="90" Margin="6,0,0,0" Text="{Binding FateDiceExpression, UpdateSourceTrigger=PropertyChanged}" ToolTip="DiceExpression"/>
-                            <Button Content="Fate preview" Margin="8,0,0,0" Command="{Binding FatePreviewCommand}" IsEnabled="{Binding CanRunFatePreviewCommand}"/>
-                            <TextBlock Text="{Binding LastRulesResultSummary}" Margin="14,4,0,0" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
-                        </WrapPanel>
-                    </TabItem>
-                </TabControl>
-            </Grid>
-        </Border>
-
-        <Border Grid.Row="2" Visibility="Collapsed" Style="{StaticResource CardStyle}" Margin="0,8,0,0" Padding="10">
-            <TextBlock Text="Управление боем будет добавлено в 0.10.6. На этом экране нет write controls: атаки, урон, условия, next turn и создание encounter здесь недоступны."
-                       Foreground="{StaticResource TextSecondaryBrush}"
-                       TextWrapping="Wrap"/>
-        </Border>
-    </Grid>
+    </patterns:NriOperationalWorkspaceHost>
 </UserControl>

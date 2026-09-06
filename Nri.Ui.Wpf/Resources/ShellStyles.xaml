@@ -1,0 +1,100 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:Nri.Ui.Wpf.Controls">
+    <Style TargetType="{x:Type controls:NriShellHeader}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:NriShellHeader}">
+                    <Border Background="{DynamicResource NriPrimarySurfaceBrush}" BorderBrush="{DynamicResource NriBorderBrush}" BorderThickness="0,0,0,1" Padding="16,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                <TextBlock Text="{TemplateBinding ProductName}" Style="{DynamicResource NriCardTitleTextStyle}"/>
+                                <TextBlock Text="{TemplateBinding ContextTitle}" Style="{DynamicResource NriMetadataTextStyle}"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="{TemplateBinding ContextSubtitle}" Style="{DynamicResource NriSecondaryTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                            <Border Grid.Column="2" Background="{DynamicResource NriSecondarySurfaceBrush}" BorderBrush="{DynamicResource NriBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="10,5" Margin="8,0">
+                                <TextBlock Text="{TemplateBinding ConnectionText}" FontWeight="SemiBold"/>
+                            </Border>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{TemplateBinding UserDisplayName}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,12,0"/>
+                                <ContentPresenter Content="{TemplateBinding Actions}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type controls:NriModeSwitcher}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate></Setter.Value></Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:NriModeSwitcher}">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                        <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsPresenter/>
+                        </ScrollViewer>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="12,9"/><Setter Property="Margin" Value="0,0,0,4"/>
+                    <Setter Property="Foreground" Value="{DynamicResource NriSecondaryTextBrush}"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="Surface" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Surface" Property="Background" Value="{DynamicResource NriElevatedSurfaceBrush}"/><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource NriAccentBrush}"/><Setter Property="Foreground" Value="{DynamicResource NriPrimaryTextBrush}"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource NriFocusBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type controls:NriNavigationRail}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate></Setter.Value></Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:NriNavigationRail}">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                        <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsPresenter/>
+                        </ScrollViewer>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="12,8"/><Setter Property="Foreground" Value="{DynamicResource NriSecondaryTextBrush}"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="Surface" Background="Transparent" BorderBrush="Transparent" BorderThickness="1,0,0,1" CornerRadius="4" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Surface" Property="Background" Value="{DynamicResource NriElevatedSurfaceBrush}"/><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource NriAccentBrush}"/><Setter Property="Foreground" Value="{DynamicResource NriPrimaryTextBrush}"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.55"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource NriFocusBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type controls:NriRouteHost}">
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type controls:NriRouteHost}"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><Border x:Name="RouteHeader" Visibility="{TemplateBinding HeaderVisibility}" Background="{DynamicResource NriPrimarySurfaceBrush}" BorderBrush="{DynamicResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="16,10" Margin="0,0,0,8"><StackPanel><TextBlock Text="{TemplateBinding Breadcrumbs}" Style="{DynamicResource NriMetadataTextStyle}"/><TextBlock Text="{TemplateBinding RouteTitle}" Style="{DynamicResource NriPageTitleTextStyle}"/><TextBlock Text="{TemplateBinding RouteSubtitle}" Style="{DynamicResource NriSecondaryTextStyle}" TextWrapping="Wrap"/></StackPanel></Border><ContentPresenter Grid.Row="1" Content="{TemplateBinding Content}"/></Grid></ControlTemplate></Setter.Value></Setter>
+    </Style>
+
+    <Style TargetType="{x:Type controls:NriActivityDock}">
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type controls:NriActivityDock}"><Border x:Name="Outer" Background="{DynamicResource NriPrimarySurfaceBrush}" BorderBrush="{DynamicResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition x:Name="BodyRow" Height="*"/></Grid.RowDefinitions><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{TemplateBinding Header}" Style="{DynamicResource NriCardTitleTextStyle}" VerticalAlignment="Center" TextWrapping="Wrap"/><Button x:Name="Toggle" Grid.Column="1" Margin="16,0,0,0" MinWidth="150" Content="Свернуть / развернуть" Command="{TemplateBinding ToggleCommand}" Style="{DynamicResource NriSecondaryButtonStyle}" AutomationProperties.Name="Свернуть или развернуть ленту активности" AutomationProperties.AutomationId="NriActivityDock_Toggle"/></Grid><ContentPresenter x:Name="Body" Grid.Row="1" Content="{TemplateBinding Content}" Margin="0,10,0,0"/></Grid></Border><ControlTemplate.Triggers><Trigger Property="IsOpen" Value="False"><Setter TargetName="Body" Property="Visibility" Value="Collapsed"/><Setter TargetName="BodyRow" Property="Height" Value="0"/></Trigger><MultiTrigger><MultiTrigger.Conditions><Condition Property="IsOpen" Value="False"/><Condition Property="CompactWhenClosed" Value="True"/></MultiTrigger.Conditions><Setter TargetName="Outer" Property="Padding" Value="10,3"/><Setter TargetName="Toggle" Property="MinWidth" Value="96"/><Setter TargetName="Toggle" Property="Padding" Value="8,3"/><Setter TargetName="Toggle" Property="Content" Value="Развернуть"/></MultiTrigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+    </Style>
+
+    <Style x:Key="NriShellDialogBaseStyle" TargetType="{x:Type controls:NriShellDialog}">
+        <Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="VerticalAlignment" Value="Stretch"/><Setter Property="Panel.ZIndex" Value="100"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type controls:NriShellDialog}"><Grid Background="{DynamicResource NriOverlayBrush}"><Border Width="460" MaxHeight="680" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource NriElevatedSurfaceBrush}" BorderBrush="{DynamicResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="22"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{TemplateBinding Title}" Style="{DynamicResource NriPageTitleTextStyle}" VerticalAlignment="Center"/><Button Grid.Column="1" MinWidth="88" Height="36" Margin="12,0,0,0" Content="Закрыть" Command="{TemplateBinding CloseCommand}" Style="{DynamicResource NriSecondaryButtonStyle}" ToolTip="Закрыть диалог" AutomationProperties.Name="Закрыть диалог" AutomationProperties.AutomationId="NriShellDialog_Close"/></Grid><TextBlock Grid.Row="1" Text="{TemplateBinding Message}" Style="{DynamicResource NriSecondaryTextStyle}" TextWrapping="Wrap" Margin="0,6,0,16"/><ContentPresenter Grid.Row="2" Content="{TemplateBinding Content}"/></Grid></Border></Grid><ControlTemplate.Triggers><Trigger Property="IsOpen" Value="False"><Setter Property="Visibility" Value="Collapsed"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style TargetType="{x:Type controls:NriConnectionDialog}" BasedOn="{StaticResource NriShellDialogBaseStyle}"/>
+    <Style TargetType="{x:Type controls:NriLoginDialog}" BasedOn="{StaticResource NriShellDialogBaseStyle}"/>
+    <Style TargetType="{x:Type controls:NriPermissionState}"><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type controls:NriPermissionState}"><Border Background="{DynamicResource NriSecondarySurfaceBrush}" BorderBrush="{DynamicResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="24"><StackPanel HorizontalAlignment="Center"><TextBlock Text="{TemplateBinding Title}" Style="{DynamicResource NriSectionTitleTextStyle}" TextAlignment="Center"/><TextBlock Text="{TemplateBinding Explanation}" Style="{DynamicResource NriSecondaryTextStyle}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0"/><ContentPresenter Content="{TemplateBinding Content}" Margin="0,14,0,0"/></StackPanel></Border></ControlTemplate></Setter.Value></Setter></Style>
+</ResourceDictionary>

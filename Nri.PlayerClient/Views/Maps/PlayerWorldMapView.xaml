@@ -2,216 +2,153 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:Nri.PlayerClient.ViewModels"
-             AutomationProperties.AutomationId="PlayerWorldMap_Root">
-    <Grid Margin="8">
+             AutomationProperties.AutomationId="PlayerWorldMap_Route">
+    <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,8">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="Карта мира" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"
-                           AutomationProperties.AutomationId="PlayerWorldMap_Title"/>
-                <WrapPanel Grid.Column="1" Margin="8,0,0,0">
-                    <Button Content="Обновить список" Command="{Binding RefreshMapsCommand}"
-                            AutomationProperties.AutomationId="PlayerWorldMap_RefreshList_Button"/>
-                    <Button Content="Открыть карту" Margin="8,0,0,0" Command="{Binding OpenSelectedMapCommand}"
-                            AutomationProperties.AutomationId="PlayerWorldMap_OpenSelected_Button"/>
-                    <Button Content="Обновить карту" Margin="8,0,0,0" Style="{DynamicResource GhostButtonStyle}"
-                            Command="{Binding RefreshMapCommand}"
-                            AutomationProperties.AutomationId="PlayerWorldMap_Refresh_Button"/>
-                    <CheckBox Content="Ручной ввод MapId" Margin="12,4,0,0" IsChecked="{Binding AdvancedMapIdMode}"
-                              AutomationProperties.AutomationId="PlayerWorldMap_AdvancedMapId_Toggle"/>
-                    <TextBlock Text="{Binding MapMetaText}" Margin="12,4,0,0" Foreground="{StaticResource MutedBrush}"
-                               AutomationProperties.AutomationId="PlayerWorldMap_MetaText"/>
-                </WrapPanel>
-                <StackPanel Grid.Column="2" HorizontalAlignment="Right">
-                    <TextBlock Text="{Binding LastRefreshText}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right"/>
-                    <TextBlock Text="{Binding ScaleText}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right"
-                               AutomationProperties.AutomationId="PlayerWorldMap_ScaleText"/>
-                </StackPanel>
-            </Grid>
-        </Border>
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="22" AutomationProperties.AutomationId="PlayerWorldMap_Title"/>
+                <TextBlock Text="{Binding Breadcrumb}" Foreground="{StaticResource MutedBrush}" FontSize="13" AutomationProperties.AutomationId="PlayerWorldMap_Breadcrumb"/>
+                <TextBlock Text="{Binding Subtitle}" Foreground="{StaticResource MutedBrush}"/>
+            </StackPanel>
+            <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+                <Border Background="#173A35" Padding="10,6" CornerRadius="4" Margin="0,0,8,0"><TextBlock Text="{Binding Weather}" Foreground="#6EE7B7" AutomationProperties.AutomationId="PlayerWorldMap_WeatherBadge"/></Border>
+                <Button Content="Обновить" Command="{Binding RefreshCommand}" AutomationProperties.AutomationId="PlayerWorldMap_Refresh"/>
+            </WrapPanel>
+        </Grid>
 
-        <Grid Grid.Row="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+        <Grid Grid.Row="1" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="230"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="300"/>
+            </Grid.ColumnDefinitions>
 
-            <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="8" Margin="0,0,0,8">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="CampaignId:" VerticalAlignment="Center"/>
-                    <TextBox Width="140" Margin="6,0,0,0"
-                             Text="{Binding CampaignId, UpdateSourceTrigger=PropertyChanged}"
-                             AutomationProperties.AutomationId="PlayerWorldMap_CampaignId"/>
-                    <TextBlock Text="MapId:" VerticalAlignment="Center" Margin="10,0,0,0"
-                               Visibility="{Binding AdvancedMapIdMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                    <TextBox Width="180" Margin="6,0,0,0"
-                             Text="{Binding MapId, UpdateSourceTrigger=PropertyChanged}"
-                             Visibility="{Binding AdvancedMapIdMode, Converter={StaticResource BoolToVisibilityConverter}}"
-                             AutomationProperties.AutomationId="PlayerWorldMap_MapId"/>
-                    <Button Content="Открыть по ID" Margin="8,0,0,0"
-                            Command="{Binding OpenMapByIdCommand}"
-                            Visibility="{Binding AdvancedMapIdMode, Converter={StaticResource BoolToVisibilityConverter}}"
-                            AutomationProperties.AutomationId="PlayerWorldMap_OpenById_Button"/>
-                </StackPanel>
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,10,0">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <StackPanel>
+                    <TextBlock Text="Доступные масштабы" FontWeight="Bold" FontSize="15"/>
+                    <TextBlock Text="Только открытые персонажу карты" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <ListBox Grid.Row="1" Margin="0,10" ItemsSource="{Binding Maps}" SelectedItem="{Binding SelectedMap}" DisplayMemberPath="Name"
+                             AutomationProperties.AutomationId="PlayerWorldMap_MapList"/>
+                    <StackPanel Grid.Row="2">
+                    <Button Content="Открыть выбранную" Command="{Binding OpenSelectedCommand}" AutomationProperties.AutomationId="PlayerWorldMap_OpenSelected"/>
+                    <Button Content="Северная долина" Margin="0,6,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding OpenFantasyCommand}" AutomationProperties.AutomationId="PlayerWorldMap_OpenFantasy"/>
+                    <Button Content="Подземный архив" Margin="0,6,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding OpenDungeonCommand}" AutomationProperties.AutomationId="PlayerWorldMap_OpenDungeon"/>
+                        <Button Content="Сектор K-12" Margin="0,6,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding OpenSciFiCommand}" AutomationProperties.AutomationId="PlayerWorldMap_OpenSciFi"/>
+                        <Button Content="Система Гелиос" Margin="0,6,0,0" Style="{StaticResource GhostButtonStyle}" Command="{Binding OpenSystemCommand}" AutomationProperties.AutomationId="PlayerWorldMap_OpenSystem"/>
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="260"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="300"/>
-                </Grid.ColumnDefinitions>
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,10,0">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <WrapPanel>
+                            <TextBlock Text="Известная карта" FontWeight="Bold" FontSize="15" Margin="0,0,12,0"/>
+                        <Border Background="#173A35" Padding="8,3" CornerRadius="4" Margin="0,0,8,0"><TextBlock Text="{Binding CoordinateNotice}" Foreground="#6EE7B7"/></Border>
+                        <ItemsControl ItemsSource="{Binding Layers}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate><Border Background="{StaticResource PanelAltBrush}" Padding="8,3" Margin="0,0,5,0" CornerRadius="4"><TextBlock Text="{Binding Label}"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </WrapPanel>
+                    <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8,0,8">
+                    <Canvas Width="820" Height="540" ClipToBounds="True"
+                             AutomationProperties.AutomationId="PlayerWorldMap_SpatialCanvas">
+                        <Canvas.Background>
+                            <DrawingBrush TileMode="Tile" Viewport="0,0,40,40" ViewportUnits="Absolute">
+                                <DrawingBrush.Drawing>
+                                    <GeometryDrawing Brush="#0C1829"><GeometryDrawing.Pen><Pen Brush="#182A40" Thickness="0.6"/></GeometryDrawing.Pen><GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,40,40"/></GeometryDrawing.Geometry></GeometryDrawing>
+                                </DrawingBrush.Drawing>
+                            </DrawingBrush>
+                        </Canvas.Background>
+                        <ItemsControl ItemsSource="{Binding HexCells}" IsHitTestVisible="False">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding X}"/><Setter Property="Canvas.Top" Value="{Binding Y}"/></Style></ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemTemplate><DataTemplate><Grid Width="92" Height="80"><Polygon Points="{Binding Points}" Fill="#162942" Stroke="#4C7896" StrokeThickness="1.5"/><TextBlock Text="{Binding Label}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#8FB6CC" FontSize="10"/></Grid></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding Areas}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding X}"/><Setter Property="Canvas.Top" Value="{Binding Y}"/></Style></ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:PlayerMapFeature0218}">
+                                    <Button Width="{Binding Width}" Height="{Binding Height}" Background="{Binding Fill}" BorderBrush="#7CC9A7" BorderThickness="1" Opacity="0.82"
+                                            Command="{Binding DataContext.MeasureCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" ToolTip="{Binding PrecisionLabel}">
+                                        <TextBlock Text="{Binding Name}" Foreground="White" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding Lines}" IsHitTestVisible="False">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type vm:PlayerMapFeature0218}"><Line X1="{Binding X}" Y1="{Binding Y}" X2="{Binding X2}" Y2="{Binding Y2}" Stroke="{Binding Fill}" StrokeThickness="5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding Points}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="Canvas.Left" Value="{Binding X}"/><Setter Property="Canvas.Top" Value="{Binding Y}"/></Style></ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:PlayerMapFeature0218}">
+                                    <Button MinWidth="92" Height="34" Background="{Binding Fill}" BorderBrush="#D5F5E3" BorderThickness="1"
+                                            Command="{Binding DataContext.MeasureCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" ToolTip="{Binding PrecisionLabel}">
+                                        <TextBlock Text="{Binding Name}" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    <Border Canvas.Left="16" Canvas.Top="492" Background="#D013233A" Padding="10,6" CornerRadius="4"><TextBlock Text="Выберите две известные точки, чтобы измерить расстояние." Foreground="#B7C8DC"/></Border>
+                        <Border Canvas.Left="145" Canvas.Top="18" Width="530" Background="#E64B2E18" BorderBrush="#F2B84B" BorderThickness="1" Padding="10,7" CornerRadius="4"
+                                Visibility="{Binding IsSchematicMap, Converter={StaticResource BoolToVisibilityConverter}}" AutomationProperties.AutomationId="PlayerWorldMap_SchematicWarning">
+                            <TextBlock Text="Схематическая карта — расстояния на экране не являются физическим масштабом." Foreground="#FFE3A3" TextWrapping="Wrap"/>
+                        </Border>
+                    </Canvas>
+                    </Viewbox>
+                    <Border Grid.Row="2" Background="{StaticResource PanelAltBrush}" Padding="9" CornerRadius="4">
+                        <TextBlock Text="{Binding Distance}" TextWrapping="Wrap" AutomationProperties.AutomationId="PlayerWorldMap_Distance"/>
+                    </Border>
+                </Grid>
+            </Border>
 
-                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="Доступные карты" FontWeight="Bold"/>
-                        <ListBox ItemsSource="{Binding AvailableMaps}"
-                                 SelectedItem="{Binding SelectedMapItem, Mode=TwoWay}"
-                                 DisplayMemberPath="Name"
-                                 AutomationProperties.AutomationId="PlayerWorldMap_MapList"/>
-                    </DockPanel>
-                </Border>
-
-                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,8,0">
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <TextBlock Text="{Binding MapName}" FontWeight="Bold" FontSize="14"
-                                       AutomationProperties.AutomationId="PlayerWorldMap_MapName"/>
-                            <TextBlock Text="{Binding MapDescription}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"
-                                       AutomationProperties.AutomationId="PlayerWorldMap_MapDescription"/>
-                            <TextBlock Text="World map canvas"
-                                       Width="1"
-                                       Height="1"
-                                       Opacity="0.01"
-                                       IsHitTestVisible="False"
-                                       AutomationProperties.AutomationId="PlayerWorldMap_Canvas"/>
-                            <ContentControl Margin="0,8,0,0">
-                                <Canvas Width="{Binding CanvasWidth}"
-                                        Height="{Binding CanvasHeight}"
-                                        Background="{StaticResource PanelAltBrush}"
-                                        ClipToBounds="True">
-                                <ItemsControl ItemsSource="{Binding LayerCells}" IsHitTestVisible="False">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <Canvas/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemContainerStyle>
-                                        <Style TargetType="ContentPresenter">
-                                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
-                                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
-                                        </Style>
-                                    </ItemsControl.ItemContainerStyle>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type vm:PlayerWorldCellUiItem}">
-                                            <Rectangle Width="{Binding Width}"
-                                                       Height="{Binding Height}"
-                                                       Fill="{Binding FillHex}"
-                                                       Stroke="#33222A35"
-                                                       StrokeThickness="0.25"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <ItemsControl ItemsSource="{Binding GridLines}" IsHitTestVisible="False">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <Canvas/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type vm:MapGridLineUiItem}">
-                                            <Line X1="{Binding X1}" Y1="{Binding Y1}" X2="{Binding X2}" Y2="{Binding Y2}"
-                                                  Stroke="#223B4556" StrokeThickness="0.5"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <ItemsControl ItemsSource="{Binding Markers}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <Canvas/>
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemContainerStyle>
-                                        <Style TargetType="ContentPresenter">
-                                            <Setter Property="Canvas.Left" Value="{Binding PixelX}"/>
-                                            <Setter Property="Canvas.Top" Value="{Binding PixelY}"/>
-                                        </Style>
-                                    </ItemsControl.ItemContainerStyle>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type vm:PlayerWorldMarkerUiItem}">
-                                            <Button Width="18" Height="18" Padding="0" Content="●"
-                                                    Command="{Binding DataContext.SelectLayerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    ToolTip="{Binding Name}"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                </Canvas>
-                            </ContentControl>
-                        </StackPanel>
-                    </ScrollViewer>
-                </Border>
-
-                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="10">
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="10">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel>
-                        <TextBlock Text="Слои" FontWeight="Bold"/>
-                        <ListBox ItemsSource="{Binding LayerOptions}"
-                                 SelectedItem="{Binding SelectedLayerType, Mode=TwoWay}"
-                                 Height="86"
-                                 AutomationProperties.AutomationId="PlayerWorldMap_LayerSelector"/>
-                        <TextBlock Text="Легенда" FontWeight="Bold" Margin="0,8,0,4"/>
-                        <ListBox ItemsSource="{Binding LegendEntries}" DisplayMemberPath="Display" Height="88"
-                                 AutomationProperties.AutomationId="PlayerWorldMap_Legend"/>
-                        <TextBlock Text="Маркеры" FontWeight="Bold" Margin="0,8,0,4"/>
-                        <TextBlock Text="{Binding MarkerSummaryText}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"
-                                   AutomationProperties.AutomationId="PlayerWorldMap_MarkerSummary"/>
-                        <DataGrid ItemsSource="{Binding Markers}" SelectedItem="{Binding SelectedMarker, Mode=TwoWay}"
-                                  AutoGenerateColumns="False" IsReadOnly="True" Height="120"
-                                  HeadersVisibility="Column" RowHeaderWidth="0"
-                                  AutomationProperties.AutomationId="PlayerWorldMap_Markers">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Маркер" Binding="{Binding Name}" Width="1.2*"/>
-                                <DataGridTextColumn Header="Тип" Binding="{Binding MarkerTypeDisplay}" Width="1*"/>
-                                <DataGridTextColumn Header="Коорд." Binding="{Binding CoordinatesText}" Width="1*"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                        <Border Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Padding="8" Margin="0,8,0,0"
-                                AutomationProperties.AutomationId="PlayerWorldMap_MarkerCard">
+                        <TextBlock Text="Сведения" FontWeight="Bold" FontSize="15"/>
+                        <TextBlock Text="{Binding FeatureTitle}" FontWeight="Bold" FontSize="17" Margin="0,12,0,3" AutomationProperties.AutomationId="PlayerWorldMap_FeatureTitle"/>
+                        <TextBlock Text="{Binding FeatureDescription}" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" AutomationProperties.AutomationId="PlayerWorldMap_FeatureDescription"/>
+                        <Separator Margin="0,14"/>
+                    <TextBlock Text="Доступные переходы" FontWeight="Bold"/>
+                        <Button Content="{Binding ParentActionLabel}" Margin="0,7,0,6" HorizontalContentAlignment="Left" Command="{Binding OpenParentCommand}" AutomationProperties.AutomationId="PlayerWorldMap_OpenParent"/>
+                        <ItemsControl ItemsSource="{Binding Portals}" Margin="0,7,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:PlayerMapPortal0218}">
+                                    <Button Content="{Binding Name}" Margin="0,0,0,6" HorizontalContentAlignment="Left" Style="{StaticResource GhostButtonStyle}"
+                                            Command="{Binding DataContext.OpenPortalCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Separator Margin="0,14"/>
+                        <TextBlock Text="Что показано" FontWeight="Bold"/>
+                    <TextBlock Text="Карта показывает только известные персонажу сведения. Географические данные не заменяют состояние путешествия." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
+                        <Border Background="#2B2340" Padding="10" Margin="0,14,0,0" CornerRadius="4">
                             <StackPanel>
-                                <TextBlock Text="{Binding SelectedMarkerTitle}" FontWeight="Bold"
-                                           AutomationProperties.AutomationId="PlayerWorldMap_SelectedMarkerTitle"/>
-                                <TextBlock Text="{Binding SelectedMarkerType}" Foreground="{StaticResource MutedBrush}"/>
-                                <TextBlock Text="{Binding SelectedMarkerCoords}" Foreground="{StaticResource MutedBrush}"/>
-                                <TextBlock Text="{Binding SelectedMarkerBinding}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
-                                <TextBlock Text="{Binding SelectedMarkerDescription}" TextWrapping="Wrap" Margin="0,6,0,0"
-                                           AutomationProperties.AutomationId="PlayerWorldMap_SelectedMarkerDescription"/>
+                    <TextBlock Text="Открытая тайна" Foreground="#C4B5FD" FontWeight="Bold"/>
+                    <TextBlock Text="Секретная карта появляется только после того, как персонаж получил соответствующее знание." TextWrapping="Wrap" Foreground="#D9D2EA" Margin="0,4,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
-                </Border>
-            </Grid>
+                </ScrollViewer>
+            </Border>
         </Grid>
 
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8" Margin="0,8,0,0">
-            <StackPanel>
-                <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource MutedBrush}"
-                           AutomationProperties.AutomationId="PlayerWorldMap_StatusText"/>
-                <TextBlock Text="{Binding WarningMessage}" Foreground="#FFF59E0B"
-                           Visibility="{Binding HasWarning, Converter={StaticResource BoolToVisibilityConverter}}"
-                           AutomationProperties.AutomationId="PlayerWorldMap_WarningText"/>
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFEF4444"
-                           Visibility="{Binding HasError, Converter={StaticResource BoolToVisibilityConverter}}"
-                           AutomationProperties.AutomationId="PlayerWorldMap_ErrorText"/>
-            </StackPanel>
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8" Margin="0,10,0,0">
+            <TextBlock Text="{Binding Status}" Foreground="{StaticResource MutedBrush}" AutomationProperties.AutomationId="PlayerWorldMap_Status"/>
         </Border>
     </Grid>
 </UserControl>

@@ -1,0 +1,1840 @@
+[
+    {
+        "stableKey":  "reference.resource.resonant_alloy",
+        "recordVersion":  "1.0.0",
+        "category":  "resource",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Резонансный сплав",
+        "publicDescription":  "Прочный сплав для инструментов, брони и точных механизмов.",
+        "gmDescription":  "Эталонный производственный ресурс.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "material",
+                     "metal"
+                 ],
+        "fields":  {
+                       "resourceCategory":  "metal",
+                       "unit":  "kg",
+                       "physicalState":  "solid",
+                       "rarity":  "uncommon",
+                       "supportsQuality":  true,
+                       "baseValue":  12,
+                       "legality":  "legal",
+                       "storageRequirements":  "Сухое хранилище."
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "9a530f9462bb63f5d206183aa9299a49766b0297bf1b7d7042c7d8f603716e82"
+    },
+    {
+        "stableKey":  "reference.resource.lumen_crystal",
+        "recordVersion":  "1.0.0",
+        "category":  "resource",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Люмен-кристалл",
+        "publicDescription":  "Кристалл, накапливающий магическую и электрическую энергию.",
+        "gmDescription":  "Эталонный редкий энергетический ресурс.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "crystal",
+                     "energy"
+                 ],
+        "fields":  {
+                       "resourceCategory":  "crystal",
+                       "unit":  "piece",
+                       "physicalState":  "solid",
+                       "rarity":  "rare",
+                       "supportsQuality":  true,
+                       "baseValue":  35,
+                       "legality":  "licensed",
+                       "storageRequirements":  "Изолированный футляр."
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "5a3d9e2a927bcff0a68a362ea0319aba4ecb1f07dd8538cde94c2b4bae5e6202"
+    },
+    {
+        "stableKey":  "reference.resource.ember_salt",
+        "recordVersion":  "1.0.0",
+        "category":  "resource",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Искровая соль",
+        "publicDescription":  "Реактивный порошок для боеприпасов и алхимии.",
+        "gmDescription":  "Эталонный расходуемый ресурс.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "powder",
+                     "reactive"
+                 ],
+        "fields":  {
+                       "resourceCategory":  "chemical",
+                       "unit":  "kg",
+                       "physicalState":  "powder",
+                       "rarity":  "common",
+                       "supportsQuality":  false,
+                       "baseValue":  8,
+                       "legality":  "restricted",
+                       "storageRequirements":  "Герметичная негорючая тара."
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "bb3ffb5e7ed260fc22722db2da4cef812adb71a2b81a1f39534ff9333b961f05"
+    },
+    {
+        "stableKey":  "reference.damage.kinetic",
+        "recordVersion":  "1.0.0",
+        "category":  "damageType",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Кинетический урон",
+        "publicDescription":  "Урон ударом, снарядом или импульсом.",
+        "gmDescription":  "Базовый физический тип урона.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "physical"
+                 ],
+        "fields":  {
+                       "nature":  "physical",
+                       "classification":  "kinetic",
+                       "resistanceTags":  [
+                                              "kinetic_resistance"
+                                          ],
+                       "vulnerabilityTags":  [
+
+                                             ],
+                       "immunityTags":  [
+
+                                        ]
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "13fd2cb96948c8f61470f8d60037739b18f51f55805558d4cbf60baf82ba5c4d"
+    },
+    {
+        "stableKey":  "reference.damage.arcane",
+        "recordVersion":  "1.0.0",
+        "category":  "damageType",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Арканный урон",
+        "publicDescription":  "Урон нестабильной магической энергией.",
+        "gmDescription":  "Базовый магический тип урона.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "magical"
+                 ],
+        "fields":  {
+                       "nature":  "magical",
+                       "classification":  "arcane",
+                       "resistanceTags":  [
+                                              "arcane_resistance"
+                                          ],
+                       "vulnerabilityTags":  [
+
+                                             ],
+                       "immunityTags":  [
+
+                                        ]
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "294738ee7e7ea177a258c6e4c0dfbccefe1616ad4911f33a7f63d95208a908c9"
+    },
+    {
+        "stableKey":  "reference.item.field_toolkit",
+        "recordVersion":  "1.0.0",
+        "category":  "item",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Полевой набор мастера",
+        "publicDescription":  "Компактный комплект для ремонта и сборки в полевых условиях.",
+        "gmDescription":  "Эталонный инструмент для рецептов.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "tool"
+                 ],
+        "fields":  {
+                       "itemType":  "toolkit",
+                       "mass":  4,
+                       "size":  "medium",
+                       "stackable":  false,
+                       "maxStack":  1,
+                       "durability":  80,
+                       "quality":  "standard",
+                       "rarity":  "common",
+                       "baseValue":  45,
+                       "legality":  "legal"
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "8f891b173a479bbd69c3baef7b350ed76cc3dfb42000a4b9af2a446138d2a28b"
+    },
+    {
+        "stableKey":  "reference.weapon.resonance_carbine",
+        "recordVersion":  "1.0.0",
+        "category":  "weapon",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Резонансный карабин",
+        "publicDescription":  "Универсальный карабин с одиночным и импульсным режимами.",
+        "gmDescription":  "Эталонное оружие с двумя профилями атаки.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "ranged",
+                     "carbine"
+                 ],
+        "fields":  {
+                       "weaponCategory":  "carbine",
+                       "scale":  "personal",
+                       "range":  "120 м",
+                       "reloadRules":  "Смена магазина: 1 действие.",
+                       "ammoDefinitionIds":  [
+                                                 "${reference:reference.ammo.resonance_cell}"
+                                             ],
+                       "attackProfiles":  [
+                                              {
+                                                  "profileId":  "single",
+                                                  "name":  "Одиночный выстрел",
+                                                  "attackType":  "ranged",
+                                                  "actionCost":  1,
+                                                  "damageExpression":  "1d10+2",
+                                                  "damageTypeDefinitionIds":  [
+                                                                                  "${reference:reference.damage.kinetic}"
+                                                                              ],
+                                                  "fireMode":  "single",
+                                                  "ammoCost":  1
+                                              },
+                                              {
+                                                  "profileId":  "pulse",
+                                                  "name":  "Импульсная очередь",
+                                                  "attackType":  "ranged",
+                                                  "actionCost":  2,
+                                                  "damageExpression":  "2d8",
+                                                  "damageTypeDefinitionIds":  [
+                                                                                  "${reference:reference.damage.kinetic}",
+                                                                                  "${reference:reference.damage.arcane}"
+                                                                              ],
+                                                  "fireMode":  "burst",
+                                                  "ammoCost":  3
+                                              }
+                                          ],
+                       "legality":  "licensed"
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+                           "reference.ammo.resonance_cell#ammo",
+                           "reference.damage.kinetic#damageType",
+                           "reference.damage.arcane#damageType"
+                       ],
+        "checksum":  "826e2d204a9ac176bf195e9db1a3228e4c6828231a29e3feaa2dab84ad3009fb"
+    },
+    {
+        "stableKey":  "reference.ammo.resonance_cell",
+        "recordVersion":  "1.0.0",
+        "category":  "ammo",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Резонансная ячейка",
+        "publicDescription":  "Стандартная энергетическая ячейка для резонансного оружия.",
+        "gmDescription":  "Эталонный боеприпас.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "ammo",
+                     "energy"
+                 ],
+        "fields":  {
+                       "ammoType":  "energy_cell",
+                       "caliber":  "R-4",
+                       "compatibilityTags":  [
+                                                 "resonance_weapon"
+                                             ],
+                       "consumptionModel":  "charges",
+                       "chargeModel":  "12 charges",
+                       "quality":  "standard",
+                       "legality":  "licensed"
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "94810d4c6a74b84dfaf815bf623dd460a0e29c335c0ed1fd73c87a794b8aa6ed"
+    },
+    {
+        "stableKey":  "reference.armor.expedition_coat",
+        "recordVersion":  "1.0.0",
+        "category":  "armor",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Экспедиционный панцирь",
+        "publicDescription":  "Лёгкая броня для продолжительных экспедиций.",
+        "gmDescription":  "Эталонная броня.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "armor",
+                     "expedition"
+                 ],
+        "fields":  {
+                       "armorCategory":  "light",
+                       "designedSize":  "medium",
+                       "physicalDefense":  3,
+                       "magicalDefense":  2,
+                       "durability":  70,
+                       "stealthPenalty":  0,
+                       "noise":  1,
+                       "concealability":  "partial",
+                       "strengthRequirement":  2,
+                       "legality":  "legal"
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "71a1dab1f563c81dff99181564748399c6fe60f0eaf3cccfd5bddc98bb312b8c"
+    },
+    {
+        "stableKey":  "reference.magic.method.resonance",
+        "recordVersion":  "1.0.0",
+        "category":  "magicMethod",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Резонансная настройка",
+        "publicDescription":  "Метод управления энергией через настройку частоты.",
+        "gmDescription":  "Эталонный магический метод.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "magic",
+                     "method"
+                 ],
+        "fields":  {
+                       "methodCategory":  "channeling",
+                       "resourceModel":  "lumen_charge",
+                       "preparationModel":  "focus",
+                       "castingModel":  "skill_check",
+                       "resourceDefinitionIds":  [
+                                                     "${reference:reference.resource.lumen_crystal}"
+                                                 ],
+                       "defaultRiskProfile":  "feedback",
+                       "legality":  "licensed"
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+                           "reference.resource.lumen_crystal#resource"
+                       ],
+        "checksum":  "2a67e8b59fb072b22211cff99380c1531db8102c703aa431a68b9f9b29a7c55f"
+    },
+    {
+        "stableKey":  "reference.magic.direction.lumen",
+        "recordVersion":  "1.0.0",
+        "category":  "magicDirection",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Люмен",
+        "publicDescription":  "Направление света, защиты и направленной энергии.",
+        "gmDescription":  "Эталонное направление.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "magic",
+                     "direction"
+                 ],
+        "fields":  {
+                       "directionKind":  "elemental",
+                       "damageTypeDefinitionIds":  [
+                                                       "${reference:reference.damage.arcane}"
+                                                   ],
+                       "effectTags":  [
+                                          "light",
+                                          "barrier"
+                                      ],
+                       "legality":  "legal",
+                       "rarity":  "uncommon"
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+                           "reference.damage.arcane#damageType"
+                       ],
+        "checksum":  "22b2efd5a53072c5cb63973680ddab43fd4f55f658724cae794db805bb8fe9ae"
+    },
+    {
+        "stableKey":  "reference.magic.effect.lumen_bolt",
+        "recordVersion":  "1.0.0",
+        "category":  "effect",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Люмен-импульс",
+        "publicDescription":  "Наносит цели арканный урон.",
+        "gmDescription":  "Typed damage effect.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "magic",
+                     "effect"
+                 ],
+        "fields":  {
+                       "effectKind":  "damage",
+                       "targetSelector":  "selected_target",
+                       "timing":  "immediate",
+                       "operation":  "deal_damage",
+                       "valueExpression":  "2d6",
+                       "damageTypeDefinitionId":  "${reference:reference.damage.arcane}",
+                       "manualResolution":  "GM resolves resistance."
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+                           "reference.damage.arcane#damageType"
+                       ],
+        "checksum":  "0844766c1cab577a82ee7324917c3a557b40287bd19dcb22d712be4df450970f"
+    },
+    {
+        "stableKey":  "reference.magic.effect.aegis",
+        "recordVersion":  "1.0.0",
+        "category":  "effect",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Люмен-барьер",
+        "publicDescription":  "Даёт временный защитный модификатор.",
+        "gmDescription":  "Typed modifier effect.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "magic",
+                     "effect"
+                 ],
+        "fields":  {
+                       "effectKind":  "modifier",
+                       "targetSelector":  "selected_target",
+                       "timing":  "on_apply",
+                       "operation":  "add_defense",
+                       "valueExpression":  "2",
+                       "duration":  "3 rounds",
+                       "manualResolution":  "No executable script."
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "3b2b643444137e7d2410e2687fe20734baa5b402e3b356604890827da344ea08"
+    },
+    {
+        "stableKey":  "reference.magic.condition.dazzled",
+        "recordVersion":  "1.0.0",
+        "category":  "condition",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Ослепление сиянием",
+        "publicDescription":  "Яркий свет временно ухудшает точность.",
+        "gmDescription":  "Эталонное состояние.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "condition"
+                 ],
+        "fields":  {
+                       "conditionCategory":  "sensory",
+                       "severity":  "minor",
+                       "durationModel":  "rounds",
+                       "defaultDuration":  "1 round",
+                       "stackingModel":  "refresh",
+                       "maximumStacks":  1,
+                       "iconKey":  "sun"
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "753c1f3f01cde428a8a9ff078c12a64b54d531c42c5e98c0ec5970540ea9bc68"
+    },
+    {
+        "stableKey":  "reference.magic.spell.lumen_lance",
+        "recordVersion":  "1.0.0",
+        "category":  "spell",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Копьё Люмена",
+        "publicDescription":  "Направленный луч света поражает одну цель.",
+        "gmDescription":  "Эталонное заклинание.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "spell"
+                 ],
+        "fields":  {
+                       "spellCategory":  "attack",
+                       "tier":  1,
+                       "magicMethodIds":  [
+                                              "${reference:reference.magic.method.resonance}"
+                                          ],
+                       "magicDirectionIds":  [
+                                                 "${reference:reference.magic.direction.lumen}"
+                                             ],
+                       "targetModel":  "single",
+                       "range":  "60 м",
+                       "duration":  "instant",
+                       "actionCost":  1,
+                       "effectDefinitionIds":  [
+                                                   "${reference:reference.magic.effect.lumen_bolt}"
+                                               ],
+                       "conditionDefinitionIds":  [
+                                                      "${reference:reference.magic.condition.dazzled}"
+                                                  ],
+                       "damageTypeDefinitionIds":  [
+                                                       "${reference:reference.damage.arcane}"
+                                                   ],
+                       "isInterruptible":  true,
+                       "legality":  "licensed"
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+                           "reference.magic.method.resonance#magicMethod",
+                           "reference.magic.direction.lumen#magicDirection",
+                           "reference.magic.effect.lumen_bolt#effect",
+                           "reference.magic.condition.dazzled#condition",
+                           "reference.damage.arcane#damageType"
+                       ],
+        "checksum":  "643d58bf00886c174fb94346570c1374dbbcbe5bb5e8348842718b33fe7c0e2b"
+    },
+    {
+        "stableKey":  "reference.magic.seal.aegis",
+        "recordVersion":  "1.0.0",
+        "category":  "seal",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Печать малого барьера",
+        "publicDescription":  "Печать создаёт краткий защитный барьер при приближении угрозы.",
+        "gmDescription":  "Эталонная печать.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "seal"
+                 ],
+        "fields":  {
+                       "magicMethodIds":  [
+                                              "${reference:reference.magic.method.resonance}"
+                                          ],
+                       "magicDirectionIds":  [
+                                                 "${reference:reference.magic.direction.lumen}"
+                                             ],
+                       "triggerType":  "proximity",
+                       "targetModel":  "self",
+                       "persistence":  "until_triggered",
+                       "charges":  1,
+                       "effectDefinitionIds":  [
+                                                   "${reference:reference.magic.effect.aegis}"
+                                               ],
+                       "legality":  "legal"
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_18_8"
+                           },
+        "references":  [
+                           "reference.magic.method.resonance#magicMethod",
+                           "reference.magic.direction.lumen#magicDirection",
+                           "reference.magic.effect.aegis#effect"
+                       ],
+        "checksum":  "607a18e22cc09796aab2c3a2c3583f8c5ba3b0be6b24f8a501cbdcb2b063aea1"
+    },
+    {
+        "stableKey":  "reference.world.aurelia",
+        "recordVersion":  "1.0.0",
+        "category":  "world_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Аурелия",
+        "publicDescription":  "Мир пограничных королевств, древних руин и эфирных технологий.",
+        "gmDescription":  "Эталонный мир для сквозной проверки справочников.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "world"
+                 ],
+        "fields":  {
+                       "defaultCalendar":  "${reference:reference.calendar.aurelian}",
+                       "defaultEra":  "${reference:reference.era.new_dawn}",
+                       "topLevelLocations":  "${reference:reference.location.verdant_reach}",
+                       "defaultLanguages":  "${reference:reference.language.trade_tongue}",
+                       "themes":  "exploration;ancient_technology"
+                   },
+        "serverOnlyData":  {
+                               "gmSeedNote":  "Do not expose this token."
+                           },
+        "references":  [
+                           "reference.calendar.aurelian#calendar_definition",
+                           "reference.era.new_dawn#era_definition",
+                           "reference.location.verdant_reach#location_definition",
+                           "reference.language.trade_tongue#language_definition"
+                       ],
+        "checksum":  "81e12e8751dc44daf253712d4d6298381719dee50d627ffc5d98717a55e5d40f"
+    },
+    {
+        "stableKey":  "reference.calendar.aurelian",
+        "recordVersion":  "1.0.0",
+        "category":  "calendar_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Аурелианский календарь",
+        "publicDescription":  "Календарь из двенадцати месяцев по тридцать дней.",
+        "gmDescription":  "Эталонный календарь.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "calendar"
+                 ],
+        "fields":  {
+                       "yearNumberingModel":  "era_based",
+                       "daysPerWeek":  "6",
+                       "weekdays":  "1 | Рассвет\n2 | Ветер\n3 | Камень\n4 | Волна\n5 | Пламя\n6 | Покой",
+                       "months":  "1 | Первый свет | 30 | Весна\n2 | Восход | 30 | Весна\n3 | Цветение | 30 | Весна\n4 | Жар | 30 | Лето\n5 | Зенит | 30 | Лето\n6 | Урожай | 30 | Лето\n7 | Листопад | 30 | Осень\n8 | Туман | 30 | Осень\n9 | Дожди | 30 | Осень\n10 | Стужа | 30 | Зима\n11 | Ночь | 30 | Зима\n12 | Оттепель | 30 | Зима",
+                       "seasons":  "1 | Весна | 1 | 90\n2 | Лето | 91 | 180\n3 | Осень | 181 | 270\n4 | Зима | 271 | 360",
+                       "declaredDaysPerYear":  "360",
+                       "dateDisplayFormat":  "день месяц, год эпохи"
+                   },
+        "serverOnlyData":  {
+                               "gmSeedNote":  "Calendar runtime date is not seeded."
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "0b3e7161e991bd4eee9e3a72e364e8efdaedd8651783f4d3887d662b25e967ff"
+    },
+    {
+        "stableKey":  "reference.era.new_dawn",
+        "recordVersion":  "1.0.0",
+        "category":  "era_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Эпоха Нового Рассвета",
+        "publicDescription":  "Эпоха, начавшаяся после восстановления Небесных врат.",
+        "gmDescription":  "Эталонная эра.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "era"
+                 ],
+        "fields":  {
+                       "calendar":  "${reference:reference.calendar.aurelian}",
+                       "yearZeroPolicy":  "no_year_zero",
+                       "countingDirection":  "forward",
+                       "startBoundary":  "1 Первый свет 1",
+                       "displaySuffix":  "НР"
+                   },
+        "serverOnlyData":  {
+                               "gmSeedNote":  "No runtime current date."
+                           },
+        "references":  [
+                           "reference.calendar.aurelian#calendar_definition"
+                       ],
+        "checksum":  "7c1aa83af380823fadc4ba58009667d3f1a55ebf3c92bd99efacf47078f0ee11"
+    },
+    {
+        "stableKey":  "reference.location.verdant_reach",
+        "recordVersion":  "1.0.0",
+        "category":  "location_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Зелёный Предел",
+        "publicDescription":  "Обширный материк лесов, плато и старых дорог.",
+        "gmDescription":  "Первый уровень иерархии.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "continent"
+                 ],
+        "fields":  {
+                       "locationKind":  "continent",
+                       "world":  "${reference:reference.world.aurelia}",
+                       "languages":  "${reference:reference.language.trade_tongue}",
+                       "climateTerrain":  "temperate;forest;plateau"
+                   },
+        "serverOnlyData":  {
+                               "gmSeedNote":  "Public root location."
+                           },
+        "references":  [
+                           "reference.world.aurelia#world_definition",
+                           "reference.language.trade_tongue#language_definition"
+                       ],
+        "checksum":  "df913c0f0fe6c4f3b083f02e1b6dafbadbbd518a5eaa299e354918681cf2ab58"
+    },
+    {
+        "stableKey":  "reference.location.lumen_vale",
+        "recordVersion":  "1.0.0",
+        "category":  "location_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Долина Люмена",
+        "publicDescription":  "Регион светящихся кристаллов и караванных дорог.",
+        "gmDescription":  "Второй уровень иерархии.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "region"
+                 ],
+        "fields":  {
+                       "locationKind":  "region",
+                       "world":  "${reference:reference.world.aurelia}",
+                       "parentLocation":  "${reference:reference.location.verdant_reach}",
+                       "languages":  "${reference:reference.language.trade_tongue}",
+                       "climateTerrain":  "valley;crystal_fields"
+                   },
+        "serverOnlyData":  {
+                               "gmSeedNote":  "Public middle location."
+                           },
+        "references":  [
+                           "reference.world.aurelia#world_definition",
+                           "reference.location.verdant_reach#location_definition",
+                           "reference.language.trade_tongue#language_definition"
+                       ],
+        "checksum":  "2ea08a19cac3611914aacc14f2014336ae4a9fb00ac64445c61341f3a071c84c"
+    },
+    {
+        "stableKey":  "reference.location.beacon_harbor",
+        "recordVersion":  "1.0.0",
+        "category":  "location_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Гавань Маяка",
+        "publicDescription":  "Торговый город вокруг древней световой башни.",
+        "gmDescription":  "Третий уровень иерархии.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "settlement"
+                 ],
+        "fields":  {
+                       "locationKind":  "settlement",
+                       "world":  "${reference:reference.world.aurelia}",
+                       "parentLocation":  "${reference:reference.location.lumen_vale}",
+                       "languages":  "${reference:reference.language.trade_tongue}",
+                       "travelMetadata":  "Караванная дорога и речной порт."
+                   },
+        "serverOnlyData":  {
+                               "hiddenRoute":  "GM_ONLY_ROUTE_0188"
+                           },
+        "references":  [
+                           "reference.world.aurelia#world_definition",
+                           "reference.location.lumen_vale#location_definition",
+                           "reference.language.trade_tongue#language_definition"
+                       ],
+        "checksum":  "bb75f6ab3df3f100bea90c0380d982ab6d23bfc83b325bd1d4701fa58058ac85"
+    },
+    {
+        "stableKey":  "reference.language.trade_tongue",
+        "recordVersion":  "1.0.0",
+        "category":  "language_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Общий торговый",
+        "publicDescription":  "Распространённый язык торговли и путешествий.",
+        "gmDescription":  "Эталонный язык.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "language"
+                 ],
+        "fields":  {
+                       "languageFamily":  "aurelian_common",
+                       "writingSystems":  "Торговая вязь | слева направо | Упрощённое письмо",
+                       "regions":  "${reference:reference.location.verdant_reach}",
+                       "proficiencyAspects":  "speech;reading;writing"
+                   },
+        "serverOnlyData":  {
+                               "gmSeedNote":  "No character proficiency mutation."
+                           },
+        "references":  [
+                           "reference.location.verdant_reach#location_definition"
+                       ],
+        "checksum":  "25852e303a89456fafe6b6a52d65248ecd3907709967af23bff4d5e0550d09ba"
+    },
+    {
+        "stableKey":  "reference.knowledge.field_notes",
+        "recordVersion":  "1.0.0",
+        "category":  "knowledge_type_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Полевые сведения",
+        "publicDescription":  "Проверенные практические сведения путешественника.",
+        "gmDescription":  "Эталонный тип знания.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "knowledge"
+                 ],
+        "fields":  {
+                       "order":  "20",
+                       "reliabilityMinimum":  "50",
+                       "reliabilityMaximum":  "85",
+                       "allowsPracticalUse":  true,
+                       "allowsIdentification":  true,
+                       "allowsDetails":  false,
+                       "playerLabel":  "Полевые сведения"
+                   },
+        "serverOnlyData":  {
+                               "gmSeedNote":  "No character knowledge mutation."
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "12835bab1fe8d6ee7ea9fd033a0a2b9dd37b0d6a30053d2676386c82ac5138ba"
+    },
+    {
+        "stableKey":  "reference.lore.beacon_public",
+        "recordVersion":  "1.0.0",
+        "category":  "lore_entry_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "История Гавани Маяка",
+        "publicDescription":  "Общедоступная история основания города.",
+        "gmDescription":  "Содержит player-visible версию сведений.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "lore",
+                     "public"
+                 ],
+        "fields":  {
+                       "loreKind":  "historical_account",
+                       "subjectType":  "location",
+                       "subject":  "${reference:reference.location.beacon_harbor}",
+                       "locations":  "${reference:reference.location.beacon_harbor}",
+                       "languages":  "${reference:reference.language.trade_tongue}",
+                       "informationVersions":  "public | ${reference:reference.knowledge.field_notes} | Город вырос вокруг восстановленного маяка. | 80 | городской архив | 1 НР | настоящее время | false | true"
+                   },
+        "serverOnlyData":  {
+                               "gmSeedNote":  "Public lore source."
+                           },
+        "references":  [
+                           "reference.location.beacon_harbor#location_definition",
+                           "reference.language.trade_tongue#language_definition",
+                           "reference.knowledge.field_notes#knowledge_type_definition"
+                       ],
+        "checksum":  "628d76f445d72ff4357cbf23692a7f09397d024e7bf6ebefbbe70dbe755df36a"
+    },
+    {
+        "stableKey":  "reference.lore.beacon_hidden",
+        "recordVersion":  "1.0.0",
+        "category":  "lore_entry_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Тайна Сердца Маяка",
+        "publicDescription":  "",
+        "gmDescription":  "Скрытая правда о древнем механизме маяка.",
+        "visibilityRule":  "gm_only",
+        "tags":  [
+                     "reference-demo",
+                     "lore",
+                     "hidden"
+                 ],
+        "fields":  {
+                       "loreKind":  "lore",
+                       "subjectType":  "location",
+                       "subject":  "${reference:reference.location.beacon_harbor}",
+                       "locations":  "${reference:reference.location.beacon_harbor}",
+                       "informationVersions":  "gm | ${reference:reference.knowledge.field_notes} | Сердце маяка является ключом к Небесным вратам. | 100 | GM archive | до НР | настоящее время | false | false"
+                   },
+        "serverOnlyData":  {
+                               "secret":  "GM_ONLY_LORE_0188_DO_NOT_LEAK"
+                           },
+        "references":  [
+                           "reference.location.beacon_harbor#location_definition",
+                           "reference.knowledge.field_notes#knowledge_type_definition"
+                       ],
+        "checksum":  "25a7d1fc16f7bb13ac20b0f2565f77a04f3ac3f5c8b297e6e03d07459d7bba7d"
+    },
+    {
+        "stableKey":  "reference.event.expedition",
+        "recordVersion":  "1.0.0",
+        "category":  "event_type_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Экспедиция",
+        "publicDescription":  "Тип события для исследовательского похода.",
+        "gmDescription":  "Эталонный тип события.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "event"
+                 ],
+        "fields":  {
+                       "eventCategory":  "exploration",
+                       "defaultSeverity":  "normal",
+                       "defaultVisibility":  "player_visible",
+                       "allowedVersionKinds":  "public;gm",
+                       "iconKey":  "compass",
+                       "applicableLocationKinds":  "region;settlement;location"
+                   },
+        "serverOnlyData":  {
+                               "gmSeedNote":  "No runtime event created."
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "30aeeb30745b4aa0eef5adda762d09f387ba0a5fdc415f1d244785d333e93a70"
+    },
+    {
+        "stableKey":  "reference.option.control.registered",
+        "recordVersion":  "1.0.0",
+        "category":  "control_level_option_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Регистрация",
+        "publicDescription":  "Действие разрешено после регистрации.",
+        "gmDescription":  "RuleSet option.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "economy-option"
+                 ],
+        "fields":  {
+                       "order":  "20",
+                       "playerLabel":  "Требуется регистрация",
+                       "rank":  "1"
+                   },
+        "serverOnlyData":  {
+
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "a3c15e896ec08fc17928481cf351f5ec9b54ccf680f895798b3b9d4e9f08cd09"
+    },
+    {
+        "stableKey":  "reference.option.scale.local",
+        "recordVersion":  "1.0.0",
+        "category":  "economic_scale_option_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Местное предприятие",
+        "publicDescription":  "Экономика одного поселения или региона.",
+        "gmDescription":  "RuleSet option.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "economy-option"
+                 ],
+        "fields":  {
+                       "order":  "20",
+                       "playerLabel":  "Местное предприятие",
+                       "rank":  "1"
+                   },
+        "serverOnlyData":  {
+
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "d76d9e360df4c253c3aa030e734b7041efb3ed37219721ca22dc3a46d3a08f3a"
+    },
+    {
+        "stableKey":  "reference.option.offer.goods",
+        "recordVersion":  "1.0.0",
+        "category":  "market_offer_kind_option_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Товары",
+        "publicDescription":  "Предложения физических товаров и материалов.",
+        "gmDescription":  "RuleSet option.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "economy-option"
+                 ],
+        "fields":  {
+                       "order":  "10",
+                       "playerLabel":  "Товары",
+                       "offerCategory":  "goods"
+                   },
+        "serverOnlyData":  {
+
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "f4d358583a9c91fca4b3eda7e234f25d60b709dff505031376ada0fae918e701"
+    },
+    {
+        "stableKey":  "reference.currency.aurel",
+        "recordVersion":  "1.0.0",
+        "category":  "currency_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Аурел",
+        "publicDescription":  "Расчётная монета торговых городов Аурелии.",
+        "gmDescription":  "Эталонная валюта.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "currency"
+                 ],
+        "fields":  {
+                       "symbol":  "АР",
+                       "currencyKind":  "physical_currency",
+                       "decimalPrecision":  "2",
+                       "denominations":  "аурел | АР | 1\nдекааурел | ДАР | 10",
+                       "legality":  "legal"
+                   },
+        "serverOnlyData":  {
+                               "gmSeedNote":  "No wallet balance seeded."
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "904f6be12d26979d70dcb0db0c48b6148390d4defb3bc75464b6eb3e5e8651c7"
+    },
+    {
+        "stableKey":  "reference.faction.pathfinders",
+        "recordVersion":  "1.0.0",
+        "category":  "faction_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Союз Путеводителей",
+        "publicDescription":  "Союз исследователей и хранителей безопасных маршрутов.",
+        "gmDescription":  "Эталонная фракция.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "faction"
+                 ],
+        "fields":  {
+                       "factionCategory":  "explorers",
+                       "publicIdentity":  "Открытый союз проводников.",
+                       "publicGoals":  "Исследовать и сохранять безопасные пути.",
+                       "homeLocations":  "${reference:reference.location.beacon_harbor}",
+                       "languages":  "${reference:reference.language.trade_tongue}",
+                       "ideologyTags":  "knowledge;mutual_aid"
+                   },
+        "serverOnlyData":  {
+                               "hiddenGoal":  "GM_ONLY_FACTION_0188"
+                           },
+        "references":  [
+                           "reference.location.beacon_harbor#location_definition",
+                           "reference.language.trade_tongue#language_definition"
+                       ],
+        "checksum":  "c6707280d7e190043278e1861fdb1c993c6fb9da4d9b720feae4aff519d5ecbd"
+    },
+    {
+        "stableKey":  "reference.organization.beacon_workshop",
+        "recordVersion":  "1.0.0",
+        "category":  "organization_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Мастерская Маяка",
+        "publicDescription":  "Ремонтная и исследовательская мастерская Гавани.",
+        "gmDescription":  "Эталонная организация.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "organization"
+                 ],
+        "fields":  {
+                       "organizationKind":  "workshop",
+                       "controllingFactions":  "${reference:reference.faction.pathfinders}",
+                       "publicImage":  "Надёжная мастерская экспедиционного снаряжения.",
+                       "legalStatus":  "registered",
+                       "declaredActivity":  "Ремонт, изготовление и испытания.",
+                       "headquartersLocations":  "${reference:reference.location.beacon_harbor}",
+                       "currencies":  "${reference:reference.currency.aurel}",
+                       "allowIndependentOrganization":  false
+                   },
+        "serverOnlyData":  {
+                               "actualActivity":  "Prototype research."
+                           },
+        "references":  [
+                           "reference.faction.pathfinders#faction_definition",
+                           "reference.location.beacon_harbor#location_definition",
+                           "reference.currency.aurel#currency_definition"
+                       ],
+        "checksum":  "aa6dd2f4745538f85f8b7c3cf1ae050123b89362eae4e01f3535bed5c8ebbf63"
+    },
+    {
+        "stableKey":  "reference.jurisdiction.beacon",
+        "recordVersion":  "1.0.0",
+        "category":  "jurisdiction_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Устав Гавани Маяка",
+        "publicDescription":  "Правила торговли и ремесла в Гавани Маяка.",
+        "gmDescription":  "Эталонная юрисдикция.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "jurisdiction"
+                 ],
+        "fields":  {
+                       "jurisdictionKind":  "city_charter",
+                       "governingFaction":  "${reference:reference.faction.pathfinders}",
+                       "locations":  "${reference:reference.location.beacon_harbor}",
+                       "defaultControlLevel":  "${reference:reference.option.control.registered}",
+                       "acceptedCurrencies":  "${reference:reference.currency.aurel}",
+                       "enforcementLevel":  "moderate"
+                   },
+        "serverOnlyData":  {
+
+                           },
+        "references":  [
+                           "reference.faction.pathfinders#faction_definition",
+                           "reference.location.beacon_harbor#location_definition",
+                           "reference.option.control.registered#control_level_option_definition",
+                           "reference.currency.aurel#currency_definition"
+                       ],
+        "checksum":  "aba18eeb631a22e608c4cb33ef8fe2b4abbf32f37da1ab5c3fba45b13c2a8acb"
+    },
+    {
+        "stableKey":  "reference.license.expedition",
+        "recordVersion":  "1.0.0",
+        "category":  "license_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Экспедиционная лицензия",
+        "publicDescription":  "Разрешение на исследование руин и оборот специального снаряжения.",
+        "gmDescription":  "Эталонная лицензия.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "license"
+                 ],
+        "fields":  {
+                       "licenseKind":  "expedition",
+                       "issuerOrganization":  "${reference:reference.organization.beacon_workshop}",
+                       "coveredActions":  "buy;own;carry;use",
+                       "coveredCategories":  "weapon;ammo;research_tool",
+                       "validityModel":  "annual",
+                       "revocable":  true,
+                       "publicRequirements":  "Регистрация экспедиции и ответственного лица."
+                   },
+        "serverOnlyData":  {
+                               "hiddenRequirements":  "GM approval for restricted zones."
+                           },
+        "references":  [
+                           "reference.organization.beacon_workshop#organization_definition"
+                       ],
+        "checksum":  "c5af7fe31566c003eb11ce75efe48212872474ce1af61b4dbbe591bbd17b7440"
+    },
+    {
+        "stableKey":  "reference.law.expedition_trade",
+        "recordVersion":  "1.0.0",
+        "category":  "law_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Закон об экспедиционном обороте",
+        "publicDescription":  "Определяет покупку, владение, переноску и применение экспедиционного снаряжения.",
+        "gmDescription":  "Эталонный закон с четырьмя действиями.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "law"
+                 ],
+        "fields":  {
+                       "lawCategory":  "expedition_trade",
+                       "jurisdictions":  "${reference:reference.jurisdiction.beacon}",
+                       "applicableCategories":  "weapon;ammo;armor;research_tool",
+                       "actionRules":  "buy | ${reference:reference.option.control.registered} | ${reference:reference.license.expedition} | registration | permit | official_market | none | licensed | Покупка по лицензии | GM may waive\nown | ${reference:reference.option.control.registered} | ${reference:reference.license.expedition} | registration | permit | residence | none | licensed | Владение по лицензии | GM may waive\ncarry | ${reference:reference.option.control.registered} | ${reference:reference.license.expedition} | registration | permit | public_space | none | restricted | Переноска ограничена | GM may waive\nuse | ${reference:reference.option.control.registered} | ${reference:reference.license.expedition} | registration | permit | expedition | none | licensed | Использование в экспедиции | GM may waive",
+                       "defaultControlLevel":  "${reference:reference.option.control.registered}",
+                       "requiredLicenses":  "${reference:reference.license.expedition}",
+                       "publicConsequence":  "Нарушение ведёт к штрафу и приостановке лицензии."
+                   },
+        "serverOnlyData":  {
+                               "gmEnforcement":  "Escalate on repeated violations."
+                           },
+        "references":  [
+                           "reference.jurisdiction.beacon#jurisdiction_definition",
+                           "reference.option.control.registered#control_level_option_definition",
+                           "reference.license.expedition#license_definition"
+                       ],
+        "checksum":  "21727cd771e399cada07268e7c7acd2f3f7e71e56428011e06de30ce7cdac8ed"
+    },
+    {
+        "stableKey":  "reference.market.beacon",
+        "recordVersion":  "1.0.0",
+        "category":  "market_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Рынок Гавани Маяка",
+        "publicDescription":  "Открытый рынок материалов, инструментов и экспедиционного снаряжения.",
+        "gmDescription":  "Эталонный рынок.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "market"
+                 ],
+        "fields":  {
+                       "marketKind":  "regional",
+                       "locations":  "${reference:reference.location.beacon_harbor}",
+                       "jurisdictions":  "${reference:reference.jurisdiction.beacon}",
+                       "factions":  "${reference:reference.faction.pathfinders}",
+                       "organizations":  "${reference:reference.organization.beacon_workshop}",
+                       "currencies":  "${reference:reference.currency.aurel}",
+                       "offerKinds":  "${reference:reference.option.offer.goods}",
+                       "allowedCategories":  "resource;item;weapon;ammo;armor",
+                       "defaultLegalPolicy":  "jurisdiction_rules",
+                       "publicRiskSummary":  "Обычный городской рынок с лицензированием ограниченных товаров."
+                   },
+        "serverOnlyData":  {
+                               "gmSupplyNote":  "No runtime stock seeded."
+                           },
+        "references":  [
+                           "reference.location.beacon_harbor#location_definition",
+                           "reference.jurisdiction.beacon#jurisdiction_definition",
+                           "reference.faction.pathfinders#faction_definition",
+                           "reference.organization.beacon_workshop#organization_definition",
+                           "reference.currency.aurel#currency_definition",
+                           "reference.option.offer.goods#market_offer_kind_option_definition"
+                       ],
+        "checksum":  "df3fc541a3c5d48dd66aaac95452d71cbf9a88b221cc24ea100e0a6341291f4b"
+    },
+    {
+        "stableKey":  "reference.business.expedition_workshop",
+        "recordVersion":  "1.0.0",
+        "category":  "business_profile_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Экспедиционная мастерская",
+        "publicDescription":  "Шаблон мастерской, обслуживающей исследовательские группы.",
+        "gmDescription":  "Эталонный экономический профиль.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "business"
+                 ],
+        "fields":  {
+                       "businessKind":  "workshop",
+                       "economicScale":  "${reference:reference.option.scale.local}",
+                       "declaredActivities":  "repair;craft;testing",
+                       "requiredLocations":  "${reference:reference.location.beacon_harbor}",
+                       "requiredFacilities":  "workshop;test_bench",
+                       "incomeBand":  "100 | 400 | ${reference:reference.currency.aurel} | month",
+                       "expenseBand":  "60 | 250 | ${reference:reference.currency.aurel} | month",
+                       "taxRentBand":  "10 | 50 | ${reference:reference.currency.aurel} | month",
+                       "licenses":  "${reference:reference.license.expedition}"
+                   },
+        "serverOnlyData":  {
+                               "gmMarginModel":  "No runtime accounting seeded."
+                           },
+        "references":  [
+                           "reference.option.scale.local#economic_scale_option_definition",
+                           "reference.location.beacon_harbor#location_definition",
+                           "reference.currency.aurel#currency_definition",
+                           "reference.license.expedition#license_definition"
+                       ],
+        "checksum":  "00aeb756a15a4d77304a9a1a6f4309ddb5b708f403e1d1de96444f43779935c6"
+    },
+    {
+        "stableKey":  "reference.tech.resonance_engineering",
+        "recordVersion":  "1.0.0",
+        "category":  "technology_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Резонансная инженерия",
+        "publicDescription":  "Технология согласования кристаллов, металлов и энергетических контуров.",
+        "gmDescription":  "Эталонная технология.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "technology"
+                 ],
+        "fields":  {
+                       "technologyKind":  "hybrid",
+                       "fieldCategory":  "resonance_engineering",
+                       "tier":  "2",
+                       "complexity":  "35",
+                       "requiredKnowledgeTypes":  "${reference:reference.knowledge.field_notes}",
+                       "requiredLore":  "${reference:reference.lore.beacon_public}",
+                       "requiredTools":  "${reference:reference.item.field_toolkit}",
+                       "requiredLicenses":  "${reference:reference.license.expedition}",
+                       "knownRisks":  "feedback;crystal_fracture"
+                   },
+        "serverOnlyData":  {
+                               "gmResearchTruth":  "GM_ONLY_TECH_0188"
+                           },
+        "references":  [
+                           "reference.knowledge.field_notes#knowledge_type_definition",
+                           "reference.lore.beacon_public#lore_entry_definition",
+                           "reference.item.field_toolkit#item",
+                           "reference.license.expedition#license_definition"
+                       ],
+        "checksum":  "33264f483640458be9a7fb2acd8bc4bb4056e4603a353c3dd9b06c8e30360df6"
+    },
+    {
+        "stableKey":  "reference.method.resonance_assembly",
+        "recordVersion":  "1.0.0",
+        "category":  "production_method_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Резонансная сборка",
+        "publicDescription":  "Метод точной сборки энергетических узлов.",
+        "gmDescription":  "Эталонный метод производства.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "production-method"
+                 ],
+        "fields":  {
+                       "methodKind":  "craft",
+                       "technologies":  "${reference:reference.tech.resonance_engineering}",
+                       "requiredTools":  "${reference:reference.item.field_toolkit}",
+                       "workDurationModel":  "По сложности чертежа.",
+                       "qualityModel":  "Качество ограничено худшим компонентом.",
+                       "resourceLossModel":  "10% при провале.",
+                       "requiredLicenses":  "${reference:reference.license.expedition}",
+                       "riskTags":  "feedback"
+                   },
+        "serverOnlyData":  {
+                               "gmFormula":  "No executable formula."
+                           },
+        "references":  [
+                           "reference.tech.resonance_engineering#technology_definition",
+                           "reference.item.field_toolkit#item",
+                           "reference.license.expedition#license_definition"
+                       ],
+        "checksum":  "16d1795f5d0a62665aa334cc4f8e8ccb9fad8cbf143ccf78312aa798488a6bbe"
+    },
+    {
+        "stableKey":  "reference.recipe.resonance_cell",
+        "recordVersion":  "1.0.0",
+        "category":  "recipe_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Сборка резонансной ячейки",
+        "publicDescription":  "Преобразует кристалл, сплав и искровую соль в энергетическую ячейку.",
+        "gmDescription":  "Эталонный рецепт.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "recipe"
+                 ],
+        "fields":  {
+                       "recipeKind":  "assemble",
+                       "methods":  "${reference:reference.method.resonance_assembly}",
+                       "technologies":  "${reference:reference.tech.resonance_engineering}",
+                       "inputRows":  "${reference:reference.resource.lumen_crystal} | 1 | piece | standard | consumed | crystal | false\n${reference:reference.resource.resonant_alloy} | 0.5 | kg | standard | consumed | metal | false\n${reference:reference.resource.ember_salt} | 0.1 | kg | standard | consumed | reactive | false",
+                       "outputRows":  "${reference:reference.ammo.resonance_cell} | 1 | piece | standard | produced | output | false",
+                       "requiredLicenses":  "${reference:reference.license.expedition}",
+                       "failureWasteProfile":  "Повреждённые компоненты остаются отходами."
+                   },
+        "serverOnlyData":  {
+                               "gmYieldFormula":  "No runtime mutation."
+                           },
+        "references":  [
+                           "reference.method.resonance_assembly#production_method_definition",
+                           "reference.tech.resonance_engineering#technology_definition",
+                           "reference.resource.lumen_crystal#resource",
+                           "reference.resource.resonant_alloy#resource",
+                           "reference.resource.ember_salt#resource",
+                           "reference.ammo.resonance_cell#ammo",
+                           "reference.license.expedition#license_definition"
+                       ],
+        "checksum":  "0e6ba997460484f27a4afcbba9399151d56c9367e79a4f869658f9fd20ebd299"
+    },
+    {
+        "stableKey":  "reference.facility.beacon_lab",
+        "recordVersion":  "1.0.0",
+        "category":  "facility_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Резонансная лаборатория",
+        "publicDescription":  "Тип площадки для сборки и испытания резонансных устройств.",
+        "gmDescription":  "Эталонный тип facility, не runtime-актив.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "facility"
+                 ],
+        "fields":  {
+                       "facilityKind":  "laboratory",
+                       "capabilities":  "craft;testing;research",
+                       "supportedMethods":  "${reference:reference.method.resonance_assembly}",
+                       "scale":  "local",
+                       "capacityBand":  "small_team",
+                       "requiredLocations":  "${reference:reference.location.beacon_harbor}",
+                       "requiredTools":  "${reference:reference.item.field_toolkit}",
+                       "requiredResources":  "${reference:reference.resource.resonant_alloy}",
+                       "energyRequirements":  "Стабильная энергосеть.",
+                       "requiredLicenses":  "${reference:reference.license.expedition}"
+                   },
+        "serverOnlyData":  {
+                               "gmFacilityNote":  "No runtime facility created."
+                           },
+        "references":  [
+                           "reference.method.resonance_assembly#production_method_definition",
+                           "reference.location.beacon_harbor#location_definition",
+                           "reference.item.field_toolkit#item",
+                           "reference.resource.resonant_alloy#resource",
+                           "reference.license.expedition#license_definition"
+                       ],
+        "checksum":  "f80be366c20d8bd0867eba2b77b06e0ada6815d753f1089f302cc99093046872"
+    },
+    {
+        "stableKey":  "reference.test.resonance_safety",
+        "recordVersion":  "1.0.0",
+        "category":  "test_protocol_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Проверка резонансной безопасности",
+        "publicDescription":  "Протокол проверки стабильности энергетического устройства.",
+        "gmDescription":  "Эталонный протокол испытаний.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "test-protocol"
+                 ],
+        "fields":  {
+                       "applicableBlueprintKinds":  "weapon;item",
+                       "requiredFacilities":  "${reference:reference.facility.beacon_lab}",
+                       "requiredTools":  "${reference:reference.item.field_toolkit}",
+                       "testSteps":  "1 | Осмотр | Проверить корпус и соединения. | GM notes\n2 | Нагрузка | Подать тестовую нагрузку. | GM notes",
+                       "passCriteria":  "Все показатели стабильны.",
+                       "partialPassCriteria":  "Устройство работает, но выявлен воспроизводимый дефект стабильности.",
+                       "failureCriteria":  "Перегрев или дрейф частоты.",
+                       "effects":  "${reference:reference.magic.effect.aegis}",
+                       "publicResultTemplate":  "Прототип частично прошёл проверку: эксплуатация ограничена до устранения дефекта.",
+                       "gmResultTemplate":  "ReferenceDemo: детерминированный PartialPassWithDefect без Fate Engine.",
+                       "metricLabels":  "Стабильность;Температура;Дрейф частоты"
+                   },
+        "serverOnlyData":  {
+                               "gmResultTemplate":  "No runtime test result."
+                           },
+        "references":  [
+                           "reference.facility.beacon_lab#facility_definition",
+                           "reference.item.field_toolkit#item",
+                           "reference.magic.effect.aegis#effect"
+                       ],
+        "checksum":  "833780d91a8892ae69cb4273303d58ad69a7a83beef3aa173eb3894a8733b4ae"
+    },
+    {
+        "stableKey":  "reference.defect.resonance_drift",
+        "recordVersion":  "1.0.0",
+        "category":  "defect_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Дрейф резонанса",
+        "publicDescription":  "Устройство постепенно теряет стабильную частоту.",
+        "gmDescription":  "Эталонный тип дефекта.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "defect"
+                 ],
+        "fields":  {
+                       "defectCategory":  "stability",
+                       "severity":  "moderate",
+                       "applicableTechnologyKinds":  "hybrid",
+                       "detectionStage":  "testing",
+                       "publicSymptoms":  "flicker;heat;unstable_output",
+                       "gmCauseDetails":  "Нарушена соосность люмен-кристалла и резонансного контура.",
+                       "limitationTags":  "no_equip;no_transfer;no_sale;restricted_use",
+                       "effects":  "${reference:reference.magic.effect.lumen_bolt}",
+                       "repairRequirements":  "tool | ${reference:reference.item.field_toolkit} | 1 | 0 | true | repair | Настройка частоты | GM check\nresource | ${reference:reference.resource.resonant_alloy} | 1 | 0 | true | consume | Резонансный сплав для повторной калибровки | Списать ровно один раз при применении ремонта",
+                       "addedResourceCostBand":  "low",
+                       "addedTimeCostBand":  "medium"
+                   },
+        "serverOnlyData":  {
+                               "gmCauseDetails":  "Improper crystal alignment."
+                           },
+        "references":  [
+                           "reference.magic.effect.lumen_bolt#effect",
+                           "reference.item.field_toolkit#item",
+                           "reference.resource.resonant_alloy#resource"
+                       ],
+        "checksum":  "4427718efb270d76f309d552031b6d396c690da01e1380c73942895136aa2580"
+    },
+    {
+        "stableKey":  "reference.blueprint.resonance_beacon",
+        "recordVersion":  "1.0.0",
+        "category":  "canonical_blueprint_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Полевой резонансный маяк",
+        "publicDescription":  "Канонический чертёж переносного навигационного маяка.",
+        "gmDescription":  "Связан концептуально с demo asset, но не зависит от runtime blueprint.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "blueprint",
+                     "conceptual-asset-link"
+                 ],
+        "fields":  {
+                       "blueprintKind":  "item",
+                       "targetDefinition":  "${reference:reference.item.field_toolkit}",
+                       "technologies":  "${reference:reference.tech.resonance_engineering}",
+                       "methods":  "${reference:reference.method.resonance_assembly}",
+                       "recipes":  "${reference:reference.recipe.resonance_cell}",
+                       "componentRows":  "${reference:reference.resource.resonant_alloy} | 2 | kg | true\n${reference:reference.resource.lumen_crystal} | 1 | piece | true",
+                       "requiredFacilities":  "${reference:reference.facility.beacon_lab}",
+                       "requiredTools":  "${reference:reference.item.field_toolkit}",
+                       "requiredLicenses":  "${reference:reference.license.expedition}",
+                       "testProtocols":  "${reference:reference.test.resonance_safety}",
+                       "knownDefects":  "${reference:reference.defect.resonance_drift}",
+                       "versionLabel":  "Reference 1.0",
+                       "estimatedDurationMinutes":  "240",
+                       "estimatedCost":  "350",
+                       "estimatedResources":  "2 кг сплава, 1 кристалл"
+                   },
+        "serverOnlyData":  {
+                               "conceptualDemoAssetKey":  "demo.asset.resonance_beacon",
+                               "runtimeBlueprintDependency":  false
+                           },
+        "references":  [
+                           "reference.item.field_toolkit#item",
+                           "reference.tech.resonance_engineering#technology_definition",
+                           "reference.method.resonance_assembly#production_method_definition",
+                           "reference.recipe.resonance_cell#recipe_definition",
+                           "reference.resource.resonant_alloy#resource",
+                           "reference.resource.lumen_crystal#resource",
+                           "reference.facility.beacon_lab#facility_definition",
+                           "reference.license.expedition#license_definition",
+                           "reference.test.resonance_safety#test_protocol_definition",
+                           "reference.defect.resonance_drift#defect_definition"
+                       ],
+        "checksum":  "1cbda219be7d63ad34edfc97826627972eada58acd8c81a6e27a53835ec2cb2d"
+    },
+    {
+        "stableKey":  "reference.project.resonance_beacon",
+        "recordVersion":  "1.0.0",
+        "category":  "project_template_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Проект резонансного маяка",
+        "publicDescription":  "Шаблон будущего проекта по изготовлению и проверке маяка.",
+        "gmDescription":  "Определение не создаёт runtime project.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "project-template"
+                 ],
+        "fields":  {
+                       "projectType":  "CraftItem",
+                       "technologies":  "${reference:reference.tech.resonance_engineering}",
+                       "methods":  "${reference:reference.method.resonance_assembly}",
+                       "recipes":  "${reference:reference.recipe.resonance_cell}",
+                       "blueprints":  "${reference:reference.blueprint.resonance_beacon}",
+                       "stageRows":  "prepare | Подготовка | 1 |  | assemble | requirements | GM | true | Подготовить материалы. | GM notes\nassemble | Сборка | 2 | prepare | test | requirements | GM | true | Собрать устройство. | GM notes\ntest | Испытание | 3 | assemble |  | protocol | GM | true | Провести испытание. | GM notes",
+                       "approvalPolicy":  "GM approves project start.",
+                       "defaultProjectVisibility":  "player_visible",
+                       "progressModel":  "Stage completion.",
+                       "testProtocols":  "${reference:reference.test.resonance_safety}",
+                       "defectHandlingPolicy":  "Resolve defects before completion.",
+                       "completionResultKind":  "blueprint_instance"
+                   },
+        "serverOnlyData":  {
+                               "runtimeProjectCreated":  false
+                           },
+        "references":  [
+                           "reference.tech.resonance_engineering#technology_definition",
+                           "reference.method.resonance_assembly#production_method_definition",
+                           "reference.recipe.resonance_cell#recipe_definition",
+                           "reference.blueprint.resonance_beacon#canonical_blueprint_definition",
+                           "reference.test.resonance_safety#test_protocol_definition"
+                       ],
+        "checksum":  "677827e0b44b016b09f9c0068be9ab6c8ef58ae9cf91c890a4e4725cc9b6405e"
+    },
+    {
+        "stableKey":  "reference.item.resonance_beacon_prototype",
+        "recordVersion":  "1.0.0",
+        "category":  "item",
+        "storageKind":  "UnifiedDefinition",
+        "name":  "Прототип резонансного маяка",
+        "publicDescription":  "Опытный образец переносного навигационного маяка. До обязательного испытания не допускается к обычному использованию.",
+        "gmDescription":  "Физический ItemInstance для vertical slice 0.19.4.",
+        "visibilityRule":  "public",
+        "tags":  [
+                     "reference-demo",
+                     "prototype",
+                     "resonance-device"
+                 ],
+        "fields":  {
+                       "itemType":  "prototype_device",
+                       "mass":  12,
+                       "size":  "medium",
+                       "stackable":  false,
+                       "maxStack":  1,
+                       "durability":  60,
+                       "quality":  "prototype",
+                       "rarity":  "rare",
+                       "baseValue":  350,
+                       "legality":  "restricted"
+                   },
+        "serverOnlyData":  {
+                               "provenance":  "foundation_0_19_4"
+                           },
+        "references":  [
+
+                       ],
+        "checksum":  "85f2cb97df37754f4676e93f621fe1805104a23bdcb83483679a4d652dc811c0"
+    },
+    {
+        "stableKey":  "reference.blueprint.prototype_resonance_beacon",
+        "recordVersion":  "1.0.0",
+        "category":  "canonical_blueprint_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Опытный резонансный маяк",
+        "publicDescription":  "Канонический чертёж опытного маяка с обязательным испытанием безопасности.",
+        "gmDescription":  "ReferenceDemo blueprint для CreatePrototype runtime 0.19.4.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "blueprint",
+                     "prototype"
+                 ],
+        "fields":  {
+                       "blueprintKind":  "item",
+                       "targetDefinition":  "${reference:reference.item.resonance_beacon_prototype}",
+                       "technologies":  "${reference:reference.tech.resonance_engineering}",
+                       "methods":  "${reference:reference.method.resonance_assembly}",
+                       "recipes":  "${reference:reference.recipe.resonance_cell}",
+                       "componentRows":  "${reference:reference.resource.resonant_alloy} | 2 | кг | true\n${reference:reference.resource.lumen_crystal} | 1 | шт. | true",
+                       "requiredFacilities":  "${reference:reference.facility.beacon_lab}",
+                       "requiredTools":  "${reference:reference.item.field_toolkit}",
+                       "requiredLicenses":  "${reference:reference.license.expedition}",
+                       "testProtocols":  "${reference:reference.test.resonance_safety}",
+                       "knownDefects":  "${reference:reference.defect.resonance_drift}",
+                       "versionLabel":  "Prototype Reference 1.0",
+                       "estimatedDurationMinutes":  "180",
+                       "estimatedCost":  "350",
+                       "estimatedResources":  "2 кг сплава, 1 люмен-кристалл"
+                   },
+        "serverOnlyData":  {
+                               "sourceMilestone":  "0.19.4",
+                               "deterministicOutcome":  "PartialPassWithDefect"
+                           },
+        "references":  [
+                           "reference.item.resonance_beacon_prototype#item",
+                           "reference.tech.resonance_engineering#technology_definition",
+                           "reference.method.resonance_assembly#production_method_definition",
+                           "reference.recipe.resonance_cell#recipe_definition",
+                           "reference.resource.resonant_alloy#resource",
+                           "reference.resource.lumen_crystal#resource",
+                           "reference.facility.beacon_lab#facility_definition",
+                           "reference.item.field_toolkit#item",
+                           "reference.license.expedition#license_definition",
+                           "reference.test.resonance_safety#test_protocol_definition",
+                           "reference.defect.resonance_drift#defect_definition"
+                       ],
+        "checksum":  "5c3a53e1b6ccd6950c30879199dcc1badcf7780907f12d90fc0e3f1cf9bfbe65"
+    },
+    {
+        "stableKey":  "reference.project.prototype_resonance_beacon",
+        "recordVersion":  "1.0.0",
+        "category":  "project_template_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Создание опытного резонансного маяка",
+        "publicDescription":  "Шаблон создания одного физического прототипа с обязательным испытанием.",
+        "gmDescription":  "ReferenceDemo CreatePrototype template 0.19.4.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "project-template",
+                     "prototype"
+                 ],
+        "fields":  {
+                       "projectType":  "CreatePrototype",
+                       "technologies":  "${reference:reference.tech.resonance_engineering}",
+                       "methods":  "${reference:reference.method.resonance_assembly}",
+                       "recipes":  "${reference:reference.recipe.resonance_cell}",
+                       "blueprints":  "${reference:reference.blueprint.prototype_resonance_beacon}",
+                       "stageRows":  "prepare | Подготовка компонентов | 1 |  | assemble | requirements | GM | true | Проверить материалы и рабочее место. | GM confirms conditions\nassemble | Сборка прототипа | 2 | prepare | calibrate | requirements | GM | true | Собрать опытный образец. | GM observes assembly\ncalibrate | Первичная калибровка | 3 | assemble |  | calibration | GM | true | Подготовить прототип к обязательному испытанию. | Prototype becomes AwaitingTest",
+                       "requirementRows":  "facility | ${reference:reference.facility.beacon_lab} | Резонансная лаборатория | 0 |  | true |  | Наличие площадки подтверждает GM. | Проверить доступ к лаборатории.\ntool | ${reference:reference.item.field_toolkit} | Полевой набор мастера | 0 |  | true |  | Наличие инструмента подтверждает GM. | Проверить исправность инструмента.\nlicense | ${reference:reference.license.expedition} | Экспедиционная лицензия | 0 |  | true |  | Действительность лицензии подтверждает GM. | Проверить ограничения лицензии.",
+                       "approvalPolicy":  "GM подтверждает ручные требования и одобряет создание опытного образца.",
+                       "defaultProjectVisibility":  "owner_only",
+                       "progressModel":  "Stage completion.",
+                       "resourceReservationPolicy":  "Reserve before start; consume once when prototype ItemInstance is created.",
+                       "cancellationRefundPolicy":  "Release all reservations before prototype creation; physical prototype is never silently deleted.",
+                       "testProtocols":  "${reference:reference.test.resonance_safety}",
+                       "defectHandlingPolicy":  "Prototype may complete with an open defect and remains not production approved.",
+                       "completionResultKind":  "prototype_item_instance"
+                   },
+        "serverOnlyData":  {
+                               "runtimeProjectCreated":  false,
+                               "sourceMilestone":  "0.19.4"
+                           },
+        "references":  [
+                           "reference.tech.resonance_engineering#technology_definition",
+                           "reference.method.resonance_assembly#production_method_definition",
+                           "reference.recipe.resonance_cell#recipe_definition",
+                           "reference.blueprint.prototype_resonance_beacon#canonical_blueprint_definition",
+                           "reference.facility.beacon_lab#facility_definition",
+                           "reference.item.field_toolkit#item",
+                           "reference.license.expedition#license_definition",
+                           "reference.test.resonance_safety#test_protocol_definition"
+                       ],
+        "checksum":  "1d0a0267cc26261de27da885df5f2e1cb4d44db8ece8df918ba89026740a61fb"
+    },
+    {
+        "stableKey":  "reference.project.research_resonance",
+        "recordVersion":  "1.0.0",
+        "category":  "project_template_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Исследование резонансной инженерии",
+        "publicDescription":  "Шаблон теоретического исследования с ручной проверкой условий GM, резервом ресурсов и выдачей знания персонажу.",
+        "gmDescription":  "ReferenceDemo-шаблон для vertical slice 0.19.2. Не создаёт campaign content автоматически.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "project-template",
+                     "research-theory"
+                 ],
+        "fields":  {
+                       "projectType":  "ResearchTheory",
+                       "technologies":  "${reference:reference.tech.resonance_engineering}",
+                       "methods":  "${reference:reference.method.resonance_assembly}",
+                       "stageRows":  "sources | Анализ источников | 1 |  | experiment | requirements | GM | true | Сопоставить доступные сведения. | GM checks hidden context\nexperiment | Лабораторная проверка | 2 | sources | synthesis | requirements | GM | true | Проверить гипотезу на образцах. | GM validates conditions\nsynthesis | Синтез теории | 3 | experiment |  | conclusion | GM | true | Оформить подтверждённую теорию. | GM accepts conclusion",
+                       "requirementRows":  "resource | ${reference:reference.resource.lumen_crystal} | Люмен-кристалл | 1 | standard | true | шт. | Образец будет зарезервирован и списан при завершении. |\nresource | ${reference:reference.resource.resonant_alloy} | Резонансный сплав | 1 | standard | true | кг | Образец будет зарезервирован и списан при завершении. |\nfacility | ${reference:reference.facility.beacon_lab} | Резонансная лаборатория | 0 |  | true |  | Наличие площадки подтверждает GM. | Проверить доступ к лаборатории.",
+                       "approvalPolicy":  "GM подтверждает ручные требования и одобряет начало исследования.",
+                       "defaultProjectVisibility":  "owner_only",
+                       "progressModel":  "Stage completion.",
+                       "resourceReservationPolicy":  "Reserve before start; consume once on completion.",
+                       "cancellationRefundPolicy":  "Release before work; consume reserved samples on failed active research.",
+                       "completionResultKind":  "character_knowledge_unlock"
+                   },
+        "serverOnlyData":  {
+                               "runtimeProjectCreated":  false,
+                               "sourceMilestone":  "0.19.2"
+                           },
+        "references":  [
+                           "reference.tech.resonance_engineering#technology_definition",
+                           "reference.method.resonance_assembly#production_method_definition",
+                           "reference.resource.lumen_crystal#resource",
+                           "reference.resource.resonant_alloy#resource",
+                           "reference.facility.beacon_lab#facility_definition"
+                       ],
+        "checksum":  "7bcaa3e50e7b6c8d8f1fb055c810b718fb26397024bdc47a8fea0f0f51e603b6"
+    },
+    {
+        "stableKey":  "reference.project.reverse_resonance_carbine",
+        "recordVersion":  "1.0.0",
+        "category":  "project_template_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Разбор резонансного карабина",
+        "publicDescription":  "Шаблон обратной инженерии карабина с лабораторным разбором, расходом образцов и частным инженерным открытием.",
+        "gmDescription":  "ReferenceDemo-шаблон vertical slice 0.19.3. Исходный предмет уничтожается только при завершении или неудаче после начала.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "project-template",
+                     "reverse-engineering"
+                 ],
+        "fields":  {
+                       "projectType":  "ReverseEngineering",
+                       "sourceDefinitions":  "${reference:reference.weapon.resonance_carbine}",
+                       "methods":  "${reference:reference.method.resonance_assembly}",
+                       "analysisMethod":  "Лабораторный разбор резонансного контура",
+                       "sourceItemDisposition":  "consumed",
+                       "knowledgeTopic":  "reverse:reference.weapon.resonance_carbine",
+                       "discoveredTechnologies":  "${reference:reference.tech.resonance_engineering}",
+                       "discoveredRecipes":  "${reference:reference.recipe.resonance_cell}",
+                       "discoveredBlueprints":  "${reference:reference.blueprint.resonance_beacon}",
+                       "stageRows":  "inspection | Осмотр и фиксация | 1 |  | disassembly | requirements | GM | true | Зафиксировать состояние и конструкцию образца. | GM проверяет исходное состояние\n disassembly | Контролируемый разбор | 2 | inspection | synthesis | requirements | GM | true | Разобрать резонансный контур без подмены деталей. | Исходный предмет остаётся в резерве\n synthesis | Синтез открытия | 3 | disassembly |  | conclusion | GM | true | Сопоставить узлы и оформить частное открытие. | GM подтверждает полноту результата",
+                       "requirementRows":  "resource | ${reference:reference.resource.lumen_crystal} | Люмен-кристалл | 1 | standard | true | шт. | Образец будет зарезервирован и списан при завершении. |\nresource | ${reference:reference.resource.resonant_alloy} | Резонансный сплав | 1 | standard | true | кг | Образец будет зарезервирован и списан при завершении. |\nfacility | ${reference:reference.facility.beacon_lab} | Резонансная лаборатория | 0 |  | true |  | Доступ к площадке подтверждает GM. | Проверить доступ к лаборатории.\ntool | ${reference:reference.item.field_toolkit} | Полевой инструментарий | 0 |  | true |  | Наличие инструмента подтверждает GM. | Проверить комплектность инструментария.",
+                       "approvalPolicy":  "GM подтверждает ручные условия и одобряет начало разбора.",
+                       "defaultProjectVisibility":  "owner_only",
+                       "progressModel":  "Stage completion.",
+                       "resourceReservationPolicy":  "Reserve source item and additional resources before start; consume once on completion.",
+                       "cancellationRefundPolicy":  "Release all reservations before start; consume source and reserved samples after an active failure.",
+                       "completionResultKind":  "private_reverse_engineering_discovery"
+                   },
+        "serverOnlyData":  {
+                               "runtimeProjectCreated":  false,
+                               "sourceMilestone":  "0.19.3"
+                           },
+        "references":  [
+                           "reference.weapon.resonance_carbine#weapon",
+                           "reference.method.resonance_assembly#production_method_definition",
+                           "reference.tech.resonance_engineering#technology_definition",
+                           "reference.recipe.resonance_cell#recipe_definition",
+                           "reference.blueprint.resonance_beacon#canonical_blueprint_definition",
+                           "reference.resource.lumen_crystal#resource",
+                           "reference.resource.resonant_alloy#resource",
+                           "reference.facility.beacon_lab#facility_definition",
+                           "reference.item.field_toolkit#item"
+                       ],
+        "checksum":  "a6064181e9b12d0615a2f668ce6a55648fa2bf293f5bc5ec2fef7ebbd7592aa5"
+    },
+    {
+        "stableKey":  "reference.project.repair_resonance_prototype",
+        "recordVersion":  "1.0.0",
+        "category":  "project_template_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Ремонт опытного резонансного маяка",
+        "publicDescription":  "Контролируемый ремонт открытого дефекта прототипа с обязательным повторным испытанием.",
+        "gmDescription":  "ReferenceDemo-шаблон vertical slice 0.19.5. Не создаёт новый ItemInstance и не изменяет canonical Blueprint.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "project-template",
+                     "prototype-repair"
+                 ],
+        "fields":  {
+                       "projectType":  "RepairItem",
+                       "methods":  "${reference:reference.method.resonance_assembly}",
+                       "stageRows":  "diagnose | Диагностика дефекта | 1 |  | repair | requirements | GM | true | Проверить причину и подготовить калибровку. | GM сверяет cause snapshot\nrepair | Ремонт и калибровка | 2 | diagnose |  | repair | GM | true | Устранить дефект и подготовить прототип к повторному испытанию. | Ресурс списывается ровно один раз",
+                       "requirementRows":  "facility | ${reference:reference.facility.beacon_lab} | 1 | 0 | true | confirm | Доступ к резонансной лаборатории подтверждает GM. | Проверить площадку и безопасность",
+                       "approvalPolicy":  "GM подтверждает ручные условия и одобряет ремонт.",
+                       "defaultProjectVisibility":  "owner_only",
+                       "progressModel":  "Stage completion.",
+                       "resourceReservationPolicy":  "Reserve prototype and repair resources before start; consume resources once on repair application.",
+                       "cancellationRefundPolicy":  "Release prototype and resources before repair application.",
+                       "estimatedDurationMinutes":  "120",
+                       "completionResultKind":  "prototype_repair_pending_retest"
+                   },
+        "serverOnlyData":  {
+                               "runtimeProjectCreated":  false,
+                               "sourceMilestone":  "0.19.5"
+                           },
+        "references":  [
+                           "reference.method.resonance_assembly#production_method_definition",
+                           "reference.facility.beacon_lab#facility_definition",
+                           "reference.test.resonance_safety#test_protocol_definition",
+                           "reference.defect.resonance_drift#defect_definition"
+                       ],
+        "checksum":  "ba4679bc0657980e1801272d8a3447bcd2547588addef0c1500efd8c7d2e2cd3"
+    },
+    {
+        "stableKey":  "reference.project.limited_resonance_batch",
+        "recordVersion":  "1.0.0",
+        "category":  "project_template_definition",
+        "storageKind":  "ContentDefinition",
+        "name":  "Ограниченная партия резонансных маяков",
+        "publicDescription":  "Три контролируемые стадии выпуска небольшой партии по допущенному прототипу.",
+        "gmDescription":  "ReferenceDemo-шаблон vertical slice 0.19.6. Лимит, ресурсы и итог партии контролирует сервер.",
+        "visibilityRule":  "player_visible",
+        "tags":  [
+                     "reference-demo",
+                     "project-template",
+                     "limited-production"
+                 ],
+        "fields":  {
+                       "projectType":  "LimitedProduction",
+                       "methods":  "${reference:reference.method.resonance_assembly}",
+                       "recipes":  "${reference:reference.recipe.resonance_cell}",
+                       "blueprints":  "${reference:reference.blueprint.prototype_resonance_beacon}",
+                       "stageRows":  "prepare_batch | Подготовка производства | 1 |  | manufacture_batch | requirements | GM | true | Подготовить площадку и масштабированные материалы. | GM проверяет atomic capacity claim\nmanufacture_batch | Сборка партии | 2 | prepare_batch | quality_control | requirements | GM | true | Изготовить всю ограниченную партию без частичного выпуска. | Ресурсы остаются зарезервированными\nquality_control | Контроль партии | 3 | manufacture_batch |  | quality | GM | true | Проверить всю партию перед выдачей. | Результат детерминированно успешен",
+                       "requirementRows":  "facility | ${reference:reference.facility.beacon_lab} | 1 | 0 | true | confirm | Производственная площадка подтверждается GM. | Проверить доступность и безопасность\nlicense | ${reference:reference.license.expedition} | 1 | 0 | true | confirm | Производственный допуск подтверждается GM. | Проверить действующий допуск",
+                       "approvalPolicy":  "GM подтверждает условия и одобряет ограниченную партию.",
+                       "defaultProjectVisibility":  "owner_only",
+                       "progressModel":  "Stage completion.",
+                       "resourceReservationPolicy":  "Atomically reserve authorization capacity and scaled inventory resources before start.",
+                       "cancellationRefundPolicy":  "Release capacity and resources before production starts.",
+                       "estimatedDurationMinutes":  "180",
+                       "completionResultKind":  "manufacturing_batch_result"
+                   },
+        "serverOnlyData":  {
+                               "runtimeProjectCreated":  false,
+                               "sourceMilestone":  "0.19.6",
+                               "maxUnits":  3
+                           },
+        "references":  [
+                           "reference.method.resonance_assembly#production_method_definition",
+                           "reference.recipe.resonance_cell#recipe_definition",
+                           "reference.blueprint.prototype_resonance_beacon#canonical_blueprint_definition",
+                           "reference.facility.beacon_lab#facility_definition",
+                           "reference.license.expedition#license_definition"
+                       ],
+        "checksum":  "114beda4136a01afbad1ee40a3c6baf907a98d3a0d2eeb7fb1be50d6de7d42b4"
+    }
+]

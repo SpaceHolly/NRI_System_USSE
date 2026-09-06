@@ -89,36 +89,36 @@ public sealed class AdminEventJournalViewModel : ViewModelBase
         EventJournalCategoryIds.System,
         EventJournalCategoryIds.Custom
     };
-    public ObservableCollection<string> EntryCategoryOptions { get; } = new()
+    public ObservableCollection<AdminOptionVm> EntryCategoryOptions { get; } = new()
     {
-        EventJournalCategoryIds.Session,
-        EventJournalCategoryIds.Character,
-        EventJournalCategoryIds.Ownership,
-        EventJournalCategoryIds.Group,
-        EventJournalCategoryIds.Request,
-        EventJournalCategoryIds.Combat,
-        EventJournalCategoryIds.Map,
-        EventJournalCategoryIds.WorldCalendar,
-        EventJournalCategoryIds.RealSchedule,
-        EventJournalCategoryIds.GMNote,
-        EventJournalCategoryIds.Inventory,
-        EventJournalCategoryIds.System,
-        EventJournalCategoryIds.Custom
+        new(EventJournalCategoryIds.Session, "Сессия"),
+        new(EventJournalCategoryIds.Character, "Персонаж"),
+        new(EventJournalCategoryIds.Ownership, "Владение"),
+        new(EventJournalCategoryIds.Group, "Группа"),
+        new(EventJournalCategoryIds.Request, "Заявка"),
+        new(EventJournalCategoryIds.Combat, "Бой"),
+        new(EventJournalCategoryIds.Map, "Карта"),
+        new(EventJournalCategoryIds.WorldCalendar, "Календарь мира"),
+        new(EventJournalCategoryIds.RealSchedule, "Расписание"),
+        new(EventJournalCategoryIds.GMNote, "Заметка GM"),
+        new(EventJournalCategoryIds.Inventory, "Инвентарь"),
+        new(EventJournalCategoryIds.System, "Система"),
+        new(EventJournalCategoryIds.Custom, "Другое")
     };
-    public ObservableCollection<string> SeverityOptions { get; } = new()
+    public ObservableCollection<AdminOptionVm> SeverityOptions { get; } = new()
     {
-        EventJournalSeverityIds.Information,
-        EventJournalSeverityIds.Notice,
-        EventJournalSeverityIds.Important,
-        EventJournalSeverityIds.Warning,
-        EventJournalSeverityIds.Critical
+        new(EventJournalSeverityIds.Information, "Информация"),
+        new(EventJournalSeverityIds.Notice, "Примечание"),
+        new(EventJournalSeverityIds.Important, "Важное"),
+        new(EventJournalSeverityIds.Warning, "Предупреждение"),
+        new(EventJournalSeverityIds.Critical, "Критическое")
     };
-    public ObservableCollection<string> VisibilityOptions { get; } = new()
+    public ObservableCollection<AdminOptionVm> VisibilityOptions { get; } = new()
     {
-        EventJournalVisibilityModeIds.GMOnly,
-        EventJournalVisibilityModeIds.GMTeam,
-        EventJournalVisibilityModeIds.PlayerVisible,
-        EventJournalVisibilityModeIds.SuperAdminOnly
+        new(EventJournalVisibilityModeIds.GMOnly, "Только GM"),
+        new(EventJournalVisibilityModeIds.GMTeam, "Команда GM"),
+        new(EventJournalVisibilityModeIds.PlayerVisible, "Видно игрокам"),
+        new(EventJournalVisibilityModeIds.SuperAdminOnly, "Только SuperAdmin")
     };
     public ObservableCollection<string> EntityTypeOptions { get; } = new()
     {
@@ -379,6 +379,7 @@ public sealed class AdminEventJournalViewModel : ViewModelBase
     private void SetArchive(bool archived)
     {
         if (SelectedEntry == null) return;
+        if (archived && !Confirm("Архивировать запись", "Запись будет убрана из текущего журнала, но останется доступна в архиве. Продолжить?")) return;
         Safe(archived ? "admin.journal.archive" : "admin.journal.restore", () =>
         {
             var payload = new Dictionary<string, object> { { "entryId", SelectedEntry.EntryId } };
@@ -417,6 +418,7 @@ public sealed class AdminEventJournalViewModel : ViewModelBase
     private void RemoveLink()
     {
         if (SelectedLink == null) return;
+        if (!Confirm("Удалить связь", "Связь записи с выбранным объектом будет удалена. Продолжить?")) return;
         Safe("admin.journal.link.remove", () =>
         {
             var response = _api.JournalEventLinkRemove(new Dictionary<string, object> { { "linkId", SelectedLink.LinkId } });
@@ -424,6 +426,10 @@ public sealed class AdminEventJournalViewModel : ViewModelBase
             if (SelectedEntry != null) LoadDetails(SelectedEntry.EntryId);
         });
     }
+
+    private static bool Confirm(string title, string message)
+        => System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning)
+           == System.Windows.MessageBoxResult.Yes;
 
     private void LoadDetails(string entryId)
     {
@@ -647,8 +653,42 @@ public sealed class EventJournalRow
     public string TagsText { get; set; } = string.Empty;
     public DateTime OccurredAtUtc { get; set; }
     public string OccurredText => OccurredAtUtc == default ? "—" : OccurredAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
-    public string KindText => IsAutomatic ? "Автоматическая" : EntryType;
-    public string VisibilityText => IsPlayerVisible ? "Видно игрокам" : VisibilityMode;
+    public string CategoryText => Category switch
+    {
+        EventJournalCategoryIds.Session => "Сессия",
+        EventJournalCategoryIds.Character => "Персонаж",
+        EventJournalCategoryIds.Ownership => "Владение",
+        EventJournalCategoryIds.Group => "Группа",
+        EventJournalCategoryIds.Request => "Заявка",
+        EventJournalCategoryIds.Combat => "Бой",
+        EventJournalCategoryIds.Map => "Карта",
+        EventJournalCategoryIds.WorldCalendar => "Календарь мира",
+        EventJournalCategoryIds.RealSchedule => "Расписание",
+        EventJournalCategoryIds.GMNote => "Заметка GM",
+        EventJournalCategoryIds.Inventory => "Инвентарь",
+        EventJournalCategoryIds.System => "Система",
+        EventJournalCategoryIds.Custom => "Другое",
+        _ => string.IsNullOrWhiteSpace(Category) ? "Не указана" : Category
+    };
+    public string SeverityText => Severity switch
+    {
+        EventJournalSeverityIds.Information => "Информация",
+        EventJournalSeverityIds.Notice => "Примечание",
+        EventJournalSeverityIds.Important => "Важное",
+        EventJournalSeverityIds.Warning => "Предупреждение",
+        EventJournalSeverityIds.Critical => "Критическое",
+        _ => string.IsNullOrWhiteSpace(Severity) ? "Не указана" : Severity
+    };
+    public string KindText => IsAutomatic ? "Автоматическая" : "Ручная";
+    public string VisibilityText => IsPlayerVisible
+        ? "Видно игрокам"
+        : VisibilityMode switch
+        {
+            EventJournalVisibilityModeIds.GMOnly => "Только GM",
+            EventJournalVisibilityModeIds.GMTeam => "Команда GM",
+            EventJournalVisibilityModeIds.SuperAdminOnly => "Только SuperAdmin",
+            _ => "Скрыто от игроков"
+        };
 
     public static EventJournalRow FromMap(IDictionary<string, object> map)
     {

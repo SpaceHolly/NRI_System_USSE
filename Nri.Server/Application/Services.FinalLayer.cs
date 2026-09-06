@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using MongoDB.Driver;
 using Nri.Shared.Contracts;
+using Nri.Shared.Diagnostics;
 using Nri.Shared.Domain;
 using Nri.Shared.Utilities;
 
@@ -349,11 +350,91 @@ public partial class ServiceHub
     public ResponseEnvelope AdminDiagnosticsGet(CommandContext context)
     {
         RequireAdmin(context);
+        var snapshot = PerformanceTelemetry0214.Current.Snapshot();
+        var commands = snapshot.Commands
+            .Take(40)
+            .Select(item => new Dictionary<string, object>
+            {
+                { "command", item.Command },
+                { "category", item.Category },
+                { "count", item.Count },
+                { "errors", item.ErrorCount },
+                { "p50Ms", item.P50Milliseconds },
+                { "p95Ms", item.P95Milliseconds },
+                { "p99Ms", item.P99Milliseconds },
+                { "maxMs", item.MaximumMilliseconds },
+                { "maxRequestBytes", item.MaximumRequestBytes },
+                { "maxResponseBytes", item.MaximumResponseBytes }
+            })
+            .Cast<object>()
+            .ToArray();
+        var clientsByType = snapshot.ConnectedClients.Values
+            .GroupBy(item => string.IsNullOrWhiteSpace(item.ClientType) ? "UnknownClient" : item.ClientType)
+            .Select(group => new Dictionary<string, object>
+            {
+                { "clientType", group.Key },
+                { "connected", group.Count() },
+                { "privateBytes", group.Sum(item => item.PrivateBytes) },
+                { "peakPrivateBytes", group.Sum(item => item.PeakPrivateBytes) },
+                { "workingSetBytes", group.Sum(item => item.WorkingSetBytes) },
+                { "peakWorkingSetBytes", group.Sum(item => item.PeakWorkingSetBytes) },
+                { "managedHeapBytes", group.Sum(item => item.ManagedHeapBytes) },
+                { "peakManagedHeapBytes", group.Sum(item => item.PeakManagedHeapBytes) },
+                { "threads", group.Sum(item => item.ThreadCount) },
+                { "peakThreads", group.Sum(item => item.PeakThreadCount) },
+                { "handles", group.Sum(item => item.HandleCount) },
+                { "peakHandles", group.Sum(item => item.PeakHandleCount) },
+                { "cpuPercent", Math.Round(group.Sum(item => item.CpuPercent), 2) },
+                { "uiLagP95Ms", Math.Round(group.Max(item => item.UiLagP95Ms), 2) },
+                { "uiLagMaxMs", Math.Round(group.Max(item => item.UiLagMaxMs), 2) },
+                { "activePollers", group.Sum(item => item.ActivePollers) },
+                { "activeReconnectLoops", group.Sum(item => item.ActiveReconnectLoops) },
+                { "activeTimers", group.Sum(item => item.ActiveTimers) },
+                { "inFlightRefreshes", group.Sum(item => item.InFlightRefreshes) }
+            })
+            .Cast<object>()
+            .ToArray();
+        var process = snapshot.Process;
+        var payloadWarnings = snapshot.Commands
+            .Where(item => item.MaximumResponseBytes > 1024 * 1024)
+            .Select(item => $"Large response: {item.Command} ({item.MaximumResponseBytes} bytes)")
+            .Cast<object>()
+            .ToArray();
         var payload = new Dictionary<string, object>
         {
             { "lastAuditEntries", _repositories.AuditLogs.Find(FilterDefinition<AuditLogEntry>.Empty).OrderByDescending(x => x.CreatedUtc).Take(20).Select(x => new Dictionary<string, object>{{"at",x.CreatedUtc},{"category",x.Category},{"action",x.Action},{"target",x.Target}}).Cast<object>().ToArray() },
             { "locksCount", _repositories.Locks.Find(FilterDefinition<EntityLock>.Empty).Count },
-            { "errorsHint", "Check debug/session/admin logs for stack traces." }
+            { "errorsHint", "Check debug/session/admin logs for stack traces." },
+            { "performance", new Dictionary<string, object>
+                {
+                    { "startedAtUtc", snapshot.StartedAtUtc },
+                    { "builtAtUtc", snapshot.BuiltAtUtc },
+                    { "elapsedSeconds", snapshot.ElapsedSeconds },
+                    { "capacity", snapshot.Capacity },
+                    { "retainedSamples", snapshot.RetainedSampleCount },
+                    { "totalRecorded", snapshot.TotalRecordedCount },
+                    { "droppedSamples", snapshot.DroppedSampleCount },
+                    { "server", new Dictionary<string, object>
+                        {
+                            { "privateBytes", process.PrivateBytes },
+                            { "peakPrivateBytes", process.PeakPrivateBytes },
+                            { "workingSetBytes", process.WorkingSetBytes },
+                            { "peakWorkingSetBytes", process.PeakWorkingSetBytes },
+                            { "managedHeapBytes", process.ManagedHeapBytes },
+                            { "peakManagedHeapBytes", process.PeakManagedHeapBytes },
+                            { "cpuPercent", process.CpuPercent },
+                            { "threads", process.ThreadCount },
+                            { "peakThreads", process.PeakThreadCount },
+                            { "handles", process.HandleCount },
+                            { "peakHandles", process.PeakHandleCount }
+                        }
+                    },
+                    { "clientsByType", clientsByType },
+                    { "commands", commands },
+                    { "counters", snapshot.Counters.ToDictionary(pair => pair.Key, pair => (object)pair.Value) },
+                    { "warnings", payloadWarnings }
+                }
+            }
         };
         return Ok("Diagnostics loaded.", payload);
     }

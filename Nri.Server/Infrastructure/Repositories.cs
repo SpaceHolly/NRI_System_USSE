@@ -23,6 +23,13 @@ public interface INriRepositoryFactory
     IRepository<UserProfile> Profiles { get; }
     IRepository<Character> Characters { get; }
     IRepository<SessionUserState> Presence { get; }
+    IRepository<Campaign> Campaigns { get; }
+    IRepository<CampaignMembership> CampaignMemberships { get; }
+    IRepository<CampaignCapabilityDefinition> CampaignCapabilities { get; }
+    IRepository<SessionParticipation> SessionParticipations { get; }
+    IRepository<ActiveGameContextPreference> ActiveGameContextPreferences { get; }
+    IRepository<AutomationPolicyDefinition> AutomationPolicies { get; }
+    IRepository<AutomationExecutionRecord> AutomationExecutions { get; }
     IRepository<CurrentSessionState> CurrentSessions { get; }
     IRepository<CharacterGroupState> CharacterGroups { get; }
     IRepository<CharacterGroupMemberState> CharacterGroupMembers { get; }
@@ -34,6 +41,7 @@ public interface INriRepositoryFactory
     IRepository<DiceRollRequest> DiceRequests { get; }
     IRepository<PlayerRequestState> PlayerRequests { get; }
     IRepository<PlayerRequestCommentState> PlayerRequestComments { get; }
+    IRepository<AssetConfigurationBlueprintState> AssetConfigurationBlueprints { get; }
     IRepository<WorldCalendarDefinition> WorldCalendarDefinitions { get; }
     IRepository<WorldCalendarSeasonDefinition> WorldCalendarSeasons { get; }
     IRepository<WorldCalendarMonthDefinition> WorldCalendarMonths { get; }
@@ -82,11 +90,26 @@ public interface INriRepositoryFactory
     IRepository<ProjectAuditEntryState> ProjectAuditEntries { get; }
     IRepository<ProjectEntityLinkState> ProjectEntityLinks { get; }
     IRepository<ProjectProposalBoundaryState> ProjectProposals { get; }
+    IRepository<ConstructionSiteState0197> ConstructionSites0197 { get; }
+    IRepository<ConstructionResourceReservationState0197> ConstructionReservations0197 { get; }
+    IRepository<ConstructionStageConsumptionState0197> ConstructionStageConsumptions0197 { get; }
+    IRepository<LargeAssetMaintenanceProfileState0197> LargeAssetMaintenanceProfiles0197 { get; }
+    IRepository<AssetOperationState0198> AssetOperationStates0198 { get; }
+    IRepository<AssetMaintenanceReservationState0198> AssetMaintenanceReservations0198 { get; }
+    IRepository<AssetMaintenanceStageConsumptionState0198> AssetMaintenanceStageConsumptions0198 { get; }
+    IRepository<MaintenanceServiceRecordState0198> MaintenanceServiceRecords0198 { get; }
     IRepository<KnowledgeDefinition> KnowledgeDefinitions { get; }
     IRepository<EntityKnowledgeState> EntityKnowledgeStates { get; }
     IRepository<AppliedKnowledgeDefinition> AppliedKnowledgeDefinitions { get; }
     IRepository<KnowledgeSourceState> KnowledgeSources { get; }
     IRepository<ResearchResultState> ResearchResults { get; }
+    IRepository<ReverseEngineeringResultState> ReverseEngineeringResults { get; }
+    IRepository<PrototypeRuntimeState> PrototypeRuntimeStates { get; }
+    IRepository<PrototypeTestResultState> PrototypeTestResults { get; }
+    IRepository<PrototypeDefectInstanceState> PrototypeDefectInstances { get; }
+    IRepository<LimitedProductionAuthorizationState> LimitedProductionAuthorizations { get; }
+    IRepository<LimitedProductionCapacityClaimState> LimitedProductionCapacityClaims { get; }
+    IRepository<ManufacturingBatchResultState> ManufacturingBatchResults { get; }
     IRepository<ExperienceCoinLedgerEntry> ExperienceCoinLedger { get; }
     IRepository<CraftingRecipeDefinition> CraftingRecipes { get; }
     IRepository<RecipeIngredientRequirement> CraftingRecipeIngredients { get; }
@@ -174,6 +197,13 @@ public class MongoContext
     public IMongoCollection<UserProfile> Profiles { get; }
     public IMongoCollection<Character> Characters { get; }
     public IMongoCollection<SessionUserState> Presence { get; }
+    public IMongoCollection<Campaign> Campaigns { get; }
+    public IMongoCollection<CampaignMembership> CampaignMemberships { get; }
+    public IMongoCollection<CampaignCapabilityDefinition> CampaignCapabilities { get; }
+    public IMongoCollection<SessionParticipation> SessionParticipations { get; }
+    public IMongoCollection<ActiveGameContextPreference> ActiveGameContextPreferences { get; }
+    public IMongoCollection<AutomationPolicyDefinition> AutomationPolicies { get; }
+    public IMongoCollection<AutomationExecutionRecord> AutomationExecutions { get; }
     public IMongoCollection<CurrentSessionState> CurrentSessions { get; }
     public IMongoCollection<CharacterGroupState> CharacterGroups { get; }
     public IMongoCollection<CharacterGroupMemberState> CharacterGroupMembers { get; }
@@ -185,10 +215,17 @@ public class MongoContext
     public IMongoCollection<DiceRollRequest> DiceRequests { get; }
     public IMongoCollection<PlayerRequestState> PlayerRequests { get; }
     public IMongoCollection<PlayerRequestCommentState> PlayerRequestComments { get; }
+    public IMongoCollection<AssetConfigurationBlueprintState> AssetConfigurationBlueprints { get; }
     public IMongoCollection<WorldCalendarDefinition> WorldCalendarDefinitions { get; }
     public IMongoCollection<WorldCalendarSeasonDefinition> WorldCalendarSeasons { get; }
     public IMongoCollection<WorldCalendarMonthDefinition> WorldCalendarMonths { get; }
     public IMongoCollection<CampaignWorldTimeState> CampaignWorldTimes { get; }
+    public IMongoCollection<WeatherStateDocument> WeatherStates0217 { get; }
+    public IMongoCollection<TravelSession> TravelSessions0217 { get; }
+    public IMongoCollection<EnvironmentalToleranceProfileDefinition> EnvironmentalToleranceProfiles0217B { get; }
+    public IMongoCollection<MeasurementInstrumentProfileDefinition> MeasurementInstrumentProfiles0217B { get; }
+    public IMongoCollection<EnvironmentalProtectionProfileDefinition> EnvironmentalProtectionProfiles0217B { get; }
+    public IMongoCollection<EnvironmentObservationRecord> EnvironmentObservations0217B { get; }
     public IMongoCollection<WorldCalendarEventState> WorldCalendarEvents { get; }
     public IMongoCollection<WorldCalendarEventVersionState> WorldCalendarEventVersions { get; }
     public IMongoCollection<WorldCalendarHolidayDefinition> WorldCalendarHolidays { get; }
@@ -233,11 +270,26 @@ public class MongoContext
     public IMongoCollection<ProjectAuditEntryState> ProjectAuditEntries { get; }
     public IMongoCollection<ProjectEntityLinkState> ProjectEntityLinks { get; }
     public IMongoCollection<ProjectProposalBoundaryState> ProjectProposals { get; }
+    public IMongoCollection<ConstructionSiteState0197> ConstructionSites0197 { get; }
+    public IMongoCollection<ConstructionResourceReservationState0197> ConstructionReservations0197 { get; }
+    public IMongoCollection<ConstructionStageConsumptionState0197> ConstructionStageConsumptions0197 { get; }
+    public IMongoCollection<LargeAssetMaintenanceProfileState0197> LargeAssetMaintenanceProfiles0197 { get; }
+    public IMongoCollection<AssetOperationState0198> AssetOperationStates0198 { get; }
+    public IMongoCollection<AssetMaintenanceReservationState0198> AssetMaintenanceReservations0198 { get; }
+    public IMongoCollection<AssetMaintenanceStageConsumptionState0198> AssetMaintenanceStageConsumptions0198 { get; }
+    public IMongoCollection<MaintenanceServiceRecordState0198> MaintenanceServiceRecords0198 { get; }
     public IMongoCollection<KnowledgeDefinition> KnowledgeDefinitions { get; }
     public IMongoCollection<EntityKnowledgeState> EntityKnowledgeStates { get; }
     public IMongoCollection<AppliedKnowledgeDefinition> AppliedKnowledgeDefinitions { get; }
     public IMongoCollection<KnowledgeSourceState> KnowledgeSources { get; }
     public IMongoCollection<ResearchResultState> ResearchResults { get; }
+    public IMongoCollection<ReverseEngineeringResultState> ReverseEngineeringResults { get; }
+    public IMongoCollection<PrototypeRuntimeState> PrototypeRuntimeStates { get; }
+    public IMongoCollection<PrototypeTestResultState> PrototypeTestResults { get; }
+    public IMongoCollection<PrototypeDefectInstanceState> PrototypeDefectInstances { get; }
+    public IMongoCollection<LimitedProductionAuthorizationState> LimitedProductionAuthorizations { get; }
+    public IMongoCollection<LimitedProductionCapacityClaimState> LimitedProductionCapacityClaims { get; }
+    public IMongoCollection<ManufacturingBatchResultState> ManufacturingBatchResults { get; }
     public IMongoCollection<ExperienceCoinLedgerEntry> ExperienceCoinLedger { get; }
     public IMongoCollection<CraftingRecipeDefinition> CraftingRecipes { get; }
     public IMongoCollection<RecipeIngredientRequirement> CraftingRecipeIngredients { get; }
@@ -298,12 +350,25 @@ public class MongoContext
     public IMongoCollection<CharacterBodyProfileDocument> CharacterBodyProfiles { get; }
     public IMongoCollection<CharacterKnowledgeProfileDocument> CharacterKnowledgeProfiles { get; }
     public IMongoCollection<CharacterConditionProfileDocument> CharacterConditionProfiles { get; }
+    public IMongoCollection<CharacterCreationPolicyState> CharacterCreationPolicies { get; }
+    public IMongoCollection<CharacterCreationDraft> CharacterCreationDrafts { get; }
+    public IMongoCollection<CharacterTitleProfileDocument> CharacterTitleProfiles { get; }
+    public IMongoCollection<ActorRuntimeStateDocument> ActorRuntimeStates { get; }
+    public IMongoCollection<RuntimeSubjectCapacityProfile> RuntimeSubjectCapacityProfiles { get; }
+    public IMongoCollection<RuntimeEffectInstance> RuntimeEffectInstances { get; }
+    public IMongoCollection<ActionExecutionState> ActionExecutionStates { get; }
+    public IMongoCollection<ResourceReservationState> ResourceReservationStates { get; }
+    public IMongoCollection<LiveStateEventRecord> LiveStateEvents { get; }
     public IMongoCollection<SyncEvent> SyncEvents { get; }
     public IMongoCollection<SyncCounter> SyncCounters { get; }
     public IMongoCollection<ClassDefinition> ClassDefinitions { get; }
     public IMongoCollection<RaceDefinition> RaceDefinitions { get; }
     public IMongoCollection<SkillDefinition> DefinitionSkills { get; }
     public IMongoCollection<UnifiedDefinitionDocument> UnifiedDefinitions { get; }
+    public IMongoCollection<DefinitionEditorProfile> DefinitionEditorProfiles { get; }
+    public IMongoCollection<ContentDefinitionRecord> ContentDefinitionRecords { get; }
+    public IMongoCollection<ContentDefinitionAuditEvent> ContentDefinitionAuditEvents { get; }
+    public IMongoCollection<ContentDefinitionValidationResult> ContentDefinitionValidationResults { get; }
     public IMongoCollection<FactionState> FactionStates { get; }
     public IMongoCollection<OrganizationState> OrganizationStates { get; }
     public IMongoCollection<MarketState> MarketStates { get; }
@@ -328,6 +393,13 @@ public class MongoContext
     public IMongoCollection<WorldMapLegendState> WorldMapLegends { get; }
     public IMongoCollection<FogOfWarState> MapFogLayers { get; }
     public IMongoCollection<SceneMapActiveLinkState> SceneMapActiveLinks { get; }
+    public IMongoCollection<MapCoordinateProfileDefinition0218> MapCoordinateProfiles0218 { get; }
+    public IMongoCollection<MapScaleProfileDefinition0218> MapScaleProfiles0218 { get; }
+    public IMongoCollection<MapSemanticLayerState0218> MapSemanticLayers0218 { get; }
+    public IMongoCollection<MapSemanticFeatureState0218> MapSemanticFeatures0218 { get; }
+    public IMongoCollection<MapPortalState0218> MapPortals0218 { get; }
+    public IMongoCollection<MapGeneratorRecipeDefinition0218> MapGeneratorRecipes0218 { get; }
+    public IMongoCollection<MapGenerationJobState0218> MapGenerationJobs0218 { get; }
     public IMongoCollection<JurisdictionDefinition> LegalJurisdictions { get; }
     public IMongoCollection<LegalProfileState> LegalProfiles { get; }
     public IMongoCollection<LegalRuleDefinition> LegalRules { get; }
@@ -383,6 +455,13 @@ public class MongoContext
         Profiles = db.GetCollection<UserProfile>("profiles");
         Characters = db.GetCollection<Character>("characters");
         Presence = db.GetCollection<SessionUserState>("sessions");
+        Campaigns = db.GetCollection<Campaign>("campaigns");
+        CampaignMemberships = db.GetCollection<CampaignMembership>("campaign_memberships");
+        CampaignCapabilities = db.GetCollection<CampaignCapabilityDefinition>("campaign_capability_definitions");
+        SessionParticipations = db.GetCollection<SessionParticipation>("session_participations");
+        ActiveGameContextPreferences = db.GetCollection<ActiveGameContextPreference>("active_game_context_preferences");
+        AutomationPolicies = db.GetCollection<AutomationPolicyDefinition>("automation_policy_definitions");
+        AutomationExecutions = db.GetCollection<AutomationExecutionRecord>("automation_execution_records");
         CurrentSessions = db.GetCollection<CurrentSessionState>("current_sessions");
         CharacterGroups = db.GetCollection<CharacterGroupState>("character_groups");
         CharacterGroupMembers = db.GetCollection<CharacterGroupMemberState>("character_group_members");
@@ -394,10 +473,17 @@ public class MongoContext
         DiceRequests = db.GetCollection<DiceRollRequest>("dice_requests");
         PlayerRequests = db.GetCollection<PlayerRequestState>("player_requests");
         PlayerRequestComments = db.GetCollection<PlayerRequestCommentState>("player_request_comments");
+        AssetConfigurationBlueprints = db.GetCollection<AssetConfigurationBlueprintState>("asset_configuration_blueprints");
         WorldCalendarDefinitions = db.GetCollection<WorldCalendarDefinition>("world_calendar_definitions");
         WorldCalendarSeasons = db.GetCollection<WorldCalendarSeasonDefinition>("world_calendar_seasons");
         WorldCalendarMonths = db.GetCollection<WorldCalendarMonthDefinition>("world_calendar_months");
         CampaignWorldTimes = db.GetCollection<CampaignWorldTimeState>("campaign_world_times");
+        WeatherStates0217 = db.GetCollection<WeatherStateDocument>("weather_states");
+        TravelSessions0217 = db.GetCollection<TravelSession>("travel_sessions");
+        EnvironmentalToleranceProfiles0217B = db.GetCollection<EnvironmentalToleranceProfileDefinition>("environmental_tolerance_profiles");
+        MeasurementInstrumentProfiles0217B = db.GetCollection<MeasurementInstrumentProfileDefinition>("measurement_instrument_profiles");
+        EnvironmentalProtectionProfiles0217B = db.GetCollection<EnvironmentalProtectionProfileDefinition>("environmental_protection_profiles");
+        EnvironmentObservations0217B = db.GetCollection<EnvironmentObservationRecord>("environment_observations");
         WorldCalendarEvents = db.GetCollection<WorldCalendarEventState>("world_calendar_events");
         WorldCalendarEventVersions = db.GetCollection<WorldCalendarEventVersionState>("world_calendar_event_versions");
         WorldCalendarHolidays = db.GetCollection<WorldCalendarHolidayDefinition>("world_calendar_holidays");
@@ -442,11 +528,26 @@ public class MongoContext
         ProjectAuditEntries = db.GetCollection<ProjectAuditEntryState>("project_audit_entries");
         ProjectEntityLinks = db.GetCollection<ProjectEntityLinkState>("project_entity_links");
         ProjectProposals = db.GetCollection<ProjectProposalBoundaryState>("project_proposals");
+        ConstructionSites0197 = db.GetCollection<ConstructionSiteState0197>("construction_sites");
+        ConstructionReservations0197 = db.GetCollection<ConstructionResourceReservationState0197>("construction_resource_reservations");
+        ConstructionStageConsumptions0197 = db.GetCollection<ConstructionStageConsumptionState0197>("construction_stage_consumptions");
+        LargeAssetMaintenanceProfiles0197 = db.GetCollection<LargeAssetMaintenanceProfileState0197>("large_asset_maintenance_profiles");
+        AssetOperationStates0198 = db.GetCollection<AssetOperationState0198>("asset_operation_states");
+        AssetMaintenanceReservations0198 = db.GetCollection<AssetMaintenanceReservationState0198>("asset_maintenance_reservations");
+        AssetMaintenanceStageConsumptions0198 = db.GetCollection<AssetMaintenanceStageConsumptionState0198>("asset_maintenance_stage_consumptions");
+        MaintenanceServiceRecords0198 = db.GetCollection<MaintenanceServiceRecordState0198>("maintenance_service_records");
         KnowledgeDefinitions = db.GetCollection<KnowledgeDefinition>("knowledge_definitions");
         EntityKnowledgeStates = db.GetCollection<EntityKnowledgeState>("entity_knowledge_states");
         AppliedKnowledgeDefinitions = db.GetCollection<AppliedKnowledgeDefinition>("applied_knowledge_definitions");
         KnowledgeSources = db.GetCollection<KnowledgeSourceState>("knowledge_sources");
         ResearchResults = db.GetCollection<ResearchResultState>("research_results");
+        ReverseEngineeringResults = db.GetCollection<ReverseEngineeringResultState>("reverse_engineering_results");
+        PrototypeRuntimeStates = db.GetCollection<PrototypeRuntimeState>("prototype_runtime_states");
+        PrototypeTestResults = db.GetCollection<PrototypeTestResultState>("prototype_test_results");
+        PrototypeDefectInstances = db.GetCollection<PrototypeDefectInstanceState>("prototype_defect_instances");
+        LimitedProductionAuthorizations = db.GetCollection<LimitedProductionAuthorizationState>("limited_production_authorizations");
+        LimitedProductionCapacityClaims = db.GetCollection<LimitedProductionCapacityClaimState>("limited_production_capacity_claims");
+        ManufacturingBatchResults = db.GetCollection<ManufacturingBatchResultState>("manufacturing_batch_results");
         ExperienceCoinLedger = db.GetCollection<ExperienceCoinLedgerEntry>("experience_coin_ledger");
         CraftingRecipes = db.GetCollection<CraftingRecipeDefinition>("crafting_recipes");
         CraftingRecipeIngredients = db.GetCollection<RecipeIngredientRequirement>("crafting_recipe_ingredients");
@@ -507,12 +608,25 @@ public class MongoContext
         CharacterBodyProfiles = db.GetCollection<CharacterBodyProfileDocument>("character_body_profiles");
         CharacterKnowledgeProfiles = db.GetCollection<CharacterKnowledgeProfileDocument>("character_knowledge_profiles");
         CharacterConditionProfiles = db.GetCollection<CharacterConditionProfileDocument>("character_condition_profiles");
+        CharacterCreationPolicies = db.GetCollection<CharacterCreationPolicyState>("character_creation_policies");
+        CharacterCreationDrafts = db.GetCollection<CharacterCreationDraft>("character_creation_drafts");
+        CharacterTitleProfiles = db.GetCollection<CharacterTitleProfileDocument>("character_title_profiles");
+        ActorRuntimeStates = db.GetCollection<ActorRuntimeStateDocument>("actor_runtime_states");
+        RuntimeSubjectCapacityProfiles = db.GetCollection<RuntimeSubjectCapacityProfile>("runtime_subject_capacity_profiles");
+        RuntimeEffectInstances = db.GetCollection<RuntimeEffectInstance>("runtime_effect_instances");
+        ActionExecutionStates = db.GetCollection<ActionExecutionState>("action_execution_states");
+        ResourceReservationStates = db.GetCollection<ResourceReservationState>("resource_reservation_states");
+        LiveStateEvents = db.GetCollection<LiveStateEventRecord>("live_state_events");
         SyncEvents = db.GetCollection<SyncEvent>("sync_events");
         SyncCounters = db.GetCollection<SyncCounter>("sync_counters");
         ClassDefinitions = db.GetCollection<ClassDefinition>("class_definitions");
         RaceDefinitions = db.GetCollection<RaceDefinition>("race_definitions");
         DefinitionSkills = db.GetCollection<SkillDefinition>("skill_definition_documents");
         UnifiedDefinitions = db.GetCollection<UnifiedDefinitionDocument>("unified_definitions");
+        DefinitionEditorProfiles = db.GetCollection<DefinitionEditorProfile>("definition_editor_profiles");
+        ContentDefinitionRecords = db.GetCollection<ContentDefinitionRecord>("content_definition_records");
+        ContentDefinitionAuditEvents = db.GetCollection<ContentDefinitionAuditEvent>("content_definition_audit_events");
+        ContentDefinitionValidationResults = db.GetCollection<ContentDefinitionValidationResult>("content_definition_validation_results");
         FactionStates = db.GetCollection<FactionState>("faction_states");
         OrganizationStates = db.GetCollection<OrganizationState>("organization_states");
         MarketStates = db.GetCollection<MarketState>("market_states");
@@ -537,6 +651,13 @@ public class MongoContext
         WorldMapLegends = db.GetCollection<WorldMapLegendState>("world_map_legends");
         MapFogLayers = db.GetCollection<FogOfWarState>("map_fog_layers");
         SceneMapActiveLinks = db.GetCollection<SceneMapActiveLinkState>("map_scene_active_links");
+        MapCoordinateProfiles0218 = db.GetCollection<MapCoordinateProfileDefinition0218>("map_coordinate_profiles");
+        MapScaleProfiles0218 = db.GetCollection<MapScaleProfileDefinition0218>("map_scale_profiles");
+        MapSemanticLayers0218 = db.GetCollection<MapSemanticLayerState0218>("map_semantic_layers");
+        MapSemanticFeatures0218 = db.GetCollection<MapSemanticFeatureState0218>("map_semantic_features");
+        MapPortals0218 = db.GetCollection<MapPortalState0218>("map_portals");
+        MapGeneratorRecipes0218 = db.GetCollection<MapGeneratorRecipeDefinition0218>("map_generator_recipes");
+        MapGenerationJobs0218 = db.GetCollection<MapGenerationJobState0218>("map_generation_jobs");
         LegalJurisdictions = db.GetCollection<JurisdictionDefinition>("legal_jurisdictions");
         LegalProfiles = db.GetCollection<LegalProfileState>("legal_profiles");
         LegalRules = db.GetCollection<LegalRuleDefinition>("legal_rules");
@@ -567,6 +688,18 @@ public class MongoContext
     {
         Accounts.Indexes.CreateOne(new CreateIndexModel<UserAccount>(Builders<UserAccount>.IndexKeys.Ascending(x => x.Login), new CreateIndexOptions { Unique = true }));
         Presence.Indexes.CreateOne(new CreateIndexModel<SessionUserState>(Builders<SessionUserState>.IndexKeys.Ascending(x => x.AuthToken), new CreateIndexOptions { Unique = true }));
+        Campaigns.Indexes.CreateOne(new CreateIndexModel<Campaign>(Builders<Campaign>.IndexKeys.Ascending(x => x.OwnerUserId)));
+        CampaignMemberships.Indexes.CreateOne(new CreateIndexModel<CampaignMembership>(Builders<CampaignMembership>.IndexKeys.Ascending(x => x.CampaignId).Ascending(x => x.UserId), new CreateIndexOptions { Unique = true }));
+        CampaignMemberships.Indexes.CreateOne(new CreateIndexModel<CampaignMembership>(Builders<CampaignMembership>.IndexKeys.Ascending(x => x.UserId).Ascending(x => x.Status)));
+        CampaignMemberships.Indexes.CreateOne(new CreateIndexModel<CampaignMembership>(Builders<CampaignMembership>.IndexKeys.Ascending(x => x.CampaignId).Ascending(x => x.PrimaryRoleId).Ascending(x => x.Status)));
+        CampaignCapabilities.Indexes.CreateOne(new CreateIndexModel<CampaignCapabilityDefinition>(Builders<CampaignCapabilityDefinition>.IndexKeys.Ascending(x => x.CapabilityId), new CreateIndexOptions { Unique = true }));
+        SessionParticipations.Indexes.CreateOne(new CreateIndexModel<SessionParticipation>(Builders<SessionParticipation>.IndexKeys.Ascending(x => x.SessionId).Ascending(x => x.UserId), new CreateIndexOptions { Unique = true }));
+        SessionParticipations.Indexes.CreateOne(new CreateIndexModel<SessionParticipation>(Builders<SessionParticipation>.IndexKeys.Ascending(x => x.CampaignId).Ascending(x => x.UserId).Ascending(x => x.Status)));
+        ActiveGameContextPreferences.Indexes.CreateOne(new CreateIndexModel<ActiveGameContextPreference>(Builders<ActiveGameContextPreference>.IndexKeys.Ascending(x => x.UserId), new CreateIndexOptions { Unique = true }));
+        AutomationPolicies.Indexes.CreateOne(new CreateIndexModel<AutomationPolicyDefinition>(Builders<AutomationPolicyDefinition>.IndexKeys.Ascending(x => x.CampaignId).Ascending(x => x.TriggerKind)));
+        AutomationExecutions.Indexes.CreateOne(new CreateIndexModel<AutomationExecutionRecord>(Builders<AutomationExecutionRecord>.IndexKeys.Ascending(x => x.CampaignId).Ascending(x => x.SessionId).Descending(x => x.CreatedUtc)));
+        AutomationExecutions.Indexes.CreateOne(new CreateIndexModel<AutomationExecutionRecord>(
+            Builders<AutomationExecutionRecord>.IndexKeys.Ascending(x => x.OperationId)));
         CurrentSessions.Indexes.CreateOne(new CreateIndexModel<CurrentSessionState>(Builders<CurrentSessionState>.IndexKeys.Ascending(x => x.CampaignId)));
         CurrentSessions.Indexes.CreateOne(new CreateIndexModel<CurrentSessionState>(Builders<CurrentSessionState>.IndexKeys.Ascending(x => x.SessionId)));
         CurrentSessions.Indexes.CreateOne(new CreateIndexModel<CurrentSessionState>(Builders<CurrentSessionState>.IndexKeys.Ascending(x => x.Status)));
@@ -626,6 +759,16 @@ public class MongoContext
             Asc<PlayerRequestCommentState>("IsArchived"),
             Asc<PlayerRequestCommentState>("CreatedAtUtc"),
             Compound<PlayerRequestCommentState>("RequestId", "CreatedAtUtc"));
+        CreateIndexes(AssetConfigurationBlueprints,
+            Asc<AssetConfigurationBlueprintState>("OwnerUserId"),
+            Asc<AssetConfigurationBlueprintState>("OwnerCharacterId"),
+            Asc<AssetConfigurationBlueprintState>("ConfiguratorKind"),
+            Asc<AssetConfigurationBlueprintState>("Status"),
+            Asc<AssetConfigurationBlueprintState>("Visibility"),
+            Asc<AssetConfigurationBlueprintState>("Archived"),
+            Desc<AssetConfigurationBlueprintState>("UpdatedUtc"),
+            Compound<AssetConfigurationBlueprintState>("OwnerUserId", "ClientOperationId"),
+            Compound<AssetConfigurationBlueprintState>("OwnerUserId", "ConfiguratorKind", "Archived"));
 
         CreateIndexes(FeatureFlagOverrides,
             Asc<FeatureFlagOverrideState>("NormalizedName"),
@@ -658,6 +801,36 @@ public class MongoContext
             Asc<CampaignWorldTimeState>("CalendarId"),
             Asc<CampaignWorldTimeState>("UpdatedAtUtc"),
             Compound<CampaignWorldTimeState>("CampaignId", "CalendarId"));
+
+        CreateIndexes(WeatherStates0217,
+            Asc<WeatherStateDocument>("CampaignId"),
+            Asc<WeatherStateDocument>("WorldId"),
+            Asc<WeatherStateDocument>("Scope.ScopeType"),
+            Asc<WeatherStateDocument>("Scope.ScopeId"),
+            Asc<WeatherStateDocument>("ScheduledTransitionAtWorldSecond"),
+            Compound<WeatherStateDocument>("CampaignId", "Scope.ScopeType", "Scope.ScopeId"));
+
+        CreateIndexes(TravelSessions0217,
+            Asc<TravelSession>("CampaignId"),
+            Asc<TravelSession>("PartyId"),
+            Asc<TravelSession>("Status"),
+            Asc<TravelSession>("UpdatedAtUtc"),
+            Compound<TravelSession>("CampaignId", "PartyId", "Status"));
+
+        CreateIndexes(EnvironmentalToleranceProfiles0217B,
+            Asc<EnvironmentalToleranceProfileDefinition>("RuleSetId"),
+            Asc<EnvironmentalToleranceProfileDefinition>("IsArchived"));
+        CreateIndexes(MeasurementInstrumentProfiles0217B,
+            Asc<MeasurementInstrumentProfileDefinition>("RuleSetId"),
+            Asc<MeasurementInstrumentProfileDefinition>("MeasurementTypes"));
+        CreateIndexes(EnvironmentalProtectionProfiles0217B,
+            Asc<EnvironmentalProtectionProfileDefinition>("RuleSetId"),
+            Asc<EnvironmentalProtectionProfileDefinition>("IsArchived"));
+        CreateIndexes(EnvironmentObservations0217B,
+            Asc<EnvironmentObservationRecord>("CampaignId"),
+            Compound<EnvironmentObservationRecord>("OwnerUserId", "ObserverCharacterId"),
+            Compound<EnvironmentObservationRecord>("ObserverCharacterId", "ScopeId", "MeasurementType"),
+            Asc<EnvironmentObservationRecord>("OperationId"));
 
         CreateIndexes(WorldCalendarEvents,
             Asc<WorldCalendarEventState>("CampaignId"),
@@ -819,6 +992,36 @@ public class MongoContext
         ClassTrees.Indexes.CreateOne(new CreateIndexModel<ClassTreeDefinition>(Builders<ClassTreeDefinition>.IndexKeys.Ascending(x => x.DirectionId), new CreateIndexOptions { Unique = true }));
         SkillDefinitions.Indexes.CreateOne(new CreateIndexModel<SkillDefinitionRecord>(Builders<SkillDefinitionRecord>.IndexKeys.Ascending(x => x.SkillId), new CreateIndexOptions { Unique = true }));
         DefinitionVersions.Indexes.CreateOne(new CreateIndexModel<DefinitionVersion>(Builders<DefinitionVersion>.IndexKeys.Ascending(x => x.ContentName), new CreateIndexOptions { Unique = true }));
+        CreateIndexes(DefinitionEditorProfiles,
+            Asc<DefinitionEditorProfile>("WorldId"),
+            Asc<DefinitionEditorProfile>("RuleSetId"),
+            Asc<DefinitionEditorProfile>("Category"),
+            Asc<DefinitionEditorProfile>("StorageMode"),
+            Asc<DefinitionEditorProfile>("IsArchived"),
+            Desc<DefinitionEditorProfile>("UpdatedAtUtc"));
+        CreateIndexes(ContentDefinitionRecords,
+            Asc<ContentDefinitionRecord>("WorldId"),
+            Asc<ContentDefinitionRecord>("CampaignId"),
+            Asc<ContentDefinitionRecord>("RuleSetId"),
+            Asc<ContentDefinitionRecord>("Category"),
+            Asc<ContentDefinitionRecord>("DefinitionType"),
+            Asc<ContentDefinitionRecord>("DefinitionPackId"),
+            Asc<ContentDefinitionRecord>("StableKey"),
+            Asc<ContentDefinitionRecord>("ShortCode"),
+            Asc<ContentDefinitionRecord>("IsArchived"),
+            Desc<ContentDefinitionRecord>("UpdatedAtUtc"),
+            Compound<ContentDefinitionRecord>("Category", "ShortCode"));
+        CreateIndexes(ContentDefinitionAuditEvents,
+            Asc<ContentDefinitionAuditEvent>("DefinitionId"),
+            Asc<ContentDefinitionAuditEvent>("ProfileId"),
+            Asc<ContentDefinitionAuditEvent>("Category"),
+            Asc<ContentDefinitionAuditEvent>("ActorUserId"),
+            Desc<ContentDefinitionAuditEvent>("CreatedAtUtc"));
+        CreateIndexes(ContentDefinitionValidationResults,
+            Asc<ContentDefinitionValidationResult>("DefinitionId"),
+            Asc<ContentDefinitionValidationResult>("ProfileId"),
+            Asc<ContentDefinitionValidationResult>("Status"),
+            Desc<ContentDefinitionValidationResult>("ValidatedAtUtc"));
         Notes.Indexes.CreateOne(new CreateIndexModel<Note>(Builders<Note>.IndexKeys.Ascending(x => x.SessionId).Descending(x => x.CreatedUtc)));
         References.Indexes.CreateOne(new CreateIndexModel<ReferenceEntry>(Builders<ReferenceEntry>.IndexKeys.Ascending(x => x.WorldId).Ascending(x => x.ReferenceType).Ascending(x => x.Key), new CreateIndexOptions { Unique = true }));
         UpdateVersions.Indexes.CreateOne(new CreateIndexModel<UpdateVersionInfo>(Builders<UpdateVersionInfo>.IndexKeys.Ascending(x => x.ClientChannel), new CreateIndexOptions { Unique = true }));
@@ -853,6 +1056,7 @@ public class MongoContext
             Asc<ProjectBaseState>("OwnerCharacterId"),
             Asc<ProjectBaseState>("IsPlayerVisible"),
             Asc<ProjectBaseState>("IsArchived"),
+            Asc<ProjectBaseState>("CreatedOperationId"),
             Desc<ProjectBaseState>("UpdatedAtUtc"),
             Compound<ProjectBaseState>("CampaignId", "Status"),
             Compound<ProjectBaseState>("CampaignId", "OwnerUserId"),
@@ -865,6 +1069,51 @@ public class MongoContext
             Asc<ProjectStageState>("SortOrder"),
             Asc<ProjectStageState>("IsPlayerVisible"),
             Compound<ProjectStageState>("ProjectId", "SortOrder"));
+        CreateIndexes(ConstructionSites0197,
+            Asc<ConstructionSiteState0197>("ProjectId"),
+            Asc<ConstructionSiteState0197>("CampaignId"),
+            Asc<ConstructionSiteState0197>("OwnerId"),
+            Asc<ConstructionSiteState0197>("OwnerUserId"),
+            Asc<ConstructionSiteState0197>("LocationId"),
+            Asc<ConstructionSiteState0197>("Status"),
+            Asc<ConstructionSiteState0197>("AssetInstanceId"));
+        CreateIndexes(ConstructionReservations0197,
+            Asc<ConstructionResourceReservationState0197>("ProjectId"),
+            Asc<ConstructionResourceReservationState0197>("ConstructionSiteId"),
+            Asc<ConstructionResourceReservationState0197>("CharacterId"),
+            Asc<ConstructionResourceReservationState0197>("StageKey"),
+            Asc<ConstructionResourceReservationState0197>("Status"),
+            Compound<ConstructionResourceReservationState0197>("ProjectId", "StageKey", "ResourceDefinitionId"));
+        CreateIndexes(ConstructionStageConsumptions0197,
+            Asc<ConstructionStageConsumptionState0197>("ProjectId"),
+            Asc<ConstructionStageConsumptionState0197>("ConstructionSiteId"),
+            Asc<ConstructionStageConsumptionState0197>("StageKey"),
+            Asc<ConstructionStageConsumptionState0197>("OperationId"));
+        CreateIndexes(LargeAssetMaintenanceProfiles0197,
+            Asc<LargeAssetMaintenanceProfileState0197>("AssetInstanceId"),
+            Asc<LargeAssetMaintenanceProfileState0197>("ProjectId"),
+            Asc<LargeAssetMaintenanceProfileState0197>("Status"));
+        CreateIndexes(AssetOperationStates0198,
+            Asc<AssetOperationState0198>("CampaignId"),
+            Asc<AssetOperationState0198>("AssetId"),
+            Asc<AssetOperationState0198>("OwnerUserId"),
+            Asc<AssetOperationState0198>("OperationStatus"));
+        CreateIndexes(AssetMaintenanceReservations0198,
+            Asc<AssetMaintenanceReservationState0198>("ProjectId"),
+            Asc<AssetMaintenanceReservationState0198>("AssetId"),
+            Asc<AssetMaintenanceReservationState0198>("StageKey"),
+            Asc<AssetMaintenanceReservationState0198>("Status"),
+            Compound<AssetMaintenanceReservationState0198>("ProjectId", "StageKey", "ResourceDefinitionId"));
+        CreateIndexes(AssetMaintenanceStageConsumptions0198,
+            Asc<AssetMaintenanceStageConsumptionState0198>("ProjectId"),
+            Asc<AssetMaintenanceStageConsumptionState0198>("AssetId"),
+            Asc<AssetMaintenanceStageConsumptionState0198>("StageKey"),
+            Asc<AssetMaintenanceStageConsumptionState0198>("OperationId"));
+        CreateIndexes(MaintenanceServiceRecords0198,
+            Asc<MaintenanceServiceRecordState0198>("CampaignId"),
+            Asc<MaintenanceServiceRecordState0198>("AssetId"),
+            Asc<MaintenanceServiceRecordState0198>("ProjectId"),
+            Asc<MaintenanceServiceRecordState0198>("CompletedAtUtc"));
         CreateIndexes(ProjectParticipants,
             Asc<ProjectParticipantState>("ProjectId"),
             Asc<ProjectParticipantState>("CampaignId"),
@@ -968,6 +1217,8 @@ public class MongoContext
         CreateIndexes(ResearchResults,
             Asc<ResearchResultState>("CampaignId"),
             Asc<ResearchResultState>("ProjectId"),
+            Asc<ResearchResultState>("SourceProjectId"),
+            Asc<ResearchResultState>("CompletionOperationId"),
             Asc<ResearchResultState>("ResultType"),
             Asc<ResearchResultState>("Status"),
             Asc<ResearchResultState>("KnowledgeDefinitionId"),
@@ -977,6 +1228,74 @@ public class MongoContext
             Asc<ResearchResultState>("IsPlayerVisible"),
             Asc<ResearchResultState>("IsArchived"),
             Desc<ResearchResultState>("PreparedAtUtc"));
+        CreateIndexes(ReverseEngineeringResults,
+            Asc<ReverseEngineeringResultState>("CampaignId"),
+            Asc<ReverseEngineeringResultState>("ProjectId"),
+            Asc<ReverseEngineeringResultState>("OwnerCharacterId"),
+            Asc<ReverseEngineeringResultState>("CompletionOperationId"),
+            Asc<ReverseEngineeringResultState>("Status"),
+            Asc<ReverseEngineeringResultState>("SourceItemDisposition"),
+            Asc<ReverseEngineeringResultState>("IsPlayerVisible"),
+            Asc<ReverseEngineeringResultState>("IsArchived"),
+            Desc<ReverseEngineeringResultState>("CreatedAtUtc"));
+        CreateIndexes(PrototypeRuntimeStates,
+            Asc<PrototypeRuntimeState>("CampaignId"),
+            Asc<PrototypeRuntimeState>("ProjectId"),
+            Asc<PrototypeRuntimeState>("ItemInstanceId"),
+            Asc<PrototypeRuntimeState>("OwnerCharacterId"),
+            Asc<PrototypeRuntimeState>("LifecycleStatus"),
+            Asc<PrototypeRuntimeState>("TestStatus"),
+            Asc<PrototypeRuntimeState>("ActiveRepairProjectId"),
+            Asc<PrototypeRuntimeState>("ProductionApprovalStatus"),
+            Desc<PrototypeRuntimeState>("UpdatedAtUtc"));
+        CreateIndexes(LimitedProductionAuthorizations,
+            Asc<LimitedProductionAuthorizationState>("CampaignId"),
+            Asc<LimitedProductionAuthorizationState>("OwnerCharacterId"),
+            Asc<LimitedProductionAuthorizationState>("BlueprintDefinitionId"),
+            Asc<LimitedProductionAuthorizationState>("Status"),
+            Desc<LimitedProductionAuthorizationState>("UpdatedAtUtc"));
+        LimitedProductionAuthorizations.Indexes.CreateOne(
+            new CreateIndexModel<LimitedProductionAuthorizationState>(
+                Builders<LimitedProductionAuthorizationState>.IndexKeys.Ascending(x => x.PrototypeId),
+                new CreateIndexOptions { Unique = true }));
+        CreateIndexes(LimitedProductionCapacityClaims,
+            Asc<LimitedProductionCapacityClaimState>("CampaignId"),
+            Asc<LimitedProductionCapacityClaimState>("AuthorizationId"),
+            Asc<LimitedProductionCapacityClaimState>("Status"),
+            Desc<LimitedProductionCapacityClaimState>("UpdatedAtUtc"));
+        LimitedProductionCapacityClaims.Indexes.CreateOne(
+            new CreateIndexModel<LimitedProductionCapacityClaimState>(
+                Builders<LimitedProductionCapacityClaimState>.IndexKeys.Ascending(x => x.ProjectId),
+                new CreateIndexOptions { Unique = true }));
+        CreateIndexes(ManufacturingBatchResults,
+            Asc<ManufacturingBatchResultState>("CampaignId"),
+            Asc<ManufacturingBatchResultState>("AuthorizationId"),
+            Asc<ManufacturingBatchResultState>("OwnerCharacterId"),
+            Desc<ManufacturingBatchResultState>("CompletedAtUtc"));
+        ManufacturingBatchResults.Indexes.CreateOne(
+            new CreateIndexModel<ManufacturingBatchResultState>(
+                Builders<ManufacturingBatchResultState>.IndexKeys.Ascending(x => x.ProjectId),
+                new CreateIndexOptions { Unique = true }));
+        CreateIndexes(PrototypeTestResults,
+            Asc<PrototypeTestResultState>("CampaignId"),
+            Asc<PrototypeTestResultState>("ProjectId"),
+            Asc<PrototypeTestResultState>("PrototypeId"),
+            Asc<PrototypeTestResultState>("ExecutionOperationId"),
+            Asc<PrototypeTestResultState>("ResultCategory"),
+            Asc<PrototypeTestResultState>("AttemptNumber"),
+            Asc<PrototypeTestResultState>("PreviousTestResultId"),
+            Asc<PrototypeTestResultState>("RepairProjectId"),
+            Compound<PrototypeTestResultState>("PrototypeId", "AttemptNumber"),
+            Desc<PrototypeTestResultState>("CompletedAtUtc"));
+        CreateIndexes(PrototypeDefectInstances,
+            Asc<PrototypeDefectInstanceState>("CampaignId"),
+            Asc<PrototypeDefectInstanceState>("ProjectId"),
+            Asc<PrototypeDefectInstanceState>("PrototypeId"),
+            Asc<PrototypeDefectInstanceState>("SourceTestResultId"),
+            Asc<PrototypeDefectInstanceState>("Status"),
+            Asc<PrototypeDefectInstanceState>("RepairProjectId"),
+            Asc<PrototypeDefectInstanceState>("RetestResultId"),
+            Desc<PrototypeDefectInstanceState>("DetectedAtUtc"));
         CreateIndexes(ExperienceCoinLedger,
             Asc<ExperienceCoinLedgerEntry>("CampaignId"),
             Asc<ExperienceCoinLedgerEntry>("CharacterId"),
@@ -1038,6 +1357,7 @@ public class MongoContext
             Asc<CraftingResourceReservationState>("CharacterId"),
             Asc<CraftingResourceReservationState>("ItemInstanceId"),
             Asc<CraftingResourceReservationState>("Status"),
+            Asc<CraftingResourceReservationState>("OperationId"),
             Desc<CraftingResourceReservationState>("ReservedAtUtc"),
             Compound<CraftingResourceReservationState>("CharacterId", "ItemInstanceId"),
             Compound<CraftingResourceReservationState>("CraftingProjectId", "Status"));
@@ -1294,6 +1614,15 @@ public class MongoContext
             Asc<ManufacturedAssetState>("Status"),
             Asc<ManufacturedAssetState>("IsPlayerVisible"));
         CharacterModuleStates.Indexes.CreateOne(new CreateIndexModel<CharacterModuleStateDocument>(Builders<CharacterModuleStateDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        ActorRuntimeStates.Indexes.CreateOne(new CreateIndexModel<ActorRuntimeStateDocument>(Builders<ActorRuntimeStateDocument>.IndexKeys.Ascending(x => x.SubjectType).Ascending(x => x.SubjectId), new CreateIndexOptions { Unique = true }));
+        ActorRuntimeStates.Indexes.CreateOne(new CreateIndexModel<ActorRuntimeStateDocument>(Builders<ActorRuntimeStateDocument>.IndexKeys.Ascending(x => x.CharacterId)));
+        ActorRuntimeStates.Indexes.CreateOne(new CreateIndexModel<ActorRuntimeStateDocument>(Builders<ActorRuntimeStateDocument>.IndexKeys.Ascending(x => x.CampaignId)));
+        RuntimeSubjectCapacityProfiles.Indexes.CreateOne(new CreateIndexModel<RuntimeSubjectCapacityProfile>(Builders<RuntimeSubjectCapacityProfile>.IndexKeys.Ascending(x => x.SubjectType).Ascending(x => x.SubjectId), new CreateIndexOptions { Unique = true }));
+        RuntimeEffectInstances.Indexes.CreateOne(new CreateIndexModel<RuntimeEffectInstance>(Builders<RuntimeEffectInstance>.IndexKeys.Ascending("TargetSubject.SubjectType").Ascending("TargetSubject.SubjectId").Ascending(x => x.IsActive)));
+        ActionExecutionStates.Indexes.CreateOne(new CreateIndexModel<ActionExecutionState>(Builders<ActionExecutionState>.IndexKeys.Ascending("ActorSubject.SubjectType").Ascending("ActorSubject.SubjectId").Ascending(x => x.State)));
+        ResourceReservationStates.Indexes.CreateOne(new CreateIndexModel<ResourceReservationState>(Builders<ResourceReservationState>.IndexKeys.Ascending(x => x.SubjectId).Ascending(x => x.State)));
+        LiveStateEvents.Indexes.CreateOne(new CreateIndexModel<LiveStateEventRecord>(Builders<LiveStateEventRecord>.IndexKeys.Ascending(x => x.SubjectId).Descending(x => x.CreatedUtc)));
+        LiveStateEvents.Indexes.CreateOne(new CreateIndexModel<LiveStateEventRecord>(Builders<LiveStateEventRecord>.IndexKeys.Ascending(x => x.OperationId), new CreateIndexOptions { Sparse = true }));
         CharacterAttributeProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterAttributeProfileDocument>(Builders<CharacterAttributeProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
         CharacterSubAttributeProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterSubAttributeProfileDocument>(Builders<CharacterSubAttributeProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
         CharacterSkillProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterSkillProfileDocument>(Builders<CharacterSkillProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
@@ -1307,6 +1636,10 @@ public class MongoContext
         CharacterBodyProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterBodyProfileDocument>(Builders<CharacterBodyProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
         CharacterKnowledgeProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterKnowledgeProfileDocument>(Builders<CharacterKnowledgeProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
         CharacterConditionProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterConditionProfileDocument>(Builders<CharacterConditionProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
+        CharacterCreationPolicies.Indexes.CreateOne(new CreateIndexModel<CharacterCreationPolicyState>(Builders<CharacterCreationPolicyState>.IndexKeys.Ascending(x => x.CampaignId), new CreateIndexOptions { Unique = true }));
+        CharacterCreationDrafts.Indexes.CreateOne(new CreateIndexModel<CharacterCreationDraft>(Builders<CharacterCreationDraft>.IndexKeys.Ascending(x => x.CampaignId).Ascending(x => x.OwnerUserId).Ascending(x => x.Status)));
+        CharacterCreationDrafts.Indexes.CreateOne(new CreateIndexModel<CharacterCreationDraft>(Builders<CharacterCreationDraft>.IndexKeys.Ascending(x => x.FinalizationOperationId)));
+        CharacterTitleProfiles.Indexes.CreateOne(new CreateIndexModel<CharacterTitleProfileDocument>(Builders<CharacterTitleProfileDocument>.IndexKeys.Ascending(x => x.CharacterId), new CreateIndexOptions { Unique = true }));
         SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Ascending(x => x.Revision), new CreateIndexOptions { Unique = true }));
         SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Ascending(x => x.Scope).Ascending(x => x.Revision)));
         SyncEvents.Indexes.CreateOne(new CreateIndexModel<SyncEvent>(Builders<SyncEvent>.IndexKeys.Descending(x => x.CreatedUtc)));
@@ -1315,6 +1648,7 @@ public class MongoContext
         RaceDefinitions.Indexes.CreateOne(new CreateIndexModel<RaceDefinition>(Builders<RaceDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
         DefinitionSkills.Indexes.CreateOne(new CreateIndexModel<SkillDefinition>(Builders<SkillDefinition>.IndexKeys.Ascending(x => x.Code), new CreateIndexOptions { Unique = true }));
         UnifiedDefinitions.Indexes.CreateOne(new CreateIndexModel<UnifiedDefinitionDocument>(Builders<UnifiedDefinitionDocument>.IndexKeys.Ascending(x => x.Category).Ascending(x => x.Id), new CreateIndexOptions { Unique = true }));
+        UnifiedDefinitions.Indexes.CreateOne(new CreateIndexModel<UnifiedDefinitionDocument>(Builders<UnifiedDefinitionDocument>.IndexKeys.Ascending(x => x.DefinitionPackId).Ascending(x => x.StableKey)));
         EnsureEconomyRuntimeIndexes(logger);
         EnsureCombatRuntimeIndexes(logger);
         EnsureMapRuntimeIndexes(logger);
@@ -1392,6 +1726,10 @@ public class MongoContext
             Asc<AssetState>("OwnerOrganizationIds"),
             Asc<AssetState>("OwnerFactionIds"),
             Asc<AssetState>("IsActive"),
+            Asc<AssetState>("ConstructionProjectId"),
+            Asc<AssetState>("ConstructionSiteId"),
+            Asc<AssetState>("LifecycleStatus"),
+            Asc<AssetState>("IsArchived"),
             Compound<AssetState>("CampaignId", "LocationId"),
             Compound<AssetState>("CampaignId", "AssetType"));
 
@@ -1560,6 +1898,34 @@ public class MongoContext
             Asc<WorldMapLegendState>("MapId"),
             Asc<WorldMapLegendState>("LayerType"),
             Compound<WorldMapLegendState>("MapId", "LayerType"));
+
+        CreateIndexes(MapCoordinateProfiles0218,
+            Asc<MapCoordinateProfileDefinition0218>("CampaignId"),
+            Asc<MapCoordinateProfileDefinition0218>("Kind"));
+        CreateIndexes(MapScaleProfiles0218,
+            Asc<MapScaleProfileDefinition0218>("CampaignId"),
+            Asc<MapScaleProfileDefinition0218>("Kind"));
+        CreateIndexes(MapSemanticLayers0218,
+            Asc<MapSemanticLayerState0218>("CampaignId"),
+            Asc<MapSemanticLayerState0218>("MapId"),
+            Compound<MapSemanticLayerState0218>("MapId", "LayerKind"));
+        CreateIndexes(MapSemanticFeatures0218,
+            Asc<MapSemanticFeatureState0218>("CampaignId"),
+            Asc<MapSemanticFeatureState0218>("MapId"),
+            Asc<MapSemanticFeatureState0218>("LayerId"),
+            Compound<MapSemanticFeatureState0218>("MapId", "SemanticKind"),
+            Compound<MapSemanticFeatureState0218>("MapId", "GenerationIdentity"));
+        CreateIndexes(MapPortals0218,
+            Asc<MapPortalState0218>("CampaignId"),
+            Asc<MapPortalState0218>("SourceMapId"),
+            Asc<MapPortalState0218>("TargetMapId"));
+        CreateIndexes(MapGeneratorRecipes0218,
+            Asc<MapGeneratorRecipeDefinition0218>("CampaignId"),
+            Asc<MapGeneratorRecipeDefinition0218>("GeneratorKind"));
+        CreateIndexes(MapGenerationJobs0218,
+            Asc<MapGenerationJobState0218>("CampaignId"),
+            Asc<MapGenerationJobState0218>("MapId"),
+            Asc<MapGenerationJobState0218>("Status"));
 
         CreateIndexes(MapFogLayers,
             Asc<FogOfWarState>("MapId"),
@@ -1814,6 +2180,13 @@ public class MongoRepositoryFactory : INriRepositoryFactory
         Profiles = new MongoRepository<UserProfile>(context.Profiles);
         Characters = new MongoRepository<Character>(context.Characters);
         Presence = new MongoRepository<SessionUserState>(context.Presence);
+        Campaigns = new MongoRepository<Campaign>(context.Campaigns);
+        CampaignMemberships = new MongoRepository<CampaignMembership>(context.CampaignMemberships);
+        CampaignCapabilities = new MongoRepository<CampaignCapabilityDefinition>(context.CampaignCapabilities);
+        SessionParticipations = new MongoRepository<SessionParticipation>(context.SessionParticipations);
+        ActiveGameContextPreferences = new MongoRepository<ActiveGameContextPreference>(context.ActiveGameContextPreferences);
+        AutomationPolicies = new MongoRepository<AutomationPolicyDefinition>(context.AutomationPolicies);
+        AutomationExecutions = new MongoRepository<AutomationExecutionRecord>(context.AutomationExecutions);
         CurrentSessions = new MongoRepository<CurrentSessionState>(context.CurrentSessions);
         CharacterGroups = new MongoRepository<CharacterGroupState>(context.CharacterGroups);
         CharacterGroupMembers = new MongoRepository<CharacterGroupMemberState>(context.CharacterGroupMembers);
@@ -1825,6 +2198,7 @@ public class MongoRepositoryFactory : INriRepositoryFactory
         DiceRequests = new MongoRepository<DiceRollRequest>(context.DiceRequests);
         PlayerRequests = new MongoRepository<PlayerRequestState>(context.PlayerRequests);
         PlayerRequestComments = new MongoRepository<PlayerRequestCommentState>(context.PlayerRequestComments);
+        AssetConfigurationBlueprints = new MongoRepository<AssetConfigurationBlueprintState>(context.AssetConfigurationBlueprints);
         WorldCalendarDefinitions = new MongoRepository<WorldCalendarDefinition>(context.WorldCalendarDefinitions);
         WorldCalendarSeasons = new MongoRepository<WorldCalendarSeasonDefinition>(context.WorldCalendarSeasons);
         WorldCalendarMonths = new MongoRepository<WorldCalendarMonthDefinition>(context.WorldCalendarMonths);
@@ -1873,11 +2247,26 @@ public class MongoRepositoryFactory : INriRepositoryFactory
         ProjectAuditEntries = new MongoRepository<ProjectAuditEntryState>(context.ProjectAuditEntries);
         ProjectEntityLinks = new MongoRepository<ProjectEntityLinkState>(context.ProjectEntityLinks);
         ProjectProposals = new MongoRepository<ProjectProposalBoundaryState>(context.ProjectProposals);
+        ConstructionSites0197 = new MongoRepository<ConstructionSiteState0197>(context.ConstructionSites0197);
+        ConstructionReservations0197 = new MongoRepository<ConstructionResourceReservationState0197>(context.ConstructionReservations0197);
+        ConstructionStageConsumptions0197 = new MongoRepository<ConstructionStageConsumptionState0197>(context.ConstructionStageConsumptions0197);
+        LargeAssetMaintenanceProfiles0197 = new MongoRepository<LargeAssetMaintenanceProfileState0197>(context.LargeAssetMaintenanceProfiles0197);
+        AssetOperationStates0198 = new MongoRepository<AssetOperationState0198>(context.AssetOperationStates0198);
+        AssetMaintenanceReservations0198 = new MongoRepository<AssetMaintenanceReservationState0198>(context.AssetMaintenanceReservations0198);
+        AssetMaintenanceStageConsumptions0198 = new MongoRepository<AssetMaintenanceStageConsumptionState0198>(context.AssetMaintenanceStageConsumptions0198);
+        MaintenanceServiceRecords0198 = new MongoRepository<MaintenanceServiceRecordState0198>(context.MaintenanceServiceRecords0198);
         KnowledgeDefinitions = new MongoRepository<KnowledgeDefinition>(context.KnowledgeDefinitions);
         EntityKnowledgeStates = new MongoRepository<EntityKnowledgeState>(context.EntityKnowledgeStates);
         AppliedKnowledgeDefinitions = new MongoRepository<AppliedKnowledgeDefinition>(context.AppliedKnowledgeDefinitions);
         KnowledgeSources = new MongoRepository<KnowledgeSourceState>(context.KnowledgeSources);
         ResearchResults = new MongoRepository<ResearchResultState>(context.ResearchResults);
+        ReverseEngineeringResults = new MongoRepository<ReverseEngineeringResultState>(context.ReverseEngineeringResults);
+        PrototypeRuntimeStates = new MongoRepository<PrototypeRuntimeState>(context.PrototypeRuntimeStates);
+        PrototypeTestResults = new MongoRepository<PrototypeTestResultState>(context.PrototypeTestResults);
+        PrototypeDefectInstances = new MongoRepository<PrototypeDefectInstanceState>(context.PrototypeDefectInstances);
+        LimitedProductionAuthorizations = new MongoRepository<LimitedProductionAuthorizationState>(context.LimitedProductionAuthorizations);
+        LimitedProductionCapacityClaims = new MongoRepository<LimitedProductionCapacityClaimState>(context.LimitedProductionCapacityClaims);
+        ManufacturingBatchResults = new MongoRepository<ManufacturingBatchResultState>(context.ManufacturingBatchResults);
         ExperienceCoinLedger = new MongoRepository<ExperienceCoinLedgerEntry>(context.ExperienceCoinLedger);
         CraftingRecipes = new MongoRepository<CraftingRecipeDefinition>(context.CraftingRecipes);
         CraftingRecipeIngredients = new MongoRepository<RecipeIngredientRequirement>(context.CraftingRecipeIngredients);
@@ -1959,6 +2348,13 @@ public class MongoRepositoryFactory : INriRepositoryFactory
     public IRepository<UserProfile> Profiles { get; }
     public IRepository<Character> Characters { get; }
     public IRepository<SessionUserState> Presence { get; }
+    public IRepository<Campaign> Campaigns { get; }
+    public IRepository<CampaignMembership> CampaignMemberships { get; }
+    public IRepository<CampaignCapabilityDefinition> CampaignCapabilities { get; }
+    public IRepository<SessionParticipation> SessionParticipations { get; }
+    public IRepository<ActiveGameContextPreference> ActiveGameContextPreferences { get; }
+    public IRepository<AutomationPolicyDefinition> AutomationPolicies { get; }
+    public IRepository<AutomationExecutionRecord> AutomationExecutions { get; }
     public IRepository<CurrentSessionState> CurrentSessions { get; }
     public IRepository<CharacterGroupState> CharacterGroups { get; }
     public IRepository<CharacterGroupMemberState> CharacterGroupMembers { get; }
@@ -1970,6 +2366,7 @@ public class MongoRepositoryFactory : INriRepositoryFactory
     public IRepository<DiceRollRequest> DiceRequests { get; }
     public IRepository<PlayerRequestState> PlayerRequests { get; }
     public IRepository<PlayerRequestCommentState> PlayerRequestComments { get; }
+    public IRepository<AssetConfigurationBlueprintState> AssetConfigurationBlueprints { get; }
     public IRepository<WorldCalendarDefinition> WorldCalendarDefinitions { get; }
     public IRepository<WorldCalendarSeasonDefinition> WorldCalendarSeasons { get; }
     public IRepository<WorldCalendarMonthDefinition> WorldCalendarMonths { get; }
@@ -2018,11 +2415,26 @@ public class MongoRepositoryFactory : INriRepositoryFactory
     public IRepository<ProjectAuditEntryState> ProjectAuditEntries { get; }
     public IRepository<ProjectEntityLinkState> ProjectEntityLinks { get; }
     public IRepository<ProjectProposalBoundaryState> ProjectProposals { get; }
+    public IRepository<ConstructionSiteState0197> ConstructionSites0197 { get; }
+    public IRepository<ConstructionResourceReservationState0197> ConstructionReservations0197 { get; }
+    public IRepository<ConstructionStageConsumptionState0197> ConstructionStageConsumptions0197 { get; }
+    public IRepository<LargeAssetMaintenanceProfileState0197> LargeAssetMaintenanceProfiles0197 { get; }
+    public IRepository<AssetOperationState0198> AssetOperationStates0198 { get; }
+    public IRepository<AssetMaintenanceReservationState0198> AssetMaintenanceReservations0198 { get; }
+    public IRepository<AssetMaintenanceStageConsumptionState0198> AssetMaintenanceStageConsumptions0198 { get; }
+    public IRepository<MaintenanceServiceRecordState0198> MaintenanceServiceRecords0198 { get; }
     public IRepository<KnowledgeDefinition> KnowledgeDefinitions { get; }
     public IRepository<EntityKnowledgeState> EntityKnowledgeStates { get; }
     public IRepository<AppliedKnowledgeDefinition> AppliedKnowledgeDefinitions { get; }
     public IRepository<KnowledgeSourceState> KnowledgeSources { get; }
     public IRepository<ResearchResultState> ResearchResults { get; }
+    public IRepository<ReverseEngineeringResultState> ReverseEngineeringResults { get; }
+    public IRepository<PrototypeRuntimeState> PrototypeRuntimeStates { get; }
+    public IRepository<PrototypeTestResultState> PrototypeTestResults { get; }
+    public IRepository<PrototypeDefectInstanceState> PrototypeDefectInstances { get; }
+    public IRepository<LimitedProductionAuthorizationState> LimitedProductionAuthorizations { get; }
+    public IRepository<LimitedProductionCapacityClaimState> LimitedProductionCapacityClaims { get; }
+    public IRepository<ManufacturingBatchResultState> ManufacturingBatchResults { get; }
     public IRepository<ExperienceCoinLedgerEntry> ExperienceCoinLedger { get; }
     public IRepository<CraftingRecipeDefinition> CraftingRecipes { get; }
     public IRepository<RecipeIngredientRequirement> CraftingRecipeIngredients { get; }

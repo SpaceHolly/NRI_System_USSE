@@ -1,0 +1,135 @@
+{
+  "version": 3,
+  "targets": {
+    ".NETFramework,Version=v4.8.1": {
+      "Nri.Shared/1.0.0": {
+        "type": "project",
+        "framework": ".NETFramework,Version=v4.8.1",
+        "compile": {
+          "bin/placeholder/Nri.Shared.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Nri.Shared.dll": {}
+        }
+      },
+      "Nri.Ui.Wpf/1.0.0": {
+        "type": "project",
+        "framework": ".NETFramework,Version=v4.8.1",
+        "dependencies": {
+          "Nri.Shared": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Nri.Ui.Wpf.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Nri.Ui.Wpf.dll": {}
+        }
+      }
+    },
+    ".NETFramework,Version=v4.8.1/win-x86": {
+      "Nri.Shared/1.0.0": {
+        "type": "project",
+        "framework": ".NETFramework,Version=v4.8.1",
+        "compile": {
+          "bin/placeholder/Nri.Shared.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Nri.Shared.dll": {}
+        }
+      },
+      "Nri.Ui.Wpf/1.0.0": {
+        "type": "project",
+        "framework": ".NETFramework,Version=v4.8.1",
+        "dependencies": {
+          "Nri.Shared": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Nri.Ui.Wpf.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Nri.Ui.Wpf.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Nri.Shared/1.0.0": {
+      "type": "project",
+      "path": "../Nri.Shared/Nri.Shared.csproj",
+      "msbuildProject": "../Nri.Shared/Nri.Shared.csproj"
+    },
+    "Nri.Ui.Wpf/1.0.0": {
+      "type": "project",
+      "path": "../Nri.Ui.Wpf/Nri.Ui.Wpf.csproj",
+      "msbuildProject": "../Nri.Ui.Wpf/Nri.Ui.Wpf.csproj"
+    }
+  },
+  "projectFileDependencyGroups": {
+    ".NETFramework,Version=v4.8.1": [
+      "Nri.Ui.Wpf >= 1.0.0"
+    ]
+  },
+  "packageFolders": {
+    "C:\\Users\\Mrhol\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "C:\\Users\\Mrhol\\source\\repos\\USSE\\Nri.Ui.Wpf.Gallery\\Nri.Ui.Wpf.Gallery.csproj",
+      "projectName": "Nri.Ui.Wpf.Gallery",
+      "projectPath": "C:\\Users\\Mrhol\\source\\repos\\USSE\\Nri.Ui.Wpf.Gallery\\Nri.Ui.Wpf.Gallery.csproj",
+      "packagesPath": "C:\\Users\\Mrhol\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Mrhol\\source\\repos\\USSE\\Nri.Ui.Wpf.Gallery\\obj\\",
+      "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
+      "configFilePaths": [
+        "C:\\Users\\Mrhol\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+      ],
+      "originalTargetFrameworks": [
+        "net481"
+      ],
+      "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net481": {
+          "targetAlias": "net481",
+          "projectReferences": {
+            "C:\\Users\\Mrhol\\source\\repos\\USSE\\Nri.Ui.Wpf\\Nri.Ui.Wpf.csproj": {
+              "projectPath": "C:\\Users\\Mrhol\\source\\repos\\USSE\\Nri.Ui.Wpf\\Nri.Ui.Wpf.csproj"
+            }
+          }
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "9.0.300"
+    },
+    "frameworks": {
+      "net481": {
+        "targetAlias": "net481",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306\\RuntimeIdentifierGraph.json"
+      }
+    },
+    "runtimes": {
+      "win-x86": {
+        "#import": []
+      }
+    }
+  }
+}

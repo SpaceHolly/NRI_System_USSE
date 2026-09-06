@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MongoDB.Driver;
+using Nri.Server.Infrastructure;
 using Nri.Server.Infrastructure.Mongo.Repositories;
 using Nri.Server.Logging;
 using Nri.Shared.Domain;
@@ -16,6 +18,81 @@ public interface ICombatConditionService
     Task<CombatConditionState> BuildConditionStateAsync(CombatConditionApplyRequest request, CombatEncounterState encounter, CombatParticipantState target, List<string> warnings);
     Task<CombatConditionDefinitionInfo> ResolveConditionDefinitionAsync(string conditionDefinitionId, string ruleSetId, List<string> warnings);
     CombatRuntimeValidationResult ValidateConditionApplication(CombatConditionApplyRequest request, CombatParticipantState target);
+}
+
+public interface ICombatConditionPresentationResolver
+{
+    string ResolveDisplayName(string conditionDefinitionId, string persistedDisplayName = "");
+    string BuildPlayerLogMessage(string eventType, string targetDisplayName, string conditionDefinitionId, string persistedDisplayName = "");
+}
+
+public sealed class CombatConditionPresentationResolver : ICombatConditionPresentationResolver
+{
+    private readonly IDefinitionRepositoryV2? _definitions;
+    private readonly IMongoCollection<ContentDefinitionRecord>? _contentDefinitions;
+
+    public CombatConditionPresentationResolver(IDefinitionRepositoryV2? definitions, MongoContext? mongo = null)
+    {
+        _definitions = definitions;
+        _contentDefinitions = mongo?.ContentDefinitionRecords;
+    }
+
+    public string ResolveDisplayName(string conditionDefinitionId, string persistedDisplayName = "")
+    {
+        var id = (conditionDefinitionId ?? string.Empty).Trim();
+        var unified = string.IsNullOrWhiteSpace(id) ? null : _definitions?.GetByIdAsync(DefinitionCategoryIds.Condition, id);
+        var unifiedReader = unified == null ? null : new DefinitionExtraDataReader(unified.ExtraData);
+
+        ContentDefinitionRecord? content = null;
+        if (_contentDefinitions != null && !string.IsNullOrWhiteSpace(id))
+        {
+            content = _contentDefinitions.Find(x =>
+                x.Category == DefinitionCategoryIds.Condition
+                && !x.IsArchived
+                && (x.Id == id || x.ShortCode == id || x.StableKey == id)).FirstOrDefault();
+        }
+
+        return CombatConditionPresentationRules.ReadableOrGeneric(
+            id,
+            unifiedReader?.GetString("displayNameRu", string.Empty),
+            unified?.Name,
+            content?.DisplayName,
+            content?.Name,
+            persistedDisplayName);
+    }
+
+    public string BuildPlayerLogMessage(string eventType, string targetDisplayName, string conditionDefinitionId, string persistedDisplayName = "")
+    {
+        var target = string.IsNullOrWhiteSpace(targetDisplayName) ? "Участник" : targetDisplayName.Trim();
+        var displayName = ResolveDisplayName(conditionDefinitionId, persistedDisplayName);
+        if (string.Equals(eventType, CombatEventTypes.ConditionRemoved, StringComparison.OrdinalIgnoreCase))
+            return $"{target}: состояние «{displayName}» снято.";
+        return $"{target} получает состояние «{displayName}».";
+    }
+}
+
+public static class CombatConditionPresentationRules
+{
+    public static string ReadableOrGeneric(string conditionDefinitionId, params string?[] candidates)
+    {
+        foreach (var candidate in candidates)
+        {
+            var value = (candidate ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(value)) continue;
+            if (string.Equals(value, conditionDefinitionId, StringComparison.OrdinalIgnoreCase)) continue;
+            if (LooksLikeTechnicalToken(value)) continue;
+            return value;
+        }
+        return "Состояние";
+    }
+
+    public static bool LooksLikeTechnicalToken(string value)
+    {
+        var text = (value ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        if (text.StartsWith("condition_", StringComparison.OrdinalIgnoreCase)) return true;
+        return text.IndexOf('_') >= 0 && text.All(ch => char.IsLower(ch) || char.IsDigit(ch) || ch == '_' || ch == '-' || ch == '.');
+    }
 }
 
 public sealed class CombatConditionDefinitionInfo
@@ -40,6 +117,7 @@ public sealed class CombatConditionService : ICombatConditionService
     private readonly ICombatLogWriter _logWriter;
     private readonly ICombatSnapshotService _snapshotService;
     private readonly IDefinitionRepositoryV2? _definitions;
+    private readonly ICombatConditionPresentationResolver? _presentationResolver;
     private readonly IServerLogger _logger;
 
     public CombatConditionService(
@@ -48,13 +126,15 @@ public sealed class CombatConditionService : ICombatConditionService
         ICombatLogWriter logWriter,
         ICombatSnapshotService snapshotService,
         IServerLogger logger,
-        IDefinitionRepositoryV2? definitions = null)
+        IDefinitionRepositoryV2? definitions = null,
+        ICombatConditionPresentationResolver? presentationResolver = null)
     {
         _encounters = encounters;
         _participants = participants;
         _logWriter = logWriter;
         _snapshotService = snapshotService;
         _definitions = definitions;
+        _presentationResolver = presentationResolver;
         _logger = logger;
     }
 
@@ -81,7 +161,8 @@ public sealed class CombatConditionService : ICombatConditionService
             : MergeExistingCondition(activeExisting, incoming, warnings);
 
         await _participants.UpsertAsync(target);
-        await WriteConditionLogAsync(encounter, actor, request.RequestId, applied, CombatEventTypes.ConditionApplied, $"{target.DisplayName} gains condition {applied.DisplayName}.", BuildPayload(applied), applied.IsHiddenFromPlayer);
+        await WriteConditionLogAsync(encounter, actor, request.RequestId, applied, CombatEventTypes.ConditionApplied,
+            BuildPlayerLogMessage(CombatEventTypes.ConditionApplied, target.DisplayName, applied), BuildPayload(applied), applied.IsHiddenFromPlayer);
 
         _logger.Admin($"combat.condition.apply.done conditionId={applied.ConditionInstanceId}");
         return new CombatConditionResultResponse
@@ -112,7 +193,8 @@ public sealed class CombatConditionService : ICombatConditionService
         condition.Status = CombatConditionStatuses.Removed;
         condition.Notes = AppendNote(condition.Notes, request.Reason);
         await _participants.UpsertAsync(target);
-        await WriteConditionLogAsync(encounter, actor, request.RequestId, condition, CombatEventTypes.ConditionRemoved, $"{target.DisplayName} loses condition {condition.DisplayName}.", BuildPayload(condition), condition.IsHiddenFromPlayer);
+        await WriteConditionLogAsync(encounter, actor, request.RequestId, condition, CombatEventTypes.ConditionRemoved,
+            BuildPlayerLogMessage(CombatEventTypes.ConditionRemoved, target.DisplayName, condition), BuildPayload(condition), condition.IsHiddenFromPlayer);
 
         _logger.Admin($"combat.condition.remove.done conditionId={condition.ConditionInstanceId}");
         return new CombatConditionResultResponse
@@ -158,7 +240,7 @@ public sealed class CombatConditionService : ICombatConditionService
         {
             ConditionInstanceId = Guid.NewGuid().ToString("N"),
             ConditionDefinitionId = request.ConditionDefinitionId?.Trim() ?? string.Empty,
-            DisplayName = FirstNonEmpty(definition.DisplayName, request.ConditionDefinitionId, "condition"),
+            DisplayName = ResolveDisplayName(request.ConditionDefinitionId, definition.DisplayName),
             SourceActionId = request.SourceActionId ?? string.Empty,
             SourceParticipantId = request.SourceParticipantId ?? string.Empty,
             TargetParticipantId = target.Id,
@@ -185,7 +267,7 @@ public sealed class CombatConditionService : ICombatConditionService
         var info = new CombatConditionDefinitionInfo
         {
             DefinitionId = conditionDefinitionId ?? string.Empty,
-            DisplayName = conditionDefinitionId ?? string.Empty
+            DisplayName = ResolveDisplayName(conditionDefinitionId, string.Empty)
         };
 
         if (!CombatFeatureGate.IsEnabled(nameof(CombatFeatureFlags.UseCombatConditionDefinitionLookup)))
@@ -212,7 +294,7 @@ public sealed class CombatConditionService : ICombatConditionService
             AddWarning(warnings, "condition_definition_ruleset_mismatch");
 
         var reader = new DefinitionExtraDataReader(doc.ExtraData);
-        info.DisplayName = FirstNonEmpty(reader.GetString("displayNameRu", string.Empty), doc.Name, doc.Id);
+        info.DisplayName = ResolveDisplayName(conditionDefinitionId, FirstNonEmpty(reader.GetString("displayNameRu", string.Empty), doc.Name));
         info.ConditionGroup = reader.GetString("conditionGroup", string.Empty);
         info.Severity = reader.GetString("severity", string.Empty);
         info.StackMode = FirstNonEmpty(reader.GetString("stackMode", string.Empty), "unique");
@@ -225,6 +307,21 @@ public sealed class CombatConditionService : ICombatConditionService
         foreach (var warning in reader.Warnings) AddWarning(warnings, warning);
         foreach (var error in reader.Errors) AddWarning(warnings, error);
         return Task.FromResult(info);
+    }
+
+    private string ResolveDisplayName(string conditionDefinitionId, string persistedDisplayName)
+        => _presentationResolver?.ResolveDisplayName(conditionDefinitionId, persistedDisplayName)
+           ?? CombatConditionPresentationRules.ReadableOrGeneric(conditionDefinitionId, persistedDisplayName);
+
+    private string BuildPlayerLogMessage(string eventType, string targetDisplayName, CombatConditionState condition)
+    {
+        if (_presentationResolver != null)
+            return _presentationResolver.BuildPlayerLogMessage(eventType, targetDisplayName, condition.ConditionDefinitionId, condition.DisplayName);
+        var target = string.IsNullOrWhiteSpace(targetDisplayName) ? "Участник" : targetDisplayName;
+        var displayName = ResolveDisplayName(condition.ConditionDefinitionId, condition.DisplayName);
+        return string.Equals(eventType, CombatEventTypes.ConditionRemoved, StringComparison.OrdinalIgnoreCase)
+            ? $"{target}: состояние «{displayName}» снято."
+            : $"{target} получает состояние «{displayName}».";
     }
 
     public CombatRuntimeValidationResult ValidateConditionApplication(CombatConditionApplyRequest request, CombatParticipantState target)

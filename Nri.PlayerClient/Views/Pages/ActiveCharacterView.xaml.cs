@@ -15,6 +15,11 @@ public partial class ActiveCharacterView : UserControl
 
     private PlayerMainViewModel? ViewModel => DataContext as PlayerMainViewModel;
 
+    private void OpenLiveState_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (ViewModel != null) ViewModel.SelectedPlayerRouteKey = "liveState";
+    }
+
     private void PlayerDevelopmentHexagonViewer_FitToView_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         Dispatcher.BeginInvoke(new Action(ScrollDevelopmentViewerToVisibleNodes), DispatcherPriority.ContextIdle);

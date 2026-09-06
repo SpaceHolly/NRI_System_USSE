@@ -1,16 +1,29 @@
-using System;
+﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading.Tasks;
 using Nri.AdminClient.Diagnostics;
 using Nri.Shared.Configuration;
 using Nri.Shared.Contracts;
+using Nri.Shared.Domain;
+using Nri.Shared.Diagnostics;
+using Nri.Ui.Wpf;
 
 namespace Nri.AdminClient.Networking;
 
 public class ClientSessionState
 {
     public string? AuthToken { get; set; }
+
+    public event Action? AuthenticationInvalidated;
+
+    public void InvalidateAuthentication()
+    {
+        AuthToken = null;
+        AuthenticationInvalidated?.Invoke();
+    }
 }
 
 public interface IJsonTcpClient : IDisposable
@@ -31,6 +44,7 @@ public class JsonTcpClient : IJsonTcpClient
     private TcpClient? _tcpClient;
     private StreamReader? _reader;
     private StreamWriter? _writer;
+    public ConnectionLifecycleCoordinator Lifecycle { get; } = new();
 
     public JsonTcpClient(ClientConfig config, ClientSessionState session)
     {
@@ -40,6 +54,7 @@ public class JsonTcpClient : IJsonTcpClient
 
     public string ServerHost => _config.ServerHost;
     public int ServerPort => _config.ServerPort;
+    public long ConnectionGeneration => Lifecycle.Current.ConnectionGeneration;
 
     public void UpdateEndpoint(string host, int port)
     {
@@ -67,9 +82,11 @@ public class JsonTcpClient : IJsonTcpClient
             return;
         }
 
+        var reconnect = Lifecycle.Current.ConnectionGeneration > 0;
+        Lifecycle.BeginConnect(reconnect);
         ClientLogService.Instance.Info($"Connecting to server: {ServerHost}:{ServerPort}");
 
-        DisconnectUnsafe();
+        DisconnectUnsafe(false);
         var connectingClient = new TcpClient();
         var connectTask = connectingClient.ConnectAsync(ServerHost, ServerPort);
         if (!connectTask.Wait(TimeSpan.FromSeconds(5)))
@@ -97,6 +114,7 @@ public class JsonTcpClient : IJsonTcpClient
         stream.WriteTimeout = 5000;
         _reader = new StreamReader(stream);
         _writer = new StreamWriter(stream) { AutoFlush = true };
+        Lifecycle.MarkPhysicalConnectionEstablished();
         ClientLogService.Instance.Info($"Connected to server: {ServerHost}:{ServerPort}");
     }
 
@@ -108,7 +126,7 @@ public class JsonTcpClient : IJsonTcpClient
         }
     }
 
-    private void DisconnectUnsafe()
+    private void DisconnectUnsafe(bool publishState = true)
     {
         _reader?.Dispose();
         _writer?.Dispose();
@@ -116,6 +134,7 @@ public class JsonTcpClient : IJsonTcpClient
         _reader = null;
         _writer = null;
         _tcpClient = null;
+        if (publishState) Lifecycle.MarkDisconnected();
         ClientLogService.Instance.Info("Disconnected from server");
     }
 
@@ -123,6 +142,13 @@ public class JsonTcpClient : IJsonTcpClient
     {
         lock (_syncRoot)
         {
+            if (!CommandSafetyClassifier0213.CanSend(Lifecycle.Current, request.Command))
+                return BuildRecoveryBlockedResponse(request);
+
+            var stopwatch = Stopwatch.StartNew();
+            var requestBytes = 0;
+            var responseBytes = 0;
+            PerformanceTelemetry0214.Current.IncrementCounter("in_flight_requests");
             try
             {
                 if (_tcpClient is not { Connected: true } || _reader == null || _writer == null)
@@ -130,29 +156,85 @@ public class JsonTcpClient : IJsonTcpClient
                     ConnectUnsafe();
                 }
 
-                request.AuthToken = request.AuthToken ?? _session.AuthToken;
+                if (IsAnonymousAuthCommand(request.Command))
+                {
+                    request.AuthToken = null;
+                }
+                else
+                {
+                    request.AuthToken = request.AuthToken ?? _session.AuthToken;
+                }
+                var sentAuthToken = request.AuthToken;
+                request.ClientType = "AdminClient";
+                request.ConnectionGeneration = ConnectionGeneration;
+                request.ClientDiagnostics = PerformanceTelemetry0214.Current.CaptureClientDiagnostics(request.ClientType, request.ConnectionGeneration);
                 var json = JsonProtocolSerializer.Serialize(request);
+                requestBytes = Encoding.UTF8.GetByteCount(json);
                 _writer!.WriteLine(json);
 
                 var responseJson = _reader!.ReadLine();
+                responseBytes = Encoding.UTF8.GetByteCount(responseJson ?? string.Empty);
                 var response = JsonProtocolSerializer.Deserialize<ResponseEnvelope>(responseJson ?? string.Empty)
                                ?? new ResponseEnvelope { Status = ResponseStatus.Error, ErrorCode = ErrorCode.InvalidRequest, Message = "Empty response." };
 
                 if (response.Payload.ContainsKey("authToken"))
                 {
                     _session.AuthToken = Convert.ToString(response.Payload["authToken"]);
+                    Lifecycle.MarkAuthenticated();
+                }
+                else if (response.Status == ResponseStatus.Unauthorized || response.ErrorCode == ErrorCode.InvalidToken)
+                {
+                    if (IsInvalidAuthenticationResponse(response)
+                        && !string.IsNullOrWhiteSpace(sentAuthToken)
+                        && string.Equals(_session.AuthToken, sentAuthToken, StringComparison.Ordinal))
+                    {
+                        _session.InvalidateAuthentication();
+                        Lifecycle.MarkSessionExpired(response.Message);
+                        response.Message = ConnectionProblemMapper.FromRawMessage(response.Message).UserMessage;
+                    }
+                    else if (string.IsNullOrWhiteSpace(sentAuthToken))
+                    {
+                        response.Message = "Войдите в учётную запись, чтобы продолжить.";
+                    }
+                    else
+                    {
+                        response.Message = ConnectionProblemMapper.FromRawMessage(response.Message).UserMessage;
+                    }
                 }
 
+                RecordPerformance(request, response.Status.ToString(), "completed", stopwatch.ElapsedMilliseconds, requestBytes, responseBytes);
                 return response;
             }
             catch (Exception ex) when (IsTransportException(ex))
             {
                 // Always drop stale/broken sockets on transport errors.
-                DisconnectUnsafe();
+                DisconnectUnsafe(false);
+                Lifecycle.MarkTransportLost(ex.Message);
                 ClientLogService.Instance.Warn($"Network unavailable command={request.Command}; endpoint={ServerHost}:{ServerPort}; message={ex.Message}");
-                return BuildTransportErrorResponse(request, $"Сервер недоступен: {ServerHost}:{ServerPort}. Проверьте адрес и запущен ли сервер.");
+                RecordPerformance(request, "Error", "transport", stopwatch.ElapsedMilliseconds, requestBytes, responseBytes);
+                return BuildTransportErrorResponse(request, BuildUserFacingTransportMessage());
+            }
+            finally
+            {
+                PerformanceTelemetry0214.Current.IncrementCounter("in_flight_requests", -1);
             }
         }
+    }
+
+    private void RecordPerformance(RequestEnvelope request, string status, string outcome, long elapsedMs, int requestBytes, int responseBytes)
+    {
+        PerformanceTelemetry0214.Current.Record(new PerformanceSample0214
+        {
+            Source = "AdminClient",
+            Category = "client_request",
+            Command = request.Command,
+            Status = status,
+            Outcome = outcome,
+            ElapsedMilliseconds = elapsedMs,
+            RequestBytes = requestBytes,
+            ResponseBytes = responseBytes,
+            ConnectionGeneration = ConnectionGeneration
+        });
     }
 
     public void Dispose()
@@ -173,6 +255,12 @@ public class JsonTcpClient : IJsonTcpClient
             TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnFaulted);
     }
 
+    private static bool IsInvalidAuthenticationResponse(ResponseEnvelope response)
+    {
+        return response.ErrorCode == ErrorCode.InvalidToken
+               || string.Equals(response.Message?.Trim(), "Auth token is invalid.", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsTransportException(Exception ex)
         => ex is IOException
            || ex is SocketException
@@ -181,22 +269,28 @@ public class JsonTcpClient : IJsonTcpClient
            || ex.InnerException is IOException
            || ex.InnerException is TimeoutException;
 
+    private static bool IsAnonymousAuthCommand(string? command)
+        => string.Equals(command, CommandNames.AuthLogin, StringComparison.OrdinalIgnoreCase)
+           || string.Equals(command, CommandNames.AuthRegister, StringComparison.OrdinalIgnoreCase);
+
     private static ResponseEnvelope BuildTransportErrorResponse(RequestEnvelope request, string message)
         => new ResponseEnvelope
         {
             RequestId = request.RequestId,
             Status = ResponseStatus.Error,
             ErrorCode = ErrorCode.InternalError,
-            Message = NormalizeTransportErrorMessage(message)
+            Message = string.IsNullOrWhiteSpace(message) ? BuildUserFacingTransportMessage() : message
         };
 
-    private static string NormalizeTransportErrorMessage(string message)
-    {
-        if (!string.IsNullOrWhiteSpace(message) && !message.Contains("Р"))
+    private static ResponseEnvelope BuildRecoveryBlockedResponse(RequestEnvelope request)
+        => new ResponseEnvelope
         {
-            return message;
-        }
+            RequestId = request.RequestId,
+            Status = ResponseStatus.Conflict,
+            ErrorCode = ErrorCode.Conflict,
+            Message = "Действие временно недоступно: соединение восстанавливается."
+        };
 
-        return "Сервер недоступен. Проверьте адрес, порт и запущен ли сервер.";
-    }
+    private static string BuildUserFacingTransportMessage()
+        => "Сервер недоступен. Проверьте адрес, порт и запущен ли сервер.";
 }

@@ -6,76 +6,193 @@
         xmlns:controls="clr-namespace:Nri.PlayerClient.Views.Controls"
         xmlns:groups="clr-namespace:Nri.PlayerClient.Views.Groups"
         xmlns:journal="clr-namespace:Nri.PlayerClient.Views.Journal"
+        xmlns:shops="clr-namespace:Nri.PlayerClient.Views.Shops"
+        xmlns:rest="clr-namespace:Nri.PlayerClient.Views.Rest"
         xmlns:calendar="clr-namespace:Nri.PlayerClient.Views.Calendar"
         xmlns:engineering="clr-namespace:Nri.PlayerClient.Views.Engineering"
         xmlns:production="clr-namespace:Nri.PlayerClient.Views.Production"
         xmlns:proposals="clr-namespace:Nri.PlayerClient.Views.Proposals"
         xmlns:maps="clr-namespace:Nri.PlayerClient.Views.Maps"
+        xmlns:definitions="clr-namespace:Nri.PlayerClient.Views.Definitions"
         xmlns:pages="clr-namespace:Nri.PlayerClient.Views.Pages"
         xmlns:sessions="clr-namespace:Nri.PlayerClient.Views.Sessions"
         xmlns:dashboard="clr-namespace:Nri.PlayerClient.Views.Dashboard"
+        xmlns:gameplay="clr-namespace:Nri.PlayerClient.Views.Gameplay"
+        xmlns:world="clr-namespace:Nri.PlayerClient.Views.World"
+        xmlns:vm="clr-namespace:Nri.PlayerClient.ViewModels"
+        xmlns:nri="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="NRI System USSE — Игрок"
         Height="900"
         Width="1440"
         MinHeight="740"
-        MinWidth="1180"
-        Background="{StaticResource BgBrush}"
+        MinWidth="1080"
+        Background="{StaticResource NriApplicationBackgroundBrush}"
         Foreground="{StaticResource TextBrush}">
-    <Grid Margin="12" Background="{StaticResource BgBrush}">
+    <Window.Resources>
+        <Style x:Key="PlayerRouteHostTabControlStyle" TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid KeyboardNavigation.TabNavigation="Local">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="0"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TabPanel Grid.Row="0"
+                                      IsItemsHost="True"
+                                      Visibility="Collapsed"/>
+                            <Border Grid.Row="1" Background="Transparent">
+                                <ContentPresenter x:Name="PART_SelectedContentHost"
+                                                  ContentSource="SelectedContent"
+                                                  ContentTemplate="{TemplateBinding SelectedContentTemplate}"
+                                                  ContentStringFormat="{TemplateBinding SelectedContentStringFormat}"
+                                                  KeyboardNavigation.TabIndex="2"
+                                                  KeyboardNavigation.TabNavigation="Local"
+                                                  KeyboardNavigation.DirectionalNavigation="Contained"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid Background="{StaticResource NriApplicationBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="10">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <StackPanel Margin="0,0,16,0">
-                        <TextBlock Text="Клиент игрока" FontWeight="Bold" FontSize="18"/>
-                        <TextBlock Text="Character v2 / профиль персонажа" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
-                    </StackPanel>
-                    <Border Style="{StaticResource StatusBadgeStyle}" VerticalAlignment="Center">
-                        <TextBlock AutomationProperties.AutomationId="Player_ConnectionState_Text" Text="{Binding ConnectionState}" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
-                    </Border>
-                    <TextBlock Text="{Binding SessionSummary}" Margin="14,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
+        <nri:NriShellHeader Grid.Row="0"
+                            ProductName="NRI System USSE"
+                            ContextTitle="{Binding ActiveCharacterShellTitle}"
+                            ContextSubtitle="{Binding ApplicationContextStatusText}"
+                            ConnectionText="{Binding ConnectionState}"
+                            UserDisplayName="{Binding PlayerDisplayName}"
+                            AutomationProperties.Name="{Binding ActiveCharacterShellTitle}"
+                            AutomationProperties.AutomationId="Player_Shell_Header">
+            <nri:NriShellHeader.Actions>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock AutomationProperties.AutomationId="Player_DisplayName_Text" Text="{Binding PlayerDisplayName}" Width="1" Height="1" Opacity="0.01" IsHitTestVisible="False" Focusable="False"/>
+                    <nri:NriOptionField Width="160" ItemsSource="{Binding GameCampaignOptions}" SelectedValue="{Binding SelectedGameCampaignId, UpdateSourceTrigger=PropertyChanged}" AccessibleName="Кампания" AutomationProperties.AutomationId="Player_GameContext_Campaign_Selector"/>
+                    <Button Content="Выбрать" Command="{Binding SelectGameCampaignCommand}" Style="{StaticResource NriSecondaryButtonStyle}" Margin="6,0,0,0" AutomationProperties.AutomationId="Player_GameContext_Campaign_Select"/>
+                    <TextBlock Text="{Binding ActiveCampaignRoleSummary}" VerticalAlignment="Center" Margin="10,0,0,0"
+                               AutomationProperties.AutomationId="Player_GameContext_Campaign_Role"/>
+                    <nri:NriOptionField Width="170" ItemsSource="{Binding GameSessionOptions}" SelectedValue="{Binding SelectedGameSessionId, UpdateSourceTrigger=PropertyChanged}" AccessibleName="Сессия" Margin="8,0,0,0" AutomationProperties.AutomationId="Player_GameContext_Session_Selector"/>
+                    <Button Content="Открыть" Command="{Binding SelectGameSessionCommand}" Style="{StaticResource NriSecondaryButtonStyle}" Margin="6,0,0,0" AutomationProperties.AutomationId="Player_GameContext_Session_Select"/>
+                    <Button AutomationProperties.AutomationId="Player_Global_Refresh_Button" Content="Обновить" Command="{Binding RefreshCommand}" Style="{StaticResource NriSecondaryButtonStyle}"/>
+                    <Button AutomationProperties.AutomationId="Player_Server_Button" Content="Подключение" Command="{Binding ToggleConnectionPopupCommand}" Style="{StaticResource NriSecondaryButtonStyle}" Margin="8,0,0,0"/>
+                    <Button AutomationProperties.AutomationId="Player_Auth_Button" Content="Учётная запись" Command="{Binding ToggleAuthPopupCommand}" Style="{StaticResource NriSecondaryButtonStyle}" Margin="8,0,0,0"/>
                 </StackPanel>
+            </nri:NriShellHeader.Actions>
+        </nri:NriShellHeader>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Style="{StaticResource CardStyle}" Padding="8,4">
-                        <TextBlock Text="{Binding AudioStateText}" Width="260" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
-                    </Border>
-                    <Button Content="Обновить" Command="{Binding RefreshCommand}"/>
-                    <Button x:Name="ConnectionButton" AutomationProperties.AutomationId="Player_Server_Button" Content="Сервер" Command="{Binding ToggleConnectionPopupCommand}"/>
-                    <Button x:Name="AuthButton" AutomationProperties.AutomationId="Player_Auth_Button" Content="Вход" Command="{Binding ToggleAuthPopupCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Border Grid.Row="1" Margin="12,8,12,0" Padding="12,8"
+                Background="{StaticResource NriSecondarySurfaceBrush}"
+                BorderBrush="{StaticResource NriWarningBrush}" BorderThickness="1" CornerRadius="4"
+                Visibility="{Binding IsConnectionStaleReadOnly, Converter={StaticResource BooleanToVisibilityConverter}}"
+                AutomationProperties.AutomationId="Player_Reconnect_Banner">
+            <StackPanel>
+                <TextBlock Text="{Binding ReconnectStatusText}" FontWeight="SemiBold"/>
+                <TextBlock Text="Соединение восстанавливается. Показанные данные доступны только для чтения; отправка действий временно приостановлена."
+                           Style="{StaticResource NriSecondaryTextStyle}" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2" Margin="12,10,12,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{Binding PlayerNavigationWidth}"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Область" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource NriCardTitleTextStyle}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsNavigationCollapsed}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <Button Grid.Column="1" Margin="12,0,0,0" Content="⇤" Command="{Binding ToggleNavigationCommand}" Style="{StaticResource NriSecondaryButtonStyle}" Padding="8" MinWidth="40" AutomationProperties.AutomationId="Player_Navigation_Toggle" AutomationProperties.Name="Свернуть или развернуть навигацию"/>
+                    </Grid>
+                    <nri:NriModeSwitcher Grid.Row="1" ItemsSource="{Binding PlayerAreas}" SelectedValuePath="Id" SelectedValue="{Binding SelectedPlayerAreaId, Mode=TwoWay}" AutomationProperties.Name="Области игрока" AutomationProperties.AutomationId="Player_Area_Switcher">
+                        <nri:NriModeSwitcher.Style>
+                            <Style TargetType="nri:NriModeSwitcher" BasedOn="{StaticResource {x:Type nri:NriModeSwitcher}}">
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsAuthenticated}" Value="True">
+                                    <DataTrigger Binding="{Binding IsNavigationCollapsed}" Value="True">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </Button.Style>
-                    </Button>
-                    <Border Style="{StaticResource CardStyle}" Padding="8,4" Margin="8,0,0,0">
-                        <TextBlock AutomationProperties.AutomationId="Player_DisplayName_Text" Text="{Binding PlayerDisplayName}" FontWeight="SemiBold"/>
-                    </Border>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Background="{StaticResource BgBrush}">
-        <StackPanel Margin="0,8,0,0">
-        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
-            <Grid>
-                <TabControl Background="{StaticResource BgBrush}" SelectedValuePath="Tag" SelectedValue="{Binding SelectedMainTab, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        </nri:NriModeSwitcher.Style>
+                        <nri:NriModeSwitcher.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="AutomationProperties.Name" Value="{Binding Title}"/>
+                                <Setter Property="AutomationProperties.AutomationId" Value="{Binding AutomationId}"/>
+                            </Style>
+                        </nri:NriModeSwitcher.ItemContainerStyle>
+                        <nri:NriModeSwitcher.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:PlayerShellArea}">
+                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
+                            </DataTemplate>
+                        </nri:NriModeSwitcher.ItemTemplate>
+                    </nri:NriModeSwitcher>
+                    <nri:NriNavigationRail Grid.Row="2" Margin="0,10,0,0" Header="Разделы"
+                                           ItemsSource="{Binding VisiblePlayerRoutes}"
+                                           SelectedValuePath="RouteKey"
+                                           SelectedValue="{Binding SelectedPlayerRouteKey, Mode=TwoWay}"
+                                           IsCollapsed="{Binding IsNavigationCollapsed}"
+                                           AutomationProperties.Name="Разделы игрока"
+                                           AutomationProperties.AutomationId="Player_Route_Navigation">
+                        <nri:NriNavigationRail.Style>
+                            <Style TargetType="nri:NriNavigationRail" BasedOn="{StaticResource {x:Type nri:NriNavigationRail}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsNavigationCollapsed}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </nri:NriNavigationRail.Style>
+                        <nri:NriNavigationRail.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="AutomationProperties.Name" Value="{Binding Title}"/>
+                                <Setter Property="AutomationProperties.AutomationId" Value="{Binding AutomationId}"/>
+                            </Style>
+                        </nri:NriNavigationRail.ItemContainerStyle>
+                        <nri:NriNavigationRail.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:PlayerShellRoute}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding DisplayDescription}" Style="{StaticResource NriMetadataTextStyle}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </nri:NriNavigationRail.ItemTemplate>
+                    </nri:NriNavigationRail>
+                </Grid>
+            </Border>
+            <nri:NriRouteHost Grid.Column="1"
+                              IsHitTestVisible="{Binding AreServerMutationsEnabled}"
+                              Breadcrumbs="{Binding SelectedPlayerBreadcrumb}"
+                              RouteTitle="{Binding SelectedPlayerRouteTitle}"
+                              RouteSubtitle="{Binding SelectedPlayerRouteDescription}"
+                              HeaderVisibility="{Binding SelectedPlayerRouteHeaderVisibility}"
+                              AutomationProperties.AutomationId="Player_Route_Host">
+                <TabControl Style="{StaticResource PlayerRouteHostTabControlStyle}" SelectedValuePath="Tag" SelectedValue="{Binding SelectedMainTab, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                     <TabItem Header="Игровой центр" Tag="gameCenter" AutomationProperties.AutomationId="PlayerGameCenter_Tab">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel>
@@ -170,245 +287,26 @@
                         </Grid>
                     </TabItem>
                     <TabItem Header="Персонажи" Tag="MyCharacters" AutomationProperties.AutomationId="PlayerNav_Characters_Tab">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <Grid Margin="8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="2*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                        <pages:PlayerCharacterSelectionView/>
+                    </TabItem>
 
-                                <Grid>
-                                    <ListBox x:Name="MyCharactersList" ItemsSource="{Binding MyCharacters}" SelectedItem="{Binding SelectedMyCharacter, UpdateSourceTrigger=PropertyChanged}">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Style="{StaticResource CardStyle}" Padding="10">
-                                                    <Grid>
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="Auto"/>
-                                                            <RowDefinition Height="Auto"/>
-                                                            <RowDefinition Height="Auto"/>
-                                                        </Grid.RowDefinitions>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-
-                                                        <StackPanel>
-                                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="16"/>
-                                                            <TextBlock Text="{Binding Race, StringFormat=Раса: {0}}" Foreground="{StaticResource MutedBrush}"/>
-                                                        </StackPanel>
-                                                        <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top">
-                                                            <Border Style="{StaticResource CardStyle}" Padding="6,2">
-                                                                <TextBlock Text="{Binding ActivityText}"/>
-                                                            </Border>
-                                                            <Border Padding="6,2" Margin="0,4,0,0">
-                                                                <Border.Style>
-                                                                    <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
-                                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                                        <Style.Triggers>
-                                                                            <DataTrigger Binding="{Binding Archived}" Value="True">
-                                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                                            </DataTrigger>
-                                                                        </Style.Triggers>
-                                                                    </Style>
-                                                                </Border.Style>
-                                                                <TextBlock Text="{Binding ArchiveText}"/>
-                                                            </Border>
-                                                        </StackPanel>
-
-                                                        <WrapPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,8,0,0">
-                                                            <TextBlock Text="{Binding HealthText, StringFormat=HP: {0}}" Margin="0,0,12,0"/>
-                                                            <TextBlock Text="{Binding ArmorText}" Margin="0,0,12,0"/>
-                                                            <TextBlock Text="{Binding Age, StringFormat=Возраст: {0}}" Margin="0,0,12,0"/>
-                                                            <TextBlock Text="{Binding Height, StringFormat=Рост: {0}}" Margin="0,0,12,0"/>
-                                                            <TextBlock Text="{Binding ExperienceCoinsText, StringFormat=МО: {0}}"/>
-                                                        </WrapPanel>
-
-                                                        <TextBlock Grid.Row="2"
-                                                                   Grid.ColumnSpan="2"
-                                                                   Margin="0,8,0,0"
-                                                                   Text="{Binding BackstoryPreview}"
-                                                                   TextWrapping="Wrap"
-                                                                   Foreground="{StaticResource MutedBrush}"/>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-
-                                    <Border Background="{StaticResource PanelAltBrush}"
-                                        Padding="18"
-                                        Width="380"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        IsHitTestVisible="False">
-                                        <Border.Style>
-                                            <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding HasMyCharacters}" Value="True">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <StackPanel>
-                                            <TextBlock Text="Персонажи не загружены" FontWeight="Bold" FontSize="18" Margin="0,0,0,8" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Нет доступных персонажей" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="После входа список появится здесь." Foreground="{StaticResource MutedBrush}" Margin="0,6,0,0" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Если персонаж не отображается, обратитесь к GM." Foreground="{StaticResource MutedBrush}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-                                </Grid>
-
-                                <Grid Grid.Column="1" Margin="8,0,0,0">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="12"/>
-                                        <RowDefinition Height="*"/>
-                                    </Grid.RowDefinitions>
-
-                                    <Border Grid.Row="0" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}">
-                                        <StackPanel>
-                                            <TextBlock Text="Активный персонаж" FontWeight="Bold" FontSize="16"/>
-                                            <TextBlock Text="Выберите персонажа и откройте карточку." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,10"/>
-                                            <Grid Margin="0,0,0,8">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                    <TextBlock Text="Персонаж" FontWeight="SemiBold"/>
-                                                    <ComboBox SelectedValuePath="Id"
-                                                          DisplayMemberPath="Name"
-                                                          SelectedValue="{Binding SelectedCharacterId, UpdateSourceTrigger=PropertyChanged}"
-                                                          ItemsSource="{Binding MyCharacters}"/>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="1" Orientation="Vertical" Margin="8,20,0,0">
-                                                    <Button Content="Сделать активным" Command="{Binding SetActiveCharacterCommand}" IsEnabled="{Binding CanSetActiveCharacter}" Margin="0,6,0,0"/>
-                                                    <Button Content="Обновить видимость" Command="{Binding VisibilityLoadCommand}"/>
-                                                </StackPanel>
-                                            </Grid>
-                                            <Border Style="{StaticResource CardStyle}" Background="#FF223452">
-                                                <StackPanel>
-                                                    <TextBlock Text="Видимость игроку" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                                    <UniformGrid Columns="2">
-                                                        <CheckBox Content="Описание скрыто" IsChecked="{Binding VisHideDescription}"/>
-                                                        <CheckBox Content="Предыстория скрыта" IsChecked="{Binding VisHideBackstory}"/>
-                                                        <CheckBox Content="Характеристики скрыты" IsChecked="{Binding VisHideStats}"/>
-                                                        <CheckBox Content="Репутация скрыта" IsChecked="{Binding VisHideReputation}"/>
-                                                    </UniformGrid>
-                                                </StackPanel>
-                                            </Border>
-                                            <Button Content="Сохранить видимость" Command="{Binding VisibilitySaveCommand}" HorizontalAlignment="Left" Margin="0,10,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <Border Grid.Row="2" Style="{StaticResource CardStyle}">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="*"/>
-                                            </Grid.RowDefinitions>
-                                            <StackPanel>
-                                                <TextBlock Text="Публичный просмотр" FontWeight="Bold" FontSize="16"/>
-                                                <TextBlock Text="Проверка player-safe карточки персонажа." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,10"/>
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <StackPanel>
-                                                        <TextBlock Text="CharacterId" FontWeight="SemiBold"/>
-                                                        <TextBox Text="{Binding PublicViewCharacterId, UpdateSourceTrigger=PropertyChanged}"/>
-                                                    </StackPanel>
-                                                    <Button Grid.Column="1" Content="Открыть" Command="{Binding PublicCharacterLoadCommand}" Margin="8,20,0,0"/>
-                                                </Grid>
-                                            </StackPanel>
-
-                                            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Background="{StaticResource PanelAltBrush}" Margin="0,12,0,0">
-                                                <Grid>
-                                                    <Grid.RowDefinitions>
-                                                        <RowDefinition Height="Auto"/>
-                                                        <RowDefinition Height="Auto"/>
-                                                        <RowDefinition Height="Auto"/>
-                                                        <RowDefinition Height="*"/>
-                                                    </Grid.RowDefinitions>
-                                                    <StackPanel>
-                                                        <TextBlock Text="{Binding PublicProfileName}" FontWeight="Bold" FontSize="18"/>
-                                                        <TextBlock Text="{Binding PublicProfileSubtitle}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
-                                                    </StackPanel>
-                                                    <Border Grid.Row="1" Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,10,0,0">
-                                                        <StackPanel>
-                                                            <TextBlock Text="{Binding PublicProfileStatusText}" FontWeight="SemiBold"/>
-                                                            <TextBlock Text="{Binding PublicProfileHintText}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                                        </StackPanel>
-                                                    </Border>
-                                                    <StackPanel Grid.Row="2" Margin="0,10,0,0">
-                                                        <TextBlock Text="Описание" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{Binding PublicProfileDescription}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                                    </StackPanel>
-                                                    <Grid Grid.Row="3" Margin="0,12,0,0">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Border Style="{StaticResource CardStyle}" Background="#FF223452">
-                                                            <StackPanel>
-                                                                <TextBlock Text="Паспорт персонажа" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                                                <ItemsControl ItemsSource="{Binding PublicProfileIdentityRows}">
-                                                                    <ItemsControl.ItemTemplate>
-                                                                        <DataTemplate>
-                                                                            <DockPanel Margin="0,2,0,2">
-                                                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
-                                                                                <TextBlock Text="{Binding Value}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                                            </DockPanel>
-                                                                        </DataTemplate>
-                                                                    </ItemsControl.ItemTemplate>
-                                                                </ItemsControl>
-                                                                <ItemsControl ItemsSource="{Binding PublicProfileSummaryRows}">
-                                                                    <ItemsControl.ItemTemplate>
-                                                                        <DataTemplate>
-                                                                            <StackPanel Margin="0,6,0,0">
-                                                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}"/>
-                                                                                <TextBlock Text="{Binding Value}" TextWrapping="Wrap"/>
-                                                                            </StackPanel>
-                                                                        </DataTemplate>
-                                                                    </ItemsControl.ItemTemplate>
-                                                                </ItemsControl>
-                                                            </StackPanel>
-                                                        </Border>
-                                                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Background="#FF223452" Margin="8,0,0,0">
-                                                            <StackPanel>
-                                                                <TextBlock Text="Скрытые поля" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                                                <ItemsControl ItemsSource="{Binding PublicProfileHiddenRows}">
-                                                                    <ItemsControl.ItemTemplate>
-                                                                        <DataTemplate>
-                                                                            <Border Style="{StaticResource CardStyle}" Background="#FF1E2A40" Margin="0,0,0,6">
-                                                                                <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
-                                                                            </Border>
-                                                                        </DataTemplate>
-                                                                    </ItemsControl.ItemTemplate>
-                                                                </ItemsControl>
-                                                            </StackPanel>
-                                                        </Border>
-                                                    </Grid>
-                                                </Grid>
-                                            </Border>
-                                        </Grid>
-                                    </Border>
-                                </Grid>
-                            </Grid>
-                        </ScrollViewer>
+                    <TabItem Header="Создать персонажа" Tag="characterCreation" AutomationProperties.AutomationId="PlayerNav_CharacterCreation_Tab">
+                        <pages:PlayerCharacterCreationView DataContext="{Binding CharacterCreation}"/>
                     </TabItem>
 
                     <TabItem Header="Карточка" Tag="character" AutomationProperties.AutomationId="PlayerNav_CharacterCard_Tab">
                         <pages:ActiveCharacterView/>
                     </TabItem>
-                    <TabItem Header="Бой">
+                    <TabItem Header="Состояние" Tag="liveState" AutomationProperties.AutomationId="PlayerNav_LiveState_Tab">
+                        <pages:PlayerLiveActorStateView/>
+                    </TabItem>
+                    <TabItem Header="Развитие" Tag="development" AutomationProperties.AutomationId="PlayerNav_Development_Tab">
+                        <pages:PlayerDevelopmentView/>
+                    </TabItem>
+                    <TabItem Header="Бой" Tag="combat" AutomationProperties.AutomationId="PlayerNav_Combat_Tab">
                         <pages:CombatView/>
                     </TabItem>
-                    <TabItem Header="Чат / кубики">
+                    <TabItem Header="Чат / кубики" Tag="communication" AutomationProperties.AutomationId="PlayerNav_Communication_Tab">
                         <Grid Margin="8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="1.1*"/>
@@ -419,7 +317,10 @@
                                     <StackPanel>
                                         <TextBlock Text="Чат" FontWeight="Bold" FontSize="16"/>
                                         <TextBlock Text="Откройте отдельное окно чата для сообщений партии." Margin="0,6,0,8" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"/>
-                                        <Button Content="Открыть чат" Click="OpenChatWindow" Height="34"/>
+                                        <Button Content="Открыть чат"
+                                                Click="OpenChatWindow"
+                                                Height="34"
+                                                AutomationProperties.AutomationId="PlayerCommunication_OpenChat"/>
                                         <TextBlock Margin="0,8,0,0" Text="{Binding ChatSummary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </Border>
@@ -515,11 +416,16 @@
                             </ScrollViewer>
                         </Grid>
                     </TabItem>
-                    <TabItem Header="Инженерия">
+                    <TabItem Header="Инженерия" Tag="engineering">
                         <engineering:PlayerEngineeringView DataContext="{Binding Engineering}"/>
                     </TabItem>
-                    <TabItem Header="Производство">
+                    <TabItem Header="Производство" Tag="production">
                         <production:PlayerProductionView DataContext="{Binding Production}"/>
+                    </TabItem>
+                    <TabItem Header="Конструкторы активов"
+                             Tag="player.asset_configurators"
+                             AutomationProperties.AutomationId="PlayerAssetConfigurators_Tab">
+                        <engineering:PlayerAssetConfiguratorsView DataContext="{Binding AssetConfigurators}"/>
                     </TabItem>
                     <TabItem Header="Музыка" Tag="audio" AutomationProperties.AutomationId="PlayerAudio_Tab">
                         <Grid Margin="8">
@@ -578,6 +484,18 @@
                     <TabItem Header="Журнал событий" Tag="journal" AutomationProperties.AutomationId="PlayerNav_EventJournal_Tab">
                         <journal:PlayerEventJournalView DataContext="{Binding EventJournal}"/>
                     </TabItem>
+                    <TabItem Header="Игровой цикл" Tag="gameplay" AutomationProperties.AutomationId="PlayerGameplay_Route">
+                        <gameplay:PlayerGameplayView DataContext="{Binding Gameplay}"/>
+                    </TabItem>
+                    <TabItem Header="Задачи" Tag="quests" AutomationProperties.AutomationId="PlayerQuestJournal_Route">
+                        <journal:PlayerQuestJournalView DataContext="{Binding QuestJournal}"/>
+                    </TabItem>
+                    <TabItem Header="Магазины" Tag="shops" AutomationProperties.AutomationId="PlayerShop_Tab">
+                        <shops:PlayerShopView DataContext="{Binding Shops}"/>
+                    </TabItem>
+                    <TabItem Header="Отдых" Tag="rest" AutomationProperties.AutomationId="PlayerRest_Tab">
+                        <rest:PlayerRestView DataContext="{Binding Rest}"/>
+                    </TabItem>
                     <TabItem Header="Календарь" Tag="calendar" AutomationProperties.AutomationId="PlayerNav_Calendar_Tab">
                         <TabControl>
                             <TabItem Header="Мир">
@@ -588,144 +506,100 @@
                             </TabItem>
                         </TabControl>
                     </TabItem>
-                    <TabItem Header="Карта сцены">
+                    <TabItem Header="Карта сцены" Tag="sceneMap" AutomationProperties.AutomationId="PlayerNav_SceneMap_Tab">
                         <maps:PlayerSceneMapView DataContext="{Binding SceneMap}"/>
                     </TabItem>
                     <TabItem Header="Карта мира" Tag="worldMap" AutomationProperties.AutomationId="PlayerNav_WorldMap_Tab">
                         <maps:PlayerWorldMapView DataContext="{Binding WorldMap}"/>
                     </TabItem>
-                    <TabItem Header="Помещения">
+                    <TabItem Header="Погода и путешествия" Tag="weatherTravel" AutomationProperties.AutomationId="PlayerNav_WeatherTravel_Tab">
+                        <world:PlayerWeatherTravelView/>
+                    </TabItem>
+                    <TabItem Header="Справочник" Tag="definitions" AutomationProperties.AutomationId="PlayerDefinitionBrowser_Tab">
+                        <definitions:PlayerDefinitionBrowserView DataContext="{Binding DefinitionBrowser}"/>
+                    </TabItem>
+                    <TabItem Header="Помещения" Tag="rooms">
                         <maps:PlayerRoomInteriorView DataContext="{Binding RoomInterior}"/>
                     </TabItem>
                 </TabControl>
-            </Grid>
-        </Border>
+            </nri:NriRouteHost>
+        </Grid>
 
-        <Border Style="{StaticResource CardStyle}" Padding="8">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.4*"/>
-                    <ColumnDefinition Width="1*"/>
-                </Grid.ColumnDefinitions>
+        <nri:NriActivityDock Grid.Row="3" Margin="12,0,12,4"
+                             Header="Активность: чат, события, кубики и заявки"
+                             IsOpen="{Binding IsActivityDockOpen}"
+                             CompactWhenClosed="True"
+                             ToggleCommand="{Binding ToggleActivityDockCommand}"
+                             AutomationProperties.AutomationId="Player_Activity_Dock">
+            <TabControl MaxHeight="230" AutomationProperties.AutomationId="Player_Activity_Tabs">
+                <TabItem Header="Чат">
+                    <Grid Margin="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{Binding ChatSummary}" TextWrapping="Wrap"/><Button Grid.Column="1" Content="Открыть чат" Click="OpenChatWindow" Margin="12,0,0,0"/></Grid>
+                </TabItem>
+                <TabItem Header="События">
+                    <ListBox ItemsSource="{Binding SessionStateRows}" Margin="8" MinHeight="80"/>
+                </TabItem>
+                <TabItem Header="Кубики">
+                    <ListBox ItemsSource="{Binding DiceFeedRows}" Margin="8" MinHeight="80"/>
+                </TabItem>
+                <TabItem Header="Заявки">
+                    <ListBox ItemsSource="{Binding RequestRows}" Margin="8" MinHeight="80"/>
+                </TabItem>
+            </TabControl>
+        </nri:NriActivityDock>
 
-                <Grid Grid.Column="0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <Border Grid.Row="0" Style="{StaticResource CardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Текущая сессия" FontWeight="Bold"/>
-                            <ItemsControl ItemsSource="{Binding SessionStateRows}"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,0">
-                        <StackPanel>
-                            <TextBlock Text="Музыка" FontWeight="Bold"/>
-                            <TextBlock Text="{Binding AudioStateText}" Margin="0,4,0,6"/>
-                            <WrapPanel>
-                                <TextBlock Text="Громкость" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <Slider Width="120" Minimum="0" Maximum="1" Value="{Binding LocalVolume, UpdateSourceTrigger=PropertyChanged}"/>
-                                <CheckBox Content="Без звука" IsChecked="{Binding LocalMuted}" Margin="8,0,0,0"/>
-                            </WrapPanel>
-                            <Button Content="Применить" Command="{Binding AudioApplyLocalSettingsCommand}" HorizontalAlignment="Left"/>
-                        </StackPanel>
-                    </Border>
-                </Grid>
-
-                <Grid Grid.Column="1" Margin="8,0,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="0"/>
-                    </Grid.RowDefinitions>
-
-                    <Border Grid.Row="0" Style="{StaticResource CardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Создание персонажа" FontWeight="Bold" FontSize="16"/>
-                            <TextBlock Text="Создание персонажа доступно через профильный путь Character v2." Margin="0,6,0,8" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"/>
-                            <Button Content="Создать персонажа" Click="OpenCharacterCreateWindow" Height="34"/>
-                            <TextBlock Margin="0,8,0,0" Text="{Binding ConnectionStatusDetail}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,8,0,0" Visibility="Collapsed">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel>
-                                <TextBlock Text="Заметки" FontWeight="Bold" Margin="0,0,0,4"/>
-                                <TextBlock Text="Личные заметки" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="Заметки доступны в карточке персонажа." Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                                <TextBlock Text="{Binding LocalNoteStatusText}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
-                                <Button Content="Обновить заметки" Command="{Binding NotesRefreshCommand}" Margin="0,8,0,0" HorizontalAlignment="Left"/>
-                            </StackPanel>
-                        </ScrollViewer>
-                    </Border>
-                </Grid>
-            </Grid>
-        </Border>
-        </StackPanel>
-        </ScrollViewer>
-
-        <Popup IsOpen="{Binding IsConnectionPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=ConnectionButton}" StaysOpen="False">
-            <Border Style="{StaticResource CardStyle}" Width="360" Background="{StaticResource PanelAltBrush}">
-                <StackPanel>
-                    <TextBlock Text="Подключение" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
-                    <TextBlock Text="IPv4 / адрес сервера"/>
-                    <TextBox AutomationProperties.AutomationId="Player_ServerHost_Input" Text="{Binding ServerHostInput, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Text="Порт" Margin="0,8,0,0"/>
-                    <TextBox AutomationProperties.AutomationId="Player_ServerPort_Input" Text="{Binding ServerPortInput, UpdateSourceTrigger=PropertyChanged}"/>
-                    <Border Style="{StaticResource CardStyle}" Background="#FF223452" Margin="0,10,0,0">
-                        <StackPanel>
-                            <TextBlock Text="Состояние" FontWeight="SemiBold"/>
-                            <TextBlock AutomationProperties.AutomationId="Player_ConnectionPopup_State" Text="{Binding ConnectionState}" Margin="0,4,0,0"/>
-                            <TextBlock AutomationProperties.AutomationId="Player_ConnectionPopup_Detail" Text="{Binding ConnectionStatusDetail}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                        </StackPanel>
-                    </Border>
-                    <TextBlock Text="Последнее подключение" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
-                    <TextBlock Text="{Binding LastServerHost}"/>
-                    <TextBlock Text="{Binding LastServerPort}" Foreground="{StaticResource MutedBrush}"/>
-                    <WrapPanel Margin="0,10,0,0">
-                        <Button AutomationProperties.AutomationId="Player_Connect_Button" Content="Подключиться" Command="{Binding ConnectToServerCommand}"/>
-                        <Button Content="Применить" Command="{Binding ApplyConnectionSettingsCommand}"/>
-                        <Button Content="  localhost" Command="{Binding ResetConnectionDefaultsCommand}"/>
-                        <Button Content="Использовать последнее" Command="{Binding UseLastConnectionCommand}"/>
-                    </WrapPanel>
-                </StackPanel>
-            </Border>
-        </Popup>
-
-        <Popup IsOpen="{Binding IsAuthPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=AuthButton}" StaysOpen="False">
-            <Border Style="{StaticResource CardStyle}" Width="320" Background="{StaticResource PanelAltBrush}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <TextBlock Text="Вход" FontWeight="Bold" FontSize="16" Margin="0,0,0,8"/>
-                    <TextBlock Text="Логин"/>
-                    <TextBox AutomationProperties.AutomationId="Player_Login_Text" Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Text="Пароль"/>
-                    <PasswordBox x:Name="AuthPasswordBox" AutomationProperties.AutomationId="Player_Password_Box" PasswordChanged="OnAuthPasswordChanged"/>
-                    <TextBox AutomationProperties.AutomationId="Player_Password_Automation_Text"
-                             Text="{Binding PasswordText, UpdateSourceTrigger=PropertyChanged}"
-                             Width="1"
-                             Height="1"
-                             Opacity="0.01"
-                             IsTabStop="False"
-                             Margin="0"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-                        <Button Content="Регистрация" Command="{Binding RegisterCommand}"/>
-                        <Button AutomationProperties.AutomationId="Player_Login_Button" Content="Войти" Command="{Binding LoginCommand}"/>
+        <nri:NriConnectionDialog Grid.RowSpan="4"
+                                 IsOpen="{Binding IsConnectionPopupOpen, Mode=TwoWay}"
+                                 CloseCommand="{Binding ToggleConnectionPopupCommand}"
+                                 Title="Подключение к серверу"
+                                 Message="Подключитесь к серверу кампании. Адрес доступен только в дополнительных параметрах."
+                                 AutomationProperties.AutomationId="Player_Connection_Dialog">
+            <StackPanel>
+                <TextBlock AutomationProperties.AutomationId="Player_ConnectionPopup_State" Text="{Binding ConnectionState}" FontWeight="SemiBold"/>
+                <TextBlock AutomationProperties.AutomationId="Player_ConnectionPopup_Detail" Text="{Binding ConnectionStatusDetail}" Style="{StaticResource NriSecondaryTextStyle}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                <Expander Header="Дополнительно" Margin="0,12,0,0" AutomationProperties.AutomationId="Player_Connection_Advanced">
+                    <StackPanel Margin="0,8,0,0">
+                        <TextBlock Text="Адрес сервера"/>
+                        <TextBox AutomationProperties.AutomationId="Player_ServerHost_Input" Text="{Binding ServerHostInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Порт" Margin="0,8,0,0"/>
+                        <TextBox AutomationProperties.AutomationId="Player_ServerPort_Input" Text="{Binding ServerPortInput, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="{Binding LastServerHost, StringFormat=Последний адрес: {0}}" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding LastServerPort, StringFormat=Последний порт: {0}}"/>
+                        <WrapPanel Margin="0,10,0,0">
+                            <Button AutomationProperties.AutomationId="Player_Connection_Apply" Content="Применить" Command="{Binding ApplyConnectionSettingsCommand}" Style="{StaticResource NriSecondaryButtonStyle}"/>
+                            <Button Content="Сбросить" Command="{Binding ResetConnectionDefaultsCommand}" Style="{StaticResource NriSecondaryButtonStyle}"/>
+                            <Button Content="Использовать последнее" Command="{Binding UseLastConnectionCommand}" Style="{StaticResource NriSecondaryButtonStyle}"/>
+                        </WrapPanel>
                     </StackPanel>
-                    <Separator Margin="0,10,0,10"/>
-                    <TextBlock Text="Смена пароля" FontWeight="Bold"/>
-                    <TextBlock Text="Старый пароль" Margin="0,6,0,0"/>
-                    <PasswordBox x:Name="OldPasswordBox" PasswordChanged="OnOldPasswordChanged"/>
-                    <TextBlock Text="Новый пароль" Margin="0,6,0,0"/>
-                    <PasswordBox x:Name="NewPasswordBox" PasswordChanged="OnNewPasswordChanged"/>
-                    <Button Content="Сменить пароль" Command="{Binding ChangePasswordCommand}" Margin="0,10,0,0"/>
-                </StackPanel>
-                </ScrollViewer>
-            </Border>
-        </Popup>
+                </Expander>
+                <Button AutomationProperties.AutomationId="Player_Connect_Button" Content="Подключиться" Command="{Binding ConnectToServerCommand}" HorizontalAlignment="Right" Margin="0,16,0,0"/>
+            </StackPanel>
+        </nri:NriConnectionDialog>
+
+        <nri:NriLoginDialog Grid.RowSpan="4"
+                            IsOpen="{Binding IsAuthPopupOpen, Mode=TwoWay}"
+                            Title="Вход"
+                            Message="Войдите в учётную запись игрока, чтобы открыть кампанию и активного персонажа."
+                            AutomationProperties.AutomationId="Player_Login_Dialog">
+            <StackPanel>
+                <TextBlock Text="Логин"/>
+                <TextBox AutomationProperties.AutomationId="Player_Login_Text" Text="{Binding LoginText, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="Пароль" Margin="0,8,0,0"/>
+                <PasswordBox x:Name="AuthPasswordBox" AutomationProperties.AutomationId="Player_Password_Box" PasswordChanged="OnAuthPasswordChanged"/>
+                <TextBox AutomationProperties.AutomationId="Player_Password_Automation_Text" Text="{Binding PasswordText, UpdateSourceTrigger=PropertyChanged}" Width="1" Height="1" Opacity="0.01" IsTabStop="False" Margin="0"/>
+                <WrapPanel HorizontalAlignment="Right" Margin="0,14,0,0">
+                    <Button Content="Регистрация" Command="{Binding RegisterCommand}" Style="{StaticResource NriSecondaryButtonStyle}"/>
+                    <Button AutomationProperties.AutomationId="Player_Login_Button" Content="Войти" Command="{Binding LoginCommand}"/>
+                </WrapPanel>
+                <Expander Header="Дополнительно" Margin="0,10,0,0">
+                    <StackPanel Margin="0,8,0,0">
+                        <TextBlock Text="Старый пароль"/>
+                        <PasswordBox x:Name="OldPasswordBox" PasswordChanged="OnOldPasswordChanged"/>
+                        <TextBlock Text="Новый пароль" Margin="0,8,0,0"/>
+                        <PasswordBox x:Name="NewPasswordBox" PasswordChanged="OnNewPasswordChanged"/>
+                        <Button Content="Сменить пароль" Command="{Binding ChangePasswordCommand}" Style="{StaticResource NriSecondaryButtonStyle}" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+        </nri:NriLoginDialog>
     </Grid>
 </Window>

@@ -18,6 +18,7 @@ public sealed class ClassDefinitionValidator
         if (string.IsNullOrWhiteSpace(definition.DirectionCode)) throw new ArgumentException("DirectionCode is required.");
         if (string.IsNullOrWhiteSpace(definition.BranchCode)) throw new ArgumentException("BranchCode is required.");
         if (string.IsNullOrWhiteSpace(definition.RootClassCode)) throw new ArgumentException("RootClassCode is required.");
+        if (definition.RequirementExpression != null) RequirementExpressionEvaluator0219.Validate(definition.RequirementExpression);
     }
 }
 
@@ -42,6 +43,21 @@ public sealed class SkillDefinitionValidator
         if (definition.XpCoinCost < 0) throw new ArgumentException("XpCoinCost must be non-negative.");
         if (definition.RankMin < 0) throw new ArgumentException("RankMin must be non-negative.");
         if (definition.RankMax < definition.RankMin) throw new ArgumentException("RankMax must be greater than or equal to RankMin.");
+        if (definition.RankMax > 20) throw new ArgumentException("RankMax must not exceed 20 for the active fantasy RuleSet.");
+        if (definition.RequirementExpression != null) RequirementExpressionEvaluator0219.Validate(definition.RequirementExpression);
+        foreach (var milestone in definition.RankMilestones ?? new List<SkillRankMilestoneDefinition>())
+        {
+            if (milestone.Rank < definition.RankMin || milestone.Rank > definition.RankMax) throw new ArgumentException("Skill milestone rank is outside the configured rank range.");
+            if (milestone.RequirementExpression != null) RequirementExpressionEvaluator0219.Validate(milestone.RequirementExpression);
+        }
+        foreach (var technique in definition.Techniques ?? new List<SkillTechniqueDefinition>())
+        {
+            if (string.IsNullOrWhiteSpace(technique.Id) || string.IsNullOrWhiteSpace(technique.DisplayName)) throw new ArgumentException("Skill technique id and display name are required.");
+            if (!string.Equals(technique.SkillId, definition.Code, StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Skill technique must reference its owning skill.");
+            if (technique.MinimumRank < definition.RankMin || technique.MinimumRank > definition.RankMax) throw new ArgumentException("Skill technique rank is outside the configured rank range.");
+            if (technique.MaximumRank.HasValue && technique.MaximumRank.Value < technique.MinimumRank) throw new ArgumentException("Skill technique maximum rank must not be below minimum rank.");
+            if (technique.RequirementExpression != null) RequirementExpressionEvaluator0219.Validate(technique.RequirementExpression);
+        }
         if (definition.IsRollable && string.IsNullOrWhiteSpace(definition.DefaultAttribute)) throw new ArgumentException("DefaultAttribute is required for rollable skills.");
         if (!string.IsNullOrWhiteSpace(definition.DefaultAttribute) &&
             definition.AllowedAttributes.All(x => !string.Equals(x, definition.DefaultAttribute, StringComparison.OrdinalIgnoreCase)))

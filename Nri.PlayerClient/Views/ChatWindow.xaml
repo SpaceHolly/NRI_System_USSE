@@ -8,7 +8,8 @@
         MinHeight="700"
         MaxWidth="400"
         MaxHeight="700"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        AutomationProperties.AutomationId="PlayerChat_Window">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="56"/>
@@ -28,7 +29,10 @@
         </Border>
 
         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,8,0,8" Padding="8">
-            <ListBox x:Name="ChatMessagesList" ItemsSource="{Binding MergedChatRows}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox x:Name="ChatMessagesList"
+                     ItemsSource="{Binding MergedChatRows}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     AutomationProperties.AutomationId="PlayerChat_MessageList">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Border Style="{StaticResource CardStyle}" Padding="10" Margin="0,0,0,6">
@@ -63,15 +67,38 @@
                     <RowDefinition Height="8"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <TextBox Grid.Row="0" Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}" MinHeight="72" MaxHeight="120" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+                <TextBox Grid.Row="0"
+                         Text="{Binding ChatTextInput, UpdateSourceTrigger=PropertyChanged}"
+                         MinHeight="72"
+                         MaxHeight="120"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         AutomationProperties.AutomationId="PlayerChat_MessageInput"/>
                 <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="150"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="82"/>
                         <ColumnDefinition Width="92"/>
                     </Grid.ColumnDefinitions>
-                    <ComboBox Grid.Column="0" ItemsSource="{Binding ChatTypeOptions}" SelectedItem="{Binding ChatTypeInput}"/>
-                    <Button Grid.Column="2" Content="Отправить" Command="{Binding ChatSendCommand}" Height="32" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="0"
+                              ItemsSource="{Binding ChatTypeOptions}"
+                              SelectedItem="{Binding ChatTypeInput}"
+                              AutomationProperties.AutomationId="PlayerChat_ChannelSelector"/>
+                    <Button Grid.Column="2"
+                            Content="Очистить"
+                            Command="{Binding ChatClearDraftCommand}"
+                            Style="{StaticResource NriSecondaryButtonStyle}"
+                            Height="32"
+                            Margin="0,0,6,0"
+                            AutomationProperties.AutomationId="PlayerChat_ClearDraft"/>
+                    <Button Grid.Column="3"
+                            Content="Отправить"
+                            Command="{Binding ChatSendCommand}"
+                            Height="32"
+                            VerticalAlignment="Center"
+                            AutomationProperties.AutomationId="PlayerChat_Send"/>
                 </Grid>
             </Grid>
         </Border>

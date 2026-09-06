@@ -1,0 +1,425 @@
+<UserControl x:Class="Nri.PlayerClient.Views.Pages.PlayerDevelopmentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:nri="clr-namespace:Nri.Ui.Wpf.Controls;assembly=Nri.Ui.Wpf"
+             Focusable="True"
+             AutomationProperties.AutomationId="PlayerDevelopmentRouteRoot"
+             AutomationProperties.Name="Развитие персонажа"
+             PreviewKeyDown="OnPreviewKeyDown"
+             PreviewMouseWheel="OnPreviewMouseWheel"
+             Background="{StaticResource NriApplicationBackgroundBrush}"
+             Foreground="{StaticResource TextBrush}">
+    <UserControl.Resources>
+        <Style x:Key="DevelopmentHeaderButtonStyle" TargetType="Button" BasedOn="{StaticResource NriSecondaryButtonStyle}">
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="4,0,0,0"/>
+        </Style>
+        <Style x:Key="DevelopmentNodeButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="0.92"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="1"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="4" AutomationProperties.AutomationId="PlayerDevelopment_ProductWorkspace">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="44"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource NriSecondarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,3">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="190"/>
+                    <ColumnDefinition Width="160"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="Развитие" FontSize="19" FontWeight="SemiBold"/>
+                    <TextBlock Text="Карта решений" Style="{StaticResource NriMetadataTextStyle}"/>
+                </StackPanel>
+                <nri:NriModeSwitcher Grid.Column="1" Margin="8,0,0,0" MinHeight="36"
+                                     ItemsSource="{Binding DevelopmentHexagons}"
+                                     SelectedValue="{Binding SelectedDevelopmentHexagonId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     SelectedValuePath="HexagonId"
+                                     ToolTip="Основное или магическое развитие"
+                                     AutomationProperties.Name="Основное или магическое развитие"
+                                     AutomationProperties.AutomationId="PlayerDevelopmentGraphSwitch">
+                    <nri:NriModeSwitcher.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                    </nri:NriModeSwitcher.ItemsPanel>
+                    <nri:NriModeSwitcher.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="MinHeight" Value="36"/>
+                            <Setter Property="MinWidth" Value="72"/>
+                            <Setter Property="Padding" Value="8,5"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+                            <Setter Property="AutomationProperties.AutomationId" Value="{Binding AutomationId}"/>
+                        </Style>
+                    </nri:NriModeSwitcher.ItemContainerStyle>
+                    <nri:NriModeSwitcher.ItemTemplate>
+                        <DataTemplate><TextBlock Text="{Binding ProductShortName}" FontWeight="SemiBold"/></DataTemplate>
+                    </nri:NriModeSwitcher.ItemTemplate>
+                </nri:NriModeSwitcher>
+                <ContentControl Grid.Column="2" Focusable="False" AutomationProperties.AutomationId="PlayerDevelopment_Product_Overview" AutomationProperties.Name="Обзор">
+                    <Button Content="Обзор" Command="{Binding DevelopmentOverviewCommand}" Style="{StaticResource DevelopmentHeaderButtonStyle}" AutomationProperties.AutomationId="PlayerDevelopmentOverviewAction"/>
+                </ContentControl>
+                <Button Grid.Column="3" Content="Мой путь" Command="{Binding DevelopmentMyRouteCommand}" Style="{StaticResource DevelopmentHeaderButtonStyle}" AutomationProperties.AutomationId="PlayerDevelopment_Product_MyRoute"/>
+                <Button Grid.Column="4" Content="Доступно" Command="{Binding DevelopmentAvailableNowCommand}" Style="{StaticResource DevelopmentHeaderButtonStyle}" AutomationProperties.AutomationId="PlayerDevelopment_Product_AvailableNow"/>
+                <TextBlock Grid.Column="5"
+                           Margin="12,0"
+                           Text="{Binding DevelopmentBusinessContextText}"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"
+                           Foreground="{StaticResource NriSecondaryTextBrush}"
+                           AutomationProperties.AutomationId="PlayerDevelopment_BusinessContext"/>
+                <Grid Grid.Column="6" Margin="8,0,0,0">
+                    <TextBox MinHeight="36" VerticalContentAlignment="Center" Padding="10,0"
+                             Text="{Binding DevelopmentViewerSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Найти путь или специализацию"
+                             AutomationProperties.Name="Поиск пути или специализации"
+                             AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_SearchBox"/>
+                    <TextBlock Text="Поиск пути" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource NriSecondaryTextBrush}" IsHitTestVisible="False">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DevelopmentViewerSearchText}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding DevelopmentViewerSearchText}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+                <Button Grid.Column="7" Content="◎" Command="{Binding FitToViewDevelopmentHexagonCommand}" Style="{StaticResource DevelopmentHeaderButtonStyle}" ToolTip="Вписать обзор" AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_FitToView"/>
+                <Border Grid.Column="8" Margin="6,0,0,0" MinWidth="54" Height="36" Background="{StaticResource NriElevatedSurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="4">
+                    <TextBlock Text="{Binding DevelopmentViewerZoomText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"
+                               AutomationProperties.AutomationId="PlayerDevelopment_ZoomText"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Background="#FF091424" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+                <Grid>
+                    <Viewbox Stretch="Uniform" StretchDirection="Both" Margin="6">
+                        <Canvas Width="1000" Height="600" Background="#FF091424">
+                            <nri:NriDevelopmentSectorField Width="1000" Height="600" SectorOpacity="0.10"
+                                                           IsHitTestVisible="False"
+                                                           AutomationProperties.AutomationId="PlayerDevelopment_SectorField"
+                                                           AutomationProperties.Name="Шесть направлений развития"/>
+
+                            <ItemsControl ItemsSource="{Binding DevelopmentSpatialEdges}" IsHitTestVisible="False" Width="1000" Height="600">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <nri:NriAccessibleRelationship Width="1000" Height="600" Focusable="False" IsTabStop="False"
+                                                                        AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                        AutomationProperties.Name="{Binding AccessibleText}"
+                                                                        AutomationProperties.HelpText="{Binding GeometryText}">
+                                            <Canvas Width="1000" Height="600">
+                                                <Line X1="{Binding X1}" Y1="{Binding Y1}" X2="{Binding X2}" Y2="{Binding Y2}"
+                                                      Stroke="{Binding Stroke}" StrokeThickness="{Binding Thickness}" Opacity="{Binding Opacity}" StrokeDashArray="{Binding DashArray}"/>
+                                            </Canvas>
+                                        </nri:NriAccessibleRelationship>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <ItemsControl ItemsSource="{Binding DevelopmentSpatialNodes}" Width="1000" Height="600">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="ContentPresenter">
+                                        <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                                        <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Width="{Binding Width}" Height="{Binding Height}" Opacity="{Binding Opacity}"
+                                                IsHitTestVisible="{Binding IsInteractive}" Focusable="{Binding IsInteractive}"
+                                                Command="{Binding DataContext.SelectDevelopmentSpatialNodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource DevelopmentNodeButtonStyle}"
+                                                AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                AutomationProperties.Name="{Binding Title}"
+                                                AutomationProperties.ItemStatus="{Binding AccessibleStatus}">
+                                            <Grid>
+                                                 <Polygon Visibility="{Binding HexVisibility}" Stretch="Fill" Points="22,0 148,0 170,32 148,64 22,64 0,32"
+                                                          Fill="{Binding FillBrush}" Stroke="{Binding StatusBrush}" StrokeThickness="2"/>
+                                                <Rectangle Visibility="{Binding DirectionAccentVisibility}" Height="4" Width="82" VerticalAlignment="Top" Margin="0,7,0,0" RadiusX="2" RadiusY="2" Fill="{Binding SectorBrush}"/>
+                                                <Polygon Visibility="{Binding SpecializationVisibility}" Stretch="Fill" Points="0,0 135,0 156,16 156,62 20,62 0,46"
+                                                         Fill="{Binding FillBrush}" Stroke="{Binding StatusBrush}" StrokeThickness="2"/>
+                                                <Polygon Visibility="{Binding MilestoneVisibility}" Stretch="Fill" Points="38,0 76,34 38,68 0,34"
+                                                         Fill="{Binding FillBrush}" Stroke="{Binding StatusBrush}" StrokeThickness="2"/>
+                                                <Border Visibility="{Binding CardVisibility}" Background="{Binding FillBrush}" BorderBrush="{Binding StatusBrush}" BorderThickness="2" CornerRadius="6">
+                                                    <Grid>
+                                                        <Rectangle Height="4" VerticalAlignment="Top" Margin="8,4,8,0" RadiusX="2" RadiusY="2">
+                                                            <Rectangle.Fill>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                                    <GradientStop Color="{Binding SectorBrush}" Offset="0"/>
+                                                                    <GradientStop Color="{Binding SectorBrush}" Offset="0.48"/>
+                                                                    <GradientStop Color="{Binding SecondarySectorBrush}" Offset="0.52"/>
+                                                                    <GradientStop Color="{Binding SecondarySectorBrush}" Offset="1"/>
+                                                                </LinearGradientBrush>
+                                                            </Rectangle.Fill>
+                                                        </Rectangle>
+                                                    </Grid>
+                                                </Border>
+                                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,7,10,5">
+                                                    <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="150"
+                                                               AutomationProperties.AutomationId="{Binding LabelAutomationId}"/>
+                                                    <TextBlock Text="{Binding Subtitle}" FontSize="11" Foreground="{StaticResource NriSecondaryTextBrush}" TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="150" Margin="0,3,0,0"/>
+                                                </StackPanel>
+                                                <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-7,-7,0" MinWidth="23" Height="23" Padding="4,0" CornerRadius="12" Background="{Binding StatusBrush}" BorderBrush="#FFEAF6FF" BorderThickness="1">
+                                                    <TextBlock Text="{Binding StatusIcon}" Foreground="#FF07101F" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <Border Visibility="{Binding MixedAccentVisibility}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-7,-7,0,0" Width="26" Height="23" CornerRadius="11" Background="#FF183B38" BorderBrush="#FFEAF6FF" BorderThickness="1">
+                                                    <TextBlock Text="⇄" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Canvas>
+                    </Viewbox>
+
+                    <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="14" Padding="10,7" Background="#EE0A1424" BorderBrush="#FF3D5878" BorderThickness="1" CornerRadius="5"
+                            Visibility="{Binding DevelopmentBreadcrumbVisibility}"
+                            AutomationProperties.AutomationId="PlayerDevelopment_FocusBreadcrumb">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Обзор" Command="{Binding DevelopmentOverviewCommand}" Style="{StaticResource GhostButtonStyle}" Padding="2"
+                                    AutomationProperties.Name="Обзор" AutomationProperties.AutomationId="PlayerDevelopment_Breadcrumb_Overview"/>
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding DevelopmentDirectionBreadcrumbVisibility}">
+                                <TextBlock Text="›" Margin="6,0" VerticalAlignment="Center"/>
+                                <Button Content="{Binding DevelopmentDirectionBreadcrumb}" Command="{Binding DevelopmentBackOneLevelCommand}" Style="{StaticResource GhostButtonStyle}" Padding="2"
+                                        AutomationProperties.Name="{Binding DevelopmentDirectionBreadcrumb}"
+                                        AutomationProperties.AutomationId="PlayerDevelopment_DirectionBreadcrumb"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding DevelopmentPathBreadcrumbVisibility}">
+                                <TextBlock Text="›" Margin="6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding DevelopmentPathBreadcrumb}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                           AutomationProperties.Name="{Binding DevelopmentPathBreadcrumb}"
+                                           AutomationProperties.AutomationId="PlayerDevelopment_PathBreadcrumb"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="14" Padding="9,6" Background="#EE0A1424" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="5" Visibility="{Binding DevelopmentViewerLegendVisibility}">
+                        <WrapPanel>
+                            <TextBlock Text="✓ Изучено" Foreground="#FF36E39D" Margin="0,0,10,0"/>
+                            <TextBlock Text="◎ Текущий" Margin="0,0,10,0"/>
+                            <TextBlock Text="→ Доступно" Foreground="#FF69A9FF" Margin="0,0,10,0"/>
+                            <TextBlock Text="▣ Закрыто" Foreground="#FF9AA8BA" Margin="0,0,10,0"/>
+                            <TextBlock Text="● Не хватает валюты" Foreground="#FFF3C969" Margin="0,0,10,0"/>
+                            <TextBlock Text="GM Решение мастера" Foreground="#FFF3C969" Visibility="{Binding DevelopmentGmLegendVisibility}"/>
+                        </WrapPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <nri:NriSemanticRegion Grid.Column="1" Width="380" Margin="14,0,0,0" Visibility="{Binding DevelopmentInspectorVisibility}"
+                                   AutomationProperties.AutomationId="PlayerDevelopment_PathInspector" AutomationProperties.Name="Инспектор пути развития">
+            <Border Background="{StaticResource NriSecondarySurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+                            <TextBlock Text="{Binding DevelopmentSelectedPathKind}" Foreground="{StaticResource NriAccentBrush}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding DevelopmentInspectorTitle}" FontSize="22" FontWeight="Bold" Margin="0,3,0,0"/>
+                            <TextBlock Text="{Binding DevelopmentInspectorSummary}" TextWrapping="Wrap" Foreground="{StaticResource NriSecondaryTextBrush}" Margin="0,6,0,0"/>
+                            <StackPanel Visibility="{Binding DevelopmentPathInspectorDetailsVisibility}">
+                                <Grid Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Диапазон пути" Foreground="{StaticResource NriSecondaryTextBrush}"/><TextBlock Grid.Column="1" Text="{Binding DevelopmentSelectedPathTier}" FontWeight="Bold" TextWrapping="Wrap" AutomationProperties.AutomationId="PlayerDevelopment_CurrentTier"/>
+                                </Grid>
+                                <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Следующая" Foreground="{StaticResource NriSecondaryTextBrush}"/><TextBlock Grid.Column="1" Text="{Binding DevelopmentNextTierText}" FontWeight="Bold" AutomationProperties.AutomationId="PlayerDevelopment_NextTier"/>
+                                </Grid>
+                                <Border Background="{StaticResource NriElevatedSurfaceBrush}" CornerRadius="6" Padding="10" Margin="0,14,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DevelopmentTierScaleTitle}" FontWeight="SemiBold"/>
+                                        <ItemsControl ItemsSource="{Binding DevelopmentTierSegments}" Margin="0,8,0,0">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="{Binding DataContext.DevelopmentTierColumnCount, RelativeSource={RelativeSource AncestorType=UserControl}}"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate><DataTemplate>
+                                                <nri:NriSemanticRegion Height="28" Margin="1" Focusable="False" AutomationProperties.AutomationId="{Binding AutomationId}" AutomationProperties.Name="{Binding AccessibleText}">
+                                                    <Border Background="{Binding Fill}" BorderBrush="{Binding Border}" BorderThickness="{Binding BorderThickness}" CornerRadius="2" ToolTip="{Binding AccessibleText}">
+                                                        <TextBlock Text="{Binding Text}" FontSize="9" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </nri:NriSemanticRegion>
+                                            </DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="✓ изучено · ◎ текущая · → следующая" FontSize="11" Foreground="{StaticResource NriSecondaryTextBrush}" Margin="0,5,0,0"/>
+                                        <Border Margin="0,9,0,0" Padding="9,7" Background="#FF182538" BorderBrush="#FFF3C969" BorderThickness="1" CornerRadius="4" Visibility="{Binding DevelopmentKnownDecisionVisibility}">
+                                            <TextBlock Text="{Binding DevelopmentKnownDecisionText}" TextWrapping="Wrap" Foreground="#FFF3C969" FontWeight="SemiBold" AutomationProperties.AutomationId="PlayerDevelopment_KnownDecision"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="{Binding DevelopmentCostStateText}" TextWrapping="Wrap" Foreground="#FFF3C969" FontWeight="SemiBold" Margin="0,12,0,0" AutomationProperties.AutomationId="PlayerDevelopment_CostState"/>
+                                <TextBlock Text="Требования" FontWeight="SemiBold" Margin="0,14,0,0"/>
+                                <TextBlock Text="{Binding SelectedClassEntryRequirements}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                <TextBlock Text="Следующая награда" FontWeight="SemiBold" Margin="0,12,0,0"/>
+                                <TextBlock Text="{Binding SelectedClassEntryReward}" TextWrapping="Wrap" Foreground="{StaticResource NriSecondaryTextBrush}" Margin="0,5,0,0"/>
+                            </StackPanel>
+                            <TextBlock Text="Школы и навыки пути" FontWeight="SemiBold" Margin="0,14,0,0"/>
+                            <nri:NriSemanticRegion Margin="0,6,0,0"
+                                                   AutomationProperties.AutomationId="PlayerDevelopment_SkillTracks"
+                                                   AutomationProperties.Name="Освоенные школы и навыки">
+                                <ItemsControl ItemsSource="{Binding DevelopmentSkillTracks}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource NriElevatedSurfaceBrush}" BorderBrush="{StaticResource NriBorderBrush}" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding SourcePathText}" Foreground="{StaticResource NriSecondaryTextBrush}" FontSize="12"/>
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15"/>
+                                                    <TextBlock Text="{Binding RankText}" Margin="0,4,0,0"/>
+                                                    <TextBlock Text="{Binding MasteryText}" Foreground="{StaticResource NriAccentBrush}"/>
+                                                    <TextBlock Text="{Binding NextMilestone}" Foreground="{StaticResource NriSecondaryTextBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                    <TextBlock Text="{Binding Techniques}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                    <TextBlock Text="{Binding Requirement}" Foreground="#FFF3C969" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </nri:NriSemanticRegion>
+                            <TextBlock Text="{Binding DevelopmentStatusText}" TextWrapping="Wrap" Foreground="{StaticResource NriSecondaryTextBrush}" Margin="0,12,0,0"
+                                       AutomationProperties.AutomationId="PlayerDevelopment_StatusText"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,12,0,0" Visibility="{Binding DevelopmentPathInspectorDetailsVisibility}">
+                        <Button Content="Продолжить путь"
+                                Click="OnPurchaseNodeClick"
+                                IsEnabled="{Binding CanBuySelectedClassNode}"
+                                AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_PurchaseNode"/>
+                        <Button Content="Запросить открытие" Command="{Binding RequestUnlockNodeCommand}" IsEnabled="{Binding CanRequestSelectedClassNode}" Visibility="{Binding DevelopmentRequestActionVisibility}" Style="{StaticResource NriSecondaryButtonStyle}" Margin="8,0,0,0" AutomationProperties.AutomationId="PlayerDevelopmentHexagonViewer_RequestUnlock"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            </nri:NriSemanticRegion>
+        </Grid>
+
+        <Border Grid.RowSpan="2" Panel.ZIndex="20"
+                Background="{StaticResource NriApplicationBackgroundBrush}"
+                BorderBrush="{StaticResource NriBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="20"
+                Visibility="{Binding IsInitialDevelopmentPending, Converter={StaticResource BooleanToVisibilityConverter}}"
+                AutomationProperties.AutomationId="PlayerInitialDevelopment_Setup">
+            <Grid MaxWidth="1160" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Начальное развитие" Style="{StaticResource NriPageTitleTextStyle}"/>
+                    <TextBlock Text="Выберите стартовые классы и магию. Пакет применяется один раз и не расходует монеты опыта."
+                               Foreground="{StaticResource NriSecondaryTextBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <Grid Grid.Row="1" Margin="0,18,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="1.15*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource SubtleCardStyle}" Margin="0,0,8,0" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="Классы" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <RadioButton Content="Один класс до 2 ранга" IsChecked="{Binding InitialDevelopmentUseSingleClass}" Margin="0,10,0,0"
+                                         AutomationProperties.AutomationId="PlayerInitialDevelopment_ClassModeSingle"/>
+                            <RadioButton Content="Два разных класса по 1 рангу" IsChecked="{Binding InitialDevelopmentUseTwoClasses}" Margin="0,7,0,0"
+                                         AutomationProperties.AutomationId="PlayerInitialDevelopment_ClassModeMulti"/>
+                            <TextBlock Text="Первый класс *" Margin="0,14,0,4"/>
+                            <ComboBox ItemsSource="{Binding InitialDevelopmentBaseClasses}" SelectedItem="{Binding InitialDevelopmentFirstClass}"
+                                      DisplayMemberPath="DisplayName" AutomationProperties.AutomationId="PlayerInitialDevelopment_FirstClass"/>
+                            <StackPanel Margin="0,10,0,0">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers><DataTrigger Binding="{Binding InitialDevelopmentUseTwoClasses}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <TextBlock Text="Второй класс *" Margin="0,0,0,4"/>
+                                <ComboBox ItemsSource="{Binding InitialDevelopmentBaseClasses}" SelectedItem="{Binding InitialDevelopmentSecondClass}"
+                                          DisplayMemberPath="DisplayName" AutomationProperties.AutomationId="PlayerInitialDevelopment_SecondClass"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource SubtleCardStyle}" Margin="8,0" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="Магия" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock Text="Первичный метод *" Margin="0,12,0,4"/>
+                            <ComboBox ItemsSource="{Binding InitialDevelopmentMagicMethods}" SelectedItem="{Binding InitialDevelopmentMagicMethod}"
+                                      DisplayMemberPath="DisplayName" AutomationProperties.AutomationId="PlayerInitialDevelopment_MagicMethod"/>
+                            <TextBlock Text="Базовая стихия *" Margin="0,12,0,4"/>
+                            <ComboBox ItemsSource="{Binding InitialDevelopmentBasicElements}" SelectedItem="{Binding InitialDevelopmentBasicElement}"
+                                      DisplayMemberPath="DisplayName" AutomationProperties.AutomationId="PlayerInitialDevelopment_BasicElement"/>
+                            <TextBlock Text="В этом списке доступны только Вода, Земля, Огонь и Воздух. Особые направления открываются позднее по обычным правилам развития."
+                                       Foreground="{StaticResource NriSecondaryTextBrush}" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource SubtleCardStyle}" Margin="8,0,0,0" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="Итог" Style="{StaticResource SectionTitleTextStyle}"/>
+                            <TextBlock Text="{Binding InitialDevelopmentSummary}" TextWrapping="Wrap" Margin="0,12,0,0"
+                                       AutomationProperties.AutomationId="PlayerInitialDevelopment_Summary"/>
+                            <TextBlock Text="{Binding InitialDevelopmentStatus}" Foreground="{StaticResource NriSecondaryTextBrush}" TextWrapping="Wrap" Margin="0,12,0,0"
+                                       AutomationProperties.AutomationId="PlayerInitialDevelopment_Status"/>
+                            <Button Content="Проверить выбор" Command="{Binding InitialDevelopmentReviewCommand}" Margin="0,18,0,0" HorizontalAlignment="Left"
+                                    AutomationProperties.AutomationId="PlayerInitialDevelopment_Review"/>
+                            <Border Background="{StaticResource NriElevatedSurfaceBrush}" BorderBrush="{StaticResource NriAccentBrush}" BorderThickness="1" CornerRadius="5" Padding="12" Margin="0,14,0,0">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers><DataTrigger Binding="{Binding IsInitialDevelopmentConfirmationOpen}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <TextBlock Text="Подтвердите стартовый пакет" FontWeight="SemiBold"/>
+                                    <TextBlock Text="После применения изменить выбор сможет только GM. Монеты опыта останутся без изменений." TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                    <WrapPanel Margin="0,12,0,0">
+                                        <Button Content="Завершить начальное развитие" Command="{Binding InitialDevelopmentConfirmCommand}"
+                                                AutomationProperties.AutomationId="PlayerInitialDevelopment_Confirm"/>
+                                        <Button Content="Вернуться к выбору" Command="{Binding InitialDevelopmentCancelReviewCommand}" Style="{StaticResource GhostButtonStyle}" Margin="8,0,0,0"
+                                                AutomationProperties.AutomationId="PlayerInitialDevelopment_CancelReview"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -9,11 +9,14 @@ using System.Windows;
 using Nri.AdminClient.Diagnostics;
 using Nri.AdminClient.Views;
 using Nri.Shared.Configuration;
+using Nri.Shared.Diagnostics;
+using Nri.Ui.Wpf.Diagnostics;
 
 namespace Nri.AdminClient;
 
 public partial class App : Application
 {
+    private WpfPerformanceMonitor0214? _performanceMonitor;
     public static ClientConfig ClientConfig { get; private set; } = new ClientConfig();
 
     protected override void OnStartup(StartupEventArgs e)
@@ -21,6 +24,7 @@ public partial class App : Application
         var configPath = Path.Combine(AppContext.BaseDirectory, "client.config.json");
         ClientConfig = ClientLogService.LoadClientConfig(configPath);
         var logger = ClientLogService.Initialize("AdminClient", ClientConfig.PreserveClientLogs);
+        PerformanceTelemetry0214.Initialize("AdminClient");
         logger.Info("Config load attempt path=" + configPath);
         logger.Info($"Loaded client config: host={ClientConfig.ServerHost}, port={ClientConfig.ServerPort}, preserveClientLogs={ClientConfig.PreserveClientLogs}");
 
@@ -46,6 +50,7 @@ public partial class App : Application
         EnsureThemeFallbackResources();
 
         base.OnStartup(e);
+        _performanceMonitor = new WpfPerformanceMonitor0214(Dispatcher);
 
         var window = new MainShellWindow();
         MainWindow = window;
@@ -197,6 +202,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _performanceMonitor?.Dispose();
         try
         {
             ClientLogService.Instance.CompleteLifetime();

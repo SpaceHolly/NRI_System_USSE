@@ -1,0 +1,45 @@
+<Application x:Class="Nri.Ui.Wpf.Gallery.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Nri.Ui.Wpf;component/Resources/NriUiResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <Style TargetType="TabControl">
+                <Setter Property="Background" Value="{StaticResource NriApplicationBackgroundBrush}"/>
+                <Setter Property="BorderThickness" Value="0"/>
+            </Style>
+            <Style TargetType="TabItem">
+                <Setter Property="Foreground" Value="{StaticResource NriSecondaryTextBrush}"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Padding" Value="14,10"/>
+                <Setter Property="Margin" Value="0,0,0,3"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TabItem">
+                            <Border x:Name="TabBorder" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter ContentSource="Header"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsSelected" Value="True"><Setter TargetName="TabBorder" Property="Background" Value="{StaticResource NriElevatedSurfaceBrush}"/><Setter Property="Foreground" Value="{StaticResource NriPrimaryTextBrush}"/></Trigger>
+                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TabBorder" Property="Background" Value="{StaticResource NriSecondarySurfaceBrush}"/></Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="TabBorder" Property="BorderBrush" Value="{StaticResource NriFocusBrush}"/><Setter TargetName="TabBorder" Property="BorderThickness" Value="2"/></Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="GalleryCardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource NriPrimarySurfaceBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource NriBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="6"/>
+                <Setter Property="Padding" Value="18"/>
+                <Setter Property="Margin" Value="0,0,12,12"/>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

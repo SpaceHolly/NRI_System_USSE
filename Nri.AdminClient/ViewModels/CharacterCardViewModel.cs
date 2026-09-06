@@ -55,6 +55,7 @@ public sealed class CharacterCardViewModel : ViewModelBase
     public string PlayerOwner { get; private set; } = "Владелец не выбран";
     public string RaceSummary { get; private set; } = "Раса не указана";
     public string ClassSummary { get; private set; } = "Развитие не загружено";
+    public string SelectedTitleDisplay { get; private set; } = "Без титула";
     public string PortraitPlaceholderText { get; } = "Портрет персонажа";
     public string UserAvatarPlaceholderText { get; } = "Аватар пользователя";
     public string CombatTokenPlaceholderText { get; } = "Иконка боя";
@@ -175,6 +176,7 @@ public sealed class CharacterCardViewModel : ViewModelBase
         var payload = _lastPayload;
         DisplayName = FirstNonEmpty(Str(payload, "name"), Str(payload, "displayName"), CharacterId, "Персонаж");
         RaceSummary = FirstNonEmpty(Str(payload, "race"), Str(payload, "species"), "Раса не указана");
+        SelectedTitleDisplay = FirstNonEmpty(Str(payload, "selectedTitle"), "Без титула");
         BiographyText = BuildBiography(payload);
         NotesText = IsPlayerPreviewMode ? "Скрыто в виде игрока" : FirstNonEmpty(Str(payload, "notes"), Str(payload, "gmNotes"), "GM-заметки отсутствуют");
 
@@ -319,6 +321,7 @@ public sealed class CharacterCardViewModel : ViewModelBase
             MaxDurability = EmptyAsDash(maxDurability),
             IsEquipped = IsTrue(Str(map, "isEquipped")) || IsTrue(Str(map, "equipped")),
             EquipmentSlotId = slotId,
+            SlotDisplayName = ResolveSlotDisplayName(slotId),
             ContainerId = EmptyAsDash(Str(map, "containerId")),
             Tags = IsPlayerPreviewMode ? "—" : EmptyAsDash(tags),
             Notes = IsPlayerPreviewMode ? "—" : EmptyAsDash(Str(map, "notes"))
@@ -404,6 +407,7 @@ public sealed class CharacterCardViewModel : ViewModelBase
         Notify(nameof(PlayerOwner));
         Notify(nameof(RaceSummary));
         Notify(nameof(ClassSummary));
+        Notify(nameof(SelectedTitleDisplay));
         Notify(nameof(BiographyText));
         Notify(nameof(NotesText));
         Notify(nameof(CombatSummaryText));
@@ -497,6 +501,13 @@ public sealed class CharacterCardViewModel : ViewModelBase
         return string.IsNullOrWhiteSpace(value) ? "—" : value;
     }
 
+    private static string ResolveSlotDisplayName(string slotId)
+    {
+        if (string.IsNullOrWhiteSpace(slotId) || slotId == "—") return "Не назначен";
+        var slot = EquipmentSlots.FirstOrDefault(candidate => IsSlotMatch(slotId, candidate.Id));
+        return string.IsNullOrWhiteSpace(slot.Title) ? slotId : slot.Title;
+    }
+
     private static string FirstNonEmpty(params string[] values)
     {
         return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
@@ -514,6 +525,7 @@ public sealed class InventoryCardItemVm
     public string MaxDurability { get; set; } = "—";
     public bool IsEquipped { get; set; }
     public string EquipmentSlotId { get; set; } = "—";
+    public string SlotDisplayName { get; set; } = "Не назначен";
     public string ContainerId { get; set; } = "—";
     public string Tags { get; set; } = "—";
     public string Notes { get; set; } = "—";
